@@ -2,7 +2,7 @@
 
 - I will create tools to help me to DM ;)
 
-- I enjoy using [this](https://dndbattletracker.com/) website to help me in the combats, but I think it's very confuse to create and *edit*, so I'm going to create a tool that helps you to create and export, so you can you in the other site.
+- I enjoy using [this](https://dndbattletracker.com/) website to help me in the combats, but I think it's very confuse to create and *edit*, so I'm going to create a tool that helps you to create and export, so you can use it in the other site.
 
 
 
