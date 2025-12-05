@@ -1,0 +1,255 @@
+{
+	"creatures": [
+		{
+			"name": "Kaique",
+			"initiative": 22,
+			"initiativeRoll": {
+				"result": 22,
+				"terms": [
+					{
+						"type": "integer",
+						"term": "22"
+					}
+				]
+			},
+			"initiativeTieBreaker": null,
+			"healthPoints": 118,
+			"maxHealthPoints": 120,
+			"armorClass": "14",
+			"temporaryHealthPoints": 10,
+			"id": 3,
+			"alive": true,
+			"conditions": [
+				{
+					"text": "Blinded",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Blinded",
+					"id": "blinded-3"
+				},
+				{
+					"text": "Grappled",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Grappled",
+					"id": "grappled-3"
+				},
+				{
+					"text": "Poisoned",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Poisoned",
+					"id": "poisoned-3"
+				},
+				{
+					"text": "Prone",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Prone",
+					"id": "prone-3"
+				},
+				{
+					"text": "Incapacitated",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Incapacitated",
+					"id": "incapacitated-3"
+				},
+				{
+					"text": "Charmed",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Charmed",
+					"id": "charmed-3"
+				},
+				{
+					"text": "Deafened",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Deafened",
+					"id": "deafened-3"
+				},
+				{
+					"text": "Invisible",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Invisible",
+					"id": "invisible-3"
+				},
+				{
+					"text": "Restrained",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Restrained",
+					"id": "restrained-3"
+				},
+				{
+					"text": "Stunned",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Stunned",
+					"id": "stunned-3"
+				},
+				{
+					"text": "Unconscious",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Unconscious",
+					"id": "unconscious-3"
+				},
+				{
+					"text": "Petrified",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Petrified",
+					"id": "petrified-3"
+				},
+				{
+					"text": "Paralyzed",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"url": "https://www.dndbeyond.com/sources/basic-rules/appendix-a-conditions#Paralyzed",
+					"id": "paralyzed-3"
+				}
+			],
+			"notes": [
+				{
+					"text": "Teste 1",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"id": 0
+				},
+				{
+					"text": "Teste 2",
+					"appliedAtRound": 0,
+					"appliedAtSeconds": 0,
+					"id": 1
+				}
+			],
+			"locked": false,
+			"shared": true,
+			"hitPointsShared": true,
+			"statBlock": null,
+			"totalSpellSlots": {
+				"1st": 4,
+				"2nd": 3,
+				"3rd": 3,
+				"4th": 3,
+				"5th": 4,
+				"6th": 2,
+				"7th": 2,
+				"8th": 1,
+				"9th": 1
+			},
+			"usedSpellSlots": {
+				"1st": 0,
+				"2nd": 0
+			},
+			"spells": {
+				"levitate": {
+					"label": "Levitate",
+					"total": 3
+				},
+				"dispelmagic": {
+					"label": "Dispel Magic",
+					"total": 4
+				}
+			}
+		},
+		{
+			"name": "nome de teste #1",
+			"initiative": 15,
+			"initiativeRoll": {
+				"result": 15,
+				"terms": [
+					{
+						"type": "integer",
+						"term": "15"
+					}
+				]
+			},
+			"initiativeTieBreaker": null,
+			"healthPoints": 70,
+			"maxHealthPoints": 70,
+			"armorClass": "12",
+			"temporaryHealthPoints": null,
+			"id": 0,
+			"alive": true,
+			"conditions": [],
+			"notes": [],
+			"locked": false,
+			"shared": true,
+			"hitPointsShared": true,
+			"statBlock": null,
+			"totalSpellSlots": null,
+			"usedSpellSlots": null,
+			"spells": {}
+		},
+		{
+			"name": "nome de teste #2",
+			"initiative": 15,
+			"initiativeRoll": {
+				"result": 15,
+				"terms": [
+					{
+						"type": "integer",
+						"term": "15"
+					}
+				]
+			},
+			"initiativeTieBreaker": null,
+			"healthPoints": 70,
+			"maxHealthPoints": 70,
+			"armorClass": "12",
+			"temporaryHealthPoints": null,
+			"id": 1,
+			"alive": true,
+			"conditions": [],
+			"notes": [],
+			"locked": false,
+			"shared": true,
+			"hitPointsShared": true,
+			"statBlock": null,
+			"totalSpellSlots": null,
+			"usedSpellSlots": null,
+			"spells": {}
+		},
+		{
+			"name": "nome de teste 77",
+			"initiative": 15,
+			"initiativeRoll": {
+				"result": 15,
+				"terms": [
+					{
+						"type": "integer",
+						"term": "15"
+					}
+				]
+			},
+			"initiativeTieBreaker": null,
+			"healthPoints": 70,
+			"maxHealthPoints": 70,
+			"armorClass": "12",
+			"temporaryHealthPoints": null,
+			"id": 2,
+			"alive": true,
+			"conditions": [],
+			"notes": [],
+			"locked": false,
+			"shared": true,
+			"hitPointsShared": true,
+			"statBlock": null,
+			"totalSpellSlots": null,
+			"usedSpellSlots": null,
+			"spells": {}
+		}
+	],
+	"creatureIdCount": 4,
+	"activeCreature": null,
+	"round": 0,
+	"battleCreated": false,
+	"shareEnabled": false,
+	"battleTrackerVersion": "5.123.0",
+	"sharedTimestamp": null,
+	"loaded": true
+}
