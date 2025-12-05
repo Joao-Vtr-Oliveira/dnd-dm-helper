@@ -12,3 +12,4 @@
 - An way of creating and saving sheets.
 - Saving this sheets and encounters in localStorage.
 - A way of organizing playlists and sounds.
+- Add the dnd API to use the bestiary for facilitate the import in the encounter builder (?).
