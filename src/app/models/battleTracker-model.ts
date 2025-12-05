@@ -1,0 +1,1 @@
+// TODO: Create the types, all here or in differents files.
