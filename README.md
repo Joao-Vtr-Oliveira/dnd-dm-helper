@@ -14,9 +14,9 @@
 
 [X] An easier and better way of creating and exporting battles and encounters.
 
-[] An way of creating and saving sheets.
+[X] An way of creating and saving sheets.
 
-[] Saving this sheets and encounters in localStorage.
+[X] Saving this sheets and encounters in localStorage.
 
 [] A way of organizing playlists and sounds.
 
