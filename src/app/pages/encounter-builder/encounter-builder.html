@@ -1,1 +1,126 @@
-<p>encounter-builder works!</p>
+<div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+	<!-- FORM ADD -->
+	<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+		<div class="grid grid-cols-1 md:grid-cols-8 gap-3 items-end">
+			<label class="block md:col-span-3">
+				<span class="text-xs opacity-80">Creature Name</span>
+				<input
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="draft().name"
+					(ngModelChange)="setDraftName($event)"
+				/>
+			</label>
+
+			<label class="block">
+				<span class="text-xs opacity-80">Init</span>
+				<input
+					type="number"
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="draft().initiative"
+					(ngModelChange)="setDraftInitiative($event)"
+				/>
+			</label>
+
+			<label class="block">
+				<span class="text-xs opacity-80">HP</span>
+				<input
+					type="number"
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="draft().hp"
+					(ngModelChange)="setDraftHp($event)"
+				/>
+			</label>
+
+			<label class="block">
+				<span class="text-xs opacity-80">Max HP</span>
+				<input
+					type="number"
+					readonly
+					class="w-full mt-1 rounded-xl bg-black/10 border border-white/10 px-3 py-2 opacity-80"
+					[ngModel]="draft().maxHp"
+				/>
+			</label>
+
+			<label class="block">
+				<span class="text-xs opacity-80">AC</span>
+				<input
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="draft().ac"
+					(ngModelChange)="setDraftAc($event)"
+				/>
+			</label>
+
+			<label class="block">
+				<span class="text-xs opacity-80">Qty</span>
+				<input
+					type="number"
+					min="1"
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="draft().quantity"
+					(ngModelChange)="setDraftQty($event)"
+				/>
+			</label>
+
+			<button
+				class="h-11 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
+				(click)="addCreatures()"
+			>
+				+ Add
+			</button>
+		</div>
+	</div>
+
+	<!-- LISTA -->
+	<div class="space-y-3">
+		@for (c of creatures(); track c.id) {
+		<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+			<input
+				class="w-full text-lg font-semibold rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+				[ngModel]="c.name"
+				(ngModelChange)="updateCreature(c.id, { name: $event })"
+			/>
+
+			<div class="mt-2 grid grid-cols-2 md:grid-cols-5 gap-2">
+				<input
+					type="number"
+					class="rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					placeholder="Init"
+					[ngModel]="c.initiative"
+					(ngModelChange)="updateCreature(c.id, { initiative: $event === '' ? null : +$event })"
+				/>
+
+				<input
+					type="number"
+					class="rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					placeholder="HP"
+					[ngModel]="c.healthPoints"
+					(ngModelChange)="updateCreature(c.id, { healthPoints: +$event })"
+				/>
+
+				<input
+					type="number"
+					class="rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					placeholder="Max HP"
+					[ngModel]="c.maxHealthPoints"
+					(ngModelChange)="updateCreature(c.id, { maxHealthPoints: +$event })"
+				/>
+
+				<input
+					class="rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					type="number"
+					placeholder="AC"
+					[ngModel]="c.armorClass"
+					(ngModelChange)="updateCreature(c.id, { armorClass: $event })"
+				/>
+
+				<button
+					class="rounded-xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 px-3 py-2"
+					(click)="removeCreature(c.id)"
+				>
+					Remove
+				</button>
+			</div>
+		</div>
+		}
+	</div>
+</div>
