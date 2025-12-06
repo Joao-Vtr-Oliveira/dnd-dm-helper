@@ -1,0 +1,109 @@
+<div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <div>
+      <h2 class="text-lg font-semibold">Saved encounters</h2>
+      <p class="text-sm opacity-70">LocalStorage (navegador)</p>
+    </div>
+
+    <div class="flex gap-2">
+      <button
+        class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10"
+        (click)="newEncounter()"
+      >
+        + New
+      </button>
+
+      <button
+        class="h-10 px-4 rounded-2xl bg-white/10 cursor-pointer hover:bg-white/15 border border-white/10"
+        (click)="importOpen.set(!importOpen())"
+      >
+        @if (importOpen()) { Hide Import } @else { Import }
+      </button>
+    </div>
+  </div>
+
+  <input
+    class="w-full rounded-2xl bg-black/20 border border-white/10 px-4 py-3"
+    placeholder="Search..."
+    [value]="q()"
+    (input)="true"
+  />
+
+  @if (importOpen()) {
+    <div class="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
+      <input
+        type="file"
+        accept="application/json,.json"
+        class="block w-full text-sm opacity-90 file:mr-3 file:h-10 file:px-4 file:rounded-2xl
+               file:bg-white/10 file:hover:bg-white/15 file:border file:border-white/10
+               file:text-sm file:cursor-pointer"
+        (change)="onFileSelected($event)"
+      />
+
+      <textarea
+        class="w-full h-40 rounded-2xl bg-black/20 border border-white/10 p-3 font-mono text-xs"
+        placeholder="Cole o JSON..."
+        [ngModel]="importText()"
+        (ngModelChange)="importText.set($event)"
+      ></textarea>
+
+      <button
+        class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
+        (click)="importAndSave()"
+      >
+        Import & Save
+      </button>
+
+      @if (msg()) {
+        <div
+          class="rounded-2xl border p-3 text-sm"
+          [class.border-red-400/30]="msg()!.type === 'error'"
+          [class.bg-red-500/10]="msg()!.type === 'error'"
+          [class.border-yellow-400/30]="msg()!.type === 'warn'"
+          [class.bg-yellow-500/10]="msg()!.type === 'warn'"
+          [class.border-emerald-400/30]="msg()!.type === 'success'"
+          [class.bg-emerald-500/10]="msg()!.type === 'success'"
+        >
+          {{ msg()!.text }}
+        </div>
+      }
+    </div>
+  }
+
+  <div class="space-y-3">
+    @if (filtered().length === 0) {
+      <div class="rounded-2xl bg-white/5 border border-white/10 p-4 opacity-80">
+        Nenhum encontro salvo ainda.
+      </div>
+    } @else {
+      @for (e of filtered(); track e.id) {
+        <div class="rounded-2xl bg-white/5 border border-white/10 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <div class="text-lg font-semibold">{{ e.title }}</div>
+            <div class="text-xs opacity-70">
+              Updated: {{ e.updatedAt | date:'short' }}
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10" (click)="edit(e.id)">
+              Edit
+            </button>
+
+            <button class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10" (click)="export(e.id)">
+              Export
+            </button>
+
+            <button class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10" (click)="duplicate(e.id)">
+              Duplicate
+            </button>
+
+            <button class="h-10 px-4 rounded-2xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20" (click)="remove(e.id)">
+              Delete
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>
