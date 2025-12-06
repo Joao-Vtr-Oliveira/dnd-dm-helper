@@ -59,24 +59,27 @@
 		</div>
 	</div>
 
-	<div class="rounded-2xl bg-white/5 border border-white/10 p-4 flex flex-col md:flex-row md:items-center gap-3 justify-between">
-  <div class="flex-1">
-    <div class="text-xs opacity-70">Encounter title</div>
-    <input
-      class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
-      [ngModel]="title()"
-      (ngModelChange)="title.set($event)"
-      placeholder="Ex: Session 12 - Graveyard"
-    />
-  </div>
+<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+    <label class="md:col-span-10 block">
+      <span class="text-xs opacity-70">Encounter title</span>
+      <input
+        class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2 placeholder:italic"
+        [ngModel]="title()"
+        (ngModelChange)="title.set($event)"
+        placeholder="Ex: Session 12 - Graveyard"
+      />
+    </label>
 
-  <button
-    class="h-11 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10"
-    (click)="save()"
-  >
-    Save
-  </button>
+    <button
+      class="md:col-span-2 cursor-pointer h-11 w-full rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 shrink-0"
+      (click)="save()"
+    >
+      Save
+    </button>
+  </div>
 </div>
+
 
 
 	<div class="space-y-3">
@@ -305,15 +308,13 @@
 		}
 	</div>
 
-<!-- IMPORT / EXPORT -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <!-- IMPORT -->
   <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
     <div class="flex items-center justify-between gap-2">
       <div class="text-sm font-semibold opacity-90">Import</div>
 
       <button
-        class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
+        class="h-10 px-4 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
         (click)="importOpen.set(!importOpen())"
       >
         @if (importOpen()) { Hide } @else { Open }
@@ -340,14 +341,14 @@
 
         <div class="flex gap-2">
           <button
-            class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
+            class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 transition"
             (click)="importFromTextarea()"
           >
             Import
           </button>
 
           <button
-            class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
+            class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 transition"
             (click)="clearImport()"
           >
             Clear
@@ -371,21 +372,20 @@
     }
   </div>
 
-  <!-- EXPORT -->
   <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
     <div class="flex items-center justify-between gap-2">
       <div class="text-sm font-semibold opacity-90">Export</div>
 
       <div class="flex gap-2">
         <button
-          class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
+          class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 transition"
           (click)="downloadExport()"
         >
           Download
         </button>
 
         <button
-          class="h-10 w-10 inline-flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
+          class="h-10 w-10 inline-flex cursor-pointer items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
           (click)="copyExportJson()"
           title="Copy JSON"
           aria-label="Copy JSON"
@@ -394,7 +394,7 @@
         </button>
 
         <button
-          class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
+          class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 transition"
           (click)="exportOpen.set(!exportOpen())"
         >
           @if (exportOpen()) { Hide } @else { Preview }
