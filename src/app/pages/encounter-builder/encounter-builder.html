@@ -1,8 +1,8 @@
 <div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-	<!-- FORM ADD -->
+	<!-- ADD FORM (sem Max HP) -->
 	<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
-		<div class="grid grid-cols-1 md:grid-cols-8 gap-3 items-end">
-			<label class="block md:col-span-3">
+		<div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+			<label class="block md:col-span-5">
 				<span class="text-xs opacity-80">Creature Name</span>
 				<input
 					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
@@ -11,7 +11,7 @@
 				/>
 			</label>
 
-			<label class="block">
+			<label class="block md:col-span-2">
 				<span class="text-xs opacity-80">Init</span>
 				<input
 					type="number"
@@ -21,7 +21,7 @@
 				/>
 			</label>
 
-			<label class="block">
+			<label class="block md:col-span-2">
 				<span class="text-xs opacity-80">HP</span>
 				<input
 					type="number"
@@ -31,17 +31,7 @@
 				/>
 			</label>
 
-			<label class="block">
-				<span class="text-xs opacity-80">Max HP</span>
-				<input
-					type="number"
-					readonly
-					class="w-full mt-1 rounded-xl bg-black/10 border border-white/10 px-3 py-2 opacity-80"
-					[ngModel]="draft().maxHp"
-				/>
-			</label>
-
-			<label class="block">
+			<label class="block md:col-span-1">
 				<span class="text-xs opacity-80">AC</span>
 				<input
 					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
@@ -50,7 +40,7 @@
 				/>
 			</label>
 
-			<label class="block">
+			<label class="block md:col-span-1">
 				<span class="text-xs opacity-80">Qty</span>
 				<input
 					type="number"
@@ -62,7 +52,7 @@
 			</label>
 
 			<button
-				class="h-11 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
+				class="h-11 md:col-span-1 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
 				(click)="addCreatures()"
 			>
 				+ Add
@@ -70,56 +60,243 @@
 		</div>
 	</div>
 
-	<!-- LISTA -->
+	<!-- CREATURE CARDS -->
 	<div class="space-y-3">
 		@for (c of creatures(); track c.id) {
 		<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
-			<input
-				class="w-full text-lg font-semibold rounded-xl bg-black/20 border border-white/10 px-3 py-2"
-				[ngModel]="c.name"
-				(ngModelChange)="updateCreature(c.id, { name: $event })"
-			/>
-
-			<div class="mt-2 grid grid-cols-2 md:grid-cols-5 gap-2">
+			<!-- header -->
+			<div class="flex items-center gap-3">
 				<input
-					type="number"
-					class="rounded-xl bg-black/20 border border-white/10 px-3 py-2"
-					placeholder="Init"
-					[ngModel]="c.initiative"
-					(ngModelChange)="updateCreature(c.id, { initiative: $event === '' ? null : +$event })"
-				/>
-
-				<input
-					type="number"
-					class="rounded-xl bg-black/20 border border-white/10 px-3 py-2"
-					placeholder="HP"
-					[ngModel]="c.healthPoints"
-					(ngModelChange)="updateCreature(c.id, { healthPoints: +$event })"
-				/>
-
-				<input
-					type="number"
-					class="rounded-xl bg-black/20 border border-white/10 px-3 py-2"
-					placeholder="Max HP"
-					[ngModel]="c.maxHealthPoints"
-					(ngModelChange)="updateCreature(c.id, { maxHealthPoints: +$event })"
-				/>
-
-				<input
-					class="rounded-xl bg-black/20 border border-white/10 px-3 py-2"
-					type="number"
-					placeholder="AC"
-					[ngModel]="c.armorClass"
-					(ngModelChange)="updateCreature(c.id, { armorClass: $event })"
+					class="flex-1 text-lg font-semibold rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="c.name"
+					(ngModelChange)="updateCreature(c.id, { name: $event })"
 				/>
 
 				<button
-					class="rounded-xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 px-3 py-2"
+					class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
+					(click)="toggleExpanded(c.id)"
+				>
+					@if (isExpanded(c.id)) { Hide } @else { Details }
+				</button>
+
+				<button
+					class="px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 text-sm"
 					(click)="removeCreature(c.id)"
 				>
 					Remove
 				</button>
 			</div>
+
+			<!-- main stats (bem localizável) -->
+			<div class="mt-3 grid grid-cols-1 md:grid-cols-12 gap-3">
+				<div class="md:col-span-2 rounded-xl bg-black/15 border border-white/10 p-3">
+					<div class="text-[10px] uppercase tracking-wider opacity-70">Init</div>
+					<input
+						type="number"
+						class="mt-2 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
+						[ngModel]="c.initiative"
+						(ngModelChange)="updateCreature(c.id, { initiative: $event === '' ? null : +$event })"
+					/>
+				</div>
+
+				<div class="md:col-span-2 rounded-xl bg-black/15 border border-white/10 p-3">
+					<div class="text-[10px] uppercase tracking-wider opacity-70">AC</div>
+					<input
+						class="mt-2 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
+						[ngModel]="c.armorClass"
+						(ngModelChange)="updateCreature(c.id, { armorClass: $event })"
+					/>
+				</div>
+
+				<div class="md:col-span-5 rounded-xl bg-black/15 border border-white/10 p-3">
+					<div class="text-[10px] uppercase tracking-wider opacity-70">HP (current / max)</div>
+					<div class="mt-2 flex items-center gap-2">
+						<input
+							type="number"
+							class="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
+							[ngModel]="c.healthPoints"
+							(ngModelChange)="updateCreature(c.id, { healthPoints: +$event })"
+						/>
+						<span class="opacity-60">/</span>
+						<input
+							type="number"
+							class="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
+							[ngModel]="c.maxHealthPoints"
+							(ngModelChange)="updateCreature(c.id, { maxHealthPoints: +$event })"
+						/>
+					</div>
+				</div>
+
+				<div class="md:col-span-3 rounded-xl bg-black/15 border border-white/10 p-3">
+					<div class="text-[10px] uppercase tracking-wider opacity-70">Temp HP</div>
+					<input
+						type="number"
+						class="mt-2 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
+						[ngModel]="c.temporaryHealthPoints"
+						(ngModelChange)="
+							updateCreature(c.id, { temporaryHealthPoints: $event === '' ? null : +$event })
+						"
+					/>
+				</div>
+			</div>
+
+			<!-- DETAILS -->
+			@if (isExpanded(c.id)) {
+			<div class="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4">
+				<!-- NOTES -->
+				<section class="md:col-span-6 rounded-2xl bg-black/10 border border-white/10 p-4">
+					<div class="flex items-center justify-between gap-2">
+						<h3 class="text-sm font-semibold opacity-90">Notes</h3>
+						<span class="text-xs opacity-60">{{ c.notes.length }} item(s)</span>
+					</div>
+
+					<textarea
+						class="mt-3 w-full h-24 rounded-xl bg-black/20 border border-white/10 p-3 text-sm"
+						placeholder="Write a note…"
+						[ngModel]="getNoteDraft(c.id)"
+						(ngModelChange)="setNoteDraft(c.id, $event)"
+					></textarea>
+
+					<button
+						class="mt-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
+						(click)="addNote(c.id)"
+					>
+						+ Add Note
+					</button>
+
+					<div class="mt-3 space-y-2">
+						@for (n of c.notes; track n.id) {
+						<div class="flex gap-2">
+							<input
+								class="flex-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm"
+								[ngModel]="n.text"
+								(ngModelChange)="updateNote(c.id, n.id, { text: $event })"
+							/>
+							<button
+								class="px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 text-sm"
+								(click)="removeNote(c.id, n.id)"
+							>
+								X
+							</button>
+						</div>
+						}
+					</div>
+				</section>
+
+				<!-- SPELLCASTING -->
+				<section class="md:col-span-6 rounded-2xl bg-black/10 border border-white/10 p-4">
+					<div class="flex items-center justify-between gap-2">
+						<h3 class="text-sm font-semibold opacity-90">Spellcasting</h3>
+						<span class="text-xs opacity-60"> {{ spellEntries(c.spells).length }} spell(s) </span>
+					</div>
+
+					@if (c.totalSpellSlots === null || c.usedSpellSlots === null) {
+					<button
+						class="mt-3 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
+						(click)="enableSpellcasting(c.id)"
+					>
+						Enable spell slots
+					</button>
+					} @else {
+					<!-- Slots -->
+					<div class="mt-3 grid grid-cols-1 gap-2">
+						@for (lvl of SPELL_LEVELS; track lvl) {
+						<div
+							class="grid grid-cols-12 gap-2 items-center rounded-xl bg-black/15 border border-white/10 p-2"
+						>
+							<div class="col-span-2 text-xs opacity-80 font-semibold">{{ lvl }}</div>
+
+							<div class="col-span-5">
+								<div class="text-[10px] uppercase tracking-wider opacity-60">Total</div>
+								<input
+									type="number"
+									class="mt-1 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-sm"
+									[ngModel]="slotValue(c.totalSpellSlots, lvl)"
+									(ngModelChange)="setSpellSlot(c.id, 'total', lvl, $event)"
+								/>
+							</div>
+
+							<div class="col-span-5">
+								<div class="text-[10px] uppercase tracking-wider opacity-60">Used</div>
+								<input
+									type="number"
+									class="mt-1 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-sm"
+									[ngModel]="slotValue(c.usedSpellSlots, lvl)"
+									(ngModelChange)="setSpellSlot(c.id, 'used', lvl, $event)"
+								/>
+							</div>
+						</div>
+						}
+					</div>
+					}
+
+					<!-- Spells add -->
+					<div class="mt-4 rounded-2xl bg-black/10 border border-white/10 p-3">
+						<div class="text-xs font-semibold opacity-80">Spells</div>
+
+						<div class="mt-2 grid grid-cols-1 md:grid-cols-12 gap-2">
+							<input
+								class="md:col-span-3 rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm"
+								placeholder="key (optional)"
+								[ngModel]="getSpellDraft(c.id).key"
+								(ngModelChange)="setSpellDraft(c.id, { key: $event })"
+							/>
+							<input
+								class="md:col-span-6 rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm"
+								placeholder="Label (e.g. Dispel Magic)"
+								[ngModel]="getSpellDraft(c.id).label"
+								(ngModelChange)="setSpellDraft(c.id, { label: $event })"
+							/>
+							<input
+								type="number"
+								class="md:col-span-2 rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm"
+								placeholder="Total"
+								[ngModel]="getSpellDraft(c.id).total"
+								(ngModelChange)="setSpellDraft(c.id, { total: +$event })"
+							/>
+							<button
+								class="md:col-span-1 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
+								(click)="addSpell(c.id)"
+							>
+								+
+							</button>
+						</div>
+
+						<div class="mt-3 space-y-2">
+							@for (s of spellEntries(c.spells); track s.key) {
+							<div class="grid grid-cols-12 gap-2 items-center">
+								<div class="col-span-3 text-xs opacity-70 truncate">
+									<span class="inline-flex px-2 py-1 rounded-lg bg-white/5 border border-white/10">
+										{{ s.key }}
+									</span>
+								</div>
+
+								<input
+									class="col-span-6 rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm"
+									[ngModel]="s.value.label"
+									(ngModelChange)="updateSpell(c.id, s.key, { label: $event })"
+								/>
+
+								<input
+									type="number"
+									class="col-span-2 rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm"
+									[ngModel]="s.value.total"
+									(ngModelChange)="updateSpell(c.id, s.key, { total: +$event })"
+								/>
+
+								<button
+									class="col-span-1 px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 text-sm"
+									(click)="removeSpell(c.id, s.key)"
+								>
+									X
+								</button>
+							</div>
+							}
+						</div>
+					</div>
+				</section>
+			</div>
+			}
 		</div>
 		}
 	</div>
