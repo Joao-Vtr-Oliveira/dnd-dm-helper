@@ -1,4 +1,4 @@
-import { Component, computed, effect, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -12,6 +12,7 @@ import type {
 	SpellSlots,
 	SpellsByKey,
 } from '../../models/battleTracker-model';
+import { EncounterIoService } from '../../services/encounter-io-service/encounter-io-service';
 
 type DraftCreature = {
 	name: string;
@@ -31,14 +32,13 @@ type ConditionDraft = { text: string; url: string };
 	templateUrl: './encounter-builder.html',
 })
 export class EncounterBuilder {
-	encounter = signal<BattleTracker>(structuredClone(encounterBase));
+	private io = inject(EncounterIoService);
 
+	encounter = signal<BattleTracker>(structuredClone(encounterBase));
 	creatures = computed(() => this.encounter().creatures);
 
-	// ✅ só @if/@for — vamos controlar expandido por aqui
 	expandedId = signal<number | null>(null);
 
-	// drafts por criatura (pra add notes/spells/conditions)
 	noteDrafts = signal<Record<number, string>>({});
 	spellDrafts = signal<Record<number, SpellDraft>>({});
 	conditionDrafts = signal<Record<number, ConditionDraft>>({});
@@ -213,7 +213,6 @@ export class EncounterBuilder {
 		});
 	}
 
-	// --- SPELLCASTING enable + slots
 	enableSpellcasting(creatureId: number) {
 		this.updateCreature(creatureId, {
 			totalSpellSlots: {},
@@ -320,6 +319,17 @@ export class EncounterBuilder {
 			delete c.spells[key];
 			return next;
 		});
+	}
+
+	exportOpen = signal(false);
+	exportJson = computed(() => this.io.toJson(this.encounter()));
+
+	downloadExport() {
+		this.io.download(this.encounter());
+	}
+
+	copyExportJson() {
+		return this.io.copy(this.encounter());
 	}
 
 	constructor() {
