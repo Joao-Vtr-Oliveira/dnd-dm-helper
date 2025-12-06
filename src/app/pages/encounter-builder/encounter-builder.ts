@@ -21,7 +21,7 @@ type DraftCreature = {
 	quantity: number;
 };
 
-type SpellDraft = { key: string; label: string; total: number };
+type SpellDraft = { label: string; total: number };
 type ConditionDraft = { text: string; url: string };
 
 @Component({
@@ -53,7 +53,6 @@ export class EncounterBuilder {
 		quantity: 1,
 	});
 
-	// helpers
 	private parseNullableNumber(v: any): number | null {
 		if (v === '' || v === null || v === undefined) return null;
 		const n = Number(v);
@@ -73,7 +72,6 @@ export class EncounterBuilder {
 			.slice(0, 40);
 	}
 
-	// --- Draft setters (top form)
 	setDraftName(v: string) {
 		this.draft.update((d) => ({ ...d, name: v }));
 	}
@@ -91,6 +89,10 @@ export class EncounterBuilder {
 		this.draft.update((d) => ({ ...d, quantity: n }));
 	}
 
+	private cleanDraft() {
+		this.draft.set({ name: '', initiative: null, hp: null, ac: '', quantity: 1 });
+	}
+
 	toggleExpanded(id: number) {
 		this.expandedId.update((curr) => (curr === id ? null : id));
 	}
@@ -98,7 +100,6 @@ export class EncounterBuilder {
 		return this.expandedId() === id;
 	}
 
-	// --- CRUD base
 	addCreatures() {
 		const d = this.draft();
 		const qty = Math.max(1, Math.floor(d.quantity || 1));
@@ -114,7 +115,7 @@ export class EncounterBuilder {
 					name: d.name || `Creature #${id + 1}`,
 					initiative: d.initiative,
 					healthPoints: hp,
-					maxHealthPoints: hp, // ✅ HP e Max HP iguais ao adicionar
+					maxHealthPoints: hp,
 					armorClass: d.ac || '',
 					temporaryHealthPoints: null,
 					id,
@@ -135,6 +136,8 @@ export class EncounterBuilder {
 			next.shareEnabled = false;
 			next.battleTrackerVersion = '5.123.0';
 			next.sharedTimestamp = null;
+
+			this.cleanDraft();
 
 			return next;
 		});
@@ -234,16 +237,17 @@ export class EncounterBuilder {
 			const used = (c.usedSpellSlots ?? {}) as SpellSlots;
 
 			if (kind === 'total') {
+				const hadTotal = typeof total[level] === 'number';
 				total[level] = value;
+				if (!hadTotal) used[level] = 0;
 
-				// clamp used <= total
 				const usedVal = used[level] ?? 0;
 				if (usedVal > value) used[level] = value;
 
 				c.totalSpellSlots = total;
 				c.usedSpellSlots = used;
 			} else {
-				const max = total[level] ?? value; // se total vazio, deixa usar
+				const max = total[level] ?? value;
 				used[level] = Math.min(value, max);
 				c.usedSpellSlots = used;
 			}
@@ -258,19 +262,29 @@ export class EncounterBuilder {
 	}
 
 	getSpellDraft(id: number): SpellDraft {
-		return this.spellDrafts()[id] ?? { key: '', label: '', total: 1 };
+		return this.spellDrafts()[id] ?? { label: '', total: 1 };
 	}
+
 	setSpellDraft(id: number, patch: Partial<SpellDraft>) {
 		this.spellDrafts.update((m) => ({ ...m, [id]: { ...this.getSpellDraft(id), ...patch } }));
+	}
+
+	private uniqueSpellKey(spells: SpellsByKey, label: string) {
+		const base = this.slugify(label) || 'spell';
+		let key = base;
+		let i = 2;
+		while (spells[key]) {
+			key = `${base}${i}`;
+			i++;
+		}
+		return key;
 	}
 
 	addSpell(creatureId: number) {
 		const d = this.getSpellDraft(creatureId);
 		const label = (d.label || '').trim();
-		const total = this.parseNonNegInt(d.total);
-		const key = (d.key || this.slugify(label)).trim();
-
-		if (!label || !key) return;
+		const total = this.parseNonNegInt(d.total) || 1;
+		if (!label) return;
 
 		this.encounter.update((e) => {
 			const next = structuredClone(e);
@@ -278,11 +292,12 @@ export class EncounterBuilder {
 			if (!c) return e;
 
 			c.spells = c.spells ?? {};
-			c.spells[key] = { label, total: total || 1 };
+			const key = this.uniqueSpellKey(c.spells, label);
+			c.spells[key] = { label, total };
 			return next;
 		});
 
-		this.setSpellDraft(creatureId, { key: '', label: '', total: 1 });
+		this.setSpellDraft(creatureId, { label: '', total: 1 });
 	}
 
 	updateSpell(creatureId: number, key: string, patch: Partial<SpellInterface>) {
