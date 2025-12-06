@@ -49,7 +49,11 @@ export class EncounterHub {
 	export(id: string) {
 		const item = this.ls.getEncounter(id);
 		if (!item) return;
-		this.io.download(item.data);
+
+		this.io.download(item.data, item.title, {
+			includeDate: false,
+			suffix: id.slice(0, 6),
+		});
 	}
 
 	duplicate(id: string) {
