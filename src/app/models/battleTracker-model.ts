@@ -2,7 +2,7 @@
 
 export interface BattleTracker {
 	creatures: CreatureInterface[];
-	creatureIdCount: number | null;
+	creatureIdCount: number;
 	round: number;
 	battleCreated: boolean;
 	shareEnabled: false;
