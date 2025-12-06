@@ -87,26 +87,38 @@ export class EncounterIoService {
 		return JSON.stringify(this.toExportObject(encounter), null, 2);
 	}
 
-	download(encounter: BattleTracker, title?: string) {
+	download(
+		encounter: BattleTracker,
+		title?: string,
+		opts?: { includeDate?: boolean; suffix?: string }
+	) {
 		const json = this.toJson(encounter);
 		const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
 		const url = URL.createObjectURL(blob);
 
-		const d = new Date();
-		const pad = (n: number) => String(n).padStart(2, '0');
+		const includeDate = opts?.includeDate ?? true;
 
-		const safeTitle = (title || 'encounter')
-			.trim()
-			.toLowerCase()
-			.normalize('NFKD')
-			.replace(/[\u0300-\u036f]/g, '')
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/(^-|-$)/g, '')
-			.slice(0, 40);
+		const safeTitle =
+			(title || 'encounter')
+				.trim()
+				.toLowerCase()
+				.normalize('NFKD')
+				.replace(/[\u0300-\u036f]/g, '')
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/(^-|-$)/g, '')
+				.slice(0, 40) || 'encounter';
 
-		const filename = `encounter-${safeTitle}-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
-			d.getDate()
-		)}.json`;
+		let filename = `encounter-${safeTitle}`;
+
+		if (opts?.suffix) filename += `-${opts.suffix}`;
+
+		if (includeDate) {
+			const d = new Date();
+			const pad = (n: number) => String(n).padStart(2, '0');
+			filename += `-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+		}
+
+		filename += `.json`;
 
 		const a = document.createElement('a');
 		a.href = url;
