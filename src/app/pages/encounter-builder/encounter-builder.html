@@ -412,3 +412,29 @@
 </div>
 
 </div>
+@if (toast(); as t) {
+  <div
+    class="fixed top-4 right-4 z-50 max-w-sm rounded-2xl border px-4 py-3 shadow-lg bg-black/50 backdrop-blur"
+    [class.border-emerald-400/30]="t.type === 'success'"
+    [class.bg-emerald-500/10]="t.type === 'success'"
+    [class.border-red-400/30]="t.type === 'error'"
+    [class.bg-red-500/10]="t.type === 'error'"
+    [class.border-yellow-400/30]="t.type === 'warn'"
+    [class.bg-yellow-500/10]="t.type === 'warn'"
+    role="status"
+    aria-live="polite"
+  >
+    <div class="flex items-start justify-between gap-3">
+      <div class="text-sm opacity-95">{{ t.text }}</div>
+
+      <button
+        class="h-8 w-8 inline-flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10"
+        (click)="toast.set(null)"
+        aria-label="Close"
+        title="Close"
+      >
+        ✕
+      </button>
+    </div>
+  </div>
+}

@@ -69,6 +69,15 @@ export class EncounterBuilder {
 		quantity: 1,
 	});
 
+	toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
+	private toastTimer: number | null = null;
+
+	private showToast(t: { type: 'success' | 'error' | 'warn'; text: string }, ms = 2200) {
+		if (this.toastTimer) window.clearTimeout(this.toastTimer);
+		this.toast.set(t);
+		this.toastTimer = window.setTimeout(() => this.toast.set(null), ms);
+	}
+
 	private parseNullableNumber(v: any): number | null {
 		if (v === '' || v === null || v === undefined) return null;
 		const n = Number(v);
@@ -388,14 +397,27 @@ export class EncounterBuilder {
 		if (!id) {
 			const saved = this.ls.createEncounter(title, data);
 			this.savedId.set(saved.id);
-			this.router.navigate(['/home/encounter-builder', saved.id]);
+
+			this.router.navigate(['/home/encounter-builder', saved.id], {
+				state: { toast: { type: 'success', text: 'Encounter saved' } },
+			});
+
 			return;
 		}
 
 		this.ls.updateEncounter(id, { title, data: structuredClone(data) });
+		this.showToast({ type: 'success', text: 'Encounter updated' });
 	}
 
 	constructor() {
+		const navToast =
+			(this.router.getCurrentNavigation()?.extras.state as any)?.toast ??
+			(history.state?.toast as any);
+
+		if (navToast?.type && navToast?.text) {
+			this.showToast(navToast);
+		}
+
 		const id = this.route.snapshot.paramMap.get('id');
 		if (id) {
 			const item = this.ls.getEncounter(id);
