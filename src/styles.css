@@ -1,1 +1,22 @@
 @import 'tailwindcss';
+
+* {
+	box-sizing: border-box;
+}
+
+html {
+	height: 100%;
+}
+
+html,
+body {
+	height: 100%;
+}
+body {
+	margin: 0;
+	padding: 0;
+	font-family: Roboto, 'Helvetica Neue', sans-serif;
+	background: radial-gradient(circle at top left, #181023, #0b0519);
+	color: #c3b3d8;
+	height: 100%;
+}
