@@ -337,7 +337,7 @@ export class EncounterBuilder {
 	}
 
 	downloadExport() {
-		this.io.download(this.encounter());
+		this.io.download(this.encounter(), this.title());
 	}
 
 	copyExportJson() {
