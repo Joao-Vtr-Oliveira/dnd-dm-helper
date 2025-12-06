@@ -13,6 +13,8 @@ import type {
 	SpellsByKey,
 } from '../../models/battleTracker-model';
 import { EncounterIoService } from '../../services/encounter-io-service/encounter-io-service';
+import { ActivatedRoute, Router } from '@angular/router';
+import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
 
 type DraftCreature = {
 	name: string;
@@ -46,6 +48,13 @@ export class EncounterBuilder {
 	importOpen = signal(false);
 	importText = signal('');
 	ioMsg = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
+
+	private route = inject(ActivatedRoute);
+	private router = inject(Router);
+	private ls = inject(LocalStorageService);
+
+	savedId = signal<string | null>(null);
+	title = signal<string>('');
 
 	exportOpen = signal(false);
 	exportJson = computed(() => this.io.toJson(this.encounter()));
@@ -262,7 +271,6 @@ export class EncounterBuilder {
 		});
 	}
 
-	// --- SPELLS (Record<string, SpellInterface>)
 	spellEntries(spells: SpellsByKey): Array<{ key: string; value: SpellInterface }> {
 		return Object.entries(spells || {}).map(([key, value]) => ({ key, value }));
 	}
@@ -372,10 +380,32 @@ export class EncounterBuilder {
 		}
 	}
 
+	save() {
+		const data = this.encounter();
+		const title = this.title().trim() || 'Untitled Encounter';
+
+		const id = this.savedId();
+		if (!id) {
+			const saved = this.ls.createEncounter(title, data);
+			this.savedId.set(saved.id);
+			this.router.navigate(['/home/encounter-builder', saved.id]);
+			return;
+		}
+
+		this.ls.updateEncounter(id, { title, data: structuredClone(data) });
+	}
+
 	constructor() {
-		effect(() => {
-			let e = this.encounter();
-			console.log(e);
-		});
+		const id = this.route.snapshot.paramMap.get('id');
+		if (id) {
+			const item = this.ls.getEncounter(id);
+			if (item) {
+				this.savedId.set(id);
+				this.title.set(item.title);
+				this.encounter.set(structuredClone(item.data));
+			}
+		}
+
+		effect(() => console.log(this.encounter()));
 	}
 }
