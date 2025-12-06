@@ -18,6 +18,8 @@
 
 [X] Saving this sheets and encounters in localStorage.
 
+[X] Add a hub to see all encounters.
+
 [] A way of organizing playlists and sounds.
 
 [] Add the dnd API to use the bestiary for facilitate the import in the encounter builder (?).
