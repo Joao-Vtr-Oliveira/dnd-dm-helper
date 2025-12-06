@@ -43,6 +43,13 @@ export class EncounterBuilder {
 	spellDrafts = signal<Record<number, SpellDraft>>({});
 	conditionDrafts = signal<Record<number, ConditionDraft>>({});
 
+	importOpen = signal(false);
+	importText = signal('');
+	ioMsg = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
+
+	exportOpen = signal(false);
+	exportJson = computed(() => this.io.toJson(this.encounter()));
+
 	SPELL_LEVELS: SpellLevel[] = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
 
 	draft = signal<DraftCreature>({
@@ -321,15 +328,48 @@ export class EncounterBuilder {
 		});
 	}
 
-	exportOpen = signal(false);
-	exportJson = computed(() => this.io.toJson(this.encounter()));
-
 	downloadExport() {
 		this.io.download(this.encounter());
 	}
 
 	copyExportJson() {
 		return this.io.copy(this.encounter());
+	}
+
+	clearImport() {
+		this.importText.set('');
+		this.ioMsg.set(null);
+	}
+
+	importFromTextarea() {
+		try {
+			const { encounter, warnings } = this.io.fromJsonText(this.importText());
+			this.encounter.set(encounter);
+
+			if (warnings.length) {
+				this.ioMsg.set({ type: 'warn', text: warnings.join(' ') });
+			} else {
+				this.ioMsg.set({ type: 'success', text: 'Import realizado com sucesso.' });
+			}
+		} catch (err: any) {
+			this.ioMsg.set({ type: 'error', text: err?.message ?? 'Erro ao importar.' });
+		}
+	}
+
+	async onFileSelected(ev: Event) {
+		const input = ev.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		try {
+			const text = await file.text();
+			this.importText.set(text);
+			this.importFromTextarea();
+		} catch {
+			this.ioMsg.set({ type: 'error', text: 'Não consegui ler o arquivo.' });
+		} finally {
+			input.value = '';
+		}
 	}
 
 	constructor() {
