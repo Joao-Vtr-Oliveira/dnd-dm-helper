@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+@font-face {
+	font-family: 'dndFont';
+	src: url('/fonts/DUNGRG__.TTF') format('truetype');
+	font-display: swap;
+}
+
 * {
 	box-sizing: border-box;
 }
