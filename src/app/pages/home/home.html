@@ -1,8 +1,17 @@
-<div class="h-full w-full">
-	<div class="w-full h-10 flex items-center justify-center">
-		<p class="font-[dndFont] text-4xl">DnD Dungeon Master Helper</p>
-	</div>
-	<div class="flex justify-center mt-3">
+<div class="min-h-screen w-full">
+	<header class="w-full flex justify-center px-4 py-4">
+		<div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-2">
+			<img src="/svgs/dice.svg" alt="dice" class="w-6 h-6 shrink-0 -translate-y-px" />
+
+			<h1 class="font-[dndFont] text-2xl sm:text-4xl leading-none text-center">
+				DnD Dungeon Master Helper
+			</h1>
+
+			<img src="/svgs/dice.svg" alt="dice" class="w-6 h-6 shrink-0 -translate-y-px" />
+		</div>
+	</header>
+
+	<main class="flex justify-center px-4 pb-6">
 		<router-outlet />
-	</div>
+	</main>
 </div>
