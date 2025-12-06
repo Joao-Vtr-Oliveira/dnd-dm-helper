@@ -51,7 +51,7 @@
 			</label>
 
 			<button
-				class="h-11 md:col-span-1 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
+				class="h-11 md:col-span-1 px-4 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 flex text-sm"
 				(click)="addCreatures()"
 			>
 				+ Add
@@ -70,14 +70,14 @@
 				/>
 
 				<button
-					class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
+					class="px-3 py-2 rounded-xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
 					(click)="toggleExpanded(c.id)"
 				>
 					@if (isExpanded(c.id)) { Hide } @else { Details }
 				</button>
 
 				<button
-					class="px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 text-sm"
+					class="px-3 py-2 rounded-xl cursor-pointer bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 text-sm"
 					(click)="removeCreature(c.id)"
 				>
 					Remove
@@ -152,7 +152,7 @@
 					></textarea>
 
 					<button
-						class="mt-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
+						class="mt-2 px-3 py-2 rounded-xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
 						(click)="addNote(c.id)"
 					>
 						+ Add Note
@@ -167,7 +167,7 @@
 								(ngModelChange)="updateNote(c.id, n.id, { text: $event })"
 							/>
 							<button
-								class="px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 text-sm"
+								class="px-3 py-2 rounded-xl cursor-pointer bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 text-sm"
 								(click)="removeNote(c.id, n.id)"
 							>
 								X
@@ -185,7 +185,7 @@
 
 					@if (c.totalSpellSlots === null || c.usedSpellSlots === null) {
 					<button
-						class="mt-3 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
+						class="mt-3 px-3 py-2 cursor-pointer rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
 						(click)="enableSpellcasting(c.id)"
 					>
 						Enable spell slots
@@ -235,13 +235,13 @@
 							<input
 								type="number"
 								min="1"
-								class="md:col-span-2 rounded-xl bg-black/20 border border-white/10 px-4 py-2 text-sm !text-center"
+								class="md:col-span-2 rounded-xl bg-black/20 border border-white/10 px-4 py-2 text-sm text-center!"
 								placeholder="Total"
 								[ngModel]="getSpellDraft(c.id).total"
 								(ngModelChange)="setSpellDraft(c.id, { total: +$event })"
 							/>
 							<button
-								class="md:col-span-2 h-10 w-10 place-self-center inline-flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 shadow-sm shadow-black/20 active:scale-95 transition"
+								class="md:col-span-2 h-10 cursor-pointer w-10 place-self-center inline-flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 shadow-sm shadow-black/20 active:scale-95 transition"
 								(click)="addSpell(c.id)"
 								aria-label="Add spell"
 								title="Add spell"
@@ -261,13 +261,13 @@
 								<input
 									type="number"
 									min="1"
-									class="col-span-2 rounded-2xl bg-black/20 border border-white/10 px-4 py-2 text-sm text-center"
+									class="col-span-2 rounded-2xl cursor-pointer bg-black/20 border border-white/10 px-4 py-2 text-sm text-center"
 									[ngModel]="s.value.total"
 									(ngModelChange)="updateSpell(c.id, s.key, { total: +$event })"
 								/>
 
 								<button
-									class="col-span-1 h-10 w-10 place-self-center inline-flex items-center justify-center rounded-2xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 active:scale-95 transition"
+									class="col-span-1 h-10 w-10 cursor-pointer place-self-center inline-flex items-center justify-center rounded-2xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 active:scale-95 transition"
 									(click)="removeSpell(c.id, s.key)"
 									aria-label="Remove spell"
 									title="Remove"
@@ -291,7 +291,7 @@
 
 			<div class="flex gap-2">
 				<button
-					class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition active:scale-[0.99]"
+					class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 transition active:scale-[0.99]"
 					(click)="downloadExport()"
 				>
 					Download JSON
@@ -307,7 +307,7 @@
 				</button>
 
 				<button
-					class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition active:scale-[0.99]"
+					class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 transition active:scale-[0.99]"
 					(click)="exportOpen.set(!exportOpen())"
 				>
 					@if (exportOpen()) { Hide } @else { Preview }
