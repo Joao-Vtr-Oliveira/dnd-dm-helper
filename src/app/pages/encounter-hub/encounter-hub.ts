@@ -27,6 +27,15 @@ export class EncounterHub {
 
 	encounters = signal<SavedEncounter[]>(this.ls.listEncounters());
 
+	toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
+	private toastTimer: number | null = null;
+
+	private showToast(t: { type: 'success' | 'error' | 'warn'; text: string }, ms = 2200) {
+		if (this.toastTimer) window.clearTimeout(this.toastTimer);
+		this.toast.set(t);
+		this.toastTimer = window.setTimeout(() => this.toast.set(null), ms);
+	}
+
 	filtered = computed(() => {
 		const q = this.q().trim().toLowerCase();
 		const all = this.encounters();
@@ -54,16 +63,19 @@ export class EncounterHub {
 			includeDate: false,
 			suffix: id.slice(0, 6),
 		});
+		this.showToast({ type: 'success', text: 'Exported!' });
 	}
 
 	duplicate(id: string) {
 		this.ls.duplicateEncounter(id);
 		this.refresh();
+		this.showToast({ type: 'success', text: 'Duplicated!' });
 	}
 
 	remove(id: string) {
 		this.ls.deleteEncounter(id);
 		this.refresh();
+		this.showToast({ type: 'success', text: 'Deleted' });
 	}
 
 	importAndSave() {
@@ -73,11 +85,11 @@ export class EncounterHub {
 			this.refresh();
 
 			if (warnings.length) this.msg.set({ type: 'warn', text: warnings.join(' ') });
-			else this.msg.set({ type: 'success', text: 'Importado e salvo.' });
+			else this.showToast({ type: 'success', text: 'Imported and saved' });
 
 			this.router.navigate(['/home/encounter-builder', saved.id]);
 		} catch (err: any) {
-			this.msg.set({ type: 'error', text: err?.message ?? 'Erro ao importar.' });
+			this.showToast({ type: 'error', text: err?.message ?? 'Error importing.' });
 		}
 	}
 
@@ -91,7 +103,7 @@ export class EncounterHub {
 			this.importText.set(text);
 			this.importAndSave();
 		} catch {
-			this.msg.set({ type: 'error', text: 'Não consegui ler o arquivo.' });
+			this.msg.set({ type: 'error', text: 'An error ocurred trying to read the file.' });
 		} finally {
 			input.value = '';
 		}

@@ -26,7 +26,7 @@
     class="w-full rounded-2xl bg-black/20 border border-white/10 px-4 py-3"
     placeholder="Search..."
     [value]="q()"
-    (input)="true"
+  	(input)="q.set(($any($event.target).value || ''))"
   />
 
   @if (importOpen()) {
@@ -86,19 +86,19 @@
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <button class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10" (click)="edit(e.id)">
+            <button class="h-10 px-4 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10" (click)="edit(e.id)">
               Edit
             </button>
 
-            <button class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10" (click)="export(e.id)">
+            <button class="h-10 px-4 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10" (click)="export(e.id)">
               Export
             </button>
 
-            <button class="h-10 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10" (click)="duplicate(e.id)">
+            <button class="h-10 px-4 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10" (click)="duplicate(e.id)">
               Duplicate
             </button>
 
-            <button class="h-10 px-4 rounded-2xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20" (click)="remove(e.id)">
+            <button class="h-10 px-4 cursor-pointer rounded-2xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20" (click)="remove(e.id)">
               Delete
             </button>
           </div>
@@ -107,3 +107,33 @@
     }
   </div>
 </div>
+
+@if (toast(); as t) {
+  <div class="fixed top-4 right-4 z-50 pointer-events-none">
+    <div
+      class="pointer-events-auto max-w-sm rounded-2xl border px-4 py-3 shadow-lg bg-black/50 backdrop-blur"
+      [class.border-emerald-400/30]="t.type === 'success'"
+      [class.bg-emerald-500/10]="t.type === 'success'"
+      [class.border-red-400/30]="t.type === 'error'"
+      [class.bg-red-500/10]="t.type === 'error'"
+      [class.border-yellow-400/30]="t.type === 'warn'"
+      [class.bg-yellow-500/10]="t.type === 'warn'"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div class="text-sm opacity-95">{{ t.text }}</div>
+
+        <button
+          type="button"
+          class="h-8 w-8 inline-flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10"
+          (click)="toast.set(null)"
+          aria-label="Close"
+          title="Close"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  </div>
+}
