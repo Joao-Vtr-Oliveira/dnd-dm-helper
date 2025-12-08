@@ -1,7 +1,14 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterModule, RouterOutlet } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
-type NavLink = { label: string; icon: string; path: string; exact?: boolean };
+type NavLink = {
+	label: string;
+	icon: string;
+	path: string;
+	exact?: boolean;
+	requiresDmCalendar?: boolean; // 👈 novo
+};
 
 @Component({
 	selector: 'app-home',
@@ -10,6 +17,8 @@ type NavLink = { label: string; icon: string; path: string; exact?: boolean };
 })
 export class Home {
 	private router = inject(Router);
+
+	dmCalendarEnabled = environment.showDmCalendar;
 
 	onClickTitle() {
 		this.router.navigate(['/home']);
@@ -36,6 +45,7 @@ export class Home {
 			label: 'Calendar',
 			icon: '/svgs/calendar.svg',
 			path: '/home/calendar',
+			requiresDmCalendar: true,
 		},
 	];
 }
