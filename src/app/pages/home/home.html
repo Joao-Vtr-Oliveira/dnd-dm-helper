@@ -3,7 +3,10 @@
 		<div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-2">
 			<img src="/svgs/dice.svg" alt="dice" class="w-6 h-6 shrink-0 -translate-y-px" />
 
-			<h1 class="font-[dndFont] text-2xl sm:text-4xl leading-none text-center cursor-pointer hover:underline" (click)="onClickTitle()">
+			<h1
+				class="font-[dndFont] text-2xl sm:text-4xl leading-none text-center cursor-pointer hover:underline"
+				(click)="onClickTitle()"
+			>
 				DnD Dungeon Master Helper
 			</h1>
 
@@ -12,6 +15,42 @@
 	</header>
 
 	<main class="flex justify-center px-4 pb-6">
-		<router-outlet />
+		<div class="w-full max-w-6xl flex flex-col md:flex-row gap-4">
+			<div class="md:hidden w-full">
+				<nav class="flex gap-2 overflow-x-auto pb-1">
+					@for (link of navLinks; track link.path) {
+					<a
+						[routerLink]="link.path"
+						routerLinkActive="bg-white/15 border-white/40 text-white"
+						[routerLinkActiveOptions]="{ exact: link.exact ?? false }"
+						class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs border border-white/10 bg-white/5 shrink-0 opacity-80 hover:opacity-100 transition"
+					>
+						<img [src]="link.icon" [alt]="link.label" class="w-4 h-4 shrink-0" />
+						<span>{{ link.label }}</span>
+					</a>
+					}
+				</nav>
+			</div>
+
+			<aside class="hidden md:block w-56 shrink-0">
+				<nav class="sticky top-6 space-y-1 rounded-2xl bg-white/5 border border-white/10 p-3">
+					@for (link of navLinks; track link.path) {
+					<a
+						[routerLink]="link.path"
+						routerLinkActive="bg-white/15 border-white/40 text-white"
+						[routerLinkActiveOptions]="{ exact: link.exact ?? false }"
+						class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm border border-transparent opacity-80 hover:opacity-100 transition"
+					>
+						<img [src]="link.icon" [alt]="link.label" class="w-4 h-4 shrink-0" />
+						<span>{{ link.label }}</span>
+					</a>
+					}
+				</nav>
+			</aside>
+
+			<section class="flex-1">
+				<router-outlet />
+			</section>
+		</div>
 	</main>
 </div>
