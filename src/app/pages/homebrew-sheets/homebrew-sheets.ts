@@ -29,7 +29,7 @@ export class HomebrewSheets {
 	}
 
 	newSheet() {
-		this.router.navigate(['/home/sheet-builder']);
+		this.router.navigate(['/home/homebrew-builder']);
 	}
 
 	sheets = signal<SavedSheetInterface[]>(this.ls.listSheets());
