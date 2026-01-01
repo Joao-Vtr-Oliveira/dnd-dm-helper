@@ -70,12 +70,10 @@ export class EncounterIoService {
 			creatures,
 			creatureIdCount: Math.max(e.creatureIdCount, maxId + 1),
 
-			// ✅ export como encounter novo (evita crash)
 			activeCreature: null,
 			round: 0,
 			battleCreated: false,
 
-			// fixos
 			shareEnabled: false,
 			battleTrackerVersion: this.VERSION,
 			sharedTimestamp: null,
