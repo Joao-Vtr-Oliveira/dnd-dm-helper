@@ -11,6 +11,7 @@ export interface BattleTracker {
 	loaded: boolean;
 }
 
+
 export interface CreatureInterface {
 	name: string;
 	initiative: number | null;
@@ -27,10 +28,6 @@ export interface CreatureInterface {
 	totalSpellSlots: SpellSlots | null;
 	usedSpellSlots: SpellSlots | null;
 	spells: SpellsByKey;
-
-	category?: 'monster' | 'npc' | 'item' | 'other';
-	tags?: string[];
-	source?: string;
 }
 
 export interface NoteInterface {
