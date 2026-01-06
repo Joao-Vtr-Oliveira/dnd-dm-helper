@@ -17,6 +17,7 @@ export const routes: Routes = [
 			{ path: 'encounter-builder/:id', component: EncounterBuilder },
 			{ path: 'homebrew', component: HomebrewSheets },
 			{ path: 'homebrew-builder', component: HomebrewBuilder },
+			{ path: 'homebrew-builder/:id', component: HomebrewBuilder },
 			{ path: 'calendar', component: Calendar },
 		],
 	},
