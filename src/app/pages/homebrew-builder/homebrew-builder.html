@@ -1,1 +1,314 @@
-<p>homebrew-builder works!</p>
+<div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+	<!-- TOP BAR -->
+	<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+		<div>
+			<h2 class="text-lg font-semibold">Homebrew Builder</h2>
+			<p class="text-sm opacity-70">Crie uma ficha e salve no LocalStorage</p>
+		</div>
+
+		<div class="flex gap-2">
+			<button
+				type="button"
+				class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10"
+				(click)="backToList()"
+			>
+				← Back
+			</button>
+
+			<button
+				type="button"
+				class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10"
+				(click)="save()"
+			>
+				Save
+			</button>
+		</div>
+	</div>
+
+	<!-- META -->
+	<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+		<div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+			<label class="md:col-span-6 block">
+				<span class="text-xs opacity-80">Title</span>
+				<input
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2 placeholder:italic"
+					placeholder="Ex: Goblin Shaman (homebrew)"
+					[ngModel]="title()"
+					(ngModelChange)="title.set($event)"
+				/>
+			</label>
+
+			<label class="md:col-span-2 block">
+				<span class="text-xs opacity-80">Category</span>
+				<select
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="category()"
+					(ngModelChange)="category.set($event)"
+				>
+					<option value="monster">Monster</option>
+					<option value="npc">NPC</option>
+					<option value="player">Player</option>
+					<option value="pet">Pet</option>
+				</select>
+			</label>
+
+			<label class="md:col-span-4 block">
+				<span class="text-xs opacity-80">Tags (comma separated)</span>
+				<input
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2 placeholder:italic"
+					placeholder="goblin, shaman, fire"
+					[ngModel]="tagsText()"
+					(ngModelChange)="tagsText.set($event)"
+				/>
+			</label>
+
+			<label class="md:col-span-6 block">
+				<span class="text-xs opacity-80">Source</span>
+				<input
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2 placeholder:italic"
+					placeholder="Ex: 5etools / Notion / Homebrew"
+					[ngModel]="source()"
+					(ngModelChange)="source.set($event)"
+				/>
+			</label>
+
+			<div class="md:col-span-6 text-xs opacity-70 flex items-center gap-2">
+				@if (sheetId()) {
+					<span class="px-2 py-1 rounded-xl bg-white/5 border border-white/10">
+						ID: {{ sheetId() }}
+					</span>
+				} @else {
+					<span class="px-2 py-1 rounded-xl bg-white/5 border border-white/10">
+						Não salvo ainda
+					</span>
+				}
+			</div>
+		</div>
+	</div>
+
+	<!-- BASIC STATS -->
+	<div class="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
+		<div class="flex items-center justify-between gap-2">
+			<div class="text-sm font-semibold opacity-90">Basic</div>
+			<div class="text-xs opacity-70">Nome é obrigatório pra salvar</div>
+		</div>
+
+		<div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+			<label class="md:col-span-6 block">
+				<span class="text-xs opacity-80">Creature name</span>
+				<input
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="creature().name"
+					(ngModelChange)="setName($event)"
+				/>
+			</label>
+
+			<label class="md:col-span-2 block">
+				<span class="text-xs opacity-80">Init</span>
+				<input
+					type="number"
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="creature().initiative"
+					(ngModelChange)="setInitiative($event)"
+				/>
+			</label>
+
+			<label class="md:col-span-2 block">
+				<span class="text-xs opacity-80">AC</span>
+				<input
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="creature().armorClass"
+					(ngModelChange)="setAc($event)"
+				/>
+			</label>
+
+			<label class="md:col-span-2 block">
+				<span class="text-xs opacity-80">Temp HP</span>
+				<input
+					type="number"
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+  [ngModel]="creature().temporaryHealthPoints"
+  (ngModelChange)="setTempHp($event)"
+				/>
+			</label>
+		</div>
+
+		<div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+			<label class="md:col-span-3 block">
+				<span class="text-xs opacity-80">HP (current)</span>
+				<input
+					type="number"
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="creature().healthPoints"
+					(ngModelChange)="setHp($event)"
+				/>
+			</label>
+
+			<label class="md:col-span-3 block">
+				<span class="text-xs opacity-80">HP (max)</span>
+				<input
+					type="number"
+					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					[ngModel]="creature().maxHealthPoints"
+					(ngModelChange)="setMaxHp($event)"
+				/>
+			</label>
+
+			<div class="md:col-span-6 text-xs opacity-70">
+				Dica: você pode setar primeiro o “HP current” e ele já joga no max (igual no Encounter).
+			</div>
+		</div>
+	</div>
+
+	<!-- SPELLCASTING -->
+	<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+		<div class="flex items-center justify-between gap-2">
+			<div class="text-sm font-semibold opacity-90">Spellcasting</div>
+			<span class="text-xs opacity-70">
+				@if (creature().totalSpellSlots === null || creature().usedSpellSlots === null) {
+					Disabled
+				} @else {
+					Enabled
+				}
+			</span>
+		</div>
+
+		@if (creature().totalSpellSlots === null || creature().usedSpellSlots === null) {
+			<button
+				type="button"
+				class="mt-3 px-3 py-2 cursor-pointer rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
+				(click)="enableSpellcasting()"
+			>
+				Enable spell slots
+			</button>
+		} @else {
+			<div class="mt-3 grid grid-cols-1 gap-2">
+				@for (lvl of SPELL_LEVELS; track lvl) {
+					<div class="grid grid-cols-12 gap-2 items-center rounded-xl bg-black/15 border border-white/10 p-2">
+						<div class="col-span-2 text-xs opacity-80 font-semibold">{{ lvl }}</div>
+
+						<div class="col-span-5">
+							<div class="text-[10px] uppercase tracking-wider opacity-60">Total</div>
+							<input
+								type="number"
+								class="mt-1 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-sm"
+								[ngModel]="slotValue(creature().totalSpellSlots, lvl)"
+								(ngModelChange)="setSpellSlot('total', lvl, $event)"
+							/>
+						</div>
+
+						<div class="col-span-5">
+							<div class="text-[10px] uppercase tracking-wider opacity-60">Used</div>
+							<input
+								type="number"
+								class="mt-1 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-sm"
+								[ngModel]="slotValue(creature().usedSpellSlots, lvl)"
+								(ngModelChange)="setSpellSlot('used', lvl, $event)"
+							/>
+						</div>
+					</div>
+				}
+			</div>
+		}
+
+		<!-- SPELLS LIST -->
+		<div class="mt-4 rounded-2xl bg-black/10 border border-white/10 p-3">
+			<div class="text-xs font-semibold opacity-80">Spells</div>
+
+			<div class="mt-2 grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+				<input
+					class="md:col-span-8 rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm"
+					placeholder="Spell label (e.g. Dispel Magic)"
+					[ngModel]="spellDraft().label"
+					(ngModelChange)="setSpellDraft({ label: $event })"
+				/>
+
+				<input
+					type="number"
+					min="0"
+					class="md:col-span-2 rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm text-center"
+					placeholder="Total"
+					[ngModel]="spellDraft().total"
+					(ngModelChange)="setSpellDraft({ total: +$event })"
+				/>
+
+				<button
+					type="button"
+					class="md:col-span-2 h-10 cursor-pointer inline-flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 shadow-sm shadow-black/20 active:scale-95 transition"
+					(click)="addSpell()"
+					aria-label="Add spell"
+					title="Add spell"
+				>
+					<span class="text-lg leading-none">+</span>
+				</button>
+			</div>
+
+			<div class="mt-3 space-y-2">
+				@for (s of spellEntries(creature().spells); track s.key) {
+					<div class="grid grid-cols-12 gap-2 items-center">
+						<input
+							class="col-span-9 rounded-2xl bg-black/20 border border-white/10 px-4 py-2 text-sm"
+							[ngModel]="s.value.label"
+							(ngModelChange)="updateSpell(s.key, { label: $event })"
+						/>
+
+						<input
+							type="number"
+							min="0"
+							class="col-span-2 rounded-2xl cursor-pointer bg-black/20 border border-white/10 px-4 py-2 text-sm text-center"
+							[ngModel]="s.value.total"
+							(ngModelChange)="updateSpell(s.key, { total: +$event })"
+						/>
+
+						<button
+							type="button"
+							class="col-span-1 h-10 w-10 cursor-pointer place-self-center inline-flex items-center justify-center rounded-2xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 active:scale-95 transition"
+							(click)="removeSpell(s.key)"
+							aria-label="Remove spell"
+							title="Remove"
+						>
+							✕
+						</button>
+					</div>
+				}
+
+				@if (spellEntries(creature().spells).length === 0) {
+					<div class="text-xs opacity-70 px-1">
+						Nenhuma magia ainda. Adicione acima.
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- TOAST -->
+@if (toast(); as t) {
+	<div class="fixed top-4 right-4 z-50 pointer-events-none">
+		<div
+			class="pointer-events-auto max-w-sm rounded-2xl border px-4 py-3 shadow-lg bg-black/50 backdrop-blur"
+			[class.border-emerald-400/30]="t.type === 'success'"
+			[class.bg-emerald-500/10]="t.type === 'success'"
+			[class.border-red-400/30]="t.type === 'error'"
+			[class.bg-red-500/10]="t.type === 'error'"
+			[class.border-yellow-400/30]="t.type === 'warn'"
+			[class.bg-yellow-500/10]="t.type === 'warn'"
+			role="status"
+			aria-live="polite"
+		>
+			<div class="flex items-start justify-between gap-3">
+				<div class="text-sm opacity-95">{{ t.text }}</div>
+
+				<button
+					type="button"
+					class="h-8 w-8 inline-flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10"
+					(click)="toast.set(null)"
+					aria-label="Close"
+					title="Close"
+				>
+					✕
+				</button>
+			</div>
+		</div>
+	</div>
+}
