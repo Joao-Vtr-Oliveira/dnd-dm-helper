@@ -22,11 +22,15 @@ export interface CreatureInterface {
 	alive: boolean;
 	conditions: ConditionInterface[];
 	notes: NoteInterface[];
-	shared: boolean; // Show to players
-	hitPointsShared: boolean; // ? Test, but I think it is what shows the bar.
+	shared: boolean;
+	hitPointsShared: boolean;
 	totalSpellSlots: SpellSlots | null;
 	usedSpellSlots: SpellSlots | null;
 	spells: SpellsByKey;
+
+	category?: 'monster' | 'npc' | 'item' | 'other';
+	tags?: string[];
+	source?: string;
 }
 
 export interface NoteInterface {
