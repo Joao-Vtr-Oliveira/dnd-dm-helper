@@ -14,7 +14,7 @@ export interface SavedSheetInterface {
 	title: string;
 	createdAt: number;
 	updatedAt: number;
-	data: CreatureInterface;
+	data: CreatureInterface[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -101,16 +101,18 @@ export class LocalStorageService {
 	upsertSheet(sheet: SavedSheetInterface) {
 		const all = this.listSheets();
 		const idx = all.findIndex((x) => x.id === sheet.id);
+
 		if (idx === -1) all.unshift(sheet);
 		else all[idx] = sheet;
-		localStorage.setItem(this.KEYEncounters, JSON.stringify(all));
+
+		localStorage.setItem(this.KEYSheets, JSON.stringify(all));
 	}
 
-	createSheet(title: string, data: CreatureInterface): SavedSheetInterface {
+	createSheet(title: string, data: CreatureInterface[]): SavedSheetInterface {
 		const now = Date.now();
 		const item: SavedSheetInterface = {
 			id: crypto.randomUUID(),
-			title: (title || '').trim() || 'Untitled Encounter',
+			title: (title || '').trim() || 'Untitled Sheet',
 			createdAt: now,
 			updatedAt: now,
 			data: structuredClone(data),
