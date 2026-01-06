@@ -9,12 +9,18 @@ export type SavedEncounter = {
 	data: BattleTracker;
 };
 
+export type HomebrewCategory = 'monster' | 'npc' | 'ally' | 'boss' | 'other' | 'PC';
+
 export interface SavedSheetInterface {
 	id: string;
 	title: string;
 	createdAt: number;
 	updatedAt: number;
-	data: CreatureInterface[];
+	data: CreatureInterface;
+
+	category: HomebrewCategory;
+	tags: string[];
+	source: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -101,22 +107,32 @@ export class LocalStorageService {
 	upsertSheet(sheet: SavedSheetInterface) {
 		const all = this.listSheets();
 		const idx = all.findIndex((x) => x.id === sheet.id);
-
 		if (idx === -1) all.unshift(sheet);
 		else all[idx] = sheet;
-
 		localStorage.setItem(this.KEYSheets, JSON.stringify(all));
 	}
 
-	createSheet(title: string, data: CreatureInterface[]): SavedSheetInterface {
+	createSheet(params: {
+		title: string;
+		data: CreatureInterface;
+		category: HomebrewCategory;
+		tags?: string[];
+		source?: string;
+	}): SavedSheetInterface {
 		const now = Date.now();
+		const cleanTitle = (params.title || '').trim() || 'Untitled Homebrew';
+
 		const item: SavedSheetInterface = {
 			id: crypto.randomUUID(),
-			title: (title || '').trim() || 'Untitled Sheet',
+			title: cleanTitle,
 			createdAt: now,
 			updatedAt: now,
-			data: structuredClone(data),
+			data: structuredClone(params.data),
+			category: params.category,
+			tags: (params.tags ?? []).map((t) => t.trim()).filter(Boolean),
+			source: (params.source || '').trim(),
 		};
+
 		this.upsertSheet(item);
 		return item;
 	}
@@ -139,6 +155,13 @@ export class LocalStorageService {
 	duplicateSheet(id: string): SavedSheetInterface | null {
 		const curr = this.getSheet(id);
 		if (!curr) return null;
-		return this.createSheet(`${curr.title} (copy)`, curr.data);
+
+		return this.createSheet({
+			title: `${curr.title} (copy)`,
+			data: curr.data,
+			category: curr.category,
+			tags: curr.tags,
+			source: curr.source,
+		});
 	}
 }
