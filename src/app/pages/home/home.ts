@@ -42,6 +42,11 @@ export class Home {
 			path: '/home/homebrew',
 		},
 		{
+			label: 'Homebrew Sheets Builder',
+			icon: '/svgs/sheet-pen.svg',
+			path: '/home/homebrew-builder',
+		},
+		{
 			label: 'Calendar',
 			icon: '/svgs/calendar.svg',
 			path: '/home/calendar',
