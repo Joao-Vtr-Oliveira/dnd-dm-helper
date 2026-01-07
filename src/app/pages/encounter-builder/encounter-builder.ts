@@ -18,6 +18,8 @@ import {
 	LocalStorageService,
 	SavedSheetInterface,
 } from '../../services/local-storage-service/local-storage-service';
+import { ApiResourceListItem, Dnd5eApiService } from '../../services/dnd-api/dnd-api';
+import { firstValueFrom } from 'rxjs';
 
 type DraftCreature = {
 	name: string;
@@ -99,7 +101,6 @@ export class EncounterBuilder {
 		this.homebrewSheets.set(this.ls.listSheets());
 	}
 
-	// helpers para evitar ?? e ?. no template (e também não depender do type exato)
 	private metaOf(s: SavedSheetInterface): { category?: any; tags?: any; source?: any } {
 		return s as any;
 	}
@@ -250,6 +251,100 @@ export class EncounterBuilder {
 		});
 
 		this.showToast({ type: 'success', text: `Adicionado (${qty}x)!` });
+	}
+
+	private dndApi = inject(Dnd5eApiService);
+
+	apiLoading = signal(false);
+	apiError = signal<string | null>(null);
+
+	apiMonsters = signal<ApiResourceListItem[]>([]);
+	apiQ = signal('');
+
+	filteredApiMonsters = computed(() => {
+		const q = this.apiQ().trim().toLowerCase();
+		if (!q) return this.apiMonsters();
+
+		return this.apiMonsters().filter(
+			(m) => (m.name || '').toLowerCase().includes(q) || (m.index || '').toLowerCase().includes(q)
+		);
+	});
+
+	openApiModal() {
+		this.apiModalOpen.set(true);
+		this.apiError.set(null);
+
+		// se já carregou uma vez, não precisa refazer
+		if (this.apiMonsters().length) return;
+
+		this.apiLoading.set(true);
+		this.dndApi.listMonsters().subscribe({
+			next: (list) => {
+				// ordena por nome só pra ficar gostoso de usar
+				const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name));
+				this.apiMonsters.set(sorted);
+				this.apiLoading.set(false);
+			},
+			error: (e) => {
+				this.apiLoading.set(false);
+				this.apiError.set(e?.message ?? 'Erro ao carregar bestiário.');
+			},
+		});
+	}
+
+	closeApiModal() {
+		this.apiModalOpen.set(false);
+		this.apiQ.set('');
+		this.apiError.set(null);
+	}
+
+	async useApiInDraft(m: ApiResourceListItem) {
+		try {
+			const monster = await firstValueFrom(this.dndApi.getMonster(m.index));
+
+			this.draft.update((d) => ({
+				...d,
+				name: monster.name || m.name || '',
+				hp: Number(monster.hit_points ?? 0) || 0,
+				ac: String(monster.armor_class?.[0]?.value ?? ''),
+				initiative: this.dndApi.dexMod(monster),
+			}));
+
+			this.showToast({ type: 'success', text: 'Draft preenchido com dados da API.' });
+		} catch (err: any) {
+			this.showToast({ type: 'error', text: err?.message ?? 'Erro ao buscar monstro.' });
+		}
+	}
+
+	async addFromApi(m: ApiResourceListItem) {
+		try {
+			const monster = await firstValueFrom(this.dndApi.getMonster(m.index));
+			const qty = Math.max(1, Math.floor(Number(this.draft().quantity || 1)));
+
+			this.encounter.update((e) => {
+				const next = structuredClone(e);
+
+				for (let i = 0; i < qty; i++) {
+					const newId = next.creatureIdCount;
+
+					const c = this.dndApi.toCreature(monster, {
+						id: newId,
+						initiative: null,
+					});
+
+					if (qty > 1) c.name = `${c.name} #${i + 1}`;
+
+					next.creatures.push(c);
+					next.creatureIdCount++;
+				}
+
+				return next;
+			});
+
+			this.showToast({ type: 'success', text: `Adicionado (${qty}x) da API!` });
+		} catch (err: any) {
+			this.showToast({ type: 'error', text: err?.message ?? 'Erro ao adicionar monstro.' });
+		}
 	}
 
 	savedId = signal<string | null>(null);
