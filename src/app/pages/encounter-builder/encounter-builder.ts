@@ -14,7 +14,10 @@ import type {
 } from '../../models/battleTracker-model';
 import { EncounterIoService } from '../../services/encounter-io-service/encounter-io-service';
 import { ActivatedRoute, Router } from '@angular/router';
-import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
+import {
+	LocalStorageService,
+	SavedSheetInterface,
+} from '../../services/local-storage-service/local-storage-service';
 
 type DraftCreature = {
 	name: string;
@@ -52,6 +55,202 @@ export class EncounterBuilder {
 	private route = inject(ActivatedRoute);
 	private router = inject(Router);
 	private ls = inject(LocalStorageService);
+
+	// --- Homebrew import modal ---
+	homebrewModalOpen = signal(false);
+	apiModalOpen = signal(false); // (deixa pro futuro)
+
+	sheetQ = signal('');
+	sheetCategoryFilter = signal<'all' | 'monster' | 'npc' | 'PC' | 'other'>('all');
+	sheetTagFilter = signal<string | null>(null);
+	sheetSourceFilter = signal<string | null>(null);
+
+	homebrewSheets = signal<SavedSheetInterface[]>(this.ls.listSheets());
+
+	openHomebrewModal() {
+		this.refreshHomebrewSheets();
+		this.homebrewModalOpen.set(true);
+	}
+
+	closeHomebrewModal() {
+		this.homebrewModalOpen.set(false);
+	}
+
+	clearHomebrewFilters() {
+		this.sheetQ.set('');
+		this.sheetCategoryFilter.set('all');
+		this.sheetTagFilter.set(null);
+		this.sheetSourceFilter.set(null);
+	}
+
+	toggleTagFilter(tag: string) {
+		this.sheetTagFilter.update((curr) => (curr === tag ? null : tag));
+	}
+
+	setCategoryFilter(cat: 'all' | 'monster' | 'npc' | 'PC' | 'other') {
+		this.sheetCategoryFilter.set(cat);
+	}
+
+	toggleSourceFilter(src: string) {
+		this.sheetSourceFilter.update((curr) => (curr === src ? null : src));
+	}
+
+	private refreshHomebrewSheets() {
+		this.homebrewSheets.set(this.ls.listSheets());
+	}
+
+	// helpers para evitar ?? e ?. no template (e também não depender do type exato)
+	private metaOf(s: SavedSheetInterface): { category?: any; tags?: any; source?: any } {
+		return s as any;
+	}
+	sheetCategory(s: SavedSheetInterface): 'monster' | 'npc' | 'PC' | 'other' {
+		const c = (this.metaOf(s).category ?? 'monster') as string;
+		if (c === 'npc' || c === 'PC' || c === 'other') return c;
+		return 'monster';
+	}
+	sheetTags(s: SavedSheetInterface): string[] {
+		const t = this.metaOf(s).tags;
+		return Array.isArray(t) ? t : [];
+	}
+	sheetSource(s: SavedSheetInterface): string {
+		const v = this.metaOf(s).source;
+		return typeof v === 'string' ? v.trim() : '';
+	}
+
+	availableSources = computed(() => {
+		const set = new Set<string>();
+		for (const s of this.homebrewSheets()) {
+			const src = this.sheetSource(s);
+			if (src) set.add(src);
+		}
+		return Array.from(set).sort((a, b) => a.localeCompare(b));
+	});
+
+	topTags = computed(() => {
+		const freq = new Map<string, number>();
+		for (const s of this.homebrewSheets()) {
+			for (const t of this.sheetTags(s)) {
+				const key = (t || '').trim();
+				if (!key) continue;
+				freq.set(key, (freq.get(key) ?? 0) + 1);
+			}
+		}
+		return Array.from(freq.entries())
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 16)
+			.map(([tag]) => tag);
+	});
+
+	filteredHomebrewSheets = computed(() => {
+		const q = this.sheetQ().trim().toLowerCase();
+		const cat = this.sheetCategoryFilter();
+		const tag = this.sheetTagFilter();
+		const src = this.sheetSourceFilter();
+
+		return this.homebrewSheets().filter((s) => {
+			const title = (s.title || '').toLowerCase();
+			const name = (s.data?.name || '').toLowerCase();
+			const tags = this.sheetTags(s).map((x) => x.toLowerCase());
+			const category = this.sheetCategory(s);
+			const source = this.sheetSource(s).toLowerCase();
+
+			if (cat !== 'all' && category !== cat) return false;
+			if (tag && !this.sheetTags(s).includes(tag)) return false;
+			if (src && this.sheetSource(s) !== src) return false;
+
+			if (!q) return true;
+
+			const hay = `${title} ${name} ${tags.join(' ')} ${category} ${source}`;
+			return hay.includes(q);
+		});
+	});
+
+	categoryChipClass(cat: 'monster' | 'npc' | 'PC' | 'other', active = false): string {
+		const base =
+			'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold border transition';
+		const on = active ? ' ring-2 ring-white/20' : '';
+
+		if (cat === 'monster')
+			return `${base} bg-red-500/15 border-red-400/25 text-red-200 hover:bg-red-500/20${on}`;
+		if (cat === 'PC')
+			return `${base} bg-sky-500/15 border-sky-400/25 text-sky-200 hover:bg-sky-500/20${on}`;
+		if (cat === 'npc')
+			return `${base} bg-emerald-500/15 border-emerald-400/25 text-emerald-200 hover:bg-emerald-500/20${on}`;
+
+		return `${base} bg-white/5 border-white/10 text-white/80 hover:bg-white/10${on}`;
+	}
+
+	chipNeutralClass(active = false): string {
+		const base = 'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] border transition';
+		const on = active ? ' ring-2 ring-white/20' : '';
+		return `${base} bg-white/5 border-white/10 text-white/80 hover:bg-white/10${on}`;
+	}
+
+	tagChipClass(active = false): string {
+		const base = 'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] border transition';
+		const on = active ? ' ring-2 ring-white/20' : '';
+		return `${base} bg-black/20 border-white/10 text-white/80 hover:bg-white/10${on}`;
+	}
+
+	useSheetInDraft(id: string) {
+		const sheet = this.ls.getSheet(id);
+		if (!sheet) {
+			this.showToast({ type: 'error', text: 'Sheet não encontrada.' });
+			return;
+		}
+
+		const c = sheet.data;
+		this.draft.update((d) => ({
+			...d,
+			name: c.name || sheet.title || '',
+			initiative: c.initiative ?? null,
+			hp: (c.maxHealthPoints ?? c.healthPoints ?? 0) || 0,
+			ac: String(c.armorClass ?? ''),
+			// quantity fica como está (pra você usar no Add)
+		}));
+
+		// opcional: fecha modal ao "Use"
+		// this.closeHomebrewModal();
+	}
+
+	addFromSheet(id: string) {
+		const sheet = this.ls.getSheet(id);
+		if (!sheet) {
+			this.showToast({ type: 'error', text: 'Sheet não encontrada.' });
+			return;
+		}
+
+		const qty = Math.max(1, Math.floor(Number(this.draft().quantity || 1)));
+		const base = structuredClone(sheet.data);
+
+		this.encounter.update((e) => {
+			const next = structuredClone(e);
+
+			for (let i = 0; i < qty; i++) {
+				const newId = next.creatureIdCount;
+
+				const c = structuredClone(base);
+				c.id = newId;
+
+				// se importar vários, dá um sufixo só pra não ficar confuso
+				if (qty > 1) c.name = `${c.name} #${i + 1}`;
+
+				// segurança
+				c.conditions = Array.isArray(c.conditions) ? c.conditions : [];
+				c.notes = Array.isArray(c.notes) ? c.notes : [];
+				c.spells = c.spells ?? {};
+				c.totalSpellSlots = c.totalSpellSlots ?? null;
+				c.usedSpellSlots = c.usedSpellSlots ?? null;
+
+				next.creatures.push(c);
+				next.creatureIdCount++;
+			}
+
+			return next;
+		});
+
+		this.showToast({ type: 'success', text: `Adicionado (${qty}x)!` });
+	}
 
 	savedId = signal<string | null>(null);
 	title = signal<string>('');
@@ -429,5 +628,6 @@ export class EncounterBuilder {
 		}
 
 		effect(() => console.log(this.encounter()));
+		this.refreshHomebrewSheets();
 	}
 }
