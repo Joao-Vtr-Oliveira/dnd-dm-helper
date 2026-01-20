@@ -50,7 +50,7 @@ export class Home {
 			label: 'Calendar',
 			icon: '/svgs/calendar.svg',
 			path: '/home/calendar',
-			requiresDmCalendar: true,
+			requiresDmCalendar: false,
 		},
 	];
 }
