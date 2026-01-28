@@ -1,0 +1,1013 @@
+{
+  "siteVersion": "2.24.1",
+  "_meta": {
+    "sources": [
+      {
+        "json": "Notion",
+        "abbreviation": "NT",
+        "full": "Notion",
+        "version": "1.0.0",
+        "authors": [
+          "JV."
+        ],
+        "color": "613583",
+        "edition": "classic"
+      }
+    ],
+    "dateAdded": 1769603141,
+    "dateLastModified": 1769603141,
+    "edition": "classic"
+  },
+  "monster": [
+    {
+      "name": "Rosa V.",
+      "alias": [
+        "Rosa",
+        "Winterhold"
+      ],
+      "group": [
+        "Winterhold"
+      ],
+      "source": "Notion",
+      "level": 5,
+      "size": [
+        "M"
+      ],
+      "type": "humanoid",
+      "alignment": [
+        "L",
+        "G"
+      ],
+      "ac": [
+        {
+          "ac": 16,
+          "from": [
+            "Mage Armor"
+          ]
+        }
+      ],
+      "hp": {
+        "formula": "5d6 + 5",
+        "average": 32
+      },
+      "speed": {
+        "walk": 30
+      },
+      "str": 8,
+      "dex": 14,
+      "con": 13,
+      "int": 17,
+      "wis": 12,
+      "cha": 10,
+      "save": {
+        "wis": "+4",
+        "int": "+6"
+      },
+      "skill": {
+        "arcana": "+6",
+        "history": "+6",
+        "investigation": "+6",
+        "religion": "+6",
+        "insight": "+4"
+      },
+      "passive": 11,
+      "spellcasting": [
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "headerEntries": [
+            "Classe: Mago (Escola da Abjuração)",
+            "CD de Magia: 14",
+            "Ataque Mágico: +6"
+          ]
+        },
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "spells": {
+            "0": {
+              "spells": [
+                "{@spell Fire Bolt|XPHB}",
+                "{@spell Mage Hand|XPHB}",
+                "{@spell Minor Illusion|XPHB}",
+                "{@spell Prestidigitation|XPHB}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "spells": {
+            "1": {
+              "spells": [
+                "{@spell Comprehend Languages|XPHB}",
+                "{@spell Detect Magic|XPHB}",
+                "{@spell Mage Armor|XPHB}",
+                "{@spell Shield|XPHB}"
+              ],
+              "slots": 4
+            }
+          }
+        },
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "spells": {
+            "2": {
+              "spells": [
+                "{@spell Detect Thoughts|XPHB}",
+                "{@spell Hold Person|XPHB}",
+                "{@spell Misty Step|XPHB}"
+              ],
+              "slots": 3
+            }
+          }
+        },
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "spells": {
+            "3": {
+              "spells": [
+                "{@spell Counterspell|XPHB}",
+                "{@spell Dispel Magic|XPHB}"
+              ],
+              "slots": 2
+            }
+          }
+        },
+        {
+          "name": "Teórica da Winterhold",
+          "type": "spellcasting",
+          "headerEntries": [
+            "Rosa tem vantagem em testes de **Arcana ou Investigação** relacionados a:",
+            "- contratos mágicos",
+            "- selos",
+            "- runas",
+            "- documentos encantados"
+          ],
+          "displayAs": "action"
+        },
+        {
+          "name": "Marca do Mentor",
+          "type": "spellcasting",
+          "headerEntries": [
+            "Uma vez por descanso longo, quando Rosa falha um teste de magia importante, ela pode:",
+            "- repetir o teste",
+            "- mas fica Abalada (desvantagem no próximo teste de Sabedoria)"
+          ],
+          "displayAs": "action"
+        }
+      ],
+      "tokenHref": {
+        "type": "external",
+        "url": ""
+      },
+      "attachedItems": [
+        "club|phb"
+      ],
+      "damageTagsSpell": [
+        "F"
+      ],
+      "spellcastingTags": [
+        "O"
+      ],
+      "savingThrowForcedSpell": [
+        "constitution",
+        "wisdom"
+      ]
+    },
+    {
+      "name": "Rosa V. (1)",
+      "alias": [
+        "Rosa",
+        "Winterhold"
+      ],
+      "group": [
+        "Winterhold"
+      ],
+      "source": "Notion",
+      "level": 5,
+      "size": [
+        "M"
+      ],
+      "type": "humanoid",
+      "alignment": [
+        "L",
+        "G"
+      ],
+      "ac": [
+        {
+          "ac": 16,
+          "from": [
+            "Mage Armor"
+          ]
+        }
+      ],
+      "hp": {
+        "formula": "5d6 + 5",
+        "average": 32
+      },
+      "speed": {
+        "walk": 30
+      },
+      "str": 8,
+      "dex": 14,
+      "con": 13,
+      "int": 17,
+      "wis": 12,
+      "cha": 10,
+      "save": {
+        "wis": "+4",
+        "int": "+6"
+      },
+      "skill": {
+        "arcana": "+6",
+        "history": "+6",
+        "investigation": "+6",
+        "religion": "+6",
+        "insight": "+4"
+      },
+      "passive": 11,
+      "spellcasting": [
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "headerEntries": [
+            "Classe: Mago (Escola da Abjuração)",
+            "CD de Magia: 14",
+            "Ataque Mágico: +6"
+          ]
+        },
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "spells": {
+            "0": {
+              "spells": [
+                "{@spell Fire Bolt|XPHB}",
+                "{@spell Mage Hand|XPHB}",
+                "{@spell Minor Illusion|XPHB}",
+                "{@spell Prestidigitation|XPHB}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "spells": {
+            "1": {
+              "spells": [
+                "{@spell Comprehend Languages|XPHB}",
+                "{@spell Detect Magic|XPHB}",
+                "{@spell Mage Armor|XPHB}",
+                "{@spell Shield|XPHB}"
+              ],
+              "slots": 4
+            }
+          }
+        },
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "spells": {
+            "2": {
+              "spells": [
+                "{@spell Detect Thoughts|XPHB}",
+                "{@spell Hold Person|XPHB}",
+                "{@spell Misty Step|XPHB}"
+              ],
+              "slots": 3
+            }
+          }
+        },
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "spells": {
+            "3": {
+              "spells": [
+                "{@spell Counterspell|XPHB}",
+                "{@spell Dispel Magic|XPHB}"
+              ],
+              "slots": 2
+            }
+          }
+        },
+        {
+          "name": "Teórica da Winterhold",
+          "type": "spellcasting",
+          "headerEntries": [
+            "Rosa tem vantagem em testes de **Arcana ou Investigação** relacionados a:",
+            "- contratos mágicos",
+            "- selos",
+            "- runas",
+            "- documentos encantados"
+          ],
+          "displayAs": "action"
+        },
+        {
+          "name": "Marca do Mentor",
+          "type": "spellcasting",
+          "headerEntries": [
+            "Uma vez por descanso longo, quando Rosa falha um teste de magia importante, ela pode:",
+            "- repetir o teste",
+            "- mas fica Abalada (desvantagem no próximo teste de Sabedoria)"
+          ],
+          "displayAs": "action"
+        }
+      ],
+      "tokenHref": {
+        "type": "external",
+        "url": ""
+      },
+      "attachedItems": [
+        "club|phb"
+      ],
+      "damageTagsSpell": [
+        "F"
+      ],
+      "spellcastingTags": [
+        "O"
+      ],
+      "savingThrowForcedSpell": [
+        "constitution",
+        "wisdom"
+      ]
+    },
+    {
+      "name": "He Xiao",
+      "alias": [
+        "He Xiao",
+        "Assassino de Komic"
+      ],
+      "group": [
+        "Komic"
+      ],
+      "source": "Notion",
+      "size": [
+        "M"
+      ],
+      "type": "humanoid",
+      "alignment": [
+        "L",
+        "E"
+      ],
+      "ac": [
+        {
+          "ac": 15,
+          "from": [
+            "studded leather"
+          ]
+        }
+      ],
+      "hp": {
+        "average": 66,
+        "formula": "12d8 + 12"
+      },
+      "speed": {
+        "walk": 30
+      },
+      "str": 10,
+      "dex": 18,
+      "con": 12,
+      "int": 13,
+      "wis": 12,
+      "cha": 11,
+      "skill": {
+        "acrobatics": "+7",
+        "athletics": "+3",
+        "stealth": "+10",
+        "investigation": "+4",
+        "perception": "+4",
+        "sleight of hand": "+7"
+      },
+      "passive": 14,
+      "languages": [
+        "Common",
+        "Komic"
+      ],
+      "cr": "4",
+      "trait": [
+        {
+          "name": "Cunning Action",
+          "entries": [
+            "On each of its turns, He Xiao can take the Dash, Disengage, or Hide action as a bonus action."
+          ]
+        },
+        {
+          "name": "Sneak Attack (1/Turn)",
+          "entries": [
+            "He Xiao deals an extra 10 ({@damage 3d6}) damage when it hits a target with a weapon attack and has advantage on the attack roll, or when the target is within 5 feet of an ally of He Xiao that isn't incapacitated and He Xiao doesn't have disadvantage on the attack roll."
+          ]
+        },
+        {
+          "name": "Assassinate",
+          "entries": [
+            "He Xiao has advantage on attack rolls against any creature that hasn't taken a turn in the combat yet. Any hit He Xiao scores against a surprised creature is a critical hit."
+          ]
+        },
+        {
+          "name": "Uncanny Dodge",
+          "entries": [
+            "He Xiao can use its reaction to halve the damage of an attack that hits it."
+          ]
+        },
+        {
+          "name": "Evasion",
+          "entries": [
+            "If He Xiao is subjected to an effect that allows it to make a Dexterity saving throw to take only half damage, He Xiao instead takes no damage if it succeeds on the saving throw, and only half damage if it fails."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Multiattack",
+          "entries": [
+            "He Xiao makes two attacks with its Dagger or two attacks with its Hand Crossbow."
+          ]
+        },
+        {
+          "name": "Dagger",
+          "entries": [
+            "{@atkr m,r} {@hit 7}, reach 5 ft. or range 20/60 ft. {@h}6 ({@damage 1d4 + 4}) Piercing damage plus 7 ({@damage 2d6}) Poison damage.",
+            "{@actSave con} {@dc 13}. {@actSaveFail} The target has the {@condition Poisoned|XPHB} condition until the end of He Xiao's next turn."
+          ]
+        },
+        {
+          "name": "Hand Crossbow",
+          "entries": [
+            "{@atkr r} {@hit 7}, range 30/120 ft. {@h}7 ({@damage 1d6 + 4}) Piercing damage, plus Sneak Attack if applicable."
+          ]
+        }
+      ],
+      "reaction": [
+        {
+          "name": "Uncanny Dodge",
+          "entries": [
+            "{@actTrigger} He Xiao is hit by an attack. {@actResponse} He Xiao halves the attack's damage against it."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Thorn V.",
+      "alias": [
+        "Thorn",
+        "Campeã Sanguínea"
+      ],
+      "group": [
+        "Komic"
+      ],
+      "source": "Notion",
+      "size": [
+        "M"
+      ],
+      "type": "humanoid",
+      "alignment": [
+        "L",
+        "E"
+      ],
+      "ac": [
+        {
+          "ac": 16,
+          "from": [
+            "breastplate"
+          ]
+        }
+      ],
+      "hp": {
+        "average": 95,
+        "formula": "10d8 + 50"
+      },
+      "speed": {
+        "walk": 40
+      },
+      "str": 20,
+      "dex": 14,
+      "con": 20,
+      "int": 9,
+      "wis": 12,
+      "cha": 11,
+      "skill": {
+        "athletics": "+8",
+        "intimidation": "+3",
+        "perception": "+4"
+      },
+      "passive": 14,
+      "languages": [
+        "Common",
+        "Komic"
+      ],
+      "cr": "5",
+      "trait": [
+        {
+          "name": "Rage (2/Day)",
+          "entries": [
+            "As a bonus action, Thorn enters a rage for 1 minute. While raging, Thorn has advantage on Strength checks and Strength saving throws, deals 2 extra damage with melee weapon attacks, and has resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks. The rage ends early if Thorn is knocked unconscious or if Thorn's turn ends and she hasn't attacked a hostile creature since her last turn or taken damage since then."
+          ]
+        },
+        {
+          "name": "Reckless Attack",
+          "entries": [
+            "At the start of her turn, Thorn can gain advantage on the first melee weapon attack roll she makes during that turn, but attack rolls against her have advantage until the start of her next turn."
+          ]
+        },
+        {
+          "name": "Brutal Charge",
+          "entries": [
+            "If Thorn moves at least 20 feet straight toward a creature and then hits it with a melee weapon attack on the same turn, the target takes an extra 4 ({@damage 1d8}) damage and must succeed on a {@actSave str} {@dc 15} or be pushed up to 10 feet away."
+          ]
+        },
+        {
+          "name": "Stop the Fight",
+          "entries": [
+            "Komic's intent is to measure, not to kill. Thorn calls the fight when two enemies drop to 0 hit points, or when Thorn is reduced to 45 hit points or fewer."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Multiattack",
+          "entries": [
+            "Thorn makes two Greatsword attacks."
+          ]
+        },
+        {
+          "name": "Greatsword",
+          "entries": [
+            "{@atkr m} {@hit 8}, reach 5 ft. {@h}12 ({@damage 2d6 + 5}) Slashing damage. While Thorn is raging, the attack deals 14 ({@damage 2d6 + 7}) Slashing damage instead."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dodman Jac",
+      "alias": [
+        "Dodman",
+        "Warlock Veterano de Komic"
+      ],
+      "group": [
+        "Komic"
+      ],
+      "source": "Notion",
+      "size": [
+        "M"
+      ],
+      "type": "humanoid",
+      "alignment": [
+        "L",
+        "N"
+      ],
+      "ac": [
+        {
+          "ac": 14,
+          "from": [
+            "reinforced leather"
+          ]
+        }
+      ],
+      "hp": {
+        "average": 72,
+        "formula": "13d8 + 13"
+      },
+      "speed": {
+        "walk": 30
+      },
+      "str": 10,
+      "dex": 14,
+      "con": 12,
+      "int": 12,
+      "wis": 14,
+      "cha": 18,
+      "skill": {
+        "arcana": "+4",
+        "insight": "+5",
+        "persuasion": "+7",
+        "perception": "+5"
+      },
+      "passive": 15,
+      "languages": [
+        "Common",
+        "Komic"
+      ],
+      "cr": "4",
+      "trait": [
+        {
+          "name": "Agonizing Blast",
+          "entries": [
+            "Dodman's {@spell Eldritch Blast|XPHB} adds his Charisma modifier to the damage it deals on a hit."
+          ]
+        },
+        {
+          "name": "Veteran of War",
+          "entries": [
+            "Once on each of his turns, Dodman can impose disadvantage on the first attack roll made against him before the start of his next turn."
+          ]
+        }
+      ],
+      "spellcasting": [
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "headerEntries": [
+            "Dodman is a 7th-level spellcaster. His spellcasting ability is Charisma (spell save {@dc 15}, {@hit 7} to hit with spell attacks). Dodman has two 2nd-level spell slots, which he regains when he finishes a short or long rest."
+          ]
+        },
+        {
+          "name": "Cantrips (at will)",
+          "type": "spellcasting",
+          "spells": {
+            "0": {
+              "spells": [
+                "{@spell Eldritch Blast|XPHB}",
+                "{@spell Mage Hand|XPHB}",
+                "{@spell Minor Illusion|XPHB}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Spells (2 slots)",
+          "type": "spellcasting",
+          "spells": {
+            "1": {
+              "spells": [
+                "{@spell Armor of Agathys|XPHB}",
+                "{@spell Hex|XPHB}"
+              ]
+            },
+            "2": {
+              "spells": [
+                "{@spell Misty Step|XPHB}",
+                "{@spell Hold Person|XPHB}"
+              ],
+              "slots": 2
+            }
+          }
+        }
+      ],
+      "action": [
+        {
+          "name": "Eldritch Blast",
+          "entries": [
+            "{@atkr r} {@hit 7}, range 120 ft. (two beams). {@h}9 ({@damage 1d10 + 4}) Force damage per beam."
+          ]
+        },
+        {
+          "name": "Staff",
+          "entries": [
+            "{@atkr m} {@hit 4}, reach 5 ft. {@h}5 ({@damage 1d6 + 2}) Bludgeoning damage."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Condutor do Vórtice",
+      "alias": [
+        "Condutor",
+        "Condutor do Vórtice (Red Vortex)"
+      ],
+      "group": [
+        "Red Vortex",
+        "Hotead"
+      ],
+      "source": "Notion",
+      "size": [
+        "M"
+      ],
+      "type": "humanoid",
+      "alignment": [
+        "C",
+        "E"
+      ],
+      "ac": [
+        {
+          "ac": 15,
+          "from": [
+            "ritual protections"
+          ]
+        }
+      ],
+      "hp": {
+        "average": 78,
+        "formula": "12d8 + 24"
+      },
+      "speed": {
+        "walk": 30
+      },
+      "str": 11,
+      "dex": 14,
+      "con": 14,
+      "int": 12,
+      "wis": 16,
+      "cha": 14,
+      "resist": [
+        "necrotic"
+      ],
+      "skill": {
+        "religion": "+4",
+        "insight": "+6",
+        "perception": "+6"
+      },
+      "passive": 16,
+      "languages": [
+        "Common",
+        "Vozc Cant"
+      ],
+      "cr": "6",
+      "trait": [
+        {
+          "name": "Unholy Step (Recharge 4–6)",
+          "entries": [
+            "As a bonus action, the conductor teleports up to 30 feet to an unoccupied space it can see. This movement leaves behind a brief, unsettling afterimage of the ritual."
+          ]
+        },
+        {
+          "name": "Calculated Retreat",
+          "entries": [
+            "When the conductor is reduced to 30 hit points or fewer, it prioritizes escape over victory, disengaging and using Unholy Step whenever possible."
+          ]
+        }
+      ],
+      "spellcasting": [
+        {
+          "name": "Spellcasting",
+          "type": "spellcasting",
+          "headerEntries": [
+            "The conductor is a spellcaster. Its spellcasting ability is Wisdom (spell save {@dc 15}, {@hit 7} to hit with spell attacks)."
+          ]
+        },
+        {
+          "name": "Cantrips (at will)",
+          "type": "spellcasting",
+          "spells": {
+            "0": {
+              "spells": [
+                "{@spell Toll the Dead|XPHB}",
+                "{@spell Thaumaturgy|XPHB}",
+                "{@spell Chill Touch|XPHB}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Spells",
+          "type": "spellcasting",
+          "spells": {
+            "1": {
+              "spells": [
+                "{@spell Command|XPHB}",
+                "{@spell Inflict Wounds|XPHB}",
+                "{@spell Shield of Faith|XPHB}"
+              ],
+              "slots": 4
+            },
+            "2": {
+              "spells": [
+                "{@spell Hold Person|XPHB}",
+                "{@spell Blindness/Deafness|XPHB}",
+                "{@spell Misty Step|XPHB}"
+              ],
+              "slots": 3
+            },
+            "3": {
+              "spells": [
+                "{@spell Bestow Curse|XPHB}",
+                "{@spell Spirit Guardians|XPHB}"
+              ],
+              "slots": 2
+            }
+          }
+        }
+      ],
+      "action": [
+        {
+          "name": "Ritual Dagger",
+          "entries": [
+            "{@atkr m} {@hit 5}, reach 5 ft. {@h}4 ({@damage 1d4 + 2}) Piercing damage plus 7 ({@damage 2d6}) Necrotic damage."
+          ]
+        },
+        {
+          "name": "Ritual Pulse (1/Combat)",
+          "entries": [
+            "The conductor triggers the ritual pulse immediately (as if it were Initiative count 20). This doesn't cause an extra pulse for the round; it only makes the next pulse happen early."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Abominação Instável",
+      "alias": [
+        "Abominação",
+        "Abominação Instável (Red Vortex)"
+      ],
+      "group": [
+        "Red Vortex",
+        "Hotead"
+      ],
+      "source": "Notion",
+      "size": [
+        "L"
+      ],
+      "type": "undead",
+      "alignment": [
+        "C",
+        "E"
+      ],
+      "ac": [
+        15
+      ],
+      "hp": {
+        "average": 92,
+        "formula": "8d10 + 48"
+      },
+      "speed": {
+        "walk": 30
+      },
+      "str": 19,
+      "dex": 12,
+      "con": 22,
+      "int": 6,
+      "wis": 12,
+      "cha": 7,
+      "vulnerable": [
+        "radiant"
+      ],
+      "resist": [
+        "necrotic",
+        {
+          "resist": [
+            "bludgeoning",
+            "piercing",
+            "slashing"
+          ],
+          "note": "from nonmagical attacks while the abomination has more than 40 hit points"
+        }
+      ],
+      "senses": [
+        "darkvision 60 ft."
+      ],
+      "passive": 11,
+      "cr": "5",
+      "trait": [
+        {
+          "name": "Wrong Instinct",
+          "entries": [
+            "At the start of its turn, if a noncombatant or mount is within 30 feet of it and a player character is within 30 feet of it, roll a {@dice d6}:",
+            "1–3. The abomination attacks the nearest creature.",
+            "4–6. The abomination rushes toward the noncombatant or mount, acting in panicked confusion."
+          ]
+        },
+        {
+          "name": "Rupture (1/Day)",
+          "entries": [
+            "When the abomination is reduced to 45 hit points or fewer for the first time, it releases a necrotic rupture. Each creature within 10 feet of it must make a {@actSave con} {@dc 14}. {@actSaveFail} 7 ({@damage 2d6}) Necrotic damage, and the creature can't regain hit points until the end of the abomination's next turn."
+          ]
+        }
+      ],
+      "action": [
+        {
+          "name": "Multiattack",
+          "entries": [
+            "The abomination makes two Claw attacks."
+          ]
+        },
+        {
+          "name": "Claw",
+          "entries": [
+            "{@atkr m} {@hit 7}, reach 5 ft. {@h}15 ({@damage 2d6 + 4}) Slashing damage plus 3 ({@damage 1d6}) Necrotic damage."
+          ]
+        },
+        {
+          "name": "Impure Dash (Recharge 5–6)",
+          "entries": [
+            "The abomination moves up to 30 feet without provoking opportunity attacks and makes one Claw attack. If the attack hits, the target must succeed on a {@actSave str} {@dc 14} or have the {@condition Prone|XPHB} condition."
+          ]
+        }
+      ],
+      "conditionInflict": [
+        "prone"
+      ],
+      "savingThrowForced": [
+        "strength",
+        "constitution"
+      ]
+    },
+    {
+      "name": "Ritual Focus (Anchor)",
+      "alias": [
+        "Focus",
+        "Foco do Ritual",
+        "Âncora do Ritual"
+      ],
+      "group": [
+        "Red Vortex",
+        "Hotead"
+      ],
+      "source": "Notion",
+      "size": [
+        "T"
+      ],
+      "type": "object",
+      "alignment": [
+        "U"
+      ],
+      "ac": [
+        12
+      ],
+      "hp": {
+        "average": 18,
+        "formula": "18"
+      },
+      "speed": {
+        "walk": 0
+      },
+      "str": 0,
+      "dex": 0,
+      "con": 0,
+      "int": 0,
+      "wis": 0,
+      "cha": 0,
+      "immune": [
+        "poison",
+        "psychic"
+      ],
+      "vulnerable": [
+        "radiant"
+      ],
+      "senses": [
+        "blindsight 10 ft. (blind beyond this radius)"
+      ],
+      "passive": 10,
+      "cr": "0",
+      "trait": [
+        {
+          "name": "Seal Anchor",
+          "entries": [
+            "A ritual focus is a stationary anchor powering the ritual pulses. A creature can use its action to make a Religion or Arcana check (DC 14) to disable one focus (breaking the seal) instead of dealing damage to it. On a failure by 5 or more, the creature takes 3 ({@damage 1d6}) Necrotic damage."
+          ]
+        }
+      ]
+    }
+  ],
+  "trap": [
+    {
+      "name": "Ritual Pulse (3 Focuses)",
+      "source": "Notion",
+      "trapHazType": "MAG",
+      "entries": [
+        "The ritual emits a pulse on Initiative count 20 (losing initiative ties), once per round. The pulse's strength depends on how many focuses are still active.",
+        {
+          "type": "entries",
+          "name": "Scaling",
+          "entries": [
+            "3 focuses active: **Strong Pulse**",
+            "2 focuses active: **Medium Pulse**",
+            "1 focus active: **Light Pulse**",
+            "0 focuses: the pulses end."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Light Pulse (1 Focus)",
+          "entries": [
+            "Roll a {@dice d6}:",
+            "1–2 **Cold Mist.** A 20-foot-radius area becomes difficult terrain until the next pulse.",
+            "3–4 **Panic Echo.** {@actSave wis} {@dc 13}. {@actSaveFail} The creature has disadvantage on its next attack roll before the end of its next turn.",
+            "5–6 **Hand at the Boot.** {@actSave dex} {@dc 13}. {@actSaveFail} The creature's speed is reduced by 10 feet until the end of its turn."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Medium Pulse (2 Focuses)",
+          "entries": [
+            "Roll a {@dice d6}:",
+            "1–2 **Necrotic Wave.** {@actSave con} {@dc 14}. {@actSaveFail} 7 ({@damage 2d6}) Necrotic damage; on a success, half damage.",
+            "3–4 **Crack in Will.** Creatures concentrating on a spell must make a {@actSave con} {@dc 14}. {@actSaveFail} The creature loses concentration.",
+            "5–6 **Call of the Stables.** One noncombatant or mount panics and moves up to 30 feet in a dangerous direction unless restrained."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Strong Pulse (3 Focuses)",
+          "entries": [
+            "Roll a {@dice d6}:",
+            "1–2 **Necrotic Wave (Strong).** {@actSave con} {@dc 15}. {@actSaveFail} 10 ({@damage 3d6}) Necrotic damage; on a success, half damage.",
+            "3–4 **Field of Invisible Claws.** Until the next pulse, the ritual circle area is difficult terrain, and any creature that starts its turn there must succeed on a {@actSave dex} {@dc 15} or have the {@condition Prone|XPHB} condition.",
+            "5–6 **Rift of the Ritual.** {@actSave dex} {@dc 15}. {@actSaveFail} 7 ({@damage 2d6}) Bludgeoning damage and the creature is pushed 10 feet."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Emergency Dial (anti-TPK)",
+          "entries": [
+            "If the fight turns lethal, you can reduce the pulse one step for one round (Strong→Medium) as the circle destabilizes."
+          ]
+        }
+      ]
+    }
+  ]
+}
