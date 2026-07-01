@@ -239,11 +239,12 @@ export class EncounterBuilder {
 				// segurança
 				c.conditions = Array.isArray(c.conditions) ? c.conditions : [];
 				c.notes = Array.isArray(c.notes) ? c.notes : [];
-				c.spells = c.spells ?? {};
-				c.totalSpellSlots = c.totalSpellSlots ?? null;
-				c.usedSpellSlots = c.usedSpellSlots ?? null;
+					c.spells = c.spells ?? {};
+					c.totalSpellSlots = c.totalSpellSlots ?? null;
+					c.usedSpellSlots = c.usedSpellSlots ?? null;
+					c.specialAbilities = Array.isArray(c.specialAbilities) ? c.specialAbilities : [];
 
-				next.creatures.push(c);
+					next.creatures.push(c);
 				next.creatureIdCount++;
 			}
 
@@ -446,6 +447,7 @@ export class EncounterBuilder {
 					totalSpellSlots: null,
 					usedSpellSlots: null,
 					spells: {},
+					specialAbilities: [],
 				};
 
 				next.creatures.push(c);

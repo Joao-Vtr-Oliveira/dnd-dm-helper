@@ -11,7 +11,11 @@ import type {
 	BattleTurnLogEntry,
 	EncounterTemplate,
 } from '../../models/battle-encounter-model';
-import type { ConditionInterface, CreatureInterface } from '../../models/battleTracker-model';
+import type {
+	ConditionInterface,
+	CreatureInterface,
+	CreatureSpecialAbility,
+} from '../../models/battleTracker-model';
 import {
 	BattleConditionService,
 	type CreateBattleConditionInput,
@@ -618,7 +622,7 @@ export class BattleEncounterService {
 			defeated: creature.alive === false || currentHp <= 0,
 			hidden: false,
 			conditions: this.mapConditions(creature.conditions ?? []),
-			specialAbilities: [],
+			specialAbilities: this.mapSpecialAbilities(creature.specialAbilities ?? []),
 			spellSlots: [],
 			privateNotes: this.joinNotes(creature.notes?.map((note) => note.text)),
 		};
@@ -694,6 +698,24 @@ export class BattleEncounterService {
 				appliedAtRound: Math.max(1, this.toNonNegativeInt(condition.appliedAtRound) || 1),
 				appliedAtTurnIndex: 0,
 				durationType: 'manual',
+			})
+		);
+	}
+
+	private mapSpecialAbilities(abilities: CreatureSpecialAbility[]): BattleSpecialAbility[] {
+		return abilities.map((ability, index) =>
+			this.abilityService.normalizeAbility({
+				id: ability.id || `creature-ability-${index + 1}`,
+				name: ability.name || `Habilidade ${index + 1}`,
+				description: ability.description,
+				rechargeType: ability.rechargeType,
+				cooldownTurns: ability.cooldownTurns,
+				cooldownRounds: ability.cooldownRounds,
+				rechargeDice: ability.rechargeDice,
+				rechargeOn: ability.rechargeOn,
+				isAvailable: true,
+				currentCooldownRounds: 0,
+				currentCooldownTurns: 0,
 			})
 		);
 	}

@@ -28,6 +28,7 @@ export interface CreatureInterface {
 	totalSpellSlots: SpellSlots | null;
 	usedSpellSlots: SpellSlots | null;
 	spells: SpellsByKey;
+	specialAbilities: CreatureSpecialAbility[];
 }
 
 export interface NoteInterface {
@@ -48,6 +49,19 @@ export interface ConditionInterface {
 export interface SpellInterface {
 	label: string;
 	total: number;
+}
+
+export type CreatureAbilityRechargeType = 'manual' | 'turns' | 'rounds' | 'dice';
+
+export interface CreatureSpecialAbility {
+	id: string;
+	name: string;
+	description?: string;
+	rechargeType: CreatureAbilityRechargeType;
+	cooldownTurns?: number;
+	cooldownRounds?: number;
+	rechargeDice?: string;
+	rechargeOn?: number[];
 }
 
 export type SpellsByKey = Record<string, SpellInterface>;

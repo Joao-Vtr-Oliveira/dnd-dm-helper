@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import type {
 	BattleTracker,
 	CreatureInterface,
+	CreatureSpecialAbility,
 	SpellLevel,
 	SpellSlots,
 	SpellsByKey,
@@ -62,6 +63,7 @@ export class EncounterIoService {
 				totalSpellSlots: c.totalSpellSlots ?? null,
 				usedSpellSlots: c.usedSpellSlots ?? null,
 				spells: c.spells ?? {},
+				specialAbilities: c.specialAbilities ?? [],
 			}));
 
 		const maxId = creatures.reduce((m, c) => Math.max(m, c.id), -1);
@@ -217,6 +219,7 @@ export class EncounterIoService {
 			usedSpellSlots: this.normalizeSlots(rc?.usedSpellSlots),
 
 			spells: this.normalizeSpells(rc?.spells),
+			specialAbilities: this.normalizeSpecialAbilities(rc?.specialAbilities),
 		};
 	}
 
@@ -277,6 +280,31 @@ export class EncounterIoService {
 		}
 
 		return {};
+	}
+
+	private normalizeSpecialAbilities(raw: any): CreatureSpecialAbility[] {
+		if (!Array.isArray(raw)) return [];
+		return raw.map((ability: any, idx: number) => ({
+			id: this.toStr(ability?.id, `ability-${idx + 1}`),
+			name: this.toStr(ability?.name, `Habilidade ${idx + 1}`),
+			description: this.toStr(ability?.description, '') || undefined,
+			rechargeType: this.normalizeRechargeType(ability?.rechargeType),
+			cooldownTurns: this.toFiniteInt(ability?.cooldownTurns, null) ?? undefined,
+			cooldownRounds: this.toFiniteInt(ability?.cooldownRounds, null) ?? undefined,
+			rechargeDice: this.toStr(ability?.rechargeDice, '') || undefined,
+			rechargeOn: Array.isArray(ability?.rechargeOn)
+				? ability.rechargeOn
+						.map((value: any) => this.toFiniteInt(value, null))
+						.filter((value: number | null): value is number => value !== null)
+				: undefined,
+		}));
+	}
+
+	private normalizeRechargeType(value: any): CreatureSpecialAbility['rechargeType'] {
+		if (value === 'manual' || value === 'turns' || value === 'rounds' || value === 'dice') {
+			return value;
+		}
+		return 'manual';
 	}
 
 	private toStr(v: any, fallback: string): string {

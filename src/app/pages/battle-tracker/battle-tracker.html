@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-7xl space-y-6 px-4 py-6">
+<div class="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6">
 	<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 		<div class="space-y-3">
 			<button
@@ -35,9 +35,9 @@
 					<div class="mt-1 text-2xl font-semibold">{{ battle.round }}</div>
 				</div>
 
-				<div class="rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
+				<div class="min-w-0 rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
 					<div class="text-xs uppercase tracking-[0.2em] opacity-60">Turno atual</div>
-					<div class="mt-1 text-lg font-semibold">
+					<div class="mt-1 break-words text-lg font-semibold">
 						{{ currentCombatant()?.displayName || currentCombatant()?.name || 'Sem combatente' }}
 					</div>
 				</div>
@@ -111,7 +111,7 @@
 			}
 		</div>
 
-		<div class="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,0.9fr)]">
+		<div class="grid gap-6 2xl:grid-cols-[minmax(0,1.72fr)_minmax(360px,0.88fr)]">
 			<div class="space-y-4">
 				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
 					<div class="mb-4">
@@ -125,9 +125,9 @@
 						@for (combatant of combatants(); track combatant.id) {
 							<div [class]="cardClasses(combatant)">
 								<div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-									<div class="space-y-2">
+									<div class="min-w-0 space-y-2">
 										<div class="flex flex-wrap items-center gap-2">
-											<div class="text-xl font-semibold">
+											<div class="min-w-0 break-words text-xl font-semibold">
 												{{ combatant.displayName || combatant.name }}
 											</div>
 
@@ -222,7 +222,7 @@
 									</label>
 								</div>
 
-								<div class="mt-4 grid gap-3 lg:grid-cols-2">
+								<div class="mt-4 grid gap-3 xl:grid-cols-2">
 									<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
 										<div class="mb-2 text-sm font-semibold">Dano</div>
 										<div class="grid gap-2">
@@ -266,7 +266,7 @@
 									</div>
 								</div>
 
-								<div class="mt-4 grid gap-4 lg:grid-cols-2">
+								<div class="mt-4 grid gap-4 xl:grid-cols-2">
 									<div class="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
 										<div>
 											<h4 class="font-semibold">Condições ativas</h4>
@@ -394,15 +394,15 @@
 										@for (ability of combatant.specialAbilities; track ability.id) {
 											<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
 												<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-													<div>
-														<div class="font-semibold">{{ ability.name }}</div>
+													<div class="min-w-0">
+														<div class="break-words font-semibold">{{ ability.name }}</div>
 														<div class="mt-1 text-sm opacity-75">{{ abilityStatusLabel(ability) }}</div>
 														@if (ability.description) {
-															<div class="mt-1 text-sm opacity-65">{{ ability.description }}</div>
+															<div class="mt-1 break-words text-sm opacity-65">{{ ability.description }}</div>
 														}
 													</div>
 
-													<div class="flex flex-wrap gap-2">
+													<div class="flex flex-wrap gap-2 md:justify-end">
 														<button
 															type="button"
 															class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
@@ -446,7 +446,7 @@
 										}
 									</div>
 
-									<div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
+									<div class="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)]">
 										<label class="text-sm">
 											<span class="mb-1 block opacity-70">Nome</span>
 											<input
@@ -481,15 +481,16 @@
 											</select>
 										</label>
 
-										<div class="flex items-end">
-											<button
-												type="button"
-												class="h-10 w-full cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-												(click)="addAbility(combatant.id)"
-											>
-												Adicionar habilidade
-											</button>
-										</div>
+									</div>
+
+									<div class="flex justify-end">
+										<button
+											type="button"
+											class="h-10 w-full cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15 sm:w-auto sm:min-w-56"
+											(click)="addAbility(combatant.id)"
+										>
+											Adicionar habilidade
+										</button>
 									</div>
 
 									@if (getAbilityDraft(combatant.id).rechargeType === 'turns' || getAbilityDraft(combatant.id).rechargeType === 'rounds') {
@@ -552,52 +553,56 @@
 										<div class="grid gap-3">
 											@for (slot of combatant.spellSlots; track slot.level) {
 												<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-													<div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-														<div class="min-w-40">
+													<div class="grid gap-4 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] xl:items-center">
+														<div class="min-w-0">
 															<div class="font-semibold">Nível {{ slot.level }}</div>
 															<div class="text-sm opacity-75">
 																{{ availableSpellSlots(slot) }} / {{ slot.max }} disponíveis
 															</div>
 														</div>
 
-														<div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_auto_auto] xl:items-end">
-															<label class="text-sm">
-																<span class="mb-1 block opacity-70">Máximo</span>
-																<input
-																	type="number"
-																	min="0"
-																	class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-																	[ngModel]="slot.max"
-																	(ngModelChange)="setSpellSlotMax(combatant.id, slot.level, $event)"
-																/>
-															</label>
+														<div class="grid gap-3">
+															<div class="grid gap-2 sm:grid-cols-2">
+																<label class="text-sm">
+																	<span class="mb-1 block opacity-70">Máximo</span>
+																	<input
+																		type="number"
+																		min="0"
+																		class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+																		[ngModel]="slot.max"
+																		(ngModelChange)="setSpellSlotMax(combatant.id, slot.level, $event)"
+																	/>
+																</label>
 
-															<label class="text-sm">
-																<span class="mb-1 block opacity-70">Usados</span>
-																<input
-																	type="number"
-																	min="0"
-																	class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-																	[ngModel]="slot.used"
-																	(ngModelChange)="setSpellSlotUsed(combatant.id, slot.level, $event)"
-																/>
-															</label>
+																<label class="text-sm">
+																	<span class="mb-1 block opacity-70">Usados</span>
+																	<input
+																		type="number"
+																		min="0"
+																		class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+																		[ngModel]="slot.used"
+																		(ngModelChange)="setSpellSlotUsed(combatant.id, slot.level, $event)"
+																	/>
+																</label>
+															</div>
 
-															<button
-																type="button"
-																class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 hover:bg-amber-500/20"
-																(click)="useSpellSlot(combatant.id, slot.level)"
-															>
-																Usar slot
-															</button>
+															<div class="grid gap-2 sm:grid-cols-2">
+																<button
+																	type="button"
+																	class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 hover:bg-amber-500/20"
+																	(click)="useSpellSlot(combatant.id, slot.level)"
+																>
+																	Usar slot
+																</button>
 
-															<button
-																type="button"
-																class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 hover:bg-emerald-500/20"
-																(click)="recoverSpellSlot(combatant.id, slot.level)"
-															>
-																Recuperar slot
-															</button>
+																<button
+																	type="button"
+																	class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 hover:bg-emerald-500/20"
+																	(click)="recoverSpellSlot(combatant.id, slot.level)"
+																>
+																	Recuperar slot
+																</button>
+															</div>
 														</div>
 													</div>
 												</div>
@@ -667,7 +672,7 @@
 									</div>
 								</div>
 
-								<div class="mt-1 text-xs opacity-65">
+								<div class="mt-1 break-words text-xs opacity-65">
 									Turno {{ entry.turnIndex + 1 }} ·
 									{{ entry.startedAt | date:'shortTime' }}
 									@if (entry.endedAt) {

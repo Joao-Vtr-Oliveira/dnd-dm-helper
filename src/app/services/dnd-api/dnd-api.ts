@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, shareReplay, map, catchError, throwError } from 'rxjs';
 import type {
 	CreatureInterface,
+	CreatureSpecialAbility,
 	SpellLevel,
 	SpellSlots,
 	SpellsByKey,
@@ -117,6 +118,7 @@ export class Dnd5eApiService {
 			totalSpellSlots: totalSlots,
 			usedSpellSlots: usedSlots,
 			spells: {} as SpellsByKey,
+			specialAbilities: this.extractSpecialAbilities(monster),
 		};
 
 		return creature;
@@ -177,6 +179,20 @@ export class Dnd5eApiService {
 		}
 
 		return matched ? slots : null;
+	}
+
+	private extractSpecialAbilities(monster: ApiMonster): CreatureSpecialAbility[] {
+		const abilities = monster.special_abilities;
+		if (!Array.isArray(abilities) || !abilities.length) return [];
+
+		return abilities
+			.map((ability, index) => ({
+				id: `api-ability-${monster.index}-${index + 1}`,
+				name: ability.name?.trim() || `Habilidade ${index + 1}`,
+				description: ability.desc?.trim() || undefined,
+				rechargeType: 'manual' as const,
+			}))
+			.filter((ability) => ability.name);
 	}
 
 	private zeroUsedSlots(total: SpellSlots): SpellSlots {

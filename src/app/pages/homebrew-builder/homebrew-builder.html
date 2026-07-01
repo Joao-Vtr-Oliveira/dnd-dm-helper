@@ -1,4 +1,4 @@
-<div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+<div class="mx-auto w-full max-w-[1480px] space-y-6 px-4 py-6">
 	<!-- TOP BAR -->
 	<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 		<div>
@@ -182,12 +182,12 @@
 				Enable spell slots
 			</button>
 		} @else {
-			<div class="mt-3 grid grid-cols-1 gap-2">
+			<div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
 				@for (lvl of SPELL_LEVELS; track lvl) {
-					<div class="grid grid-cols-12 gap-2 items-center rounded-xl bg-black/15 border border-white/10 p-2">
-						<div class="col-span-2 text-xs opacity-80 font-semibold">{{ lvl }}</div>
+					<div class="grid grid-cols-1 gap-3 rounded-xl border border-white/10 bg-black/15 p-3 sm:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)_minmax(0,1fr)] sm:items-end">
+						<div class="text-sm font-semibold">{{ lvl }}</div>
 
-						<div class="col-span-5">
+						<div>
 							<div class="text-[10px] uppercase tracking-wider opacity-60">Total</div>
 							<input
 								type="number"
@@ -197,7 +197,7 @@
 							/>
 						</div>
 
-						<div class="col-span-5">
+						<div>
 							<div class="text-[10px] uppercase tracking-wider opacity-60">Used</div>
 							<input
 								type="number"
@@ -277,6 +277,204 @@
 						Nenhuma magia ainda. Adicione acima.
 					</div>
 				}
+			</div>
+		</div>
+	</div>
+
+	<!-- SPECIAL ABILITIES -->
+	<div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+		<div>
+			<div class="text-sm font-semibold opacity-90">Special abilities</div>
+			<p class="mt-1 text-sm opacity-70">
+				Essas habilidades ficam salvas na ficha e entram automaticamente no battle tracker.
+			</p>
+		</div>
+
+		<div class="mt-4 space-y-3">
+			@for (ability of creature().specialAbilities; track ability.id) {
+				<div class="rounded-2xl border border-white/10 bg-black/15 p-4">
+					<div class="grid gap-3 2xl:grid-cols-[minmax(0,1fr)_15rem]">
+						<div class="grid gap-3 md:grid-cols-2">
+							<label class="text-sm">
+								<span class="mb-1 block opacity-70">Nome</span>
+								<input
+									class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+									[ngModel]="ability.name"
+									(ngModelChange)="updateSpecialAbility(ability.id, { name: $event })"
+								/>
+							</label>
+
+							<label class="text-sm">
+								<span class="mb-1 block opacity-70">Recarga</span>
+								<select
+									class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+									[ngModel]="ability.rechargeType"
+									(ngModelChange)="
+										updateSpecialAbility(ability.id, {
+											rechargeType: $event,
+											cooldownTurns: $event === 'turns' ? ability.cooldownTurns ?? 1 : undefined,
+											cooldownRounds: $event === 'rounds' ? ability.cooldownRounds ?? 1 : undefined,
+											rechargeDice: $event === 'dice' ? 'd6' : undefined,
+											rechargeOn: $event === 'dice' ? ability.rechargeOn ?? [5, 6] : undefined
+										})
+									"
+								>
+									<option value="manual">Manual</option>
+									<option value="turns">Por turnos</option>
+									<option value="rounds">Por rounds</option>
+									<option value="dice">Recharge por dado</option>
+								</select>
+							</label>
+
+							<label class="text-sm md:col-span-2">
+								<span class="mb-1 block opacity-70">Descrição</span>
+								<input
+									class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+									[ngModel]="ability.description ?? ''"
+									(ngModelChange)="
+										updateSpecialAbility(ability.id, {
+											description: ($event || '').trim() ? $event : undefined
+										})
+									"
+								/>
+							</label>
+
+							@if (ability.rechargeType === 'turns') {
+								<label class="text-sm">
+									<span class="mb-1 block opacity-70">Volta em turnos</span>
+									<input
+										type="number"
+										min="1"
+										class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+										[ngModel]="ability.cooldownTurns ?? 1"
+										(ngModelChange)="updateSpecialAbility(ability.id, { cooldownTurns: $event === '' ? 1 : +$event })"
+									/>
+								</label>
+							}
+
+							@if (ability.rechargeType === 'rounds') {
+								<label class="text-sm">
+									<span class="mb-1 block opacity-70">Volta em rounds</span>
+									<input
+										type="number"
+										min="1"
+										class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+										[ngModel]="ability.cooldownRounds ?? 1"
+										(ngModelChange)="updateSpecialAbility(ability.id, { cooldownRounds: $event === '' ? 1 : +$event })"
+									/>
+								</label>
+							}
+
+							@if (ability.rechargeType === 'dice') {
+								<label class="text-sm">
+									<span class="mb-1 block opacity-70">Resultados que recarregam</span>
+									<input
+										class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+										[ngModel]="(ability.rechargeOn ?? [5, 6]).join(',')"
+										(ngModelChange)="
+											updateSpecialAbility(ability.id, {
+												rechargeOn: parseRechargeOnInput($event)
+											})
+										"
+									/>
+								</label>
+							}
+						</div>
+
+						<div class="flex flex-col gap-2">
+							<div class="rounded-xl border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm opacity-75">
+								{{ abilityStatusPreview(ability) }}
+							</div>
+
+							<button
+								type="button"
+								class="h-10 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-4 hover:bg-red-500/20"
+								(click)="removeSpecialAbility(ability.id)"
+							>
+								Remover
+							</button>
+						</div>
+					</div>
+				</div>
+			} @empty {
+				<div class="rounded-2xl border border-dashed border-white/10 bg-black/10 p-4 text-sm opacity-70">
+					Nenhuma habilidade especial criada ainda.
+				</div>
+			}
+		</div>
+
+		<div class="mt-4 rounded-2xl border border-white/10 bg-black/10 p-4">
+			<div class="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,0.9fr)]">
+				<label class="text-sm">
+					<span class="mb-1 block opacity-70">Nome</span>
+					<input
+						class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+						placeholder="Ex: Teleporte"
+						[ngModel]="abilityDraft().name"
+						(ngModelChange)="setAbilityDraft({ name: $event })"
+					/>
+				</label>
+
+				<label class="text-sm">
+					<span class="mb-1 block opacity-70">Descrição</span>
+					<input
+						class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+						placeholder="Opcional"
+						[ngModel]="abilityDraft().description"
+						(ngModelChange)="setAbilityDraft({ description: $event })"
+					/>
+				</label>
+
+				<label class="text-sm">
+					<span class="mb-1 block opacity-70">Recarga</span>
+					<select
+						class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+						[ngModel]="abilityDraft().rechargeType"
+						(ngModelChange)="setAbilityDraft({ rechargeType: $event })"
+					>
+						<option value="manual">Manual</option>
+						<option value="turns">Por turnos</option>
+						<option value="rounds">Por rounds</option>
+						<option value="dice">Recharge por dado</option>
+					</select>
+				</label>
+			</div>
+
+			@if (abilityDraft().rechargeType === 'turns' || abilityDraft().rechargeType === 'rounds') {
+				<label class="mt-3 block text-sm">
+					<span class="mb-1 block opacity-70">
+						@if (abilityDraft().rechargeType === 'turns') { Volta em quantos turnos? } @else { Volta em quantos rounds? }
+					</span>
+					<input
+						type="number"
+						min="1"
+						class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+						[ngModel]="abilityDraft().cooldownValue"
+						(ngModelChange)="setAbilityDraft({ cooldownValue: $event })"
+					/>
+				</label>
+			}
+
+			@if (abilityDraft().rechargeType === 'dice') {
+				<label class="mt-3 block text-sm">
+					<span class="mb-1 block opacity-70">Resultados que recarregam</span>
+					<input
+						class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+						placeholder="Ex: 5,6"
+						[ngModel]="abilityDraft().rechargeOn"
+						(ngModelChange)="setAbilityDraft({ rechargeOn: $event })"
+					/>
+				</label>
+			}
+
+			<div class="mt-4 flex justify-end">
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+					(click)="addSpecialAbility()"
+				>
+					Adicionar habilidade
+				</button>
 			</div>
 		</div>
 	</div>

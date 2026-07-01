@@ -9,6 +9,8 @@ import {
 } from '../../services/local-storage-service/local-storage-service';
 import type {
 	CreatureInterface,
+	CreatureSpecialAbility,
+	CreatureAbilityRechargeType,
 	SpellLevel,
 	SpellInterface,
 	SpellSlots,
@@ -16,6 +18,13 @@ import type {
 } from '../../models/battleTracker-model';
 
 type SpellDraft = { label: string; total: number };
+type AbilityDraft = {
+	name: string;
+	description: string;
+	rechargeType: CreatureAbilityRechargeType;
+	cooldownValue: number;
+	rechargeOn: string;
+};
 
 function createEmptyCreature(): CreatureInterface {
 	return {
@@ -34,6 +43,19 @@ function createEmptyCreature(): CreatureInterface {
 		totalSpellSlots: null,
 		usedSpellSlots: null,
 		spells: {},
+		specialAbilities: [],
+	};
+}
+
+function normalizeCreature(raw: CreatureInterface): CreatureInterface {
+	return {
+		...structuredClone(raw),
+		conditions: Array.isArray(raw.conditions) ? raw.conditions : [],
+		notes: Array.isArray(raw.notes) ? raw.notes : [],
+		spells: raw.spells ?? {},
+		totalSpellSlots: raw.totalSpellSlots ?? null,
+		usedSpellSlots: raw.usedSpellSlots ?? null,
+		specialAbilities: Array.isArray(raw.specialAbilities) ? raw.specialAbilities : [],
 	};
 }
 
@@ -58,6 +80,13 @@ export class HomebrewBuilder {
 
 	// draft de magia nova
 	spellDraft = signal<SpellDraft>({ label: '', total: 1 });
+	abilityDraft = signal<AbilityDraft>({
+		name: '',
+		description: '',
+		rechargeType: 'manual',
+		cooldownValue: 1,
+		rechargeOn: '5,6',
+	});
 
 	SPELL_LEVELS: SpellLevel[] = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
 
@@ -68,10 +97,10 @@ export class HomebrewBuilder {
 		const id = this.route.snapshot.paramMap.get('id');
 		if (id) {
 			const sheet = this.ls.getSheet(id);
-			if (sheet) {
-				this.sheetId.set(id);
-				this.title.set(sheet.title);
-				this.creature.set(structuredClone(sheet.data));
+				if (sheet) {
+					this.sheetId.set(id);
+					this.title.set(sheet.title);
+					this.creature.set(normalizeCreature(sheet.data));
 
 				// 👇 popula meta
 				this.category.set(sheet.category ?? 'monster');
@@ -92,6 +121,13 @@ export class HomebrewBuilder {
 	private parseNonNegInt(v: any): number {
 		const n = Math.floor(Number(v));
 		return Number.isFinite(n) ? Math.max(0, n) : 0;
+	}
+
+	parseRechargeOnInput(value: string): number[] {
+		return (value || '')
+			.split(',')
+			.map((item) => this.parseNonNegInt(item))
+			.filter((item) => item > 0);
 	}
 
 	private slugify(s: string): string {
@@ -233,6 +269,81 @@ export class HomebrewBuilder {
 			delete clone[key];
 			return { ...c, spells: clone };
 		});
+	}
+
+	// -------- special abilities --------
+	setAbilityDraft(patch: Partial<AbilityDraft>) {
+		this.abilityDraft.update((draft) => ({ ...draft, ...patch }));
+	}
+
+	addSpecialAbility() {
+		const draft = this.abilityDraft();
+		const name = (draft.name || '').trim();
+		if (!name) {
+			this.showToast({ type: 'warn', text: 'Defina um nome para a habilidade.' });
+			return;
+		}
+
+		const rechargeOn = (draft.rechargeOn || '')
+			.split(',')
+			.map((value) => this.parseNonNegInt(value))
+			.filter((value) => value > 0);
+
+		const ability: CreatureSpecialAbility = {
+			id: crypto.randomUUID(),
+			name,
+			description: (draft.description || '').trim() || undefined,
+			rechargeType: draft.rechargeType,
+			cooldownTurns: draft.rechargeType === 'turns' ? Math.max(1, this.parseNonNegInt(draft.cooldownValue)) : undefined,
+			cooldownRounds: draft.rechargeType === 'rounds' ? Math.max(1, this.parseNonNegInt(draft.cooldownValue)) : undefined,
+			rechargeDice: draft.rechargeType === 'dice' ? 'd6' : undefined,
+			rechargeOn: draft.rechargeType === 'dice' ? rechargeOn : undefined,
+		};
+
+		this.creature.update((creature) => ({
+			...creature,
+			specialAbilities: [...(creature.specialAbilities ?? []), ability],
+		}));
+
+		this.abilityDraft.set({
+			name: '',
+			description: '',
+			rechargeType: 'manual',
+			cooldownValue: 1,
+			rechargeOn: '5,6',
+		});
+	}
+
+	updateSpecialAbility(id: string, patch: Partial<CreatureSpecialAbility>) {
+		this.creature.update((creature) => ({
+			...creature,
+			specialAbilities: (creature.specialAbilities ?? []).map((ability) =>
+				ability.id === id ? { ...ability, ...patch } : ability
+			),
+		}));
+	}
+
+	removeSpecialAbility(id: string) {
+		this.creature.update((creature) => ({
+			...creature,
+			specialAbilities: (creature.specialAbilities ?? []).filter((ability) => ability.id !== id),
+		}));
+	}
+
+	abilityStatusPreview(ability: CreatureSpecialAbility): string {
+		if (ability.rechargeType === 'turns') {
+			const turns = Math.max(1, ability.cooldownTurns ?? 1);
+			return turns === 1 ? 'Volta em 1 turno' : `Volta em ${turns} turnos`;
+		}
+		if (ability.rechargeType === 'rounds') {
+			const rounds = Math.max(1, ability.cooldownRounds ?? 1);
+			return rounds === 1 ? 'Volta em 1 round' : `Volta em ${rounds} rounds`;
+		}
+		if (ability.rechargeType === 'dice') {
+			const targets = ability.rechargeOn?.length ? ability.rechargeOn.join('–') : '5–6';
+			return `Recharge ${targets}`;
+		}
+		return 'Recarga manual';
 	}
 
 	setTempHp(v: any) {
