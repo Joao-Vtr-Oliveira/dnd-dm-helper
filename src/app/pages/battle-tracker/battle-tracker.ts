@@ -3,10 +3,15 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import type {
+	BattleAbilityRechargeType,
 	BattleCombatant,
 	BattleCombatantSide,
+	BattleCondition,
+	BattleConditionDurationType,
 	BattleConditionPreset,
 	BattleEncounter,
+	BattleSpecialAbility,
+	BattleSpellSlotLevel,
 } from '../../models/battle-encounter-model';
 import {
 	BattleEncounterService,
@@ -14,11 +19,21 @@ import {
 } from '../../services/battle-encounter-service/battle-encounter-service';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 
+type ConditionDurationMode = 'manual' | 'next-turn-end' | 'turns' | 'rounds';
+
 type ConditionDraft = {
 	preset: string;
 	customLabel: string;
-	durationRounds: string;
-	durationTurns: string;
+	durationMode: ConditionDurationMode;
+	durationValue: string;
+};
+
+type AbilityDraft = {
+	name: string;
+	description: string;
+	rechargeType: BattleAbilityRechargeType;
+	cooldownValue: string;
+	rechargeOn: string;
 };
 
 type ConfirmModalState = {
@@ -50,6 +65,7 @@ export class BattleTrackerPage {
 	readonly damageDrafts = signal<Record<string, string>>({});
 	readonly healingDrafts = signal<Record<string, string>>({});
 	readonly conditionDrafts = signal<Record<string, ConditionDraft>>({});
+	readonly abilityDrafts = signal<Record<string, AbilityDraft>>({});
 	readonly toast = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 	readonly confirmModal = signal<ConfirmModalState | null>(null);
 
@@ -69,7 +85,7 @@ export class BattleTrackerPage {
 	readonly battleStatusLabel = computed(() => {
 		const status = this.battle()?.status;
 		if (status === 'paused') return 'Pausada';
-		if (status === 'completed') return 'Concluida';
+		if (status === 'completed') return 'Concluída';
 		return 'Ativa';
 	});
 
@@ -106,7 +122,7 @@ export class BattleTrackerPage {
 	openCompleteBattleModal() {
 		this.confirmModal.set({
 			title: 'Concluir batalha?',
-			description: 'O historico sera mantido e essa batalha deixara de aparecer como ativa.',
+			description: 'O histórico será mantido e essa batalha deixará de aparecer como ativa.',
 			confirmLabel: 'Concluir batalha',
 			action: 'complete-battle',
 			tone: 'success',
@@ -123,7 +139,7 @@ export class BattleTrackerPage {
 
 		if (modal.action === 'complete-battle') {
 			this.updateBattle((battle) => this.battleService.completeBattle(battle));
-			this.showToast('success', 'Batalha concluida.');
+			this.showToast('success', 'Batalha concluída.');
 		}
 
 		this.closeConfirmModal();
@@ -202,8 +218,8 @@ export class BattleTrackerPage {
 			this.conditionDrafts()[combatantId] ?? {
 				preset: this.conditionOptions[0]?.name ?? 'prone',
 				customLabel: '',
-				durationRounds: '',
-				durationTurns: '',
+				durationMode: 'manual',
+				durationValue: '1',
 			}
 		);
 	}
@@ -219,24 +235,64 @@ export class BattleTrackerPage {
 	}
 
 	addCondition(combatantId: string) {
+		const battle = this.battle();
+		if (!battle) return;
+
 		const draft = this.getConditionDraft(combatantId);
 		const preset = this.conditionOptions.find((option) => option.name === draft.preset);
 		const customLabel = draft.customLabel.trim();
 		const label = (customLabel || preset?.label || '').trim();
 
 		if (!label) {
-			this.showToast('error', 'Informe o nome da condicao.');
+			this.showToast('error', 'Informe o nome da condição.');
 			return;
 		}
 
-		this.updateBattle((battle) =>
-			this.battleService.addCondition(battle, combatantId, {
+		const durationValue = Math.max(1, this.parseNonNegativeInt(draft.durationValue) || 1);
+		const conditionInput = (() => {
+			if (draft.durationMode === 'next-turn-end') {
+				const target = this.battleService.getPositionAfterTurns(battle, 1);
+				return {
+					name: preset?.name === 'custom' ? this.slugify(label) || 'custom' : preset?.name ?? 'custom',
+					label,
+					description: preset?.description,
+					durationType: 'until-end-of-turn' as BattleConditionDurationType,
+					expiresAtRound: target.round,
+					expiresAtTurnIndex: target.turnIndex,
+					expiresAtTiming: 'end' as const,
+				};
+			}
+
+			if (draft.durationMode === 'turns') {
+				return {
+					name: preset?.name === 'custom' ? this.slugify(label) || 'custom' : preset?.name ?? 'custom',
+					label,
+					description: preset?.description,
+					durationType: 'turns' as BattleConditionDurationType,
+					durationTurns: durationValue,
+				};
+			}
+
+			if (draft.durationMode === 'rounds') {
+				return {
+					name: preset?.name === 'custom' ? this.slugify(label) || 'custom' : preset?.name ?? 'custom',
+					label,
+					description: preset?.description,
+					durationType: 'rounds' as BattleConditionDurationType,
+					durationRounds: durationValue,
+				};
+			}
+
+			return {
 				name: preset?.name === 'custom' ? this.slugify(label) || 'custom' : preset?.name ?? 'custom',
 				label,
-				description: preset?.name === 'custom' ? undefined : preset?.description,
-				durationRounds: this.parseOptionalNonNegativeInt(draft.durationRounds),
-				durationTurns: this.parseOptionalNonNegativeInt(draft.durationTurns),
-			})
+				description: preset?.description,
+				durationType: 'manual' as BattleConditionDurationType,
+			};
+		})();
+
+		this.updateBattle((current) =>
+			this.battleService.addCondition(current, combatantId, conditionInput)
 		);
 
 		this.conditionDrafts.update((drafts) => ({
@@ -244,8 +300,8 @@ export class BattleTrackerPage {
 			[combatantId]: {
 				preset: this.conditionOptions[0]?.name ?? 'prone',
 				customLabel: '',
-				durationRounds: '',
-				durationTurns: '',
+				durationMode: 'manual',
+				durationValue: '1',
 			},
 		}));
 	}
@@ -254,6 +310,12 @@ export class BattleTrackerPage {
 		this.updateBattle((battle) =>
 			this.battleService.removeCondition(battle, combatantId, conditionId)
 		);
+	}
+
+	conditionDurationLabel(condition: BattleCondition): string {
+		const battle = this.battle();
+		if (!battle) return 'Sem duração';
+		return this.battleService.describeConditionDuration(condition, battle);
 	}
 
 	setDmNotes(value: string) {
@@ -266,6 +328,145 @@ export class BattleTrackerPage {
 		);
 	}
 
+	getAbilityDraft(combatantId: string): AbilityDraft {
+		return (
+			this.abilityDrafts()[combatantId] ?? {
+				name: '',
+				description: '',
+				rechargeType: 'manual',
+				cooldownValue: '1',
+				rechargeOn: '5,6',
+			}
+		);
+	}
+
+	setAbilityDraft(combatantId: string, patch: Partial<AbilityDraft>) {
+		this.abilityDrafts.update((drafts) => ({
+			...drafts,
+			[combatantId]: {
+				...this.getAbilityDraft(combatantId),
+				...patch,
+			},
+		}));
+	}
+
+	addAbility(combatantId: string) {
+		const draft = this.getAbilityDraft(combatantId);
+		const name = draft.name.trim();
+		if (!name) {
+			this.showToast('error', 'Informe o nome da habilidade.');
+			return;
+		}
+
+		const cooldownValue = Math.max(1, this.parseNonNegativeInt(draft.cooldownValue) || 1);
+		const rechargeOn = draft.rechargeOn
+			.split(',')
+			.map((item) => this.parseNonNegativeInt(item))
+			.filter((item) => item > 0);
+
+		this.updateBattle((battle) =>
+			this.battleService.addSpecialAbility(battle, combatantId, {
+				name,
+				description: draft.description,
+				rechargeType: draft.rechargeType,
+				cooldownTurns: draft.rechargeType === 'turns' ? cooldownValue : undefined,
+				cooldownRounds: draft.rechargeType === 'rounds' ? cooldownValue : undefined,
+				rechargeDice: draft.rechargeType === 'dice' ? 'd6' : undefined,
+				rechargeOn: draft.rechargeType === 'dice' ? rechargeOn : undefined,
+			})
+		);
+
+		this.abilityDrafts.update((drafts) => ({
+			...drafts,
+			[combatantId]: {
+				name: '',
+				description: '',
+				rechargeType: 'manual',
+				cooldownValue: '1',
+				rechargeOn: '5,6',
+			},
+		}));
+	}
+
+	useAbility(combatantId: string, abilityId: string) {
+		this.updateBattle((battle) => this.battleService.useSpecialAbility(battle, combatantId, abilityId));
+	}
+
+	resetAbility(combatantId: string, abilityId: string) {
+		this.updateBattle((battle) =>
+			this.battleService.resetSpecialAbility(battle, combatantId, abilityId)
+		);
+	}
+
+	removeAbility(combatantId: string, abilityId: string) {
+		this.updateBattle((battle) =>
+			this.battleService.removeSpecialAbility(battle, combatantId, abilityId)
+		);
+	}
+
+	rollAbilityRecharge(combatantId: string, abilityId: string) {
+		const battle = this.battle();
+		if (!battle) return;
+
+		const result = this.battleService.rollSpecialAbilityRecharge(battle, combatantId, abilityId);
+		if (!result) return;
+
+		this.battle.set(result.battle);
+		this.showToast(
+			result.success
+				? 'success'
+				: 'error',
+			result.success ? `Recharge bem-sucedido: ${result.roll}.` : `Recharge falhou: ${result.roll}.`
+		);
+	}
+
+	abilityStatusLabel(ability: BattleSpecialAbility): string {
+		return this.battleService.describeAbilityStatus(ability);
+	}
+
+	enableSpellSlots(combatantId: string) {
+		this.updateBattle((battle) => this.battleService.enableSpellSlots(battle, combatantId));
+	}
+
+	disableSpellSlots(combatantId: string) {
+		this.updateBattle((battle) => this.battleService.disableSpellSlots(battle, combatantId));
+	}
+
+	spellSlotsEnabled(combatant: BattleCombatant): boolean {
+		return combatant.spellSlots.length > 0;
+	}
+
+	setSpellSlotMax(combatantId: string, level: number, value: unknown) {
+		this.updateBattle((battle) =>
+			this.battleService.setSpellSlotMax(battle, combatantId, level, this.parseNonNegativeInt(value))
+		);
+	}
+
+	setSpellSlotUsed(combatantId: string, level: number, value: unknown) {
+		this.updateBattle((battle) =>
+			this.battleService.setSpellSlotUsed(
+				battle,
+				combatantId,
+				level,
+				this.parseNonNegativeInt(value)
+			)
+		);
+	}
+
+	useSpellSlot(combatantId: string, level: number) {
+		this.updateBattle((battle) => this.battleService.useSpellSlot(battle, combatantId, level));
+	}
+
+	recoverSpellSlot(combatantId: string, level: number) {
+		this.updateBattle((battle) =>
+			this.battleService.recoverSpellSlot(battle, combatantId, level)
+		);
+	}
+
+	availableSpellSlots(slot: BattleSpellSlotLevel): number {
+		return this.battleService.getAvailableSpellSlots(slot);
+	}
+
 	formatDuration(totalSeconds: number): string {
 		const minutes = Math.floor(totalSeconds / 60);
 		const seconds = totalSeconds % 60;
@@ -273,7 +474,7 @@ export class BattleTrackerPage {
 	}
 
 	sideLabel(side: BattleCombatantSide): string {
-		if (side === 'player') return 'Player';
+		if (side === 'player') return 'Jogador';
 		if (side === 'ally') return 'Aliado';
 		if (side === 'neutral') return 'Neutro';
 		return 'Inimigo';
@@ -282,7 +483,7 @@ export class BattleTrackerPage {
 	sideBadgeClasses(side: BattleCombatantSide): string {
 		if (side === 'player') return 'border-sky-400/30 bg-sky-500/15 text-sky-100';
 		if (side === 'ally') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
-		if (side === 'neutral') return 'border-slate-300/20 bg-slate-400/10 text-slate-100';
+		if (side === 'neutral') return 'border-slate-300/20 bg-slate-500/10 text-slate-100';
 		return 'border-rose-400/30 bg-rose-500/15 text-rose-100';
 	}
 
@@ -294,10 +495,7 @@ export class BattleTrackerPage {
 	}
 
 	confirmButtonClasses(tone: ConfirmModalState['tone']): string {
-		if (tone === 'danger') {
-			return 'border-red-300/30 bg-red-500/15 hover:bg-red-500/20';
-		}
-
+		if (tone === 'danger') return 'border-red-300/30 bg-red-500/15 hover:bg-red-500/20';
 		return 'border-emerald-300/30 bg-emerald-500/15 hover:bg-emerald-500/20';
 	}
 
@@ -307,7 +505,14 @@ export class BattleTrackerPage {
 		if (preset?.name === 'custom' && !draft.customLabel.trim()) {
 			return 'Digite um nome personalizado';
 		}
-		return (draft.customLabel || preset?.label || 'Condicao sem nome').trim();
+		return (draft.customLabel || preset?.label || 'Condição sem nome').trim();
+	}
+
+	conditionModeLabel(mode: ConditionDurationMode): string {
+		if (mode === 'next-turn-end') return 'Até o fim do próximo turno';
+		if (mode === 'turns') return 'Por turnos';
+		if (mode === 'rounds') return 'Por rounds';
+		return 'Sem duração';
 	}
 
 	statusBadgeClasses(status: BattleEncounter['status'] | undefined): string {
@@ -320,26 +525,13 @@ export class BattleTrackerPage {
 		const isCurrent = this.currentCombatant()?.id === combatant.id;
 		const base = 'rounded-3xl border p-4 transition';
 
-		if (combatant.defeated) {
-			return `${base} border-red-400/30 bg-red-500/10 opacity-75`;
-		}
-
+		if (combatant.defeated) return `${base} border-red-400/30 bg-red-500/10 opacity-75`;
 		if (isCurrent) {
 			return `${base} border-amber-300/40 bg-amber-500/10 shadow-[0_0_0_1px_rgba(251,191,36,0.18)]`;
 		}
-
-		if (combatant.side === 'player') {
-			return `${base} border-sky-400/20 bg-sky-500/5`;
-		}
-
-		if (combatant.side === 'ally') {
-			return `${base} border-emerald-400/20 bg-emerald-500/5`;
-		}
-
-		if (combatant.side === 'neutral') {
-			return `${base} border-slate-300/15 bg-slate-500/5`;
-		}
-
+		if (combatant.side === 'player') return `${base} border-sky-400/20 bg-sky-500/5`;
+		if (combatant.side === 'ally') return `${base} border-emerald-400/20 bg-emerald-500/5`;
+		if (combatant.side === 'neutral') return `${base} border-slate-300/15 bg-slate-500/5`;
 		return `${base} border-rose-400/15 bg-rose-500/5`;
 	}
 
@@ -353,11 +545,6 @@ export class BattleTrackerPage {
 		const numeric = Number(value);
 		if (!Number.isFinite(numeric)) return 0;
 		return Math.max(0, Math.floor(numeric));
-	}
-
-	private parseOptionalNonNegativeInt(value: unknown): number | undefined {
-		if (value == null || value === '') return undefined;
-		return this.parseNonNegativeInt(value);
 	}
 
 	private slugify(value: string): string {

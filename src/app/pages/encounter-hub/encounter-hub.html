@@ -1,9 +1,9 @@
-<div class="mx-auto max-w-6xl space-y-6 px-4 py-6">
-	<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+<div class="mx-auto max-w-7xl space-y-6 px-4 py-6">
+	<div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 		<div>
-			<h2 class="text-2xl font-semibold">Encounter Hub</h2>
-			<p class="text-sm opacity-70">
-				Encounters preparados e batalhas locais salvas no navegador.
+			<h2 class="text-3xl font-semibold">Encounter Hub</h2>
+			<p class="mt-1 text-sm opacity-70">
+				Encontros preparados, batalhas locais e atalhos rápidos para continuar a mesa.
 			</p>
 		</div>
 
@@ -19,34 +19,37 @@
 				class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 				(click)="importOpen.set(!importOpen())"
 			>
-				@if (importOpen()) { Fechar importacao } @else { Importar JSON }
+				@if (importOpen()) { Fechar importação } @else { Importar JSON }
 			</button>
 		</div>
 	</div>
 
 	@if (ongoingBattles().length > 0) {
-		<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+		<div class="rounded-3xl border border-emerald-400/15 bg-emerald-500/5 p-5">
 			<div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 				<div>
 					<h3 class="text-xl font-semibold">Batalhas em andamento</h3>
 					<p class="text-sm opacity-75">
-						Continue rapidamente as sessoes ativas ou pausadas.
+						As sessões ativas e pausadas ficam no topo para acelerar a mesa.
 					</p>
 				</div>
-				<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">
-					{{ ongoingBattles().length }} batalhas
+				<span class="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-100">
+					{{ ongoingBattles().length }} em andamento
 				</span>
 			</div>
 
 			<div class="mt-4 grid gap-3 lg:grid-cols-2">
 				@for (battle of ongoingBattles(); track battle.id) {
 					<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-						<div class="flex flex-wrap items-center justify-between gap-3">
-							<div>
+						<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+							<div class="space-y-1">
 								<div class="text-lg font-semibold">{{ battle.name }}</div>
-								<div class="text-sm opacity-70">
+								<div class="text-sm opacity-75">
 									{{ battleStatusLabel(battle) }} · Round {{ battle.round }} ·
 									{{ currentCombatantName(battle) }}
+								</div>
+								<div class="text-xs opacity-60">
+									Atualizada em {{ battle.updatedAt | date:'short' }}
 								</div>
 							</div>
 
@@ -63,12 +66,61 @@
 		</div>
 	}
 
-	<input
-		class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
-		placeholder="Buscar encounter..."
-		[value]="q()"
-		(input)="q.set(($any($event.target).value || ''))"
-	/>
+	<div class="rounded-3xl border border-white/10 bg-white/5 p-4">
+		<div class="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+			<label class="text-sm">
+				<span class="mb-1 block opacity-70">Buscar</span>
+				<input
+					class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+					placeholder="Nome, criaturas, descrição, tags..."
+					[ngModel]="filters().query"
+					(ngModelChange)="updateQuery($event)"
+				/>
+			</label>
+
+			<label class="text-sm">
+				<span class="mb-1 block opacity-70">Filtrar por status</span>
+				<select
+					class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+					[ngModel]="filters().status"
+					(ngModelChange)="updateStatus($event)"
+				>
+					<option value="all">Todos</option>
+					<option value="prepared">Encontros preparados</option>
+					<option value="active">Batalha ativa</option>
+					<option value="paused">Batalha pausada</option>
+					<option value="completed">Batalha concluída</option>
+				</select>
+			</label>
+
+			<label class="text-sm">
+				<span class="mb-1 block opacity-70">Ordenar por</span>
+				<select
+					class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+					[ngModel]="filters().sort"
+					(ngModelChange)="updateSort($event)"
+				>
+					<option value="smart">Uso em mesa</option>
+					<option value="recent">Mais recentes primeiro</option>
+					<option value="oldest">Mais antigos primeiro</option>
+					<option value="updated">Atualizado recentemente</option>
+					<option value="name">Nome A-Z</option>
+				</select>
+			</label>
+		</div>
+
+		<div class="mt-3 flex flex-wrap gap-2 text-xs opacity-75">
+			<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+				{{ filterLabel(filters().status) }}
+			</span>
+			<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+				{{ sortLabel(filters().sort) }}
+			</span>
+			<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+				{{ filteredItems().length }} resultados
+			</span>
+		</div>
+	</div>
 
 	@if (importOpen()) {
 		<div class="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4">
@@ -109,118 +161,261 @@
 		</div>
 	}
 
-	<div class="space-y-3">
-		@if (filtered().length === 0) {
-			<div class="rounded-3xl border border-white/10 bg-white/5 p-5 opacity-80">
-				Nenhum encounter salvo ainda.
-			</div>
-		} @else {
-			@for (encounter of filtered(); track encounter.id) {
-				<div
-					class="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-5"
-				>
-					<div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-						<div>
-							<div class="flex flex-wrap items-center gap-2">
-								<div class="text-xl font-semibold">{{ encounter.title }}</div>
-								@if (relatedBattle(encounter.id); as battle) {
-									<span
-										class="rounded-full border border-amber-300/25 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-100"
-									>
-										Batalha {{ battleStatusLabel(battle) }}
-									</span>
-								}
-							</div>
-
-							<div class="mt-1 text-xs opacity-70">
-								Atualizado em {{ encounter.updatedAt | date:'short' }}
-							</div>
-						</div>
-
-						<div class="flex flex-wrap gap-2">
-							@if (relatedBattle(encounter.id); as battle) {
-								<button
-									class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
-									(click)="continueBattle(encounter.id)"
-								>
-									Continuar Batalha
-								</button>
-
-								<button
-									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-									(click)="newBattle(encounter.id)"
-								>
-									Nova Batalha
-								</button>
-							} @else if (hasAnyBattle(encounter.id)) {
-								<button
-									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-									(click)="newBattle(encounter.id)"
-								>
-									Nova Batalha
-								</button>
-							} @else {
-								<button
-									class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 font-semibold hover:bg-emerald-500/20"
-									(click)="startBattle(encounter.id)"
-								>
-									Iniciar Batalha
-								</button>
-							}
-
-							<button
-								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-								(click)="edit(encounter.id)"
-							>
-								Editar
-							</button>
-
-							<button
-								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-								(click)="export(encounter.id)"
-							>
-								Exportar
-							</button>
-
-							<button
-								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-								(click)="duplicate(encounter.id)"
-							>
-								Duplicar
-							</button>
-
-							<button
-								class="h-10 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-4 hover:bg-red-500/20"
-								(click)="remove(encounter.id)"
-							>
-								Excluir
-							</button>
-						</div>
+	@if (groupedItems().length === 0) {
+		<div class="rounded-3xl border border-white/10 bg-white/5 p-5 opacity-80">
+			Nenhum encounter encontrado para os filtros atuais.
+		</div>
+	} @else {
+		<div class="space-y-6">
+			@for (group of groupedItems(); track group.label) {
+				<section class="space-y-3">
+					<div class="flex items-center gap-3">
+						<h3 class="text-lg font-semibold">{{ group.label }}</h3>
+						<div class="h-px flex-1 bg-white/10"></div>
 					</div>
 
-					@if (relatedBattle(encounter.id); as battle) {
-						<div class="grid gap-3 md:grid-cols-3">
-							<div class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-								<div class="text-xs uppercase tracking-[0.2em] opacity-60">Status</div>
-								<div class="mt-1 font-semibold">{{ battleStatusLabel(battle) }}</div>
+					<div class="space-y-3">
+						@for (item of group.items; track item.encounter.id) {
+							<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+								<div class="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
+									<div class="min-w-0 space-y-3 2xl:flex-1">
+										<div class="flex flex-wrap items-center gap-2">
+											<h4 class="min-w-0 break-words text-xl font-semibold">
+												{{ item.encounter.title }}
+											</h4>
+											<span
+												class="rounded-full border px-2.5 py-1 text-xs font-semibold"
+												[class]="itemStatusClasses(item)"
+											>
+												{{ itemStatusLabel(item) }}
+											</span>
+										</div>
+
+										<div class="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+											<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+												<div class="text-[11px] uppercase tracking-[0.16em] leading-4 opacity-60">
+													Criado em
+												</div>
+												<div class="mt-1 break-words text-sm font-semibold">
+													{{ item.encounter.createdAt | date:'short' }}
+												</div>
+											</div>
+
+											<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+												<div class="text-[11px] uppercase tracking-[0.16em] leading-4 opacity-60">
+													Atualizado em
+												</div>
+												<div class="mt-1 break-words text-sm font-semibold">
+													{{ item.referenceTimestamp | date:'short' }}
+												</div>
+											</div>
+
+											<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+												<div class="text-[11px] uppercase tracking-[0.16em] leading-4 opacity-60">
+													Combatentes
+												</div>
+												<div class="mt-1 break-words text-sm font-semibold">
+													{{ item.combatantCount }}
+												</div>
+											</div>
+
+											<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+												<div class="text-[11px] uppercase tracking-[0.16em] leading-4 opacity-60">
+													Turno atual
+												</div>
+												<div class="mt-1 break-words text-sm font-semibold">
+													{{ currentCombatantName(latestBattle(item)) }}
+												</div>
+											</div>
+										</div>
+
+										@if (latestBattle(item); as battle) {
+											<div class="flex flex-wrap gap-2 text-sm opacity-75">
+												@if (battle.status === 'active' || battle.status === 'paused') {
+													<span>Round {{ battle.round }}</span>
+													<span>•</span>
+												}
+												<span>{{ battle.combatants.length }} participantes</span>
+												<span>•</span>
+												<span>{{ battleStatusLabel(battle) }}</span>
+											</div>
+										} @else {
+											<div class="text-sm opacity-70">
+												Pronto para iniciar uma nova batalha local.
+											</div>
+										}
+									</div>
+
+									<div class="flex flex-wrap gap-2 2xl:max-w-sm 2xl:justify-end">
+										@if (item.activeBattle) {
+											<button
+												class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
+												(click)="continueBattle(item.encounter.id)"
+											>
+												Continuar Batalha
+											</button>
+
+											<button
+												class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+												(click)="newBattle(item.encounter.id)"
+											>
+												Nova Batalha
+											</button>
+										} @else if (item.latestBattle) {
+											<button
+												class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+												(click)="newBattle(item.encounter.id)"
+											>
+												Nova Batalha
+											</button>
+										} @else {
+											<button
+												class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 font-semibold hover:bg-emerald-500/20"
+												(click)="startBattle(item.encounter.id)"
+											>
+												Iniciar Batalha
+											</button>
+										}
+
+										<button
+											class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+											(click)="edit(item.encounter.id)"
+										>
+											Editar
+										</button>
+
+										<button
+											class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+											(click)="duplicate(item.encounter.id)"
+										>
+											Duplicar
+										</button>
+
+										<button
+											class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+											(click)="export(item.encounter.id)"
+										>
+											Exportar
+										</button>
+
+										<button
+											class="h-10 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-4 hover:bg-red-500/20"
+											(click)="remove(item.encounter.id)"
+										>
+											Excluir
+										</button>
+									</div>
+								</div>
+							</div>
+						}
+					</div>
+				</section>
+			}
+		</div>
+	}
+</div>
+
+@if (battleSetupModal(); as modal) {
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+		<div class="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-3xl border border-white/10 bg-[#1f1930] p-5 shadow-2xl">
+			<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+				<div>
+					<h3 class="text-2xl font-semibold">
+						@if (modal.mode === 'new') { Nova batalha } @else { Iniciar batalha }
+					</h3>
+					<p class="mt-1 text-sm opacity-80">
+						Escolha o lado de cada integrante antes de abrir o tracker.
+					</p>
+				</div>
+
+				<button
+					type="button"
+					class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10"
+					(click)="closeBattleSetupModal()"
+					aria-label="Fechar"
+				>
+					x
+				</button>
+			</div>
+
+			<label class="mt-4 block text-sm">
+				<span class="mb-1 block opacity-70">Nome da batalha</span>
+				<input
+					class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+					[ngModel]="modal.battleName"
+					(ngModelChange)="setBattleSetupName($event)"
+					placeholder="Nome da sessão de batalha"
+				/>
+			</label>
+
+			<div class="mt-5 rounded-3xl border border-white/10 bg-black/20 p-4">
+				<div class="mb-3 flex items-center justify-between gap-3">
+					<div>
+						<h4 class="font-semibold">Participantes</h4>
+						<p class="text-sm opacity-70">
+							Criaturas antigas sem lado definido começam como inimigo por padrão.
+						</p>
+					</div>
+					<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">
+						{{ getBattleSetupEncounter()?.data?.creatures?.length || 0 }} integrantes
+					</span>
+				</div>
+
+				<div class="space-y-3">
+					@for (creature of getBattleSetupEncounter()?.data?.creatures ?? []; track creature.id) {
+						<div class="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] md:items-center">
+							<div>
+								<div class="font-semibold">{{ creature.name }}</div>
+								<div class="text-sm opacity-70">
+									Iniciativa {{ creature.initiative ?? 0 }} · HP {{ creature.maxHealthPoints }}
+								</div>
 							</div>
 
-							<div class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-								<div class="text-xs uppercase tracking-[0.2em] opacity-60">Round</div>
-								<div class="mt-1 font-semibold">{{ battle.round }}</div>
+							<div>
+								<span
+									class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold"
+									[class]="sideBadgeClasses(modal.sides[creature.id] || 'enemy')"
+								>
+									<span class="h-2 w-2 rounded-full bg-current opacity-80"></span>
+									{{ sideLabel(modal.sides[creature.id] || 'enemy') }}
+								</span>
 							</div>
 
-							<div class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-								<div class="text-xs uppercase tracking-[0.2em] opacity-60">Turno atual</div>
-								<div class="mt-1 font-semibold">{{ currentCombatantName(battle) }}</div>
-							</div>
+							<select
+								class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+								[ngModel]="modal.sides[creature.id] || 'enemy'"
+								(ngModelChange)="setBattleSetupSide(creature.id, $event)"
+							>
+								<option value="player">Jogador</option>
+								<option value="ally">Aliado</option>
+								<option value="enemy">Inimigo</option>
+								<option value="neutral">Neutro</option>
+							</select>
 						</div>
 					}
 				</div>
-			}
-		}
+			</div>
+
+			<div class="mt-5 flex flex-wrap justify-end gap-2">
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/5 px-4 hover:bg-white/10"
+					(click)="closeBattleSetupModal()"
+				>
+					Cancelar
+				</button>
+
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 font-semibold hover:bg-emerald-500/20"
+					(click)="launchBattleFromSetup()"
+				>
+					Abrir Battle Tracker
+				</button>
+			</div>
+		</div>
 	</div>
-</div>
+}
 
 @if (confirmModal(); as modal) {
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">

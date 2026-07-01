@@ -67,4 +67,44 @@ describe('BattleEncounterStorageService', () => {
 		expect(service.getBattleEncounterById(battle.id)?.status).toBe('completed');
 		expect(service.getActiveBattleByEncounterId(encounter.id)).toBeNull();
 	});
+
+	it('migrates older battles safely when loading from localStorage', () => {
+		localStorage.setItem(
+			'dnd-dm-helper.battle-encounters.v1',
+			JSON.stringify([
+				{
+					id: 'old-battle',
+					sourceEncounterId: 'enc-1',
+					name: 'Old Battle',
+					status: 'active',
+					round: 1,
+					activeTurnIndex: 0,
+					createdAt: '2026-01-01T10:00:00.000Z',
+					startedAt: '2026-01-01T10:00:00.000Z',
+					updatedAt: '2026-01-01T10:00:00.000Z',
+					combatants: [
+						{
+							id: 'c1',
+							name: 'Legacy Goblin',
+							initiative: 12,
+							turnOrder: 0,
+							maxHp: 10,
+							currentHp: 10,
+							temporaryHp: 0,
+							defeated: false,
+							hidden: false,
+							conditions: [],
+						},
+					],
+					turnHistory: [],
+				},
+			])
+		);
+
+		const loaded = service.getBattleEncounterById('old-battle');
+
+		expect(loaded?.combatants[0].side).toBe('enemy');
+		expect(loaded?.combatants[0].specialAbilities).toEqual([]);
+		expect(loaded?.combatants[0].spellSlots).toEqual([]);
+	});
 });

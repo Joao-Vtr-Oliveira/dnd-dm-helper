@@ -61,7 +61,7 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('creates a battle encounter from a saved encounter', () => {
-		const battle = service.createBattleFromEncounter(template, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
 
 		expect(battle.sourceEncounterId).toBe('enc-1');
 		expect(battle.name).toBe('Goblin Ambush');
@@ -70,6 +70,19 @@ describe('BattleEncounterService', () => {
 		expect(battle.combatants.length).toBe(2);
 		expect(battle.combatants[0].name).toBe('Goblin Boss');
 		expect(battle.combatants[0].privateNotes).toContain('Focus no wizard');
+		expect(battle.combatants[0].side).toBe('enemy');
+	});
+
+	it('supports selecting sides before the battle starts', () => {
+		const battle = service.createBattleFromEncounter(template, {
+			combatantSides: {
+				0: 'ally',
+				1: 'player',
+			},
+		});
+
+		expect(battle.combatants[0].side).toBe('ally');
+		expect(battle.combatants[1].side).toBe('player');
 	});
 
 	it('orders combatants by initiative', () => {
@@ -82,7 +95,7 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('advances the turn and then advances the round after the last combatant', () => {
-		const battle = service.createBattleFromEncounter(template, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
 		const afterFirstTurn = service.advanceTurn(
 			battle,
 			new Date('2026-01-01T10:01:30.000Z')
@@ -100,11 +113,42 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('calculates elapsed time for the current turn', () => {
-		const battle = service.createBattleFromEncounter(template, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
 
 		expect(
 			service.getCurrentTurnElapsedSeconds(battle, new Date('2026-01-01T10:01:24.000Z'))
 		).toBe(84);
+	});
+
+	it('expires turn-based conditions automatically on turn advance', () => {
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const combatantId = battle.combatants[0].id;
+		const withCondition = service.addCondition(battle, combatantId, {
+			name: 'stunned',
+			label: 'Atordoado / Stunned',
+			durationType: 'turns',
+			durationTurns: 1,
+		});
+		const advanced = service.advanceTurn(withCondition, new Date('2026-01-01T10:00:05.000Z'));
+
+		expect(advanced.combatants[0].conditions).toHaveSize(0);
+		expect(advanced.turnHistory.at(-1)?.notes).toContain('Atordoado');
+	});
+
+	it('expires round-based conditions automatically when the round changes', () => {
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const combatantId = battle.combatants[0].id;
+		const withCondition = service.addCondition(battle, combatantId, {
+			name: 'blessed',
+			label: 'Abençoado / Blessed',
+			durationType: 'rounds',
+			durationRounds: 1,
+		});
+
+		const afterFirstTurn = service.advanceTurn(withCondition, new Date('2026-01-01T10:00:05.000Z'));
+		const afterSecondTurn = service.advanceTurn(afterFirstTurn, new Date('2026-01-01T10:00:10.000Z'));
+
+		expect(afterSecondTurn.combatants[0].conditions).toHaveSize(0);
 	});
 
 	it('applies damage using temporary hit points first', () => {
@@ -127,18 +171,32 @@ describe('BattleEncounterService', () => {
 		expect(healed.combatants[1].defeated).toBeFalse();
 	});
 
-	it('adds and removes conditions', () => {
+	it('returns special abilities to available when cooldown by turns reaches zero', () => {
 		const battle = service.createBattleFromEncounter(template);
 		const combatantId = battle.combatants[0].id;
-		const withCondition = service.addCondition(battle, combatantId, {
-			name: 'poisoned',
-			label: 'Envenenado / Poisoned',
-			durationRounds: 3,
+		const withAbility = service.addSpecialAbility(battle, combatantId, {
+			name: 'Sopro Flamejante',
+			rechargeType: 'turns',
+			cooldownTurns: 1,
 		});
-		const conditionId = withCondition.combatants[0].conditions[0].id;
-		const withoutCondition = service.removeCondition(withCondition, combatantId, conditionId);
+		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
+		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
+		const advanced = service.advanceTurn(used, new Date('2026-01-01T10:00:05.000Z'));
 
-		expect(withCondition.combatants[0].conditions[0].appliedAtRound).toBe(1);
-		expect(withoutCondition.combatants[0].conditions).toHaveSize(0);
+		expect(advanced.combatants[0].specialAbilities[0].isAvailable).toBeTrue();
+		expect(advanced.turnHistory.at(-1)?.notes).toContain('Sopro Flamejante');
+	});
+
+	it('uses and recovers spell slots without exceeding bounds', () => {
+		const battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[0].id;
+		const enabled = service.enableSpellSlots(battle, combatantId);
+		const configured = service.setSpellSlotMax(enabled, combatantId, 1, 4);
+		const spent = service.useSpellSlot(configured, combatantId, 1);
+		const recovered = service.recoverSpellSlot(spent, combatantId, 1);
+
+		expect(configured.combatants[0].spellSlots[0].max).toBe(4);
+		expect(spent.combatants[0].spellSlots[0].used).toBe(1);
+		expect(recovered.combatants[0].spellSlots[0].used).toBe(0);
 	});
 });

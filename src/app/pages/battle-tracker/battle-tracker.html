@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+<div class="mx-auto max-w-7xl space-y-6 px-4 py-6">
 	<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 		<div class="space-y-3">
 			<button
@@ -59,9 +59,9 @@
 
 	@if (!battle()) {
 		<div class="rounded-3xl border border-red-400/30 bg-red-500/10 p-6">
-			<p class="text-lg font-semibold">Batalha nao encontrada.</p>
+			<p class="text-lg font-semibold">Batalha não encontrada.</p>
 			<p class="mt-2 text-sm opacity-80">
-				Essa sessao pode ter sido removida do localStorage ou o link esta invalido.
+				Essa sessão pode ter sido removida do localStorage ou o link está inválido.
 			</p>
 		</div>
 	} @else {
@@ -80,7 +80,7 @@
 					class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
 					(click)="nextTurn()"
 				>
-					Proximo Turno
+					Próximo Turno
 				</button>
 
 				<button
@@ -111,16 +111,14 @@
 			}
 		</div>
 
-		<div class="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)]">
+		<div class="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,0.9fr)]">
 			<div class="space-y-4">
 				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
-					<div class="mb-4 flex items-center justify-between gap-3">
-						<div>
-							<h3 class="text-xl font-semibold">Ordem de iniciativa</h3>
-							<p class="text-sm opacity-75">
-								Destaque no turno atual, HP, status e anotacoes privadas por combatente.
-							</p>
-						</div>
+					<div class="mb-4">
+						<h3 class="text-xl font-semibold">Ordem de iniciativa</h3>
+						<p class="text-sm opacity-75">
+							HP, condições, recursos especiais e spell slots por combatente.
+						</p>
 					</div>
 
 					<div class="space-y-4">
@@ -161,7 +159,7 @@
 										</div>
 									</div>
 
-									<div class="grid gap-2 sm:grid-cols-2 xl:min-w-72">
+									<div class="grid gap-2 sm:grid-cols-2 xl:min-w-80">
 										<label class="text-sm">
 											<span class="mb-1 block opacity-70">Lado</span>
 											<select
@@ -170,10 +168,10 @@
 												[ngModel]="combatant.side"
 												(ngModelChange)="setCombatantSide(combatant.id, $event)"
 											>
-												<option value="player">player</option>
-												<option value="ally">ally</option>
-												<option value="enemy">enemy</option>
-												<option value="neutral">neutral</option>
+												<option value="player">Jogador</option>
+												<option value="ally">Aliado</option>
+												<option value="enemy">Inimigo</option>
+												<option value="neutral">Neutro</option>
 											</select>
 										</label>
 
@@ -202,7 +200,7 @@
 									</label>
 
 									<label class="text-sm">
-										<span class="mb-1 block opacity-70">HP maximo</span>
+										<span class="mb-1 block opacity-70">HP máximo</span>
 										<input
 											type="number"
 											min="0"
@@ -213,7 +211,7 @@
 									</label>
 
 									<label class="text-sm">
-										<span class="mb-1 block opacity-70">HP temporario</span>
+										<span class="mb-1 block opacity-70">HP temporário</span>
 										<input
 											type="number"
 											min="0"
@@ -268,36 +266,53 @@
 									</div>
 								</div>
 
-								<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
-									<div class="flex flex-wrap items-center justify-between gap-2">
+								<div class="mt-4 grid gap-4 lg:grid-cols-2">
+									<div class="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
 										<div>
-											<h4 class="font-semibold">Condicoes</h4>
+											<h4 class="font-semibold">Condições ativas</h4>
 											<p class="text-sm opacity-70">
-												Salvas com round e turno em que foram aplicadas.
+												Expiram automaticamente quando a duração termina.
 											</p>
+										</div>
+
+										<div class="space-y-2">
+											@for (condition of combatant.conditions; track condition.id) {
+												<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+													<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+														<div>
+															<div class="font-semibold">{{ condition.label }}</div>
+															<div class="mt-1 text-sm opacity-75">
+																{{ conditionDurationLabel(condition) }}
+															</div>
+														</div>
+
+														<button
+															type="button"
+															class="inline-flex h-9 cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
+															(click)="removeCondition(combatant.id, condition.id)"
+														>
+															Remover
+														</button>
+													</div>
+												</div>
+											} @empty {
+												<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
+													Nenhuma condição ativa.
+												</div>
+											}
 										</div>
 									</div>
 
-									<div class="flex flex-wrap gap-2">
-										@for (condition of combatant.conditions; track condition.id) {
-											<span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">
-												<span>{{ condition.label }}</span>
-												<button
-													type="button"
-													class="cursor-pointer rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] hover:bg-black/40"
-													(click)="removeCondition(combatant.id, condition.id)"
-												>
-													remover
-												</button>
-											</span>
-										} @empty {
-											<span class="text-sm opacity-65">Nenhuma condicao.</span>
-										}
-									</div>
+									<div class="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+										<div>
+											<h4 class="font-semibold">Adicionar condição</h4>
+											<p class="text-sm opacity-70">
+												Escolha a condição base, ajuste o nome exibido e a duração.
+											</p>
+										</div>
 
-									<div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto]">
 										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Condicao base</span>
+											<span class="mb-1 block opacity-70">Condição base</span>
 											<select
 												class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
 												[ngModel]="getConditionDraft(combatant.id).preset"
@@ -314,53 +329,285 @@
 											<input
 												type="text"
 												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												placeholder="Opcional: apelido mostrado na badge"
+												placeholder="Opcional: texto personalizado da badge"
 												[ngModel]="getConditionDraft(combatant.id).customLabel"
 												(ngModelChange)="setConditionDraft(combatant.id, { customLabel: $event })"
 											/>
 										</label>
 
 										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Duracao em rounds</span>
+											<span class="mb-1 block opacity-70">Duração</span>
+											<select
+												class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="getConditionDraft(combatant.id).durationMode"
+												(ngModelChange)="setConditionDraft(combatant.id, { durationMode: $event })"
+											>
+												<option value="manual">Sem duração</option>
+												<option value="next-turn-end">Até o fim do próximo turno</option>
+												<option value="turns">Por turnos</option>
+												<option value="rounds">Por rounds</option>
+											</select>
+										</label>
+
+										@if (getConditionDraft(combatant.id).durationMode === 'turns' || getConditionDraft(combatant.id).durationMode === 'rounds') {
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">
+													@if (getConditionDraft(combatant.id).durationMode === 'turns') { Quantidade de turnos } @else { Quantidade de rounds }
+												</span>
+												<input
+													type="number"
+													min="1"
+													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="getConditionDraft(combatant.id).durationValue"
+													(ngModelChange)="setConditionDraft(combatant.id, { durationValue: $event })"
+												/>
+											</label>
+										}
+
+										<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm opacity-75">
+											Sera exibida como:
+											<span class="font-semibold opacity-100">
+												{{ conditionDraftPreview(combatant.id) }}
+											</span>
+											<span class="opacity-70"> · {{ conditionModeLabel(getConditionDraft(combatant.id).durationMode) }}</span>
+										</div>
+
+										<button
+											type="button"
+											class="h-10 w-full cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+											(click)="addCondition(combatant.id)"
+										>
+											Adicionar condição
+										</button>
+									</div>
+								</div>
+
+								<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+									<div>
+										<h4 class="font-semibold">Habilidades especiais</h4>
+										<p class="text-sm opacity-70">
+											Controle cooldown por turnos, rounds ou recharge por dado.
+										</p>
+									</div>
+
+									<div class="space-y-2">
+										@for (ability of combatant.specialAbilities; track ability.id) {
+											<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+												<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+													<div>
+														<div class="font-semibold">{{ ability.name }}</div>
+														<div class="mt-1 text-sm opacity-75">{{ abilityStatusLabel(ability) }}</div>
+														@if (ability.description) {
+															<div class="mt-1 text-sm opacity-65">{{ ability.description }}</div>
+														}
+													</div>
+
+													<div class="flex flex-wrap gap-2">
+														<button
+															type="button"
+															class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
+															(click)="useAbility(combatant.id, ability.id)"
+														>
+															Usar
+														</button>
+
+														@if (ability.rechargeType === 'dice' && !ability.isAvailable) {
+															<button
+																type="button"
+																class="h-9 cursor-pointer rounded-2xl border border-sky-300/30 bg-sky-500/15 px-3 text-sm hover:bg-sky-500/20"
+																(click)="rollAbilityRecharge(combatant.id, ability.id)"
+															>
+																Rolar recharge
+															</button>
+														}
+
+														<button
+															type="button"
+															class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
+															(click)="resetAbility(combatant.id, ability.id)"
+														>
+															Resetar
+														</button>
+
+														<button
+															type="button"
+															class="h-9 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-3 text-sm hover:bg-red-500/20"
+															(click)="removeAbility(combatant.id, ability.id)"
+														>
+															Remover
+														</button>
+													</div>
+												</div>
+											</div>
+										} @empty {
+											<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
+												Nenhuma habilidade especial cadastrada.
+											</div>
+										}
+									</div>
+
+									<div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Nome</span>
 											<input
-												type="number"
-												min="0"
 												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												placeholder="0"
-												[ngModel]="getConditionDraft(combatant.id).durationRounds"
-												(ngModelChange)="setConditionDraft(combatant.id, { durationRounds: $event })"
+												[ngModel]="getAbilityDraft(combatant.id).name"
+												(ngModelChange)="setAbilityDraft(combatant.id, { name: $event })"
+												placeholder="Ex: Sopro Flamejante"
 											/>
 										</label>
 
 										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Duracao em turnos</span>
+											<span class="mb-1 block opacity-70">Descrição</span>
 											<input
-												type="number"
-												min="0"
 												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												placeholder="0"
-												[ngModel]="getConditionDraft(combatant.id).durationTurns"
-												(ngModelChange)="setConditionDraft(combatant.id, { durationTurns: $event })"
+												[ngModel]="getAbilityDraft(combatant.id).description"
+												(ngModelChange)="setAbilityDraft(combatant.id, { description: $event })"
+												placeholder="Opcional"
 											/>
+										</label>
+
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Recarga</span>
+											<select
+												class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="getAbilityDraft(combatant.id).rechargeType"
+												(ngModelChange)="setAbilityDraft(combatant.id, { rechargeType: $event })"
+											>
+												<option value="manual">Manual</option>
+												<option value="turns">Por turnos</option>
+												<option value="rounds">Por rounds</option>
+												<option value="dice">Recharge por dado</option>
+											</select>
 										</label>
 
 										<div class="flex items-end">
 											<button
 												type="button"
 												class="h-10 w-full cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-												(click)="addCondition(combatant.id)"
+												(click)="addAbility(combatant.id)"
 											>
-												Adicionar condicao
+												Adicionar habilidade
 											</button>
 										</div>
 									</div>
 
-									<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm opacity-75">
-										Sera exibida como:
-										<span class="font-semibold opacity-100">
-											{{ conditionDraftPreview(combatant.id) }}
-										</span>
+									@if (getAbilityDraft(combatant.id).rechargeType === 'turns' || getAbilityDraft(combatant.id).rechargeType === 'rounds') {
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">
+												@if (getAbilityDraft(combatant.id).rechargeType === 'turns') { Volta em quantos turnos? } @else { Volta em quantos rounds? }
+											</span>
+											<input
+												type="number"
+												min="1"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="getAbilityDraft(combatant.id).cooldownValue"
+												(ngModelChange)="setAbilityDraft(combatant.id, { cooldownValue: $event })"
+											/>
+										</label>
+									}
+
+									@if (getAbilityDraft(combatant.id).rechargeType === 'dice') {
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Resultados que recarregam</span>
+											<input
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="getAbilityDraft(combatant.id).rechargeOn"
+												(ngModelChange)="setAbilityDraft(combatant.id, { rechargeOn: $event })"
+												placeholder="Ex: 5,6"
+											/>
+										</label>
+									}
+								</div>
+
+								<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+									<div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+										<div>
+											<h4 class="font-semibold">Espaços de magia</h4>
+											<p class="text-sm opacity-70">
+												Controle simples de slots sem listar magias.
+											</p>
+										</div>
+
+										@if (spellSlotsEnabled(combatant)) {
+											<button
+												type="button"
+												class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
+												(click)="disableSpellSlots(combatant.id)"
+											>
+												Desativar slots
+											</button>
+										} @else {
+											<button
+												type="button"
+												class="h-9 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-3 text-sm hover:bg-emerald-500/20"
+												(click)="enableSpellSlots(combatant.id)"
+											>
+												Ativar slots
+											</button>
+										}
 									</div>
+
+									@if (spellSlotsEnabled(combatant)) {
+										<div class="grid gap-3">
+											@for (slot of combatant.spellSlots; track slot.level) {
+												<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+													<div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+														<div class="min-w-40">
+															<div class="font-semibold">Nível {{ slot.level }}</div>
+															<div class="text-sm opacity-75">
+																{{ availableSpellSlots(slot) }} / {{ slot.max }} disponíveis
+															</div>
+														</div>
+
+														<div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_auto_auto] xl:items-end">
+															<label class="text-sm">
+																<span class="mb-1 block opacity-70">Máximo</span>
+																<input
+																	type="number"
+																	min="0"
+																	class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+																	[ngModel]="slot.max"
+																	(ngModelChange)="setSpellSlotMax(combatant.id, slot.level, $event)"
+																/>
+															</label>
+
+															<label class="text-sm">
+																<span class="mb-1 block opacity-70">Usados</span>
+																<input
+																	type="number"
+																	min="0"
+																	class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+																	[ngModel]="slot.used"
+																	(ngModelChange)="setSpellSlotUsed(combatant.id, slot.level, $event)"
+																/>
+															</label>
+
+															<button
+																type="button"
+																class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 hover:bg-amber-500/20"
+																(click)="useSpellSlot(combatant.id, slot.level)"
+															>
+																Usar slot
+															</button>
+
+															<button
+																type="button"
+																class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 hover:bg-emerald-500/20"
+																(click)="recoverSpellSlot(combatant.id, slot.level)"
+															>
+																Recuperar slot
+															</button>
+														</div>
+													</div>
+												</div>
+											}
+										</div>
+									} @else {
+										<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
+											Essa criatura ainda não usa espaços de magia nesta batalha.
+										</div>
+									}
 								</div>
 
 								<div class="mt-4">
@@ -398,13 +645,13 @@
 				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
 					<div class="flex items-center justify-between gap-3">
 						<div>
-							<h3 class="text-xl font-semibold">Historico de turnos</h3>
+							<h3 class="text-xl font-semibold">Histórico de turnos</h3>
 							<p class="mt-1 text-sm opacity-75">
-								Duracao salva ao avancar o turno.
+								Inclui tempo de turno, expiração de condições e retorno de habilidades.
 							</p>
 						</div>
 						<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">
-							{{ battle()!.turnHistory.length }} turnos
+							{{ battle()!.turnHistory.length }} eventos
 						</span>
 					</div>
 
@@ -424,7 +671,7 @@
 									Turno {{ entry.turnIndex + 1 }} ·
 									{{ entry.startedAt | date:'shortTime' }}
 									@if (entry.endedAt) {
-										<span> ate {{ entry.endedAt | date:'shortTime' }}</span>
+										<span> até {{ entry.endedAt | date:'shortTime' }}</span>
 									}
 								</div>
 
@@ -434,7 +681,7 @@
 							</div>
 						} @empty {
 							<div class="rounded-2xl border border-dashed border-white/10 bg-black/10 p-4 text-sm opacity-70">
-								O historico vai aparecer aqui depois do primeiro avancar de turno.
+								O histórico vai aparecer aqui depois do primeiro avançar de turno.
 							</div>
 						}
 					</div>
@@ -472,16 +719,16 @@
 	</div>
 }
 
-@if (toast(); as toast) {
+@if (toast(); as toastMessage) {
 	<div class="fixed right-4 top-4 z-50">
 		<div
 			class="max-w-sm rounded-2xl border px-4 py-3 shadow-lg backdrop-blur"
-			[class.border-emerald-400/30]="toast.type === 'success'"
-			[class.bg-emerald-500/10]="toast.type === 'success'"
-			[class.border-red-400/30]="toast.type === 'error'"
-			[class.bg-red-500/10]="toast.type === 'error'"
+			[class.border-emerald-400/30]="toastMessage.type === 'success'"
+			[class.bg-emerald-500/10]="toastMessage.type === 'success'"
+			[class.border-red-400/30]="toastMessage.type === 'error'"
+			[class.bg-red-500/10]="toastMessage.type === 'error'"
 		>
-			<div class="text-sm">{{ toast.text }}</div>
+			<div class="text-sm">{{ toastMessage.text }}</div>
 		</div>
 	</div>
 }

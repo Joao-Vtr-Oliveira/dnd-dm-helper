@@ -1,45 +1,62 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import type {
 	BattleCombatant,
 	BattleCombatantSide,
 	BattleCondition,
 	BattleConditionPreset,
 	BattleEncounter,
+	BattleEncounterCreateOptions,
+	BattleSpecialAbility,
+	BattleSpellSlotLevel,
 	BattleTurnLogEntry,
 	EncounterTemplate,
 } from '../../models/battle-encounter-model';
 import type { ConditionInterface, CreatureInterface } from '../../models/battleTracker-model';
+import {
+	BattleConditionService,
+	type CreateBattleConditionInput,
+} from '../battle-condition-service/battle-condition-service';
+import { BattleAbilityService, type CreateBattleAbilityInput } from '../battle-ability-service/battle-ability-service';
+import { BattleSpellSlotService } from '../battle-spell-slot-service/battle-spell-slot-service';
 
 const DEFAULT_SIDE: BattleCombatantSide = 'enemy';
 
 export const DEFAULT_BATTLE_CONDITIONS: BattleConditionPreset[] = [
-	{ name: 'prone', label: 'Caido / Prone' },
+	{ name: 'prone', label: 'Caído / Prone' },
 	{ name: 'grappled', label: 'Agarrado / Grappled' },
 	{ name: 'restrained', label: 'Contido / Restrained' },
 	{ name: 'poisoned', label: 'Envenenado / Poisoned' },
 	{ name: 'stunned', label: 'Atordoado / Stunned' },
 	{ name: 'unconscious', label: 'Inconsciente / Unconscious' },
 	{ name: 'frightened', label: 'Amedrontado / Frightened' },
-	{ name: 'invisible', label: 'Invisivel / Invisible' },
+	{ name: 'invisible', label: 'Invisível / Invisible' },
 	{ name: 'concentrating', label: 'Concentrando / Concentrating' },
-	{ name: 'blessed', label: 'Abencoado / Blessed' },
+	{ name: 'blessed', label: 'Abençoado / Blessed' },
 	{ name: 'custom', label: 'Personalizado / Custom' },
 ];
 
 @Injectable({ providedIn: 'root' })
 export class BattleEncounterService {
-	createBattleFromEncounter(template: EncounterTemplate, now = new Date()): BattleEncounter {
+	private readonly conditionService = inject(BattleConditionService);
+	private readonly abilityService = inject(BattleAbilityService);
+	private readonly spellSlotService = inject(BattleSpellSlotService);
+
+	createBattleFromEncounter(
+		template: EncounterTemplate,
+		options?: BattleEncounterCreateOptions,
+		now = new Date()
+	): BattleEncounter {
 		const timestamp = this.toIso(now);
 		const combatants = this.orderCombatants(
 			(template.data.creatures ?? []).map((creature, index) =>
-				this.createCombatantFromCreature(creature, index)
+				this.createCombatantFromCreature(creature, index, options)
 			)
 		);
 
 		return {
 			id: this.createId(),
 			sourceEncounterId: template.id,
-			name: template.name,
+			name: options?.name?.trim() || template.name,
 			description: template.description,
 			status: 'active',
 			round: 1,
@@ -52,6 +69,45 @@ export class BattleEncounterService {
 			combatants,
 			turnHistory: [],
 			dmNotes: '',
+		};
+	}
+
+	normalizeBattleEncounter(raw: Partial<BattleEncounter>): BattleEncounter {
+		const createdAt = this.normalizeIso(raw.createdAt);
+		const updatedAt = this.normalizeIso(raw.updatedAt ?? raw.createdAt);
+		const combatants = this.orderCombatants(
+			Array.isArray(raw.combatants)
+				? raw.combatants.map((combatant, index) => this.normalizeCombatant(combatant, index))
+				: []
+		);
+
+		return {
+			id: typeof raw.id === 'string' ? raw.id : this.createId(),
+			sourceEncounterId:
+				typeof raw.sourceEncounterId === 'string' ? raw.sourceEncounterId : 'unknown-encounter',
+			name: typeof raw.name === 'string' ? raw.name : 'Batalha local',
+			description: typeof raw.description === 'string' ? raw.description : undefined,
+			status:
+				raw.status === 'active' || raw.status === 'paused' || raw.status === 'completed'
+					? raw.status
+					: 'active',
+			round: Math.max(1, this.toNonNegativeInt(raw.round) || 1),
+			activeTurnIndex:
+				combatants.length === 0
+					? -1
+					: Math.min(
+							Math.max(0, this.toNonNegativeInt(raw.activeTurnIndex)),
+							combatants.length - 1
+					  ),
+			createdAt,
+			startedAt: this.normalizeIso(raw.startedAt ?? raw.createdAt),
+			updatedAt,
+			completedAt: typeof raw.completedAt === 'string' ? raw.completedAt : undefined,
+			turnStartedAt: typeof raw.turnStartedAt === 'string' ? raw.turnStartedAt : undefined,
+			currentTurnElapsedSeconds: this.toNonNegativeInt(raw.currentTurnElapsedSeconds),
+			combatants,
+			turnHistory: this.normalizeTurnHistory(raw.turnHistory),
+			dmNotes: typeof raw.dmNotes === 'string' ? raw.dmNotes : '',
 		};
 	}
 
@@ -97,12 +153,11 @@ export class BattleEncounterService {
 		const timestamp = this.toIso(now);
 		const currentCombatant = this.getCurrentCombatant(battle);
 		const durationSeconds = this.getCurrentTurnElapsedSeconds(battle, now);
-		const turnHistory = currentCombatant
-			? [
-					...battle.turnHistory,
-					this.createTurnHistoryEntry(battle, currentCombatant, timestamp, durationSeconds, notes),
-			  ]
-			: battle.turnHistory;
+		const endExpire = this.conditionService.expireConditionsAtTiming(
+			battle.combatants,
+			{ round: battle.round, turnIndex: battle.activeTurnIndex },
+			'end'
+		);
 
 		let nextTurnIndex = battle.activeTurnIndex + 1;
 		let nextRound = battle.round;
@@ -112,6 +167,36 @@ export class BattleEncounterService {
 			nextRound += 1;
 		}
 
+		const startExpire = this.conditionService.expireConditionsAtTiming(
+			endExpire.combatants,
+			{ round: nextRound, turnIndex: nextTurnIndex },
+			'start'
+		);
+		const cooldownAdvance = this.abilityService.advanceCooldowns(
+			startExpire.combatants,
+			nextRound > battle.round
+		);
+
+		const turnHistory = [...battle.turnHistory];
+		if (currentCombatant) {
+			turnHistory.push(
+				this.createTurnHistoryEntry(battle, currentCombatant, timestamp, durationSeconds, notes)
+			);
+		}
+
+		for (const message of [...endExpire.messages, ...startExpire.messages, ...cooldownAdvance.messages]) {
+			turnHistory.push(
+				this.createSystemHistoryEntry(
+					{
+						round: nextRound,
+						turnIndex: nextTurnIndex,
+					},
+					timestamp,
+					message
+				)
+			);
+		}
+
 		return {
 			...battle,
 			round: nextRound,
@@ -119,6 +204,7 @@ export class BattleEncounterService {
 			updatedAt: timestamp,
 			turnStartedAt: timestamp,
 			currentTurnElapsedSeconds: 0,
+			combatants: cooldownAdvance.combatants,
 			turnHistory,
 		};
 	}
@@ -213,7 +299,7 @@ export class BattleEncounterService {
 				maxHp,
 				currentHp,
 				temporaryHp,
-				defeated: currentHp <= 0 ? true : false,
+				defeated: currentHp <= 0,
 			};
 		});
 	}
@@ -276,19 +362,16 @@ export class BattleEncounterService {
 	addCondition(
 		battle: BattleEncounter,
 		combatantId: string,
-		condition: Omit<BattleCondition, 'id' | 'appliedAtRound' | 'appliedAtTurnIndex'> &
-			Partial<Pick<BattleCondition, 'appliedAtRound' | 'appliedAtTurnIndex'>>
+		input: CreateBattleConditionInput
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
 			conditions: [
 				...combatant.conditions,
-				{
-					...condition,
-					id: this.createId(),
-					appliedAtRound: condition.appliedAtRound ?? battle.round,
-					appliedAtTurnIndex: condition.appliedAtTurnIndex ?? battle.activeTurnIndex,
-				},
+				this.conditionService.createCondition(battle, {
+					...input,
+					appliedAtCombatantId: combatantId,
+				}),
 			],
 		}));
 	}
@@ -302,6 +385,155 @@ export class BattleEncounterService {
 			...combatant,
 			conditions: combatant.conditions.filter((condition) => condition.id !== conditionId),
 		}));
+	}
+
+	describeConditionDuration(condition: BattleCondition, battle: BattleEncounter): string {
+		return this.conditionService.describeConditionDuration(condition, battle);
+	}
+
+	addSpecialAbility(
+		battle: BattleEncounter,
+		combatantId: string,
+		input: CreateBattleAbilityInput
+	): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			specialAbilities: [...combatant.specialAbilities, this.abilityService.createAbility(input)],
+		}));
+	}
+
+	useSpecialAbility(
+		battle: BattleEncounter,
+		combatantId: string,
+		abilityId: string
+	): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			specialAbilities: combatant.specialAbilities.map((ability) =>
+				ability.id === abilityId ? this.abilityService.useAbility(ability, battle) : ability
+			),
+		}));
+	}
+
+	resetSpecialAbility(
+		battle: BattleEncounter,
+		combatantId: string,
+		abilityId: string
+	): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			specialAbilities: combatant.specialAbilities.map((ability) =>
+				ability.id === abilityId ? this.abilityService.resetAbility(ability) : ability
+			),
+		}));
+	}
+
+	removeSpecialAbility(
+		battle: BattleEncounter,
+		combatantId: string,
+		abilityId: string
+	): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			specialAbilities: combatant.specialAbilities.filter((ability) => ability.id !== abilityId),
+		}));
+	}
+
+	rollSpecialAbilityRecharge(
+		battle: BattleEncounter,
+		combatantId: string,
+		abilityId: string
+	): { battle: BattleEncounter; roll: number; success: boolean } | null {
+		let result: { roll: number; success: boolean } | null = null;
+		const nextBattle = this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			specialAbilities: combatant.specialAbilities.map((ability) => {
+				if (ability.id !== abilityId) return ability;
+				const rolled = this.abilityService.rollRecharge(ability);
+				result = { roll: rolled.roll, success: rolled.success };
+				return rolled.ability;
+			}),
+		}));
+
+		if (!result) return null;
+		const rechargeResult = result as { roll: number; success: boolean };
+		return {
+			battle: nextBattle,
+			roll: rechargeResult.roll,
+			success: rechargeResult.success,
+		};
+	}
+
+	describeAbilityStatus(ability: BattleSpecialAbility): string {
+		return this.abilityService.describeAbility(ability);
+	}
+
+	enableSpellSlots(battle: BattleEncounter, combatantId: string): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			spellSlots: this.spellSlotService.createDefaultSpellSlots(),
+		}));
+	}
+
+	disableSpellSlots(battle: BattleEncounter, combatantId: string): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			spellSlots: [],
+		}));
+	}
+
+	setSpellSlotMax(
+		battle: BattleEncounter,
+		combatantId: string,
+		level: number,
+		max: number
+	): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			spellSlots: this.spellSlotService.setSlotMax(combatant.spellSlots, level, max),
+		}));
+	}
+
+	useSpellSlot(battle: BattleEncounter, combatantId: string, level: number): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			spellSlots: this.spellSlotService.useSlot(combatant.spellSlots, level),
+		}));
+	}
+
+	recoverSpellSlot(battle: BattleEncounter, combatantId: string, level: number): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			spellSlots: this.spellSlotService.recoverSlot(combatant.spellSlots, level),
+		}));
+	}
+
+	setSpellSlotUsed(
+		battle: BattleEncounter,
+		combatantId: string,
+		level: number,
+		used: number
+	): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			spellSlots: this.spellSlotService.setUsed(combatant.spellSlots, level, used),
+		}));
+	}
+
+	getAvailableSpellSlots(slot: BattleSpellSlotLevel): number {
+		return this.spellSlotService.getAvailable(slot);
+	}
+
+	getPositionAfterTurns(
+		battle: BattleEncounter,
+		steps: number
+	): { round: number; turnIndex: number } {
+		return this.conditionService.advancePosition(
+			battle.round,
+			Math.max(0, battle.activeTurnIndex),
+			steps,
+			Math.max(1, battle.combatants.length)
+		);
 	}
 
 	private mapCombatant(
@@ -332,18 +564,51 @@ export class BattleEncounterService {
 		};
 	}
 
+	private normalizeCombatant(raw: Partial<BattleCombatant>, sourceIndex: number): BattleCombatant {
+		const maxHp = this.toNonNegativeInt(raw.maxHp);
+		const currentHp = Math.min(this.toNonNegativeInt(raw.currentHp), maxHp || this.toNonNegativeInt(raw.currentHp));
+		return {
+			id: typeof raw.id === 'string' ? raw.id : this.createId(),
+			sourceCreatureId: typeof raw.sourceCreatureId === 'number' ? raw.sourceCreatureId : undefined,
+			name: typeof raw.name === 'string' ? raw.name : `Combatente ${sourceIndex + 1}`,
+			displayName: typeof raw.displayName === 'string' ? raw.displayName : undefined,
+			side: this.normalizeSide(raw.side),
+			initiative: this.toFiniteNumber(raw.initiative),
+			initiativeTieBreaker:
+				raw.initiativeTieBreaker == null ? undefined : this.toFiniteNumber(raw.initiativeTieBreaker),
+			turnOrder: this.toNonNegativeInt(raw.turnOrder),
+			armorClass: this.toArmorClass(raw.armorClass),
+			maxHp,
+			currentHp,
+			temporaryHp: this.toNonNegativeInt(raw.temporaryHp),
+			defeated: raw.defeated === true || currentHp <= 0,
+			hidden: raw.hidden === true,
+			conditions: Array.isArray(raw.conditions)
+				? raw.conditions.map((condition) => this.conditionService.normalizeCondition(condition))
+				: [],
+			specialAbilities: Array.isArray(raw.specialAbilities)
+				? raw.specialAbilities.map((ability) => this.abilityService.normalizeAbility(ability))
+				: [],
+			spellSlots: this.spellSlotService.normalizeSpellSlots(raw.spellSlots),
+			privateNotes: typeof raw.privateNotes === 'string' ? raw.privateNotes : undefined,
+		};
+	}
+
 	private createCombatantFromCreature(
 		creature: CreatureInterface,
-		sourceIndex: number
+		sourceIndex: number,
+		options?: BattleEncounterCreateOptions
 	): BattleCombatant {
 		const maxHp = this.toNonNegativeInt(creature.maxHealthPoints ?? creature.healthPoints);
 		const currentHp = Math.min(this.toNonNegativeInt(creature.healthPoints), maxHp);
 		const temporaryHp = this.toNonNegativeInt(creature.temporaryHealthPoints);
+		const side = options?.combatantSides?.[creature.id] ?? DEFAULT_SIDE;
 
 		return {
 			id: this.createId(),
+			sourceCreatureId: creature.id,
 			name: creature.name || `Combatente ${sourceIndex + 1}`,
-			side: DEFAULT_SIDE,
+			side,
 			initiative: this.toFiniteNumber(creature.initiative),
 			turnOrder: sourceIndex,
 			armorClass: this.toArmorClass(creature.armorClass),
@@ -353,6 +618,8 @@ export class BattleEncounterService {
 			defeated: creature.alive === false || currentHp <= 0,
 			hidden: false,
 			conditions: this.mapConditions(creature.conditions ?? []),
+			specialAbilities: [],
+			spellSlots: [],
 			privateNotes: this.joinNotes(creature.notes?.map((note) => note.text)),
 		};
 	}
@@ -377,15 +644,58 @@ export class BattleEncounterService {
 		};
 	}
 
-	private mapConditions(conditions: ConditionInterface[]): BattleCondition[] {
-		return conditions.map((condition, index) => ({
+	private createSystemHistoryEntry(
+		position: { round: number; turnIndex: number },
+		timestamp: string,
+		notes: string
+	): BattleTurnLogEntry {
+		return {
 			id: this.createId(),
-			name: this.slugify(condition.text) || `condition-${index + 1}`,
-			label: condition.text || `Condicao ${index + 1}`,
-			description: condition.url || undefined,
-			appliedAtRound: Math.max(1, this.toNonNegativeInt(condition.appliedAtRound) || 1),
-			appliedAtTurnIndex: 0,
-		}));
+			round: position.round,
+			turnIndex: position.turnIndex,
+			combatantId: 'system',
+			combatantName: 'Sistema',
+			startedAt: timestamp,
+			endedAt: timestamp,
+			durationSeconds: 0,
+			notes,
+		};
+	}
+
+	private normalizeTurnHistory(raw: unknown): BattleTurnLogEntry[] {
+		if (!Array.isArray(raw)) return [];
+
+		return raw.map((entry, index) => {
+			const candidate = entry as Partial<BattleTurnLogEntry>;
+			const timestamp = this.normalizeIso(candidate.startedAt);
+			return {
+				id: typeof candidate.id === 'string' ? candidate.id : `turn-log-${index + 1}`,
+				round: Math.max(1, this.toNonNegativeInt(candidate.round) || 1),
+				turnIndex: Math.max(0, this.toNonNegativeInt(candidate.turnIndex)),
+				combatantId:
+					typeof candidate.combatantId === 'string' ? candidate.combatantId : 'system',
+				combatantName:
+					typeof candidate.combatantName === 'string' ? candidate.combatantName : 'Sistema',
+				startedAt: timestamp,
+				endedAt: typeof candidate.endedAt === 'string' ? candidate.endedAt : undefined,
+				durationSeconds: this.toNonNegativeInt(candidate.durationSeconds),
+				notes: typeof candidate.notes === 'string' ? candidate.notes : undefined,
+			};
+		});
+	}
+
+	private mapConditions(conditions: ConditionInterface[]): BattleCondition[] {
+		return conditions.map((condition, index) =>
+			this.conditionService.normalizeCondition({
+				id: this.createId(),
+				name: this.slugify(condition.text) || `condition-${index + 1}`,
+				label: condition.text || `Condicao ${index + 1}`,
+				description: condition.url || undefined,
+				appliedAtRound: Math.max(1, this.toNonNegativeInt(condition.appliedAtRound) || 1),
+				appliedAtTurnIndex: 0,
+				durationType: 'manual',
+			})
+		);
 	}
 
 	private joinNotes(notes: Array<string | undefined> | undefined): string | undefined {
@@ -394,6 +704,13 @@ export class BattleEncounterService {
 			.filter(Boolean)
 			.join('\n');
 		return text || undefined;
+	}
+
+	private normalizeSide(value: unknown): BattleCombatantSide {
+		if (value === 'player' || value === 'ally' || value === 'enemy' || value === 'neutral') {
+			return value;
+		}
+		return DEFAULT_SIDE;
 	}
 
 	private toArmorClass(value: unknown): number | undefined {
@@ -407,6 +724,11 @@ export class BattleEncounterService {
 
 	private toIso(value: Date): string {
 		return value.toISOString();
+	}
+
+	private normalizeIso(value: unknown): string {
+		if (typeof value === 'string' && !Number.isNaN(Date.parse(value))) return value;
+		return this.toIso(new Date());
 	}
 
 	private toNonNegativeInt(value: unknown): number {

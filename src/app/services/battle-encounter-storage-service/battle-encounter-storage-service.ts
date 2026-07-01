@@ -1,5 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import type { BattleEncounter } from '../../models/battle-encounter-model';
+import type {
+	BattleEncounter,
+	BattleEncounterCreateOptions,
+} from '../../models/battle-encounter-model';
 import { BattleEncounterService } from '../battle-encounter-service/battle-encounter-service';
 import type { SavedEncounter } from '../local-storage-service/local-storage-service';
 
@@ -16,12 +19,20 @@ export class BattleEncounterStorageService {
 			const parsed = JSON.parse(raw);
 			if (!Array.isArray(parsed)) return [];
 
-			return parsed
-				.filter((battle) => this.isBattleEncounter(battle))
+			const normalized = parsed
+				.filter((battle) => this.isBattleEncounterLike(battle))
+				.map((battle) => this.battleEncounterService.normalizeBattleEncounter(battle))
 				.sort(
 					(left, right) =>
 						Date.parse(right.updatedAt || '') - Date.parse(left.updatedAt || '')
 				);
+
+			const needsMigration = JSON.stringify(normalized) !== JSON.stringify(parsed);
+			if (needsMigration) {
+				localStorage.setItem(this.storageKey, JSON.stringify(normalized));
+			}
+
+			return normalized;
 		} catch {
 			return [];
 		}
@@ -49,23 +60,30 @@ export class BattleEncounterStorageService {
 		);
 	}
 
-	createBattleFromEncounter(encounter: SavedEncounter): BattleEncounter {
-		const battle = this.battleEncounterService.createBattleFromEncounter({
-			id: encounter.id,
-			name: encounter.title,
-			data: encounter.data,
-		});
+	createBattleFromEncounter(
+		encounter: SavedEncounter,
+		options?: BattleEncounterCreateOptions
+	): BattleEncounter {
+		const battle = this.battleEncounterService.createBattleFromEncounter(
+			{
+				id: encounter.id,
+				name: encounter.title,
+				data: encounter.data,
+			},
+			options
+		);
 
 		this.saveBattleEncounter(battle);
 		return battle;
 	}
 
 	saveBattleEncounter(battle: BattleEncounter): void {
+		const normalizedBattle = this.battleEncounterService.normalizeBattleEncounter(battle);
 		const all = this.getBattleEncounters();
-		const index = all.findIndex((item) => item.id === battle.id);
+		const index = all.findIndex((item) => item.id === normalizedBattle.id);
 
-		if (index === -1) all.unshift(battle);
-		else all[index] = structuredClone(battle);
+		if (index === -1) all.unshift(normalizedBattle);
+		else all[index] = structuredClone(normalizedBattle);
 
 		localStorage.setItem(this.storageKey, JSON.stringify(all));
 	}
@@ -102,7 +120,7 @@ export class BattleEncounterStorageService {
 		localStorage.setItem(this.storageKey, JSON.stringify(all));
 	}
 
-	private isBattleEncounter(value: unknown): value is BattleEncounter {
+	private isBattleEncounterLike(value: unknown): boolean {
 		if (!value || typeof value !== 'object') return false;
 
 		const candidate = value as Partial<BattleEncounter>;
@@ -110,11 +128,8 @@ export class BattleEncounterStorageService {
 			typeof candidate.id === 'string' &&
 			typeof candidate.sourceEncounterId === 'string' &&
 			typeof candidate.name === 'string' &&
-			typeof candidate.status === 'string' &&
 			typeof candidate.round === 'number' &&
-			typeof candidate.activeTurnIndex === 'number' &&
-			Array.isArray(candidate.combatants) &&
-			Array.isArray(candidate.turnHistory)
+			Array.isArray(candidate.combatants)
 		);
 	}
 }

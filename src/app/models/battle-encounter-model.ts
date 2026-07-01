@@ -2,6 +2,14 @@ import type { BattleTracker } from './battleTracker-model';
 
 export type BattleEncounterStatus = 'active' | 'paused' | 'completed';
 export type BattleCombatantSide = 'player' | 'ally' | 'enemy' | 'neutral';
+export type BattleConditionDurationType =
+	| 'manual'
+	| 'turns'
+	| 'rounds'
+	| 'until-start-of-turn'
+	| 'until-end-of-turn';
+export type BattleConditionExpirationTiming = 'start' | 'end';
+export type BattleAbilityRechargeType = 'manual' | 'turns' | 'rounds' | 'dice';
 
 export interface EncounterTemplate {
 	id: string;
@@ -17,13 +25,41 @@ export interface BattleCondition {
 	description?: string;
 	appliedAtRound: number;
 	appliedAtTurnIndex: number;
-	durationRounds?: number;
+	appliedAtCombatantId?: string;
+	durationType: BattleConditionDurationType;
 	durationTurns?: number;
+	durationRounds?: number;
+	expiresAtRound?: number;
+	expiresAtTurnIndex?: number;
+	expiresAtTiming?: BattleConditionExpirationTiming;
 	sourceCombatantId?: string;
+}
+
+export interface BattleSpecialAbility {
+	id: string;
+	name: string;
+	description?: string;
+	rechargeType: BattleAbilityRechargeType;
+	cooldownTurns?: number;
+	cooldownRounds?: number;
+	currentCooldownTurns?: number;
+	currentCooldownRounds?: number;
+	rechargeDice?: string;
+	rechargeOn?: number[];
+	isAvailable: boolean;
+	lastUsedAtRound?: number;
+	lastUsedAtTurnIndex?: number;
+}
+
+export interface BattleSpellSlotLevel {
+	level: number;
+	max: number;
+	used: number;
 }
 
 export interface BattleCombatant {
 	id: string;
+	sourceCreatureId?: number;
 	name: string;
 	displayName?: string;
 	side: BattleCombatantSide;
@@ -37,6 +73,8 @@ export interface BattleCombatant {
 	defeated: boolean;
 	hidden: boolean;
 	conditions: BattleCondition[];
+	specialAbilities: BattleSpecialAbility[];
+	spellSlots: BattleSpellSlotLevel[];
 	privateNotes?: string;
 }
 
@@ -75,4 +113,9 @@ export interface BattleConditionPreset {
 	name: string;
 	label: string;
 	description?: string;
+}
+
+export interface BattleEncounterCreateOptions {
+	name?: string;
+	combatantSides?: Record<number, BattleCombatantSide>;
 }

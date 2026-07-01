@@ -1,9 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import type { BattleEncounter } from '../../models/battle-encounter-model';
+import type {
+	BattleCombatantSide,
+	BattleEncounter,
+	BattleEncounterCreateOptions,
+} from '../../models/battle-encounter-model';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
+import {
+	EncounterHubFilterService,
+	type EncounterHubFilters,
+	type EncounterHubItem,
+	type EncounterHubSortOption,
+	type EncounterHubStatusFilter,
+} from '../../services/encounter-hub-filter-service/encounter-hub-filter-service';
 import { EncounterIoService } from '../../services/encounter-io-service/encounter-io-service';
 import {
 	LocalStorageService,
@@ -17,6 +28,13 @@ type ConfirmModalState = {
 	encounterId: string;
 };
 
+type BattleSetupModalState = {
+	encounterId: string;
+	mode: 'start' | 'new';
+	battleName: string;
+	sides: Record<number, BattleCombatantSide>;
+};
+
 @Component({
 	selector: 'app-encounter-hub',
 	standalone: true,
@@ -28,8 +46,11 @@ export class EncounterHub {
 	private readonly io = inject(EncounterIoService);
 	private readonly router = inject(Router);
 	private readonly battleStorage = inject(BattleEncounterStorageService);
+	private readonly hubFilterService = inject(EncounterHubFilterService);
 
-	readonly q = signal('');
+	private readonly initialFilters = this.hubFilterService.loadFilters();
+
+	readonly filters = signal<EncounterHubFilters>(this.initialFilters);
 	readonly importOpen = signal(false);
 	readonly importText = signal('');
 	readonly msg = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
@@ -37,40 +58,32 @@ export class EncounterHub {
 	readonly battles = signal<BattleEncounter[]>(this.battleStorage.getBattleEncounters());
 	readonly toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
 	readonly confirmModal = signal<ConfirmModalState | null>(null);
+	readonly battleSetupModal = signal<BattleSetupModalState | null>(null);
 
 	private toastTimer: number | null = null;
 
-	readonly filtered = computed(() => {
-		const q = this.q().trim().toLowerCase();
-		const all = this.encounters();
-		if (!q) return all;
-		return all.filter((encounter) => encounter.title.toLowerCase().includes(q));
-	});
+	readonly items = computed(() =>
+		this.hubFilterService.buildItems(this.encounters(), this.battles())
+	);
+
+	readonly filteredItems = computed(() =>
+		this.hubFilterService.sortItems(
+			this.hubFilterService.filterItems(this.items(), this.filters()),
+			this.filters().sort
+		)
+	);
+
+	readonly groupedItems = computed(() => this.hubFilterService.groupItems(this.filteredItems()));
 
 	readonly ongoingBattles = computed(() =>
 		this.battles().filter((battle) => battle.status === 'active' || battle.status === 'paused')
 	);
 
-	readonly activeBattleByEncounterId = computed(() => {
-		const map = new Map<string, BattleEncounter>();
-
-		for (const battle of this.ongoingBattles()) {
-			const previous = map.get(battle.sourceEncounterId);
-			if (!previous || Date.parse(battle.updatedAt) > Date.parse(previous.updatedAt)) {
-				map.set(battle.sourceEncounterId, battle);
-			}
-		}
-
-		return map;
-	});
-
-	readonly hasAnyBattleByEncounterId = computed(() => {
-		const set = new Set<string>();
-		for (const battle of this.battles()) {
-			set.add(battle.sourceEncounterId);
-		}
-		return set;
-	});
+	constructor() {
+		effect(() => {
+			this.hubFilterService.saveFilters(this.filters());
+		});
+	}
 
 	newEncounter() {
 		this.router.navigate(['/home/encounter-builder']);
@@ -110,15 +123,7 @@ export class EncounterHub {
 			return;
 		}
 
-		const existing = this.battleStorage.getActiveBattleByEncounterId(encounterId);
-		if (existing) {
-			this.openBattle(existing.id);
-			return;
-		}
-
-		const battle = this.battleStorage.createBattleFromEncounter(encounter);
-		this.refreshBattles();
-		this.router.navigate(['/home/battle-tracker', battle.id]);
+		this.openBattleSetup(encounter, 'start');
 	}
 
 	continueBattle(encounterId: string) {
@@ -148,14 +153,75 @@ export class EncounterHub {
 			this.confirmModal.set({
 				title: 'Criar uma nova batalha?',
 				description:
-					'Ja existe uma batalha ativa ou pausada para este encounter. A batalha atual sera mantida, mas voce abrira uma nova sessao local.',
-				confirmLabel: 'Criar nova batalha',
+					'Já existe uma batalha ativa ou pausada para este encounter. A sessão atual será mantida, mas você pode criar uma nova batalha local.',
+				confirmLabel: 'Preparar nova batalha',
 				encounterId,
 			});
 			return;
 		}
 
-		this.createBattleAndNavigate(encounter);
+		this.openBattleSetup(encounter, 'new');
+	}
+
+	openBattle(battleId: string) {
+		this.router.navigate(['/home/battle-tracker', battleId]);
+	}
+
+	openBattleSetup(encounter: SavedEncounter, mode: 'start' | 'new') {
+		const sides = Object.fromEntries(
+			encounter.data.creatures.map((creature) => [creature.id, 'enemy' as BattleCombatantSide])
+		);
+
+		this.battleSetupModal.set({
+			encounterId: encounter.id,
+			mode,
+			battleName: encounter.title,
+			sides,
+		});
+	}
+
+	closeBattleSetupModal() {
+		this.battleSetupModal.set(null);
+	}
+
+	setBattleSetupName(value: string) {
+		this.battleSetupModal.update((modal) => (modal ? { ...modal, battleName: value } : modal));
+	}
+
+	setBattleSetupSide(creatureId: number, side: BattleCombatantSide) {
+		this.battleSetupModal.update((modal) =>
+			modal
+				? {
+						...modal,
+						sides: {
+							...modal.sides,
+							[creatureId]: side,
+						},
+				  }
+				: modal
+		);
+	}
+
+	launchBattleFromSetup() {
+		const modal = this.battleSetupModal();
+		if (!modal) return;
+
+		const encounter = this.ls.getEncounter(modal.encounterId);
+		if (!encounter) {
+			this.closeBattleSetupModal();
+			this.showToast({ type: 'error', text: 'Encounter nao encontrado.' });
+			return;
+		}
+
+		const options: BattleEncounterCreateOptions = {
+			name: modal.battleName.trim() || encounter.title,
+			combatantSides: modal.sides,
+		};
+
+		const battle = this.battleStorage.createBattleFromEncounter(encounter, options);
+		this.closeBattleSetupModal();
+		this.refreshBattles();
+		this.router.navigate(['/home/battle-tracker', battle.id]);
 	}
 
 	closeConfirmModal() {
@@ -174,31 +240,89 @@ export class EncounterHub {
 		}
 
 		this.closeConfirmModal();
-		this.createBattleAndNavigate(encounter);
+		this.openBattleSetup(encounter, 'new');
 	}
 
-	openBattle(battleId: string) {
-		this.router.navigate(['/home/battle-tracker', battleId]);
-	}
-
-	relatedBattle(encounterId: string): BattleEncounter | null {
-		return this.activeBattleByEncounterId().get(encounterId) ?? null;
-	}
-
-	hasAnyBattle(encounterId: string): boolean {
-		return this.hasAnyBattleByEncounterId().has(encounterId);
+	latestBattle(item: EncounterHubItem): BattleEncounter | null {
+		return item.activeBattle ?? item.latestBattle;
 	}
 
 	battleStatusLabel(battle: BattleEncounter | null): string {
-		if (!battle) return '';
-		if (battle.status === 'paused') return 'Pausada';
-		if (battle.status === 'completed') return 'Concluida';
-		return 'Ativa';
+		if (!battle) return 'Encontro preparado';
+		if (battle.status === 'paused') return 'Batalha pausada';
+		if (battle.status === 'completed') return 'Batalha concluída';
+		return 'Batalha ativa';
 	}
 
-	currentCombatantName(battle: BattleEncounter): string {
-		if (battle.activeTurnIndex < 0) return 'Sem combatentes';
-		return battle.combatants[battle.activeTurnIndex]?.displayName || battle.combatants[battle.activeTurnIndex]?.name || 'Sem combatentes';
+	itemStatusLabel(item: EncounterHubItem): string {
+		if (item.status === 'prepared') return 'Encontro preparado';
+		if (item.status === 'paused') return 'Batalha pausada';
+		if (item.status === 'completed') return 'Batalha concluída';
+		return 'Batalha ativa';
+	}
+
+	itemStatusClasses(item: EncounterHubItem): string {
+		if (item.status === 'active') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
+		if (item.status === 'paused') return 'border-amber-400/30 bg-amber-500/15 text-amber-100';
+		if (item.status === 'completed') return 'border-slate-300/20 bg-slate-500/10 text-slate-100';
+		return 'border-sky-400/30 bg-sky-500/15 text-sky-100';
+	}
+
+	currentCombatantName(battle: BattleEncounter | null): string {
+		if (!battle || battle.activeTurnIndex < 0) return 'Sem combatentes';
+		return (
+			battle.combatants[battle.activeTurnIndex]?.displayName ||
+			battle.combatants[battle.activeTurnIndex]?.name ||
+			'Sem combatentes'
+		);
+	}
+
+	filterLabel(status: EncounterHubStatusFilter): string {
+		if (status === 'prepared') return 'Encontros preparados';
+		if (status === 'active') return 'Batalha ativa';
+		if (status === 'paused') return 'Batalha pausada';
+		if (status === 'completed') return 'Batalha concluída';
+		return 'Todos';
+	}
+
+	sortLabel(sort: EncounterHubSortOption): string {
+		if (sort === 'recent') return 'Mais recentes primeiro';
+		if (sort === 'oldest') return 'Mais antigos primeiro';
+		if (sort === 'updated') return 'Atualizado recentemente';
+		if (sort === 'name') return 'Nome A-Z';
+		return 'Uso em mesa';
+	}
+
+	sideLabel(side: BattleCombatantSide): string {
+		if (side === 'player') return 'Jogador';
+		if (side === 'ally') return 'Aliado';
+		if (side === 'neutral') return 'Neutro';
+		return 'Inimigo';
+	}
+
+	sideBadgeClasses(side: BattleCombatantSide): string {
+		if (side === 'player') return 'border-sky-400/30 bg-sky-500/15 text-sky-100';
+		if (side === 'ally') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
+		if (side === 'neutral') return 'border-slate-300/20 bg-slate-500/10 text-slate-100';
+		return 'border-rose-400/30 bg-rose-500/15 text-rose-100';
+	}
+
+	getBattleSetupEncounter(): SavedEncounter | null {
+		const modal = this.battleSetupModal();
+		if (!modal) return null;
+		return this.ls.getEncounter(modal.encounterId);
+	}
+
+	updateQuery(value: string) {
+		this.filters.update((filters) => ({ ...filters, query: value }));
+	}
+
+	updateStatus(status: EncounterHubStatusFilter) {
+		this.filters.update((filters) => ({ ...filters, status }));
+	}
+
+	updateSort(sort: EncounterHubSortOption) {
+		this.filters.update((filters) => ({ ...filters, sort }));
 	}
 
 	importAndSave() {
@@ -226,7 +350,7 @@ export class EncounterHub {
 			this.importText.set(text);
 			this.importAndSave();
 		} catch {
-			this.msg.set({ type: 'error', text: 'Nao foi possivel ler o arquivo.' });
+			this.msg.set({ type: 'error', text: 'Não foi possível ler o arquivo.' });
 		} finally {
 			input.value = '';
 		}
@@ -235,12 +359,6 @@ export class EncounterHub {
 	private refresh() {
 		this.encounters.set(this.ls.listEncounters());
 		this.refreshBattles();
-	}
-
-	private createBattleAndNavigate(encounter: SavedEncounter) {
-		const battle = this.battleStorage.createBattleFromEncounter(encounter);
-		this.refreshBattles();
-		this.router.navigate(['/home/battle-tracker', battle.id]);
 	}
 
 	private refreshBattles() {
