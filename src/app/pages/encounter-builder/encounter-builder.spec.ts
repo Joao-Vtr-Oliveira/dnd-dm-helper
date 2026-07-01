@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 
 import { EncounterBuilder } from './encounter-builder';
 
@@ -8,7 +9,18 @@ describe('EncounterBuilder', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [EncounterBuilder]
+      imports: [EncounterBuilder],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: convertToParamMap({}),
+            },
+          },
+        },
+      ],
     })
     .compileComponents();
 

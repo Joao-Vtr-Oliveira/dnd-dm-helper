@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { HomebrewSheets } from './homebrew-sheets';
 
@@ -8,7 +9,8 @@ describe('HomebrewSheets', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HomebrewSheets]
+      imports: [HomebrewSheets],
+      providers: [provideRouter([])],
     })
     .compileComponents();
 

@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { Home } from './pages/home/home';
 import { EncounterBuilder } from './pages/encounter-builder/encounter-builder';
 import { EncounterHub } from './pages/encounter-hub/encounter-hub';
+import { BattleTrackerPage } from './pages/battle-tracker/battle-tracker';
 import { HomebrewSheets } from './pages/homebrew-sheets/homebrew-sheets';
 import { Calendar } from './pages/calendar/calendar';
 import { HomebrewBuilder } from './pages/homebrew-builder/homebrew-builder';
@@ -15,6 +16,7 @@ export const routes: Routes = [
 			{ path: '', component: EncounterHub },
 			{ path: 'encounter-builder', component: EncounterBuilder },
 			{ path: 'encounter-builder/:id', component: EncounterBuilder },
+			{ path: 'battle-tracker/:battleId', component: BattleTrackerPage },
 			{ path: 'homebrew', component: HomebrewSheets },
 			{ path: 'homebrew-builder', component: HomebrewBuilder },
 			{ path: 'homebrew-builder/:id', component: HomebrewBuilder },
