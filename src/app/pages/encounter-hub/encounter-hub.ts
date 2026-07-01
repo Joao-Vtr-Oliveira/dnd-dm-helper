@@ -10,6 +10,13 @@ import {
 	SavedEncounter,
 } from '../../services/local-storage-service/local-storage-service';
 
+type ConfirmModalState = {
+	title: string;
+	description: string;
+	confirmLabel: string;
+	encounterId: string;
+};
+
 @Component({
 	selector: 'app-encounter-hub',
 	standalone: true,
@@ -29,6 +36,7 @@ export class EncounterHub {
 	readonly encounters = signal<SavedEncounter[]>(this.ls.listEncounters());
 	readonly battles = signal<BattleEncounter[]>(this.battleStorage.getBattleEncounters());
 	readonly toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
+	readonly confirmModal = signal<ConfirmModalState | null>(null);
 
 	private toastTimer: number | null = null;
 
@@ -137,15 +145,36 @@ export class EncounterHub {
 
 		const activeBattle = this.battleStorage.getActiveBattleByEncounterId(encounterId);
 		if (activeBattle) {
-			const confirmed = window.confirm(
-				'Ja existe uma batalha ativa ou pausada para este encounter. Deseja criar uma nova mesmo assim?'
-			);
-			if (!confirmed) return;
+			this.confirmModal.set({
+				title: 'Criar uma nova batalha?',
+				description:
+					'Ja existe uma batalha ativa ou pausada para este encounter. A batalha atual sera mantida, mas voce abrira uma nova sessao local.',
+				confirmLabel: 'Criar nova batalha',
+				encounterId,
+			});
+			return;
 		}
 
-		const battle = this.battleStorage.createBattleFromEncounter(encounter);
-		this.refreshBattles();
-		this.router.navigate(['/home/battle-tracker', battle.id]);
+		this.createBattleAndNavigate(encounter);
+	}
+
+	closeConfirmModal() {
+		this.confirmModal.set(null);
+	}
+
+	confirmNewBattle() {
+		const modal = this.confirmModal();
+		if (!modal) return;
+
+		const encounter = this.ls.getEncounter(modal.encounterId);
+		if (!encounter) {
+			this.closeConfirmModal();
+			this.showToast({ type: 'error', text: 'Encounter nao encontrado.' });
+			return;
+		}
+
+		this.closeConfirmModal();
+		this.createBattleAndNavigate(encounter);
 	}
 
 	openBattle(battleId: string) {
@@ -206,6 +235,12 @@ export class EncounterHub {
 	private refresh() {
 		this.encounters.set(this.ls.listEncounters());
 		this.refreshBattles();
+	}
+
+	private createBattleAndNavigate(encounter: SavedEncounter) {
+		const battle = this.battleStorage.createBattleFromEncounter(encounter);
+		this.refreshBattles();
+		this.router.navigate(['/home/battle-tracker', battle.id]);
 	}
 
 	private refreshBattles() {

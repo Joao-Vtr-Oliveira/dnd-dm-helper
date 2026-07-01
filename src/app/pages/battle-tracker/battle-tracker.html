@@ -3,7 +3,7 @@
 		<div class="space-y-3">
 			<button
 				type="button"
-				class="inline-flex h-10 items-center rounded-2xl border border-white/10 bg-white/5 px-4 text-sm hover:bg-white/10"
+				class="inline-flex h-10 cursor-pointer items-center rounded-2xl border border-white/10 bg-white/5 px-4 text-sm hover:bg-white/10"
 				(click)="goBackToHub()"
 			>
 				Voltar para Encounter Hub
@@ -69,7 +69,7 @@
 			@if (battle()!.status === 'active') {
 				<button
 					type="button"
-					class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 					(click)="previousTurn()"
 				>
 					Voltar Turno
@@ -77,7 +77,7 @@
 
 				<button
 					type="button"
-					class="h-10 rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
+					class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
 					(click)="nextTurn()"
 				>
 					Proximo Turno
@@ -85,7 +85,7 @@
 
 				<button
 					type="button"
-					class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 					(click)="pauseBattle()"
 				>
 					Pausar
@@ -93,7 +93,7 @@
 			} @else if (battle()!.status === 'paused') {
 				<button
 					type="button"
-					class="h-10 rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 font-semibold hover:bg-emerald-500/20"
+					class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 font-semibold hover:bg-emerald-500/20"
 					(click)="resumeBattle()"
 				>
 					Continuar
@@ -103,8 +103,8 @@
 			@if (battle()!.status !== 'completed') {
 				<button
 					type="button"
-					class="h-10 rounded-2xl border border-emerald-300/25 bg-emerald-500/10 px-4 hover:bg-emerald-500/15"
-					(click)="completeBattle()"
+					class="h-10 cursor-pointer rounded-2xl border border-emerald-300/25 bg-emerald-500/10 px-4 hover:bg-emerald-500/15"
+					(click)="openCompleteBattleModal()"
 				>
 					Concluir
 				</button>
@@ -133,6 +133,14 @@
 												{{ combatant.displayName || combatant.name }}
 											</div>
 
+											<span
+												class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold"
+												[class]="sideBadgeClasses(combatant.side)"
+											>
+												<span class="h-2 w-2 rounded-full bg-current opacity-80"></span>
+												{{ sideLabel(combatant.side) }}
+											</span>
+
 											@if (currentCombatant()?.id === combatant.id) {
 												<span class="rounded-full border border-amber-300/40 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-100">
 													Turno atual
@@ -157,7 +165,8 @@
 										<label class="text-sm">
 											<span class="mb-1 block opacity-70">Lado</span>
 											<select
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												class="w-full cursor-pointer rounded-2xl border bg-black/20 px-3 py-2"
+												[class]="sideSelectClasses(combatant.side)"
 												[ngModel]="combatant.side"
 												(ngModelChange)="setCombatantSide(combatant.id, $event)"
 											>
@@ -216,20 +225,20 @@
 								</div>
 
 								<div class="mt-4 grid gap-3 lg:grid-cols-2">
-									<div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+									<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
 										<div class="mb-2 text-sm font-semibold">Dano</div>
-										<div class="flex flex-wrap gap-2">
+										<div class="grid gap-2">
 											<input
 												type="number"
 												min="0"
-												class="h-10 flex-1 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												class="h-10 w-full min-w-0 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
 												placeholder="0"
 												[ngModel]="damageDrafts()[combatant.id] || ''"
 												(ngModelChange)="setDamageDraft(combatant.id, $event)"
 											/>
 											<button
 												type="button"
-												class="h-10 rounded-2xl border border-red-400/30 bg-red-500/15 px-4 hover:bg-red-500/20"
+												class="h-10 w-full cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 hover:bg-red-500/20"
 												(click)="applyDamage(combatant.id)"
 											>
 												Aplicar dano
@@ -237,20 +246,20 @@
 										</div>
 									</div>
 
-									<div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+									<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
 										<div class="mb-2 text-sm font-semibold">Cura</div>
-										<div class="flex flex-wrap gap-2">
+										<div class="grid gap-2">
 											<input
 												type="number"
 												min="0"
-												class="h-10 flex-1 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												class="h-10 w-full min-w-0 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
 												placeholder="0"
 												[ngModel]="healingDrafts()[combatant.id] || ''"
 												(ngModelChange)="setHealingDraft(combatant.id, $event)"
 											/>
 											<button
 												type="button"
-												class="h-10 rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 hover:bg-emerald-500/20"
+												class="h-10 w-full cursor-pointer rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 hover:bg-emerald-500/20"
 												(click)="applyHealing(combatant.id)"
 											>
 												Aplicar cura
@@ -275,7 +284,7 @@
 												<span>{{ condition.label }}</span>
 												<button
 													type="button"
-													class="rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] hover:bg-black/40"
+													class="cursor-pointer rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] hover:bg-black/40"
 													(click)="removeCondition(combatant.id, condition.id)"
 												>
 													remover
@@ -286,51 +295,71 @@
 										}
 									</div>
 
-									<div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto]">
-										<select
-											class="rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="getConditionDraft(combatant.id).preset"
-											(ngModelChange)="setConditionDraft(combatant.id, { preset: $event })"
-										>
-											@for (option of conditionOptions; track option.name) {
-												<option [value]="option.name">{{ option.label }}</option>
-											}
-										</select>
+									<div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto]">
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Condicao base</span>
+											<select
+												class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="getConditionDraft(combatant.id).preset"
+												(ngModelChange)="setConditionDraft(combatant.id, { preset: $event })"
+											>
+												@for (option of conditionOptions; track option.name) {
+													<option [value]="option.name">{{ option.label }}</option>
+												}
+											</select>
+										</label>
 
-										<input
-											type="text"
-											class="rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											placeholder="Nome personalizado"
-											[ngModel]="getConditionDraft(combatant.id).customLabel"
-											(ngModelChange)="setConditionDraft(combatant.id, { customLabel: $event })"
-										/>
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Nome exibido</span>
+											<input
+												type="text"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												placeholder="Opcional: apelido mostrado na badge"
+												[ngModel]="getConditionDraft(combatant.id).customLabel"
+												(ngModelChange)="setConditionDraft(combatant.id, { customLabel: $event })"
+											/>
+										</label>
 
-										<div class="grid grid-cols-2 gap-2">
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Duracao em rounds</span>
 											<input
 												type="number"
 												min="0"
-												class="rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												placeholder="Rounds"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												placeholder="0"
 												[ngModel]="getConditionDraft(combatant.id).durationRounds"
 												(ngModelChange)="setConditionDraft(combatant.id, { durationRounds: $event })"
 											/>
+										</label>
+
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Duracao em turnos</span>
 											<input
 												type="number"
 												min="0"
-												class="rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												placeholder="Turnos"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												placeholder="0"
 												[ngModel]="getConditionDraft(combatant.id).durationTurns"
 												(ngModelChange)="setConditionDraft(combatant.id, { durationTurns: $event })"
 											/>
-										</div>
+										</label>
 
-										<button
-											type="button"
-											class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-											(click)="addCondition(combatant.id)"
-										>
-											Adicionar condicao
-										</button>
+										<div class="flex items-end">
+											<button
+												type="button"
+												class="h-10 w-full cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+												(click)="addCondition(combatant.id)"
+											>
+												Adicionar condicao
+											</button>
+										</div>
+									</div>
+
+									<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm opacity-75">
+										Sera exibida como:
+										<span class="font-semibold opacity-100">
+											{{ conditionDraftPreview(combatant.id) }}
+										</span>
 									</div>
 								</div>
 
@@ -414,6 +443,34 @@
 		</div>
 	}
 </div>
+
+@if (confirmModal(); as modal) {
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+		<div class="w-full max-w-md rounded-3xl border border-white/10 bg-[#1f1930] p-5 shadow-2xl">
+			<h3 class="text-xl font-semibold">{{ modal.title }}</h3>
+			<p class="mt-2 text-sm opacity-80">{{ modal.description }}</p>
+
+			<div class="mt-5 flex flex-wrap justify-end gap-2">
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/5 px-4 hover:bg-white/10"
+					(click)="closeConfirmModal()"
+				>
+					Cancelar
+				</button>
+
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border px-4 font-semibold"
+					[ngClass]="confirmButtonClasses(modal.tone)"
+					(click)="confirmModalAction()"
+				>
+					{{ modal.confirmLabel }}
+				</button>
+			</div>
+		</div>
+	</div>
+}
 
 @if (toast(); as toast) {
 	<div class="fixed right-4 top-4 z-50">

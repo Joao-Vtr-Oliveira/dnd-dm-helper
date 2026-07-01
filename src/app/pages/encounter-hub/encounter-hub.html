@@ -9,14 +9,14 @@
 
 		<div class="flex flex-wrap gap-2">
 			<button
-				class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+				class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 				(click)="newEncounter()"
 			>
 				+ Novo encounter
 			</button>
 
 			<button
-				class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+				class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 				(click)="importOpen.set(!importOpen())"
 			>
 				@if (importOpen()) { Fechar importacao } @else { Importar JSON }
@@ -51,7 +51,7 @@
 							</div>
 
 							<button
-								class="h-10 rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
+								class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
 								(click)="openBattle(battle.id)"
 							>
 								Abrir batalha
@@ -87,7 +87,7 @@
 			></textarea>
 
 			<button
-				class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+				class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 				(click)="importAndSave()"
 			>
 				Importar e salvar
@@ -140,28 +140,28 @@
 						<div class="flex flex-wrap gap-2">
 							@if (relatedBattle(encounter.id); as battle) {
 								<button
-									class="h-10 rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
+									class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
 									(click)="continueBattle(encounter.id)"
 								>
 									Continuar Batalha
 								</button>
 
 								<button
-									class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 									(click)="newBattle(encounter.id)"
 								>
 									Nova Batalha
 								</button>
 							} @else if (hasAnyBattle(encounter.id)) {
 								<button
-									class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 									(click)="newBattle(encounter.id)"
 								>
 									Nova Batalha
 								</button>
 							} @else {
 								<button
-									class="h-10 rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 font-semibold hover:bg-emerald-500/20"
+									class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 font-semibold hover:bg-emerald-500/20"
 									(click)="startBattle(encounter.id)"
 								>
 									Iniciar Batalha
@@ -169,28 +169,28 @@
 							}
 
 							<button
-								class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 								(click)="edit(encounter.id)"
 							>
 								Editar
 							</button>
 
 							<button
-								class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 								(click)="export(encounter.id)"
 							>
 								Exportar
 							</button>
 
 							<button
-								class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 								(click)="duplicate(encounter.id)"
 							>
 								Duplicar
 							</button>
 
 							<button
-								class="h-10 rounded-2xl border border-red-400/20 bg-red-500/15 px-4 hover:bg-red-500/20"
+								class="h-10 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-4 hover:bg-red-500/20"
 								(click)="remove(encounter.id)"
 							>
 								Excluir
@@ -222,6 +222,33 @@
 	</div>
 </div>
 
+@if (confirmModal(); as modal) {
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+		<div class="w-full max-w-md rounded-3xl border border-white/10 bg-[#1f1930] p-5 shadow-2xl">
+			<h3 class="text-xl font-semibold">{{ modal.title }}</h3>
+			<p class="mt-2 text-sm opacity-80">{{ modal.description }}</p>
+
+			<div class="mt-5 flex flex-wrap justify-end gap-2">
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/5 px-4 hover:bg-white/10"
+					(click)="closeConfirmModal()"
+				>
+					Cancelar
+				</button>
+
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
+					(click)="confirmNewBattle()"
+				>
+					{{ modal.confirmLabel }}
+				</button>
+			</div>
+		</div>
+	</div>
+}
+
 @if (toast(); as toastMessage) {
 	<div class="fixed right-4 top-4 z-50 pointer-events-none">
 		<div
@@ -240,7 +267,7 @@
 
 				<button
 					type="button"
-					class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10"
+					class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10"
 					(click)="toast.set(null)"
 					aria-label="Fechar"
 					title="Fechar"
