@@ -324,7 +324,7 @@
 						@if (modal.mode === 'new') { Nova batalha } @else { Iniciar batalha }
 					</h3>
 					<p class="mt-1 text-sm opacity-80">
-						Escolha o lado de cada integrante antes de abrir o tracker.
+						Escolha o lado e ajuste a iniciativa de cada integrante antes de abrir o tracker.
 					</p>
 				</div>
 
@@ -363,11 +363,11 @@
 
 				<div class="space-y-3">
 					@for (creature of getBattleSetupEncounter()?.data?.creatures ?? []; track creature.id) {
-						<div class="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] md:items-center">
+						<div class="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,0.7fr)] lg:items-center">
 							<div>
 								<div class="font-semibold">{{ creature.name }}</div>
 								<div class="text-sm opacity-70">
-									Iniciativa {{ creature.initiative ?? 0 }} · HP {{ creature.maxHealthPoints }}
+									HP {{ creature.maxHealthPoints }} · CA {{ creature.armorClass || '-' }}
 								</div>
 							</div>
 
@@ -391,6 +391,16 @@
 								<option value="enemy">Inimigo</option>
 								<option value="neutral">Neutro</option>
 							</select>
+
+							<label class="text-sm">
+								<span class="mb-1 block opacity-70">Iniciativa</span>
+								<input
+									type="number"
+									class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+									[ngModel]="modal.initiatives[creature.id]"
+									(ngModelChange)="setBattleSetupInitiative(creature.id, $event)"
+								/>
+							</label>
 						</div>
 					}
 				</div>

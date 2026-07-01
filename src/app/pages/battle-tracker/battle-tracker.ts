@@ -66,6 +66,7 @@ export class BattleTrackerPage {
 	readonly healingDrafts = signal<Record<string, string>>({});
 	readonly conditionDrafts = signal<Record<string, ConditionDraft>>({});
 	readonly abilityDrafts = signal<Record<string, AbilityDraft>>({});
+	readonly spellSlotPanels = signal<Record<string, boolean>>({});
 	readonly toast = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 	readonly confirmModal = signal<ConfirmModalState | null>(null);
 
@@ -425,6 +426,7 @@ export class BattleTrackerPage {
 	}
 
 	enableSpellSlots(combatantId: string) {
+		this.spellSlotPanels.update((panels) => ({ ...panels, [combatantId]: true }));
 		this.updateBattle((battle) => this.battleService.enableSpellSlots(battle, combatantId));
 	}
 
@@ -434,6 +436,18 @@ export class BattleTrackerPage {
 
 	spellSlotsEnabled(combatant: BattleCombatant): boolean {
 		return combatant.spellSlots.length > 0;
+	}
+
+	spellSlotsVisible(combatant: BattleCombatant): boolean {
+		if (!this.spellSlotsEnabled(combatant)) return false;
+		return this.spellSlotPanels()[combatant.id] ?? true;
+	}
+
+	toggleSpellSlotsVisibility(combatantId: string) {
+		this.spellSlotPanels.update((panels) => ({
+			...panels,
+			[combatantId]: !(panels[combatantId] ?? true),
+		}));
 	}
 
 	setSpellSlotMax(combatantId: string, level: number, value: unknown) {

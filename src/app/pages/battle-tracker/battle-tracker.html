@@ -534,9 +534,9 @@
 											<button
 												type="button"
 												class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
-												(click)="disableSpellSlots(combatant.id)"
+												(click)="toggleSpellSlotsVisibility(combatant.id)"
 											>
-												Desativar slots
+												@if (spellSlotsVisible(combatant)) { Ocultar slots } @else { Mostrar slots }
 											</button>
 										} @else {
 											<button
@@ -549,7 +549,7 @@
 										}
 									</div>
 
-									@if (spellSlotsEnabled(combatant)) {
+									@if (spellSlotsEnabled(combatant) && spellSlotsVisible(combatant)) {
 										<div class="grid gap-3">
 											@for (slot of combatant.spellSlots; track slot.level) {
 												<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
@@ -607,6 +607,10 @@
 													</div>
 												</div>
 											}
+										</div>
+									} @else if (spellSlotsEnabled(combatant)) {
+										<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
+											Os slots desta criatura estão ocultos no momento.
 										</div>
 									} @else {
 										<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">

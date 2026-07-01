@@ -607,13 +607,16 @@ export class BattleEncounterService {
 		const currentHp = Math.min(this.toNonNegativeInt(creature.healthPoints), maxHp);
 		const temporaryHp = this.toNonNegativeInt(creature.temporaryHealthPoints);
 		const side = options?.combatantSides?.[creature.id] ?? DEFAULT_SIDE;
+		const initiativeOverride = options?.initiativeOverrides?.[creature.id];
 
 		return {
 			id: this.createId(),
 			sourceCreatureId: creature.id,
 			name: creature.name || `Combatente ${sourceIndex + 1}`,
 			side,
-			initiative: this.toFiniteNumber(creature.initiative),
+			initiative: this.toFiniteNumber(
+				initiativeOverride == null ? creature.initiative : initiativeOverride
+			),
 			turnOrder: sourceIndex,
 			armorClass: this.toArmorClass(creature.armorClass),
 			maxHp,
@@ -623,7 +626,7 @@ export class BattleEncounterService {
 			hidden: false,
 			conditions: this.mapConditions(creature.conditions ?? []),
 			specialAbilities: this.mapSpecialAbilities(creature.specialAbilities ?? []),
-			spellSlots: [],
+			spellSlots: this.mapSpellSlots(creature.totalSpellSlots, creature.usedSpellSlots),
 			privateNotes: this.joinNotes(creature.notes?.map((note) => note.text)),
 		};
 	}
@@ -720,6 +723,27 @@ export class BattleEncounterService {
 		);
 	}
 
+	private mapSpellSlots(
+		totalSpellSlots: CreatureInterface['totalSpellSlots'],
+		usedSpellSlots: CreatureInterface['usedSpellSlots']
+	): BattleSpellSlotLevel[] {
+		if (!totalSpellSlots && !usedSpellSlots) return [];
+
+		return this.spellSlotService.createDefaultSpellSlots().map((slot) => {
+			const key = `${slot.level}${this.ordinalSuffix(slot.level)}` as keyof NonNullable<
+				CreatureInterface['totalSpellSlots']
+			>;
+			const max = this.toNonNegativeInt(totalSpellSlots?.[key]);
+			const used = Math.min(max, this.toNonNegativeInt(usedSpellSlots?.[key]));
+
+			return {
+				level: slot.level,
+				max,
+				used,
+			};
+		});
+	}
+
 	private joinNotes(notes: Array<string | undefined> | undefined): string | undefined {
 		const text = (notes ?? [])
 			.map((note) => (note || '').trim())
@@ -762,6 +786,13 @@ export class BattleEncounterService {
 	private toFiniteNumber(value: unknown): number {
 		const numeric = Number(value);
 		return Number.isFinite(numeric) ? numeric : 0;
+	}
+
+	private ordinalSuffix(level: number): 'st' | 'nd' | 'rd' | 'th' {
+		if (level === 1) return 'st';
+		if (level === 2) return 'nd';
+		if (level === 3) return 'rd';
+		return 'th';
 	}
 
 	private slugify(value: string): string {

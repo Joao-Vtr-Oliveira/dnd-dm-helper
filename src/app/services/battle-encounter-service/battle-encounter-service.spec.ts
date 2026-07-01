@@ -26,6 +26,7 @@ describe('BattleEncounterService', () => {
 					totalSpellSlots: null,
 					usedSpellSlots: null,
 					spells: {},
+					specialAbilities: [],
 				},
 				{
 					id: 1,
@@ -43,6 +44,7 @@ describe('BattleEncounterService', () => {
 					totalSpellSlots: null,
 					usedSpellSlots: null,
 					spells: {},
+					specialAbilities: [],
 				},
 			],
 			creatureIdCount: 2,
@@ -83,6 +85,19 @@ describe('BattleEncounterService', () => {
 
 		expect(battle.combatants[0].side).toBe('ally');
 		expect(battle.combatants[1].side).toBe('player');
+	});
+
+	it('supports overriding initiative before the battle starts', () => {
+		const battle = service.createBattleFromEncounter(template, {
+			initiativeOverrides: {
+				0: 7,
+				1: 19,
+			},
+		});
+
+		expect(battle.combatants[0].name).toBe('Goblin Minion');
+		expect(battle.combatants[0].initiative).toBe(19);
+		expect(battle.combatants[1].initiative).toBe(7);
 	});
 
 	it('orders combatants by initiative', () => {
@@ -198,5 +213,27 @@ describe('BattleEncounterService', () => {
 		expect(configured.combatants[0].spellSlots[0].max).toBe(4);
 		expect(spent.combatants[0].spellSlots[0].used).toBe(1);
 		expect(recovered.combatants[0].spellSlots[0].used).toBe(0);
+	});
+
+	it('maps spell slots from the source creature into the battle combatant', () => {
+		const withSlots: EncounterTemplate = {
+			...template,
+			data: {
+				...template.data,
+				creatures: [
+					{
+						...template.data.creatures[0],
+						totalSpellSlots: { '1st': 3, '2nd': 2 },
+						usedSpellSlots: { '1st': 1, '2nd': 0 },
+					},
+				],
+			},
+		};
+
+		const battle = service.createBattleFromEncounter(withSlots);
+
+		expect(battle.combatants[0].spellSlots[0].max).toBe(3);
+		expect(battle.combatants[0].spellSlots[0].used).toBe(1);
+		expect(battle.combatants[0].spellSlots[1].max).toBe(2);
 	});
 });

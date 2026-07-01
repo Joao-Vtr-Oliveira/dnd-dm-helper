@@ -6,6 +6,8 @@ import { encounterBase } from '../../utils/base-file/encounter-base';
 import type {
 	BattleTracker,
 	CreatureInterface,
+	CreatureSpecialAbility,
+	CreatureAbilityRechargeType,
 	NoteInterface,
 	SpellLevel,
 	SpellInterface,
@@ -31,6 +33,13 @@ type DraftCreature = {
 
 type SpellDraft = { label: string; total: number };
 type ConditionDraft = { text: string; url: string };
+type AbilityDraft = {
+	name: string;
+	description: string;
+	rechargeType: CreatureAbilityRechargeType;
+	cooldownValue: number;
+	rechargeOn: string;
+};
 
 @Component({
 	selector: 'app-encounter-builder',
@@ -49,6 +58,7 @@ export class EncounterBuilder {
 	noteDrafts = signal<Record<number, string>>({});
 	spellDrafts = signal<Record<number, SpellDraft>>({});
 	conditionDrafts = signal<Record<number, ConditionDraft>>({});
+	abilityDrafts = signal<Record<number, AbilityDraft>>({});
 
 	importOpen = signal(false);
 	importText = signal('');
@@ -382,6 +392,12 @@ export class EncounterBuilder {
 		const n = Math.floor(Number(v));
 		return Number.isFinite(n) ? Math.max(0, n) : 0;
 	}
+	parseRechargeOnInput(value: string): number[] {
+		return (value || '')
+			.split(',')
+			.map((item) => this.parseNonNegInt(item))
+			.filter((item) => item > 0);
+	}
 	private slugify(s: string): string {
 		return (s || '')
 			.trim()
@@ -641,6 +657,105 @@ export class EncounterBuilder {
 		});
 	}
 
+	getAbilityDraft(id: number): AbilityDraft {
+		return (
+			this.abilityDrafts()[id] ?? {
+				name: '',
+				description: '',
+				rechargeType: 'manual',
+				cooldownValue: 1,
+				rechargeOn: '5,6',
+			}
+		);
+	}
+
+	setAbilityDraft(id: number, patch: Partial<AbilityDraft>) {
+		this.abilityDrafts.update((drafts) => ({
+			...drafts,
+			[id]: {
+				...this.getAbilityDraft(id),
+				...patch,
+			},
+		}));
+	}
+
+	addSpecialAbility(creatureId: number) {
+		const draft = this.getAbilityDraft(creatureId);
+		const name = (draft.name || '').trim();
+		if (!name) {
+			this.showToast({ type: 'warn', text: 'Defina um nome para a habilidade.' });
+			return;
+		}
+
+		const ability: CreatureSpecialAbility = {
+			id: crypto.randomUUID(),
+			name,
+			description: (draft.description || '').trim() || undefined,
+			rechargeType: draft.rechargeType,
+			cooldownTurns:
+				draft.rechargeType === 'turns' ? Math.max(1, this.parseNonNegInt(draft.cooldownValue)) : undefined,
+			cooldownRounds:
+				draft.rechargeType === 'rounds' ? Math.max(1, this.parseNonNegInt(draft.cooldownValue)) : undefined,
+			rechargeDice: draft.rechargeType === 'dice' ? 'd6' : undefined,
+			rechargeOn:
+				draft.rechargeType === 'dice' ? this.parseRechargeOnInput(draft.rechargeOn) : undefined,
+		};
+
+		this.encounter.update((e) => {
+			const next = structuredClone(e);
+			const c = next.creatures.find((x) => x.id === creatureId);
+			if (!c) return e;
+			c.specialAbilities = [...(c.specialAbilities ?? []), ability];
+			return next;
+		});
+
+		this.setAbilityDraft(creatureId, {
+			name: '',
+			description: '',
+			rechargeType: 'manual',
+			cooldownValue: 1,
+			rechargeOn: '5,6',
+		});
+	}
+
+	updateSpecialAbility(creatureId: number, abilityId: string, patch: Partial<CreatureSpecialAbility>) {
+		this.encounter.update((e) => {
+			const next = structuredClone(e);
+			const c = next.creatures.find((x) => x.id === creatureId);
+			if (!c) return e;
+			c.specialAbilities = (c.specialAbilities ?? []).map((ability) =>
+				ability.id === abilityId ? { ...ability, ...patch } : ability
+			);
+			return next;
+		});
+	}
+
+	removeSpecialAbility(creatureId: number, abilityId: string) {
+		this.encounter.update((e) => {
+			const next = structuredClone(e);
+			const c = next.creatures.find((x) => x.id === creatureId);
+			if (!c) return e;
+			c.specialAbilities = (c.specialAbilities ?? []).filter((ability) => ability.id !== abilityId);
+			return next;
+		});
+	}
+
+	abilityStatusPreview(ability: CreatureSpecialAbility): string {
+		if (ability.rechargeType === 'turns') {
+			const turns = Math.max(1, ability.cooldownTurns ?? 1);
+			return turns === 1 ? 'Volta em 1 turno' : `Volta em ${turns} turnos`;
+		}
+		if (ability.rechargeType === 'rounds') {
+			const rounds = Math.max(1, ability.cooldownRounds ?? 1);
+			return rounds === 1 ? 'Volta em 1 round' : `Volta em ${rounds} rounds`;
+		}
+		if (ability.rechargeType === 'dice') {
+			const targets = ability.rechargeOn?.length ? ability.rechargeOn.join('–') : '5–6';
+			return `Recharge ${targets}`;
+		}
+		return 'Recarga manual';
+	}
+
 	downloadExport() {
 		this.io.download(this.encounter(), this.title());
 	}
@@ -720,7 +835,16 @@ export class EncounterBuilder {
 			if (item) {
 				this.savedId.set(id);
 				this.title.set(item.title);
-				this.encounter.set(structuredClone(item.data));
+				this.encounter.set({
+					...structuredClone(item.data),
+					creatures: structuredClone(item.data.creatures ?? []).map((creature) => ({
+						...creature,
+						spells: creature.spells ?? {},
+						totalSpellSlots: creature.totalSpellSlots ?? null,
+						usedSpellSlots: creature.usedSpellSlots ?? null,
+						specialAbilities: Array.isArray(creature.specialAbilities) ? creature.specialAbilities : [],
+					})),
+				});
 			}
 		}
 

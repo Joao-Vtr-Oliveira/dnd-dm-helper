@@ -186,6 +186,10 @@ export class Dnd5eApiService {
 		if (!Array.isArray(abilities) || !abilities.length) return [];
 
 		return abilities
+			.filter((ability) => {
+				const name = (ability.name || '').trim().toLowerCase();
+				return !name.includes('spellcasting');
+			})
 			.map((ability, index) => ({
 				id: `api-ability-${monster.index}-${index + 1}`,
 				name: ability.name?.trim() || `Habilidade ${index + 1}`,

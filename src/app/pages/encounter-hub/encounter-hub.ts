@@ -33,6 +33,7 @@ type BattleSetupModalState = {
 	mode: 'start' | 'new';
 	battleName: string;
 	sides: Record<number, BattleCombatantSide>;
+	initiatives: Record<number, number>;
 };
 
 @Component({
@@ -171,12 +172,16 @@ export class EncounterHub {
 		const sides = Object.fromEntries(
 			encounter.data.creatures.map((creature) => [creature.id, 'enemy' as BattleCombatantSide])
 		);
+		const initiatives = Object.fromEntries(
+			encounter.data.creatures.map((creature) => [creature.id, Number(creature.initiative ?? 0)])
+		);
 
 		this.battleSetupModal.set({
 			encounterId: encounter.id,
 			mode,
 			battleName: encounter.title,
 			sides,
+			initiatives,
 		});
 	}
 
@@ -202,6 +207,21 @@ export class EncounterHub {
 		);
 	}
 
+	setBattleSetupInitiative(creatureId: number, value: unknown) {
+		const numeric = Number(value);
+		this.battleSetupModal.update((modal) =>
+			modal
+				? {
+						...modal,
+						initiatives: {
+							...modal.initiatives,
+							[creatureId]: Number.isFinite(numeric) ? numeric : 0,
+						},
+				  }
+				: modal
+		);
+	}
+
 	launchBattleFromSetup() {
 		const modal = this.battleSetupModal();
 		if (!modal) return;
@@ -216,6 +236,7 @@ export class EncounterHub {
 		const options: BattleEncounterCreateOptions = {
 			name: modal.battleName.trim() || encounter.title,
 			combatantSides: modal.sides,
+			initiativeOverrides: modal.initiatives,
 		};
 
 		const battle = this.battleStorage.createBattleFromEncounter(encounter, options);

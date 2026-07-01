@@ -118,4 +118,5 @@ export interface BattleConditionPreset {
 export interface BattleEncounterCreateOptions {
 	name?: string;
 	combatantSides?: Record<number, BattleCombatantSide>;
+	initiativeOverrides?: Record<number, number>;
 }
