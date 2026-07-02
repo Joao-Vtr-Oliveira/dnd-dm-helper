@@ -13,7 +13,11 @@ import type {
 	BattleSpecialAbility,
 	BattleSpellSlotLevel,
 } from '../../models/battle-encounter-model';
-import type { CreatureInterface } from '../../models/battleTracker-model';
+import type {
+	CreatureInterface,
+	SpellInterface,
+	SpellsByKey,
+} from '../../models/battleTracker-model';
 import {
 	BattleEncounterService,
 	DEFAULT_BATTLE_CONDITIONS,
@@ -23,6 +27,12 @@ import {
 	LocalStorageService,
 	type SavedSheetInterface,
 } from '../../services/local-storage-service/local-storage-service';
+import {
+	Dnd5eApiService,
+	type ApiResourceListItem,
+} from '../../services/dnd-api/dnd-api';
+import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
+import { firstValueFrom } from 'rxjs';
 
 type ConditionDurationMode = 'manual' | 'next-turn-end' | 'turns' | 'rounds';
 
@@ -42,13 +52,12 @@ type AbilityDraft = {
 };
 
 type AddCombatantDraft = {
-	mode: 'manual' | 'homebrew';
+	mode: 'manual' | 'homebrew' | 'api';
 	sheetId: string;
+	apiIndex: string;
 	name: string;
-	displayName: string;
 	side: BattleCombatantSide;
 	maxHp: string;
-	currentHp: string;
 	armorClass: string;
 	initiative: string;
 };
@@ -74,6 +83,8 @@ export class BattleTrackerPage {
 	private readonly battleStorage = inject(BattleEncounterStorageService);
 	private readonly battleService = inject(BattleEncounterService);
 	private readonly localStorageService = inject(LocalStorageService);
+	private readonly dndApi = inject(Dnd5eApiService);
+	private readonly creatureTemplateService = inject(CreatureTemplateService);
 
 	private readonly battleId = this.route.snapshot.paramMap.get('battleId');
 
@@ -90,7 +101,20 @@ export class BattleTrackerPage {
 	readonly confirmModal = signal<ConfirmModalState | null>(null);
 	readonly addCombatantModalOpen = signal(false);
 	readonly addCombatantDraft = signal<AddCombatantDraft>(this.createAddCombatantDraft());
+	readonly selectedImportedCreature = signal<CreatureInterface | null>(null);
 	readonly homebrewSheets = signal<SavedSheetInterface[]>(this.localStorageService.listSheets());
+	readonly apiMonsters = signal<ApiResourceListItem[]>([]);
+	readonly apiLoading = signal(false);
+	readonly apiSearch = signal('');
+	readonly filteredApiMonsters = computed(() => {
+		const query = this.apiSearch().trim().toLowerCase();
+		if (!query) return this.apiMonsters();
+		return this.apiMonsters().filter(
+			(monster) =>
+				monster.name.toLowerCase().includes(query) ||
+				monster.index.toLowerCase().includes(query)
+		);
+	});
 
 	readonly conditionOptions: BattleConditionPreset[] = DEFAULT_BATTLE_CONDITIONS;
 	readonly combatants = computed(() => [
@@ -99,8 +123,7 @@ export class BattleTrackerPage {
 	]);
 	readonly currentCombatant = computed(() => {
 		const battle = this.battle();
-		if (!battle || battle.activeTurnIndex < 0) return null;
-		return battle.combatants[battle.activeTurnIndex] ?? null;
+		return battle ? this.battleService.getCurrentCombatant(battle) : null;
 	});
 	readonly currentTurnElapsedSeconds = computed(() => {
 		const battle = this.battle();
@@ -530,11 +553,24 @@ export class BattleTrackerPage {
 	openAddCombatantModal() {
 		this.homebrewSheets.set(this.localStorageService.listSheets());
 		this.addCombatantDraft.set(this.createAddCombatantDraft());
+		this.apiSearch.set('');
 		this.addCombatantModalOpen.set(true);
+		if (!this.apiMonsters().length) {
+			this.loadApiMonsters();
+		}
 	}
 
 	closeAddCombatantModal() {
+		this.selectedImportedCreature.set(null);
 		this.addCombatantModalOpen.set(false);
+	}
+
+	setAddCombatantMode(mode: AddCombatantDraft['mode']) {
+		this.selectedImportedCreature.set(null);
+		this.addCombatantDraft.set({
+			...this.createAddCombatantDraft(),
+			mode,
+		});
 	}
 
 	setAddCombatantDraft(patch: Partial<AddCombatantDraft>) {
@@ -543,58 +579,111 @@ export class BattleTrackerPage {
 
 	useHomebrewSheet(sheetId: string) {
 		const sheet = this.homebrewSheets().find((item) => item.id === sheetId);
-		if (!sheet) return;
-		const maxHp = this.parseNonNegativeInt(
-			sheet.data.maxHealthPoints ?? sheet.data.healthPoints ?? 0
-		);
-		const currentHp = Math.min(this.parseNonNegativeInt(sheet.data.healthPoints), maxHp);
+		if (!sheet) {
+			this.selectedImportedCreature.set(null);
+			this.setAddCombatantDraft({
+				sheetId: '',
+				name: '',
+				side: 'enemy',
+				initiative: '0',
+			});
+			return;
+		}
+		const creature = this.creatureTemplateService.createFromSavedSheet(sheet, { id: Date.now() });
+		this.selectedImportedCreature.set(creature);
 		this.addCombatantDraft.update((draft) => ({
 			...draft,
 			mode: 'homebrew',
 			sheetId,
-			name: sheet.data.name || sheet.title,
-			displayName: '',
+			apiIndex: '',
+			name: creature.name || sheet.title,
 			side: this.defaultSideForSheet(sheet),
-			maxHp: String(maxHp),
-			currentHp: String(currentHp),
+			maxHp: String(creature.maxHealthPoints ?? 0),
 			armorClass:
-				sheet.data.armorClass == null || sheet.data.armorClass === ''
+				creature.armorClass == null || creature.armorClass === ''
 					? ''
-					: String(sheet.data.armorClass),
+					: String(creature.armorClass),
 			initiative:
-				sheet.data.initiative == null || Number.isNaN(Number(sheet.data.initiative))
+				creature.initiative == null || Number.isNaN(Number(creature.initiative))
 					? '0'
-					: String(sheet.data.initiative),
+					: String(creature.initiative),
 		}));
 	}
 
-	addCombatant() {
+	async useApiMonster(index: string) {
+		const monsterRef = this.apiMonsters().find((monster) => monster.index === index);
+		if (!monsterRef) return;
+		try {
+			const monster = await firstValueFrom(this.dndApi.getMonster(index));
+			const creature = this.creatureTemplateService.createFromApiMonster(monster, {
+				id: Date.now(),
+				initiative: this.dndApi.dexMod(monster),
+			});
+			this.selectedImportedCreature.set(creature);
+			this.addCombatantDraft.update((draft) => ({
+				...draft,
+				mode: 'api',
+				apiIndex: index,
+				sheetId: '',
+				name: creature.name || monsterRef.name,
+				side: 'enemy',
+				maxHp: String(creature.maxHealthPoints ?? 0),
+				armorClass: String(creature.armorClass ?? ''),
+				initiative: creature.initiative == null ? '0' : String(creature.initiative),
+			}));
+		} catch (err: any) {
+			this.showToast('error', err?.message ?? 'Erro ao buscar monstro.');
+		}
+	}
+
+	async addCombatant() {
 		const battle = this.battle();
 		if (!battle) return;
 
 		const draft = this.addCombatantDraft();
-		const baseName = draft.name.trim();
-		if (!baseName) {
+		const importedCreature = this.selectedImportedCreature();
+		if (draft.mode === 'manual' && !draft.name.trim()) {
 			this.showToast('error', 'Informe o nome do combatente.');
 			return;
 		}
+		if (draft.mode !== 'manual' && !importedCreature) {
+			this.showToast(
+				'error',
+				draft.mode === 'homebrew'
+					? 'Selecione uma ficha homebrew.'
+					: 'Selecione um monstro da API.'
+			);
+			return;
+		}
 
-		const creature = draft.mode === 'homebrew' ? this.createCreatureFromSelectedSheet(draft) : null;
-		if (draft.mode === 'homebrew' && !creature) return;
-		const manualCreature = creature ?? this.createManualCreatureFromDraft(draft);
+		const creature =
+			draft.mode === 'manual'
+				? this.createManualCreatureFromDraft(draft)
+				: this.creatureTemplateService.cloneCreature(importedCreature!, {
+						id: Date.now(),
+						initiative: this.parseInitiativeInput(draft.initiative),
+				  });
+		const overrides =
+			draft.mode === 'manual'
+				? {
+						name: draft.name.trim(),
+						side: draft.side,
+						initiative: this.parseInitiativeInput(draft.initiative),
+						maxHp: this.parseNonNegativeInt(draft.maxHp),
+						currentHp: this.parseNonNegativeInt(draft.maxHp),
+						armorClass: this.parseArmorClassInput(draft.armorClass),
+						category: creature.category,
+						sourceSheetId: creature.sourceSheetId,
+				  }
+				: {
+						side: draft.side,
+						initiative: this.parseInitiativeInput(draft.initiative),
+						category: creature.category,
+						sourceSheetId: creature.sourceSheetId,
+				  };
 
 		this.updateBattle((current) =>
-			this.battleService.addCombatantFromCreature(current, manualCreature, {
-				name: baseName,
-				displayName: draft.displayName.trim() || undefined,
-				side: draft.side,
-				initiative: this.parseInitiativeInput(draft.initiative),
-				maxHp: this.parseNonNegativeInt(draft.maxHp),
-				currentHp: this.parseNonNegativeInt(draft.currentHp),
-				armorClass: this.parseArmorClassInput(draft.armorClass),
-				category: manualCreature.category,
-				sourceSheetId: manualCreature.sourceSheetId,
-			})
+			this.battleService.addCombatantFromCreature(current, creature, overrides)
 		);
 
 		this.closeAddCombatantModal();
@@ -663,8 +752,16 @@ export class BattleTrackerPage {
 		return combatant.nextRoundInitiative != null && combatant.nextRoundInitiative !== combatant.initiative;
 	}
 
+	isInactiveUntilNextRound(combatant: BattleCombatant): boolean {
+		const battle = this.battle();
+		return battle != null && combatant.inactiveUntilRound != null && combatant.inactiveUntilRound > battle.round;
+	}
+
 	initiativeSummary(combatant: BattleCombatant): string {
 		if (combatant.pendingAdd) return `Entra com iniciativa ${combatant.initiative}`;
+		if (this.isInactiveUntilNextRound(combatant)) {
+			return `Fora da rotação até o round ${combatant.inactiveUntilRound}`;
+		}
 		if (this.shouldShowPendingInitiative(combatant)) {
 			return `Atual ${combatant.initiative} · Próximo round ${combatant.nextRoundInitiative}`;
 		}
@@ -745,6 +842,26 @@ export class BattleTrackerPage {
 		return `${base} border-rose-400/15 bg-rose-500/5`;
 	}
 
+	featureKindLabel(kind: string): string {
+		if (kind === 'action') return 'Ação';
+		if (kind === 'reaction') return 'Reação';
+		if (kind === 'legendary') return 'Lendária';
+		if (kind === 'spellcasting') return 'Spellcasting';
+		if (kind === 'trait') return 'Trait';
+		return 'Nota';
+	}
+
+	spellEntries(spells: SpellsByKey | null | undefined): Array<{ key: string; value: SpellInterface }> {
+		return Object.entries(spells || {}).map(([key, value]) => ({ key, value }));
+	}
+
+	spellSlotLevelCount(creature: CreatureInterface | null): number {
+		if (!creature?.totalSpellSlots) return 0;
+		return Object.values(creature.totalSpellSlots).filter(
+			(value) => typeof value === 'number' && value > 0
+		).length;
+	}
+
 	private updateBattle(updater: (battle: BattleEncounter) => BattleEncounter) {
 		const battle = this.battle();
 		if (!battle) return;
@@ -755,51 +872,24 @@ export class BattleTrackerPage {
 		return {
 			mode: 'manual',
 			sheetId: '',
+			apiIndex: '',
 			name: '',
-			displayName: '',
 			side: 'enemy',
 			maxHp: '0',
-			currentHp: '0',
 			armorClass: '',
 			initiative: '0',
 		};
 	}
 
 	private createManualCreatureFromDraft(draft: AddCombatantDraft): CreatureInterface {
-		const maxHp = this.parseNonNegativeInt(draft.maxHp);
-		const currentHp = Math.min(this.parseNonNegativeInt(draft.currentHp), maxHp);
-		return {
+		return this.creatureTemplateService.createManualCreature({
+			id: Date.now(),
 			name: draft.name.trim(),
 			initiative: this.parseInitiativeInput(draft.initiative),
-			healthPoints: currentHp,
-			maxHealthPoints: maxHp,
+			hp: this.parseNonNegativeInt(draft.maxHp),
 			armorClass: draft.armorClass.trim(),
-			temporaryHealthPoints: 0,
-			id: Date.now(),
-			alive: currentHp > 0,
-			conditions: [],
-			notes: [],
-			shared: true,
-			hitPointsShared: true,
-			totalSpellSlots: null,
-			usedSpellSlots: null,
-			spells: {},
-			specialAbilities: [],
 			category: this.categoryForSide(draft.side),
-		};
-	}
-
-	private createCreatureFromSelectedSheet(draft: AddCombatantDraft): CreatureInterface | null {
-		const sheet = this.homebrewSheets().find((item) => item.id === draft.sheetId);
-		if (!sheet) {
-			this.showToast('error', 'Selecione uma ficha válida.');
-			return null;
-		}
-
-		const creature = structuredClone(sheet.data);
-		creature.category = sheet.category;
-		creature.sourceSheetId = sheet.id;
-		return creature;
+		});
 	}
 
 	private defaultSideForSheet(sheet: SavedSheetInterface): BattleCombatantSide {
@@ -828,6 +918,22 @@ export class BattleTrackerPage {
 	private parseArmorClassInput(value: unknown): number | undefined {
 		const numeric = Number(value);
 		return Number.isFinite(numeric) ? Math.floor(numeric) : undefined;
+	}
+
+	private loadApiMonsters() {
+		this.apiLoading.set(true);
+		this.dndApi.listMonsters().subscribe({
+			next: (monsters) => {
+				this.apiMonsters.set(
+					[...monsters].sort((left, right) => left.name.localeCompare(right.name))
+				);
+				this.apiLoading.set(false);
+			},
+			error: (err) => {
+				this.apiLoading.set(false);
+				this.showToast('error', err?.message ?? 'Erro ao carregar bestiário.');
+			},
+		});
 	}
 
 	private slugify(value: string): string {

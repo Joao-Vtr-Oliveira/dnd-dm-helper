@@ -22,6 +22,7 @@ import {
 } from '../../services/local-storage-service/local-storage-service';
 import { ApiResourceListItem, Dnd5eApiService } from '../../services/dnd-api/dnd-api';
 import { firstValueFrom } from 'rxjs';
+import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
 
 type DraftCreature = {
 	name: string;
@@ -67,6 +68,7 @@ export class EncounterBuilder {
 	private route = inject(ActivatedRoute);
 	private router = inject(Router);
 	private ls = inject(LocalStorageService);
+	private creatureTemplateService = inject(CreatureTemplateService);
 
 	// --- Homebrew import modal ---
 	homebrewModalOpen = signal(false);
@@ -232,31 +234,18 @@ export class EncounterBuilder {
 		}
 
 		const qty = Math.max(1, Math.floor(Number(this.draft().quantity || 1)));
-		const base = structuredClone(sheet.data);
-
 		this.encounter.update((e) => {
 			const next = structuredClone(e);
 
 			for (let i = 0; i < qty; i++) {
 				const newId = next.creatureIdCount;
-
-				const c = structuredClone(base);
-				c.id = newId;
-				c.category = sheet.category ?? c.category ?? 'monster';
-				c.sourceSheetId = sheet.id;
+				const c = this.creatureTemplateService.createFromSavedSheet(sheet, {
+					id: newId,
+					quantityIndex: qty > 1 ? i : undefined,
+				});
 
 				// se importar vários, dá um sufixo só pra não ficar confuso
-				if (qty > 1) c.name = `${c.name} #${i + 1}`;
-
-				// segurança
-				c.conditions = Array.isArray(c.conditions) ? c.conditions : [];
-				c.notes = Array.isArray(c.notes) ? c.notes : [];
-					c.spells = c.spells ?? {};
-					c.totalSpellSlots = c.totalSpellSlots ?? null;
-					c.usedSpellSlots = c.usedSpellSlots ?? null;
-					c.specialAbilities = Array.isArray(c.specialAbilities) ? c.specialAbilities : [];
-
-					next.creatures.push(c);
+				next.creatures.push(c);
 				next.creatureIdCount++;
 			}
 
@@ -340,13 +329,11 @@ export class EncounterBuilder {
 				for (let i = 0; i < qty; i++) {
 					const newId = next.creatureIdCount;
 
-					const c = this.dndApi.toCreature(monster, {
+					const c = this.creatureTemplateService.createFromApiMonster(monster, {
 						id: newId,
 						initiative: null,
+						quantityIndex: qty > 1 ? i : undefined,
 					});
-					c.category = 'monster';
-
-					if (qty > 1) c.name = `${c.name} #${i + 1}`;
 
 					next.creatures.push(c);
 					next.creatureIdCount++;
@@ -450,25 +437,14 @@ export class EncounterBuilder {
 				const id = next.creatureIdCount;
 				const hp = d.hp ?? 0;
 
-				const c: CreatureInterface = {
+				const c = this.creatureTemplateService.createManualCreature({
+					id,
 					name: d.name || `Creature #${id + 1}`,
 					initiative: d.initiative,
-					healthPoints: hp,
-					maxHealthPoints: hp,
+					hp,
 					armorClass: d.ac || '',
-					temporaryHealthPoints: null,
-					id,
-					alive: true,
-					conditions: [],
-					notes: [],
-					shared: true,
-					hitPointsShared: true,
-					totalSpellSlots: null,
-					usedSpellSlots: null,
-					spells: {},
-					specialAbilities: [],
 					category: 'monster',
-				};
+				});
 
 				next.creatures.push(c);
 				next.creatureIdCount++;

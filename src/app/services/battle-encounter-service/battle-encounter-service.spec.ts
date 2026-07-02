@@ -27,6 +27,7 @@ describe('BattleEncounterService', () => {
 					usedSpellSlots: null,
 					spells: {},
 					specialAbilities: [],
+					sheetFeatures: [],
 				},
 				{
 					id: 1,
@@ -45,6 +46,7 @@ describe('BattleEncounterService', () => {
 					usedSpellSlots: null,
 					spells: {},
 					specialAbilities: [],
+					sheetFeatures: [],
 				},
 			],
 			creatureIdCount: 2,
@@ -237,6 +239,73 @@ describe('BattleEncounterService', () => {
 		expect(battle.combatants[0].spellSlots[1].max).toBe(2);
 	});
 
+	it('preserves spells and ficha data when adding and duplicating combatants', () => {
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const withImported = service.addCombatantFromCreature(
+			battle,
+			{
+				id: 77,
+				name: 'Cult Fanatic',
+				initiative: 14,
+				healthPoints: 33,
+				maxHealthPoints: 33,
+				armorClass: 13,
+				temporaryHealthPoints: 0,
+				alive: true,
+				conditions: [],
+				notes: [{ id: 99, text: 'Concentra em Hold Person', appliedAtRound: 0, appliedAtSeconds: 0 }],
+				shared: true,
+				hitPointsShared: true,
+				totalSpellSlots: { '1st': 4, '2nd': 2 },
+				usedSpellSlots: { '1st': 1, '2nd': 0 },
+				spells: {
+					holdPerson: { label: 'Hold Person', total: 2 },
+					spiritualWeapon: { label: 'Spiritual Weapon', total: 1 },
+				},
+				specialAbilities: [
+					{
+						id: 'dark-devotion',
+						name: 'Dark Devotion',
+						description: 'Advantage against being charmed or frightened.',
+						rechargeType: 'manual',
+					},
+				],
+				sheetFeatures: [
+					{
+						id: 'fanatic-spellcasting',
+						name: 'Spellcasting',
+						description: 'Prepared cleric spells.',
+						kind: 'spellcasting',
+					},
+				],
+				category: 'monster',
+			},
+			undefined,
+			new Date('2026-01-01T10:00:01.000Z')
+		);
+
+		expect(withImported.pendingCombatants).toHaveSize(1);
+		expect(withImported.pendingCombatants[0].spells['holdPerson']?.label).toBe('Hold Person');
+		expect(withImported.pendingCombatants[0].specialAbilities[0].name).toBe('Dark Devotion');
+		expect(withImported.pendingCombatants[0].sheetFeatures[0].name).toBe('Spellcasting');
+
+		const duplicated = service.duplicateCombatant(
+			withImported,
+			withImported.pendingCombatants[0].id,
+			new Date('2026-01-01T10:00:02.000Z')
+		);
+		const duplicate = duplicated.pendingCombatants.find(
+			(combatant) => combatant.id !== withImported.pendingCombatants[0].id
+		);
+
+		expect(duplicate).toBeTruthy();
+		expect(duplicate?.currentHp).toBe(33);
+		expect(duplicate?.temporaryHp).toBe(0);
+		expect(duplicate?.conditions).toEqual([]);
+		expect(duplicate?.spells['spiritualWeapon']?.label).toBe('Spiritual Weapon');
+		expect(duplicate?.sheetFeatures[0].name).toBe('Spellcasting');
+	});
+
 	it('keeps pc category separated from battle side defaults', () => {
 		const withPc: EncounterTemplate = {
 			...template,
@@ -286,6 +355,8 @@ describe('BattleEncounterService', () => {
 					conditions: [],
 					specialAbilities: [],
 					spellSlots: [{ level: 1, max: 3, used: 1 }],
+					spells: {},
+					sheetFeatures: [],
 				},
 			],
 			turnHistory: [],
@@ -317,6 +388,7 @@ describe('BattleEncounterService', () => {
 				usedSpellSlots: null,
 				spells: {},
 				specialAbilities: [],
+				sheetFeatures: [],
 				category: 'monster',
 			},
 			undefined,
@@ -350,5 +422,43 @@ describe('BattleEncounterService', () => {
 		expect(afterSecondTurn.combatants[0].id).toBe(secondCombatantId);
 		expect(afterSecondTurn.combatants[0].initiative).toBe(25);
 		expect(afterSecondTurn.combatants.find((combatant) => combatant.id === firstCombatantId)?.initiative).toBe(18);
+	});
+
+	it('skips defeated combatants in initiative order', () => {
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const defeated = service.setCombatantDefeated(battle, battle.combatants[1].id, true);
+		const advanced = service.advanceTurn(defeated, new Date('2026-01-01T10:00:10.000Z'));
+
+		expect(advanced.round).toBe(2);
+		expect(advanced.activeTurnIndex).toBe(0);
+		expect(service.getCurrentCombatant(advanced)?.id).toBe(defeated.combatants[0].id);
+	});
+
+	it('returns revived combatants to initiative only on the next round', () => {
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const defeated = service.applyDamage(battle, battle.combatants[1].id, 99);
+		const revived = service.applyHealing(defeated, battle.combatants[1].id, 5);
+
+		expect(revived.combatants[1].defeated).toBeFalse();
+		expect(revived.combatants[1].inactiveUntilRound).toBe(2);
+		expect(service.getInitiativeEligibleCombatants(revived)).toHaveSize(1);
+
+		const afterFirstTurn = service.advanceTurn(revived, new Date('2026-01-01T10:00:05.000Z'));
+		expect(afterFirstTurn.round).toBe(2);
+		expect(service.getInitiativeEligibleCombatants(afterFirstTurn)).toHaveSize(2);
+	});
+
+	it('stops initiative safely when every combatant is defeated', () => {
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		let nextBattle = battle;
+		for (const combatant of battle.combatants) {
+			nextBattle = service.setCombatantDefeated(nextBattle, combatant.id, true);
+		}
+
+		const advanced = service.advanceTurn(nextBattle, new Date('2026-01-01T10:00:05.000Z'));
+
+		expect(service.getInitiativeEligibleCombatants(advanced)).toEqual([]);
+		expect(service.getCurrentCombatant(advanced)).toBeNull();
+		expect(advanced.activeTurnIndex).toBe(-1);
 	});
 });

@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, shareReplay, map, catchError, throwError } from 'rxjs';
 import type {
+	CreatureFeature,
 	CreatureInterface,
 	CreatureSpecialAbility,
 	SpellLevel,
@@ -26,6 +27,11 @@ export type ApiMonsterSpecialAbility = {
 	desc?: string;
 };
 
+export type ApiMonsterAction = {
+	name?: string;
+	desc?: string;
+};
+
 export type ApiMonster = {
 	index: string;
 	name: string;
@@ -33,6 +39,9 @@ export type ApiMonster = {
 	armor_class?: ApiMonsterArmorClass[];
 	dexterity?: number;
 	special_abilities?: ApiMonsterSpecialAbility[];
+	actions?: ApiMonsterAction[];
+	reactions?: ApiMonsterAction[];
+	legendary_actions?: ApiMonsterAction[];
 };
 
 const SPELL_LEVELS: SpellLevel[] = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
@@ -119,6 +128,8 @@ export class Dnd5eApiService {
 			usedSpellSlots: usedSlots,
 			spells: {} as SpellsByKey,
 			specialAbilities: this.extractSpecialAbilities(monster),
+			sheetFeatures: this.extractSheetFeatures(monster),
+			category: 'monster',
 		};
 
 		return creature;
@@ -197,6 +208,44 @@ export class Dnd5eApiService {
 				rechargeType: 'manual' as const,
 			}))
 			.filter((ability) => ability.name);
+	}
+
+	private extractSheetFeatures(monster: ApiMonster): CreatureFeature[] {
+		const features: CreatureFeature[] = [];
+		const pushEntries = (
+			items: Array<ApiMonsterSpecialAbility | ApiMonsterAction> | undefined,
+			kind: CreatureFeature['kind']
+		) => {
+			if (!Array.isArray(items)) return;
+			for (const [index, item] of items.entries()) {
+				const name = (item.name || '').trim();
+				if (!name) continue;
+				features.push({
+					id: `${monster.index}-${kind}-${index + 1}`,
+					name,
+					description: (item.desc || '').trim() || undefined,
+					kind,
+				});
+			}
+		};
+
+		pushEntries(
+			(monster.special_abilities ?? []).filter(
+				(ability) => !(ability.name || '').toLowerCase().includes('spellcasting')
+			),
+			'trait'
+		);
+		pushEntries(
+			(monster.special_abilities ?? []).filter((ability) =>
+				(ability.name || '').toLowerCase().includes('spellcasting')
+			),
+			'spellcasting'
+		);
+		pushEntries(monster.actions, 'action');
+		pushEntries(monster.reactions, 'reaction');
+		pushEntries(monster.legendary_actions, 'legendary');
+
+		return features;
 	}
 
 	private zeroUsedSlots(total: SpellSlots): SpellSlots {

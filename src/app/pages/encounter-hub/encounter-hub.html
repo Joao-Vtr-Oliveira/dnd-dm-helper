@@ -261,6 +261,13 @@
 											>
 												Nova Batalha
 											</button>
+
+											<button
+												class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 hover:bg-emerald-500/20"
+												(click)="completeBattle(item.encounter.id)"
+											>
+												Concluir Batalha
+											</button>
 										} @else if (item.latestBattle) {
 											<button
 												class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
@@ -302,7 +309,11 @@
 											class="h-10 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-4 hover:bg-red-500/20"
 											(click)="remove(item.encounter.id)"
 										>
-											Excluir
+											@if (item.latestBattle || item.activeBattle) {
+												Deletar Encontro e Batalhas
+											} @else {
+												Deletar
+											}
 										</button>
 									</div>
 								</div>

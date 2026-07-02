@@ -69,6 +69,20 @@ describe('BattleEncounterStorageService', () => {
 		expect(service.getActiveBattleByEncounterId(encounter.id)).toBeNull();
 	});
 
+	it('deletes all battles associated to an encounter', () => {
+		service.createBattleFromEncounter(encounter);
+		service.createBattleFromEncounter({
+			...encounter,
+			id: 'enc-2',
+			title: 'Forest Chase',
+		});
+
+		service.deleteBattlesByEncounterId(encounter.id);
+
+		expect(service.getBattlesByEncounterId(encounter.id)).toEqual([]);
+		expect(service.getBattleEncounters()).toHaveSize(1);
+	});
+
 	it('migrates older battles safely when loading from localStorage', () => {
 		localStorage.setItem(
 			'dnd-dm-helper.battle-encounters.v1',

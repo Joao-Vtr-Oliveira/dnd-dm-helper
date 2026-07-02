@@ -1,4 +1,9 @@
-import type { BattleTracker, CreatureCategory } from './battleTracker-model';
+import type {
+	BattleTracker,
+	CreatureCategory,
+	CreatureFeature,
+	SpellsByKey,
+} from './battleTracker-model';
 
 export type BattleEncounterStatus = 'active' | 'paused' | 'completed';
 export type BattleCombatantSide = 'player' | 'ally' | 'enemy' | 'neutral';
@@ -75,6 +80,7 @@ export interface BattleCombatant {
 	temporaryHp: number;
 	defeated: boolean;
 	hidden: boolean;
+	inactiveUntilRound?: number;
 	collapsed: boolean;
 	spellSlotsCollapsed: boolean;
 	pendingAdd: boolean;
@@ -82,6 +88,8 @@ export interface BattleCombatant {
 	conditions: BattleCondition[];
 	specialAbilities: BattleSpecialAbility[];
 	spellSlots: BattleSpellSlotLevel[];
+	spells: SpellsByKey;
+	sheetFeatures: CreatureFeature[];
 	privateNotes?: string;
 }
 

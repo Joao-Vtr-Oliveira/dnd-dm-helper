@@ -8,6 +8,7 @@ import type {
 	BattleEncounterCreateOptions,
 } from '../../models/battle-encounter-model';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
+import { BattleEncounterService } from '../../services/battle-encounter-service/battle-encounter-service';
 import {
 	EncounterHubFilterService,
 	type EncounterHubFilters,
@@ -26,6 +27,7 @@ type ConfirmModalState = {
 	description: string;
 	confirmLabel: string;
 	encounterId: string;
+	action: 'new-battle' | 'delete-encounter-and-battles';
 };
 
 type BattleSetupModalState = {
@@ -47,6 +49,7 @@ export class EncounterHub {
 	private readonly io = inject(EncounterIoService);
 	private readonly router = inject(Router);
 	private readonly battleStorage = inject(BattleEncounterStorageService);
+	private readonly battleService = inject(BattleEncounterService);
 	private readonly hubFilterService = inject(EncounterHubFilterService);
 
 	private readonly initialFilters = this.hubFilterService.loadFilters();
@@ -112,6 +115,19 @@ export class EncounterHub {
 	}
 
 	remove(id: string) {
+		const battles = this.battleStorage.getBattlesByEncounterId(id);
+		if (battles.length > 0) {
+			this.confirmModal.set({
+				title: 'Deletar encontro e batalhas associadas?',
+				description:
+					'Esse encounter possui batalhas salvas. Ao confirmar, o encontro e todas as battle sessions relacionadas serão removidos.',
+				confirmLabel: 'Deletar encontro e batalhas associadas',
+				encounterId: id,
+				action: 'delete-encounter-and-battles',
+			});
+			return;
+		}
+
 		this.ls.deleteEncounter(id);
 		this.refresh();
 		this.showToast({ type: 'success', text: 'Encounter removido.' });
@@ -157,6 +173,7 @@ export class EncounterHub {
 					'Já existe uma batalha ativa ou pausada para este encounter. A sessão atual será mantida, mas você pode criar uma nova batalha local.',
 				confirmLabel: 'Preparar nova batalha',
 				encounterId,
+				action: 'new-battle',
 			});
 			return;
 		}
@@ -256,6 +273,15 @@ export class EncounterHub {
 		const modal = this.confirmModal();
 		if (!modal) return;
 
+		if (modal.action === 'delete-encounter-and-battles') {
+			this.battleStorage.deleteBattlesByEncounterId(modal.encounterId);
+			this.ls.deleteEncounter(modal.encounterId);
+			this.closeConfirmModal();
+			this.refresh();
+			this.showToast({ type: 'success', text: 'Encontro e batalhas associadas removidos.' });
+			return;
+		}
+
 		const encounter = this.ls.getEncounter(modal.encounterId);
 		if (!encounter) {
 			this.closeConfirmModal();
@@ -293,12 +319,19 @@ export class EncounterHub {
 	}
 
 	currentCombatantName(battle: BattleEncounter | null): string {
-		if (!battle || battle.activeTurnIndex < 0) return 'Sem combatentes';
-		return (
-			battle.combatants[battle.activeTurnIndex]?.displayName ||
-			battle.combatants[battle.activeTurnIndex]?.name ||
-			'Sem combatentes'
-		);
+		const current = battle ? this.battleService.getCurrentCombatant(battle) : null;
+		return current?.displayName || current?.name || 'Nenhum combatente ativo na iniciativa';
+	}
+
+	completeBattle(encounterId: string) {
+		const battle = this.battleStorage.getActiveBattleByEncounterId(encounterId);
+		if (!battle) {
+			this.showToast({ type: 'warn', text: 'Nenhuma batalha ativa ou pausada para concluir.' });
+			return;
+		}
+		this.battleStorage.completeBattleEncounter(battle.id);
+		this.refresh();
+		this.showToast({ type: 'success', text: 'Batalha concluída.' });
 	}
 
 	filterLabel(status: EncounterHubStatusFilter): string {

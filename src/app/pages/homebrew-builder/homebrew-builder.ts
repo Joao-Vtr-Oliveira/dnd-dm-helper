@@ -44,6 +44,7 @@ function createEmptyCreature(): CreatureInterface {
 		usedSpellSlots: null,
 		spells: {},
 		specialAbilities: [],
+		sheetFeatures: [],
 		category: 'monster',
 	};
 }
@@ -57,6 +58,7 @@ function normalizeCreature(raw: CreatureInterface): CreatureInterface {
 		totalSpellSlots: raw.totalSpellSlots ?? null,
 		usedSpellSlots: raw.usedSpellSlots ?? null,
 		specialAbilities: Array.isArray(raw.specialAbilities) ? raw.specialAbilities : [],
+		sheetFeatures: Array.isArray(raw.sheetFeatures) ? raw.sheetFeatures : [],
 	};
 }
 

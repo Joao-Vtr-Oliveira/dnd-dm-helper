@@ -120,6 +120,13 @@ export class BattleEncounterStorageService {
 		localStorage.setItem(this.storageKey, JSON.stringify(all));
 	}
 
+	deleteBattlesByEncounterId(encounterId: string): void {
+		const all = this.getBattleEncounters().filter(
+			(battle) => battle.sourceEncounterId !== encounterId
+		);
+		localStorage.setItem(this.storageKey, JSON.stringify(all));
+	}
+
 	private isBattleEncounterLike(value: unknown): boolean {
 		if (!value || typeof value !== 'object') return false;
 
