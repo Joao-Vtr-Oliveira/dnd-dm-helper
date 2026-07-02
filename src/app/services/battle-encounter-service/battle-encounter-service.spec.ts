@@ -129,6 +129,26 @@ describe('BattleEncounterService', () => {
 		expect(afterSecondTurn.turnHistory).toHaveSize(2);
 	});
 
+	it('advances the round when a single combatant wraps back to the start of the order', () => {
+		const singleCombatantTemplate: EncounterTemplate = {
+			...template,
+			data: {
+				...template.data,
+				creatures: [template.data.creatures[0]],
+				creatureIdCount: 1,
+			},
+		};
+		const battle = service.createBattleFromEncounter(
+			singleCombatantTemplate,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z')
+		);
+		const advanced = service.advanceTurn(battle, new Date('2026-01-01T10:00:05.000Z'));
+
+		expect(advanced.round).toBe(2);
+		expect(advanced.activeTurnIndex).toBe(0);
+	});
+
 	it('calculates elapsed time for the current turn', () => {
 		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
 

@@ -257,7 +257,8 @@ export class BattleEncounterService {
 		let nextCombatants = endExpire.combatants;
 		let nextPendingCombatants = battle.pendingCombatants;
 		let roundStartMessages: string[] = [];
-		const roundAdvanced = nextTurnIndex < 0;
+		const roundAdvanced =
+			nextTurnIndex < 0 || (currentTurnIndex >= 0 && nextTurnIndex <= currentTurnIndex);
 
 		if (roundAdvanced) {
 			nextRound += 1;
