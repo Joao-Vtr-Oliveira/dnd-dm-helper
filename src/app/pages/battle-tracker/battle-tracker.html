@@ -66,6 +66,16 @@
 		</div>
 	} @else {
 		<div class="flex flex-wrap gap-2">
+			@if (battle()!.status !== 'completed') {
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border border-sky-300/30 bg-sky-500/15 px-4 font-semibold hover:bg-sky-500/20"
+					(click)="openAddCombatantModal()"
+				>
+					Adicionar combatente
+				</button>
+			}
+
 			@if (battle()!.status === 'active') {
 				<button
 					type="button"
@@ -150,43 +160,91 @@
 													Derrotado
 												</span>
 											}
+
+											@if (isPendingCombatant(combatant)) {
+												<span class="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-xs font-semibold">
+													Entra no próximo round
+												</span>
+											}
 										</div>
 
 										<div class="flex flex-wrap gap-4 text-sm opacity-80">
-											<span>Iniciativa {{ combatant.initiative }}</span>
-											<span>Ordem {{ combatant.turnOrder + 1 }}</span>
+											<span>{{ initiativeSummary(combatant) }}</span>
+											@if (!combatant.pendingAdd) {
+												<span>Ordem {{ combatant.turnOrder + 1 }}</span>
+											}
 											<span>CA {{ combatant.armorClass ?? '-' }}</span>
+											<span>HP {{ hpSummary(combatant) }}</span>
 										</div>
+
+										@if (combatant.conditions.length > 0) {
+											<div class="flex flex-wrap gap-2">
+												@for (condition of combatant.conditions; track condition.id) {
+													<span class="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-xs">
+														{{ condition.label }}
+													</span>
+												}
+											</div>
+										}
 									</div>
 
-									<div class="grid gap-2 sm:grid-cols-2 xl:min-w-80">
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Lado</span>
-											<select
-												class="w-full cursor-pointer rounded-2xl border bg-black/20 px-3 py-2"
-												[class]="sideSelectClasses(combatant.side)"
-												[ngModel]="combatant.side"
-												(ngModelChange)="setCombatantSide(combatant.id, $event)"
-											>
-												<option value="player">Jogador</option>
-												<option value="ally">Aliado</option>
-												<option value="enemy">Inimigo</option>
-												<option value="neutral">Neutro</option>
-											</select>
-										</label>
+									<div class="flex flex-wrap gap-2 xl:min-w-80 xl:justify-end">
+										@if (!combatant.collapsed) {
+											<label class="min-w-40 text-sm">
+												<span class="mb-1 block opacity-70">Lado</span>
+												<select
+													class="w-full cursor-pointer rounded-2xl border bg-black/20 px-3 py-2"
+													[class]="sideSelectClasses(combatant.side)"
+													[ngModel]="combatant.side"
+													(ngModelChange)="setCombatantSide(combatant.id, $event)"
+												>
+													<option value="player">Jogador</option>
+													<option value="ally">Aliado</option>
+													<option value="enemy">Inimigo</option>
+													<option value="neutral">Neutro</option>
+												</select>
+											</label>
 
-										<label class="mt-6 inline-flex items-center gap-2 text-sm sm:mt-0">
-											<input
-												type="checkbox"
-												class="h-4 w-4 rounded border-white/10 bg-black/20"
-												[checked]="combatant.defeated"
-												(change)="toggleDefeated(combatant.id, $any($event.target).checked)"
-											/>
-											<span>Marcar como derrotado</span>
-										</label>
+											<label class="inline-flex items-center gap-2 text-sm xl:mt-7">
+												<input
+													type="checkbox"
+													class="h-4 w-4 rounded border-white/10 bg-black/20"
+													[checked]="combatant.defeated"
+													(change)="toggleDefeated(combatant.id, $any($event.target).checked)"
+												/>
+												<span>Marcar como derrotado</span>
+											</label>
+										}
+
+										<button
+											type="button"
+											class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+											(click)="toggleCombatantCollapsed(combatant.id)"
+										>
+											@if (combatant.collapsed) { Expandir } @else { Recolher }
+										</button>
+
+										@if (battle()!.status !== 'completed') {
+											<button
+												type="button"
+												class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+												(click)="duplicateCombatant(combatant.id)"
+											>
+												Duplicar
+											</button>
+
+											<button
+												type="button"
+												class="h-10 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-4 hover:bg-red-500/20"
+												(click)="openRemoveCombatantModal(combatant.id)"
+											>
+												Remover
+											</button>
+										}
 									</div>
 								</div>
 
+								@if (!combatant.collapsed) {
 								<div class="mt-4 grid gap-3 md:grid-cols-3">
 									<label class="text-sm">
 										<span class="mb-1 block opacity-70">HP atual</span>
@@ -526,7 +584,11 @@
 										<div>
 											<h4 class="font-semibold">Espaços de magia</h4>
 											<p class="text-sm opacity-70">
-												Controle simples de slots sem listar magias.
+												@if (spellSlotsEnabled(combatant)) {
+													{{ combatant.spellSlots.length }} níveis configurados
+												} @else {
+													Controle simples de slots sem listar magias.
+												}
 											</p>
 										</div>
 
@@ -536,7 +598,7 @@
 												class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
 												(click)="toggleSpellSlotsVisibility(combatant.id)"
 											>
-												@if (spellSlotsVisible(combatant)) { Ocultar slots } @else { Mostrar slots }
+												@if (spellSlotsVisible(combatant)) { Fechar } @else { Abrir }
 											</button>
 										} @else {
 											<button
@@ -610,7 +672,7 @@
 										</div>
 									} @else if (spellSlotsEnabled(combatant)) {
 										<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
-											Os slots desta criatura estão ocultos no momento.
+											Espaços de magia fechados no momento.
 										</div>
 									} @else {
 										<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
@@ -630,6 +692,11 @@
 										></textarea>
 									</label>
 								</div>
+								} @else {
+									<div class="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-3 text-sm opacity-75">
+										Ficha recolhida. Recursos completos, dano, condições detalhadas e spell slots aparecem ao expandir.
+									</div>
+								}
 							</div>
 						}
 					</div>
@@ -637,6 +704,70 @@
 			</div>
 
 			<div class="space-y-4">
+				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+					<div class="flex items-center justify-between gap-3">
+						<div>
+							<h3 class="text-xl font-semibold">Iniciativas</h3>
+							<p class="mt-1 text-sm opacity-75">
+								Edite agora e aplique no começo do próximo round.
+							</p>
+						</div>
+						<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">
+							{{ combatants().length }} combatentes
+						</span>
+					</div>
+
+					<div class="mt-4 space-y-3">
+						@for (combatant of combatants(); track combatant.id) {
+							<div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+								<div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+									<div class="min-w-0">
+										<div class="font-semibold">
+											{{ combatant.displayName || combatant.name }}
+										</div>
+										<div class="mt-1 text-sm opacity-75">
+											Iniciativa atual: {{ combatant.initiative }}
+											@if (shouldShowPendingInitiative(combatant)) {
+												<span> · Próximo round: {{ combatant.nextRoundInitiative }}</span>
+											}
+											@if (combatant.pendingAdd) {
+												<span> · Entra no próximo round</span>
+											}
+										</div>
+									</div>
+
+									<div class="grid gap-2 sm:grid-cols-[minmax(0,9rem)_auto_auto]">
+										<input
+											type="number"
+											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+											[ngModel]="getInitiativeDraft(combatant)"
+											(ngModelChange)="setInitiativeDraft(combatant.id, $event)"
+										/>
+
+										<button
+											type="button"
+											class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+											(click)="applyInitiativeChange(combatant.id)"
+										>
+											Aplicar no próximo round
+										</button>
+
+										@if (combatant.nextRoundInitiative != null) {
+											<button
+												type="button"
+												class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-4 hover:bg-black/30"
+												(click)="clearInitiativeChange(combatant.id)"
+											>
+												Limpar
+											</button>
+										}
+									</div>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+
 				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
 					<h3 class="text-xl font-semibold">Notas do mestre</h3>
 					<p class="mt-1 text-sm opacity-75">
@@ -699,6 +830,170 @@
 		</div>
 	}
 </div>
+
+@if (addCombatantModalOpen()) {
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+		<div class="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-3xl border border-white/10 bg-[#1f1930] p-5 shadow-2xl">
+			<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+				<div>
+					<h3 class="text-2xl font-semibold">Adicionar combatente</h3>
+					<p class="mt-1 text-sm opacity-80">
+						Novos participantes entram no próximo round para não quebrar o turno atual.
+					</p>
+				</div>
+
+				<button
+					type="button"
+					class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10"
+					(click)="closeAddCombatantModal()"
+					aria-label="Fechar"
+				>
+					x
+				</button>
+			</div>
+
+			<div class="mt-4 flex flex-wrap gap-2">
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border px-4"
+					[class.border-sky-300/30]="addCombatantDraft().mode === 'manual'"
+					[class.bg-sky-500/15]="addCombatantDraft().mode === 'manual'"
+					[class.border-white/10]="addCombatantDraft().mode !== 'manual'"
+					[class.bg-white/5]="addCombatantDraft().mode !== 'manual'"
+					(click)="setAddCombatantDraft({ mode: 'manual', sheetId: '' })"
+				>
+					Manual
+				</button>
+
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border px-4"
+					[class.border-sky-300/30]="addCombatantDraft().mode === 'homebrew'"
+					[class.bg-sky-500/15]="addCombatantDraft().mode === 'homebrew'"
+					[class.border-white/10]="addCombatantDraft().mode !== 'homebrew'"
+					[class.bg-white/5]="addCombatantDraft().mode !== 'homebrew'"
+					(click)="setAddCombatantDraft({ mode: 'homebrew' })"
+				>
+					Homebrew
+				</button>
+			</div>
+
+			@if (addCombatantDraft().mode === 'homebrew') {
+				<label class="mt-4 block text-sm">
+					<span class="mb-1 block opacity-70">Ficha</span>
+					<select
+						class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+						[ngModel]="addCombatantDraft().sheetId"
+						(ngModelChange)="useHomebrewSheet($event)"
+					>
+						<option value="">Selecione uma ficha</option>
+						@for (sheet of homebrewSheets(); track sheet.id) {
+							<option [value]="sheet.id">
+								{{ sheet.title }} · {{ sheet.category === 'pc' ? 'PC' : (sheet.category | uppercase) }}
+							</option>
+						}
+					</select>
+				</label>
+			}
+
+			<div class="mt-4 grid gap-3 md:grid-cols-2">
+				<label class="text-sm">
+					<span class="mb-1 block opacity-70">Nome</span>
+					<input
+						class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+						[ngModel]="addCombatantDraft().name"
+						(ngModelChange)="setAddCombatantDraft({ name: $event })"
+					/>
+				</label>
+
+				<label class="text-sm">
+					<span class="mb-1 block opacity-70">Display name</span>
+					<input
+						class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+						[ngModel]="addCombatantDraft().displayName"
+						(ngModelChange)="setAddCombatantDraft({ displayName: $event })"
+						placeholder="Opcional"
+					/>
+				</label>
+
+				<label class="text-sm">
+					<span class="mb-1 block opacity-70">Lado</span>
+					<select
+						class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+						[ngModel]="addCombatantDraft().side"
+						(ngModelChange)="setAddCombatantDraft({ side: $event })"
+					>
+						<option value="player">Jogador</option>
+						<option value="ally">Aliado</option>
+						<option value="enemy">Inimigo</option>
+						<option value="neutral">Neutro</option>
+					</select>
+				</label>
+
+				<label class="text-sm">
+					<span class="mb-1 block opacity-70">Iniciativa</span>
+					<input
+						type="number"
+						class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+						[ngModel]="addCombatantDraft().initiative"
+						(ngModelChange)="setAddCombatantDraft({ initiative: $event })"
+					/>
+				</label>
+
+				<label class="text-sm">
+					<span class="mb-1 block opacity-70">HP máximo</span>
+					<input
+						type="number"
+						min="0"
+						class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+						[ngModel]="addCombatantDraft().maxHp"
+						(ngModelChange)="setAddCombatantDraft({ maxHp: $event })"
+					/>
+				</label>
+
+				<label class="text-sm">
+					<span class="mb-1 block opacity-70">HP atual</span>
+					<input
+						type="number"
+						min="0"
+						class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+						[ngModel]="addCombatantDraft().currentHp"
+						(ngModelChange)="setAddCombatantDraft({ currentHp: $event })"
+					/>
+				</label>
+
+				<label class="text-sm md:col-span-2">
+					<span class="mb-1 block opacity-70">CA</span>
+					<input
+						type="number"
+						min="0"
+						class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+						[ngModel]="addCombatantDraft().armorClass"
+						(ngModelChange)="setAddCombatantDraft({ armorClass: $event })"
+					/>
+				</label>
+			</div>
+
+			<div class="mt-5 flex flex-wrap justify-end gap-2">
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/5 px-4 hover:bg-white/10"
+					(click)="closeAddCombatantModal()"
+				>
+					Cancelar
+				</button>
+
+				<button
+					type="button"
+					class="h-10 cursor-pointer rounded-2xl border border-sky-300/30 bg-sky-500/15 px-4 font-semibold hover:bg-sky-500/20"
+					(click)="addCombatant()"
+				>
+					Adicionar combatente
+				</button>
+			</div>
+		</div>
+	</div>
+}
 
 @if (confirmModal(); as modal) {
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">

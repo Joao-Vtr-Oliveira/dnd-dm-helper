@@ -29,6 +29,8 @@ export interface CreatureInterface {
 	usedSpellSlots: SpellSlots | null;
 	spells: SpellsByKey;
 	specialAbilities: CreatureSpecialAbility[];
+	category?: CreatureCategory;
+	sourceSheetId?: string;
 }
 
 export interface NoteInterface {
@@ -52,6 +54,7 @@ export interface SpellInterface {
 }
 
 export type CreatureAbilityRechargeType = 'manual' | 'turns' | 'rounds' | 'dice';
+export type CreatureCategory = 'monster' | 'npc' | 'pc' | 'other';
 
 export interface CreatureSpecialAbility {
 	id: string;

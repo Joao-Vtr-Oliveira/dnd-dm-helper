@@ -170,7 +170,10 @@ export class EncounterHub {
 
 	openBattleSetup(encounter: SavedEncounter, mode: 'start' | 'new') {
 		const sides = Object.fromEntries(
-			encounter.data.creatures.map((creature) => [creature.id, 'enemy' as BattleCombatantSide])
+			encounter.data.creatures.map((creature) => [
+				creature.id,
+				this.defaultBattleSetupSide(creature.category),
+			])
 		);
 		const initiatives = Object.fromEntries(
 			encounter.data.creatures.map((creature) => [creature.id, Number(creature.initiative ?? 0)])
@@ -326,6 +329,12 @@ export class EncounterHub {
 		if (side === 'ally') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
 		if (side === 'neutral') return 'border-slate-300/20 bg-slate-500/10 text-slate-100';
 		return 'border-rose-400/30 bg-rose-500/15 text-rose-100';
+	}
+
+	defaultBattleSetupSide(category: unknown): BattleCombatantSide {
+		if (category === 'pc') return 'player';
+		if (category === 'npc' || category === 'other') return 'neutral';
+		return 'enemy';
 	}
 
 	getBattleSetupEncounter(): SavedEncounter | null {

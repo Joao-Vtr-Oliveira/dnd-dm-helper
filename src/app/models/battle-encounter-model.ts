@@ -1,4 +1,4 @@
-import type { BattleTracker } from './battleTracker-model';
+import type { BattleTracker, CreatureCategory } from './battleTracker-model';
 
 export type BattleEncounterStatus = 'active' | 'paused' | 'completed';
 export type BattleCombatantSide = 'player' | 'ally' | 'enemy' | 'neutral';
@@ -60,10 +60,13 @@ export interface BattleSpellSlotLevel {
 export interface BattleCombatant {
 	id: string;
 	sourceCreatureId?: number;
+	sourceSheetId?: string;
 	name: string;
 	displayName?: string;
+	category?: CreatureCategory;
 	side: BattleCombatantSide;
 	initiative: number;
+	nextRoundInitiative?: number;
 	initiativeTieBreaker?: number;
 	turnOrder: number;
 	armorClass?: number;
@@ -72,6 +75,10 @@ export interface BattleCombatant {
 	temporaryHp: number;
 	defeated: boolean;
 	hidden: boolean;
+	collapsed: boolean;
+	spellSlotsCollapsed: boolean;
+	pendingAdd: boolean;
+	joinsAtRound?: number;
 	conditions: BattleCondition[];
 	specialAbilities: BattleSpecialAbility[];
 	spellSlots: BattleSpellSlotLevel[];
@@ -105,6 +112,7 @@ export interface BattleEncounter {
 	turnStartedAt?: string;
 	currentTurnElapsedSeconds?: number;
 	combatants: BattleCombatant[];
+	pendingCombatants: BattleCombatant[];
 	turnHistory: BattleTurnLogEntry[];
 	dmNotes?: string;
 }

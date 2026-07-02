@@ -1,4 +1,4 @@
-export type HomebrewCategory = 'monster' | 'npc' | 'item' | 'other';
+export type HomebrewCategory = 'monster' | 'npc' | 'pc' | 'other';
 
 export interface HomebrewStats {
 	ac?: number | null;

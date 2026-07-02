@@ -12,6 +12,7 @@
 
 html {
 	height: 100%;
+	color-scheme: dark;
 }
 
 html,
@@ -25,4 +26,27 @@ body {
 	background: radial-gradient(circle at top left, #181023, #0b0519);
 	color: #c3b3d8;
 	height: 100%;
+}
+
+select {
+	color-scheme: dark;
+	background-color: rgba(12, 10, 24, 0.88);
+	color: #f4ecff;
+	border-color: rgba(255, 255, 255, 0.14);
+}
+
+select:hover {
+	border-color: rgba(255, 255, 255, 0.24);
+}
+
+select:focus {
+	outline: none;
+	border-color: rgba(125, 211, 252, 0.45);
+	box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.28);
+}
+
+select option,
+select optgroup {
+	background-color: #120d1f;
+	color: #f8f5ff;
 }

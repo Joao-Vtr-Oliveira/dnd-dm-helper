@@ -44,6 +44,7 @@ function createEmptyCreature(): CreatureInterface {
 		usedSpellSlots: null,
 		spells: {},
 		specialAbilities: [],
+		category: 'monster',
 	};
 }
 
@@ -100,7 +101,10 @@ export class HomebrewBuilder {
 				if (sheet) {
 					this.sheetId.set(id);
 					this.title.set(sheet.title);
-					this.creature.set(normalizeCreature(sheet.data));
+					this.creature.set({
+						...normalizeCreature(sheet.data),
+						category: sheet.category ?? sheet.data.category ?? 'monster',
+					});
 
 				// 👇 popula meta
 				this.category.set(sheet.category ?? 'monster');
@@ -359,14 +363,14 @@ export class HomebrewBuilder {
 	// -------- salvar sheet --------
 	save() {
 		const title = this.title().trim() || this.creature().name;
-		const data = this.creature();
+		const category = this.category();
+		const data = { ...this.creature(), category };
 
 		if (!data.name.trim()) {
 			this.showToast({ type: 'warn', text: 'Defina um nome para a criatura.' });
 			return;
 		}
 
-		const category = this.category();
 		const rawTags = this.tagsText()
 			.split(',')
 			.map((t) => t.trim())

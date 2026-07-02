@@ -13,11 +13,16 @@ import type {
 	BattleSpecialAbility,
 	BattleSpellSlotLevel,
 } from '../../models/battle-encounter-model';
+import type { CreatureInterface } from '../../models/battleTracker-model';
 import {
 	BattleEncounterService,
 	DEFAULT_BATTLE_CONDITIONS,
 } from '../../services/battle-encounter-service/battle-encounter-service';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
+import {
+	LocalStorageService,
+	type SavedSheetInterface,
+} from '../../services/local-storage-service/local-storage-service';
 
 type ConditionDurationMode = 'manual' | 'next-turn-end' | 'turns' | 'rounds';
 
@@ -36,12 +41,25 @@ type AbilityDraft = {
 	rechargeOn: string;
 };
 
+type AddCombatantDraft = {
+	mode: 'manual' | 'homebrew';
+	sheetId: string;
+	name: string;
+	displayName: string;
+	side: BattleCombatantSide;
+	maxHp: string;
+	currentHp: string;
+	armorClass: string;
+	initiative: string;
+};
+
 type ConfirmModalState = {
 	title: string;
 	description: string;
 	confirmLabel: string;
-	action: 'complete-battle';
+	action: 'complete-battle' | 'remove-combatant';
 	tone: 'success' | 'danger';
+	combatantId?: string;
 };
 
 @Component({
@@ -55,6 +73,7 @@ export class BattleTrackerPage {
 	private readonly router = inject(Router);
 	private readonly battleStorage = inject(BattleEncounterStorageService);
 	private readonly battleService = inject(BattleEncounterService);
+	private readonly localStorageService = inject(LocalStorageService);
 
 	private readonly battleId = this.route.snapshot.paramMap.get('battleId');
 
@@ -66,12 +85,18 @@ export class BattleTrackerPage {
 	readonly healingDrafts = signal<Record<string, string>>({});
 	readonly conditionDrafts = signal<Record<string, ConditionDraft>>({});
 	readonly abilityDrafts = signal<Record<string, AbilityDraft>>({});
-	readonly spellSlotPanels = signal<Record<string, boolean>>({});
+	readonly initiativeDrafts = signal<Record<string, string>>({});
 	readonly toast = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 	readonly confirmModal = signal<ConfirmModalState | null>(null);
+	readonly addCombatantModalOpen = signal(false);
+	readonly addCombatantDraft = signal<AddCombatantDraft>(this.createAddCombatantDraft());
+	readonly homebrewSheets = signal<SavedSheetInterface[]>(this.localStorageService.listSheets());
 
 	readonly conditionOptions: BattleConditionPreset[] = DEFAULT_BATTLE_CONDITIONS;
-	readonly combatants = computed(() => this.battle()?.combatants ?? []);
+	readonly combatants = computed(() => [
+		...(this.battle()?.combatants ?? []),
+		...(this.battle()?.pendingCombatants ?? []),
+	]);
 	readonly currentCombatant = computed(() => {
 		const battle = this.battle();
 		if (!battle || battle.activeTurnIndex < 0) return null;
@@ -143,6 +168,13 @@ export class BattleTrackerPage {
 			this.showToast('success', 'Batalha concluída.');
 		}
 
+		if (modal.action === 'remove-combatant' && modal.combatantId) {
+			this.updateBattle((battle) =>
+				this.battleService.removeCombatant(battle, modal.combatantId!)
+			);
+			this.showToast('success', 'Combatente removido.');
+		}
+
 		this.closeConfirmModal();
 	}
 
@@ -187,6 +219,16 @@ export class BattleTrackerPage {
 	toggleDefeated(combatantId: string, checked: boolean) {
 		this.updateBattle((battle) =>
 			this.battleService.setCombatantDefeated(battle, combatantId, checked)
+		);
+	}
+
+	toggleCombatantCollapsed(combatantId: string, collapsed?: boolean) {
+		const combatant = this.combatants().find((item) => item.id === combatantId);
+		if (!combatant) return;
+		this.updateBattle((battle) =>
+			this.battleService.updateCombatant(battle, combatantId, {
+				collapsed: collapsed ?? !combatant.collapsed,
+			})
 		);
 	}
 
@@ -426,7 +468,6 @@ export class BattleTrackerPage {
 	}
 
 	enableSpellSlots(combatantId: string) {
-		this.spellSlotPanels.update((panels) => ({ ...panels, [combatantId]: true }));
 		this.updateBattle((battle) => this.battleService.enableSpellSlots(battle, combatantId));
 	}
 
@@ -440,14 +481,19 @@ export class BattleTrackerPage {
 
 	spellSlotsVisible(combatant: BattleCombatant): boolean {
 		if (!this.spellSlotsEnabled(combatant)) return false;
-		return this.spellSlotPanels()[combatant.id] ?? true;
+		return !combatant.spellSlotsCollapsed;
 	}
 
 	toggleSpellSlotsVisibility(combatantId: string) {
-		this.spellSlotPanels.update((panels) => ({
-			...panels,
-			[combatantId]: !(panels[combatantId] ?? true),
-		}));
+		const combatant = this.combatants().find((item) => item.id === combatantId);
+		if (!combatant) return;
+		this.updateBattle((battle) =>
+			this.battleService.setSpellSlotsCollapsed(
+				battle,
+				combatantId,
+				!combatant.spellSlotsCollapsed
+			)
+		);
 	}
 
 	setSpellSlotMax(combatantId: string, level: number, value: unknown) {
@@ -479,6 +525,155 @@ export class BattleTrackerPage {
 
 	availableSpellSlots(slot: BattleSpellSlotLevel): number {
 		return this.battleService.getAvailableSpellSlots(slot);
+	}
+
+	openAddCombatantModal() {
+		this.homebrewSheets.set(this.localStorageService.listSheets());
+		this.addCombatantDraft.set(this.createAddCombatantDraft());
+		this.addCombatantModalOpen.set(true);
+	}
+
+	closeAddCombatantModal() {
+		this.addCombatantModalOpen.set(false);
+	}
+
+	setAddCombatantDraft(patch: Partial<AddCombatantDraft>) {
+		this.addCombatantDraft.update((draft) => ({ ...draft, ...patch }));
+	}
+
+	useHomebrewSheet(sheetId: string) {
+		const sheet = this.homebrewSheets().find((item) => item.id === sheetId);
+		if (!sheet) return;
+		const maxHp = this.parseNonNegativeInt(
+			sheet.data.maxHealthPoints ?? sheet.data.healthPoints ?? 0
+		);
+		const currentHp = Math.min(this.parseNonNegativeInt(sheet.data.healthPoints), maxHp);
+		this.addCombatantDraft.update((draft) => ({
+			...draft,
+			mode: 'homebrew',
+			sheetId,
+			name: sheet.data.name || sheet.title,
+			displayName: '',
+			side: this.defaultSideForSheet(sheet),
+			maxHp: String(maxHp),
+			currentHp: String(currentHp),
+			armorClass:
+				sheet.data.armorClass == null || sheet.data.armorClass === ''
+					? ''
+					: String(sheet.data.armorClass),
+			initiative:
+				sheet.data.initiative == null || Number.isNaN(Number(sheet.data.initiative))
+					? '0'
+					: String(sheet.data.initiative),
+		}));
+	}
+
+	addCombatant() {
+		const battle = this.battle();
+		if (!battle) return;
+
+		const draft = this.addCombatantDraft();
+		const baseName = draft.name.trim();
+		if (!baseName) {
+			this.showToast('error', 'Informe o nome do combatente.');
+			return;
+		}
+
+		const creature = draft.mode === 'homebrew' ? this.createCreatureFromSelectedSheet(draft) : null;
+		if (draft.mode === 'homebrew' && !creature) return;
+		const manualCreature = creature ?? this.createManualCreatureFromDraft(draft);
+
+		this.updateBattle((current) =>
+			this.battleService.addCombatantFromCreature(current, manualCreature, {
+				name: baseName,
+				displayName: draft.displayName.trim() || undefined,
+				side: draft.side,
+				initiative: this.parseInitiativeInput(draft.initiative),
+				maxHp: this.parseNonNegativeInt(draft.maxHp),
+				currentHp: this.parseNonNegativeInt(draft.currentHp),
+				armorClass: this.parseArmorClassInput(draft.armorClass),
+				category: manualCreature.category,
+				sourceSheetId: manualCreature.sourceSheetId,
+			})
+		);
+
+		this.closeAddCombatantModal();
+		this.showToast(
+			'success',
+			battle.combatants.length > 0
+				? 'Combatente adicionado para entrar no próximo round.'
+				: 'Combatente adicionado.'
+		);
+	}
+
+	duplicateCombatant(combatantId: string) {
+		this.updateBattle((battle) => this.battleService.duplicateCombatant(battle, combatantId));
+		this.showToast('success', 'Combatente duplicado para o próximo round.');
+	}
+
+	openRemoveCombatantModal(combatantId: string) {
+		const combatant = this.combatants().find((item) => item.id === combatantId);
+		if (!combatant) return;
+
+		this.confirmModal.set({
+			title: 'Remover combatente?',
+			description: `Essa ação remove ${combatant.displayName || combatant.name} da batalha atual.`,
+			confirmLabel: 'Remover combatente',
+			action: 'remove-combatant',
+			tone: 'danger',
+			combatantId,
+		});
+	}
+
+	getInitiativeDraft(combatant: BattleCombatant): string {
+		return (
+			this.initiativeDrafts()[combatant.id] ??
+			String(combatant.nextRoundInitiative ?? combatant.initiative)
+		);
+	}
+
+	setInitiativeDraft(combatantId: string, value: string) {
+		this.initiativeDrafts.update((drafts) => ({ ...drafts, [combatantId]: value }));
+	}
+
+	applyInitiativeChange(combatantId: string) {
+		const value = this.parseInitiativeInput(this.initiativeDrafts()[combatantId]);
+		this.updateBattle((battle) =>
+			this.battleService.scheduleCombatantInitiative(battle, combatantId, value)
+		);
+		this.showToast('success', 'Iniciativa agendada para o próximo round.');
+	}
+
+	clearInitiativeChange(combatantId: string) {
+		this.updateBattle((battle) =>
+			this.battleService.clearScheduledCombatantInitiative(battle, combatantId)
+		);
+		const combatant = this.combatants().find((item) => item.id === combatantId);
+		this.initiativeDrafts.update((drafts) => ({
+			...drafts,
+			[combatantId]: String(combatant?.initiative ?? 0),
+		}));
+	}
+
+	isPendingCombatant(combatant: BattleCombatant): boolean {
+		return combatant.pendingAdd;
+	}
+
+	shouldShowPendingInitiative(combatant: BattleCombatant): boolean {
+		return combatant.nextRoundInitiative != null && combatant.nextRoundInitiative !== combatant.initiative;
+	}
+
+	initiativeSummary(combatant: BattleCombatant): string {
+		if (combatant.pendingAdd) return `Entra com iniciativa ${combatant.initiative}`;
+		if (this.shouldShowPendingInitiative(combatant)) {
+			return `Atual ${combatant.initiative} · Próximo round ${combatant.nextRoundInitiative}`;
+		}
+		return `Atual ${combatant.initiative}`;
+	}
+
+	hpSummary(combatant: BattleCombatant): string {
+		const temp = combatant.temporaryHp > 0 ? ` + ${combatant.temporaryHp} temp` : '';
+		return `${combatant.currentHp}/${combatant.maxHp}${temp}`;
 	}
 
 	formatDuration(totalSeconds: number): string {
@@ -539,6 +734,7 @@ export class BattleTrackerPage {
 		const isCurrent = this.currentCombatant()?.id === combatant.id;
 		const base = 'rounded-3xl border p-4 transition';
 
+		if (combatant.pendingAdd) return `${base} border-dashed border-white/15 bg-white/5 opacity-90`;
 		if (combatant.defeated) return `${base} border-red-400/30 bg-red-500/10 opacity-75`;
 		if (isCurrent) {
 			return `${base} border-amber-300/40 bg-amber-500/10 shadow-[0_0_0_1px_rgba(251,191,36,0.18)]`;
@@ -555,10 +751,83 @@ export class BattleTrackerPage {
 		this.battle.set(updater(battle));
 	}
 
+	private createAddCombatantDraft(): AddCombatantDraft {
+		return {
+			mode: 'manual',
+			sheetId: '',
+			name: '',
+			displayName: '',
+			side: 'enemy',
+			maxHp: '0',
+			currentHp: '0',
+			armorClass: '',
+			initiative: '0',
+		};
+	}
+
+	private createManualCreatureFromDraft(draft: AddCombatantDraft): CreatureInterface {
+		const maxHp = this.parseNonNegativeInt(draft.maxHp);
+		const currentHp = Math.min(this.parseNonNegativeInt(draft.currentHp), maxHp);
+		return {
+			name: draft.name.trim(),
+			initiative: this.parseInitiativeInput(draft.initiative),
+			healthPoints: currentHp,
+			maxHealthPoints: maxHp,
+			armorClass: draft.armorClass.trim(),
+			temporaryHealthPoints: 0,
+			id: Date.now(),
+			alive: currentHp > 0,
+			conditions: [],
+			notes: [],
+			shared: true,
+			hitPointsShared: true,
+			totalSpellSlots: null,
+			usedSpellSlots: null,
+			spells: {},
+			specialAbilities: [],
+			category: this.categoryForSide(draft.side),
+		};
+	}
+
+	private createCreatureFromSelectedSheet(draft: AddCombatantDraft): CreatureInterface | null {
+		const sheet = this.homebrewSheets().find((item) => item.id === draft.sheetId);
+		if (!sheet) {
+			this.showToast('error', 'Selecione uma ficha válida.');
+			return null;
+		}
+
+		const creature = structuredClone(sheet.data);
+		creature.category = sheet.category;
+		creature.sourceSheetId = sheet.id;
+		return creature;
+	}
+
+	private defaultSideForSheet(sheet: SavedSheetInterface): BattleCombatantSide {
+		if (sheet.category === 'pc') return 'player';
+		if (sheet.category === 'npc' || sheet.category === 'other') return 'neutral';
+		return 'enemy';
+	}
+
+	private categoryForSide(side: BattleCombatantSide) {
+		if (side === 'player') return 'pc' as const;
+		if (side === 'ally' || side === 'neutral') return 'npc' as const;
+		return 'monster' as const;
+	}
+
 	private parseNonNegativeInt(value: unknown): number {
 		const numeric = Number(value);
 		if (!Number.isFinite(numeric)) return 0;
 		return Math.max(0, Math.floor(numeric));
+	}
+
+	private parseInitiativeInput(value: unknown): number {
+		const numeric = Number(value);
+		return Number.isFinite(numeric) ? Math.floor(numeric) : 0;
+	}
+
+	private parseArmorClassInput(value: unknown): number | undefined {
+		const numeric = Number(value);
+		return Number.isFinite(numeric) ? Math.floor(numeric) : undefined;
 	}
 
 	private slugify(value: string): string {

@@ -9,7 +9,15 @@ export type SavedEncounter = {
 	data: BattleTracker;
 };
 
-export type HomebrewCategory = 'monster' | 'npc' | 'ally' | 'boss' | 'other' | 'PC';
+export type HomebrewCategory = 'monster' | 'npc' | 'pc' | 'other';
+type LegacyHomebrewCategory =
+	| HomebrewCategory
+	| 'ally'
+	| 'boss'
+	| 'PC'
+	| 'player'
+	| 'pet'
+	| 'item';
 
 export interface SavedSheetInterface {
 	id: string;
@@ -94,7 +102,12 @@ export class LocalStorageService {
 		if (!raw) return [];
 		try {
 			const parsed = JSON.parse(raw);
-			return Array.isArray(parsed) ? parsed : [];
+			if (!Array.isArray(parsed)) return [];
+			const normalized = parsed.map((sheet) => this.normalizeSheet(sheet));
+			if (JSON.stringify(normalized) !== JSON.stringify(parsed)) {
+				localStorage.setItem(this.KEYSheets, JSON.stringify(normalized));
+			}
+			return normalized;
 		} catch {
 			return [];
 		}
@@ -106,9 +119,10 @@ export class LocalStorageService {
 
 	upsertSheet(sheet: SavedSheetInterface) {
 		const all = this.listSheets();
-		const idx = all.findIndex((x) => x.id === sheet.id);
-		if (idx === -1) all.unshift(sheet);
-		else all[idx] = sheet;
+		const normalizedSheet = this.normalizeSheet(sheet);
+		const idx = all.findIndex((x) => x.id === normalizedSheet.id);
+		if (idx === -1) all.unshift(normalizedSheet);
+		else all[idx] = normalizedSheet;
 		localStorage.setItem(this.KEYSheets, JSON.stringify(all));
 	}
 
@@ -128,7 +142,7 @@ export class LocalStorageService {
 			createdAt: now,
 			updatedAt: now,
 			data: structuredClone(params.data),
-			category: params.category,
+			category: this.normalizeHomebrewCategory(params.category),
 			tags: (params.tags ?? []).map((t) => t.trim()).filter(Boolean),
 			source: (params.source || '').trim(),
 		};
@@ -163,5 +177,27 @@ export class LocalStorageService {
 			tags: curr.tags,
 			source: curr.source,
 		});
+	}
+
+	private normalizeSheet(sheet: Partial<SavedSheetInterface>): SavedSheetInterface {
+		const now = Date.now();
+		return {
+			id: typeof sheet.id === 'string' ? sheet.id : crypto.randomUUID(),
+			title: (sheet.title || '').trim() || 'Untitled Homebrew',
+			createdAt: typeof sheet.createdAt === 'number' ? sheet.createdAt : now,
+			updatedAt: typeof sheet.updatedAt === 'number' ? sheet.updatedAt : now,
+			data: structuredClone(sheet.data ?? ({} as CreatureInterface)),
+			category: this.normalizeHomebrewCategory(sheet.category),
+			tags: Array.isArray(sheet.tags) ? sheet.tags.map((tag) => tag.trim()).filter(Boolean) : [],
+			source: (sheet.source || '').trim(),
+		};
+	}
+
+	private normalizeHomebrewCategory(value: unknown): HomebrewCategory {
+		const category = value as LegacyHomebrewCategory | undefined;
+		if (category === 'pc' || category === 'PC' || category === 'player') return 'pc';
+		if (category === 'npc' || category === 'ally' || category === 'pet') return 'npc';
+		if (category === 'other' || category === 'item') return 'other';
+		return 'monster';
 	}
 }

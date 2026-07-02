@@ -103,7 +103,7 @@
 						[ngClass]="{
 							'bg-red-500/10 border-red-400/30 text-red-200': e.category === 'monster',
 							'bg-amber-500/10 border-amber-400/30 text-amber-200': e.category === 'npc',
-							'bg-sky-500/10 border-sky-400/30 text-sky-200': e.category === 'PC',
+							'bg-sky-500/10 border-sky-400/30 text-sky-200': e.category === 'pc',
 							'bg-white/5 border-white/10 text-white/80': e.category === 'other'
 						}"
 						title="Category"
@@ -113,12 +113,12 @@
 							[ngClass]="{
 								'bg-red-300': e.category === 'monster',
 								'bg-amber-300': e.category === 'npc',
-								'bg-sky-300': e.category === 'PC',
+								'bg-sky-300': e.category === 'pc',
 								'bg-white/40': e.category === 'other'
 							}"
 						></span>
 
-						{{ e.category | uppercase }}
+						{{ e.category === 'pc' ? 'PC' : (e.category | uppercase) }}
 					</span>
 
 					@if (e.source) {

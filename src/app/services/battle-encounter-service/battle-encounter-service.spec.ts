@@ -236,4 +236,119 @@ describe('BattleEncounterService', () => {
 		expect(battle.combatants[0].spellSlots[0].used).toBe(1);
 		expect(battle.combatants[0].spellSlots[1].max).toBe(2);
 	});
+
+	it('keeps pc category separated from battle side defaults', () => {
+		const withPc: EncounterTemplate = {
+			...template,
+			data: {
+				...template.data,
+				creatures: [
+					{
+						...template.data.creatures[0],
+						name: 'Cleriga do grupo',
+						category: 'pc',
+					},
+				],
+			},
+		};
+
+		const battle = service.createBattleFromEncounter(withPc);
+
+		expect(battle.combatants[0].category).toBe('pc');
+		expect(battle.combatants[0].side).toBe('player');
+	});
+
+	it('starts spell slots collapsed by default when normalizing battles antigas', () => {
+		const normalized = service.normalizeBattleEncounter({
+			id: 'legacy',
+			sourceEncounterId: 'enc-legacy',
+			name: 'Legacy Battle',
+			round: 1,
+			activeTurnIndex: 0,
+			createdAt: '2026-01-01T10:00:00.000Z',
+			startedAt: '2026-01-01T10:00:00.000Z',
+			updatedAt: '2026-01-01T10:00:00.000Z',
+			combatants: [
+				{
+					id: 'c1',
+					name: 'Mage',
+					side: 'enemy',
+					initiative: 10,
+					turnOrder: 0,
+					maxHp: 12,
+					currentHp: 12,
+					temporaryHp: 0,
+					defeated: false,
+					hidden: false,
+					collapsed: false,
+					spellSlotsCollapsed: true,
+					pendingAdd: false,
+					conditions: [],
+					specialAbilities: [],
+					spellSlots: [{ level: 1, max: 3, used: 1 }],
+				},
+			],
+			turnHistory: [],
+		});
+
+		expect(normalized.combatants[0].collapsed).toBeFalse();
+		expect(normalized.combatants[0].spellSlotsCollapsed).toBeTrue();
+		expect(normalized.pendingCombatants).toEqual([]);
+	});
+
+	it('queues added combatants for the next round and activates them on round advance', () => {
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const withPending = service.addCombatantFromCreature(
+			battle,
+			{
+				id: 99,
+				name: 'Wolf Reinforcement',
+				initiative: 20,
+				healthPoints: 11,
+				maxHealthPoints: 11,
+				armorClass: 13,
+				temporaryHealthPoints: 0,
+				alive: true,
+				conditions: [],
+				notes: [],
+				shared: true,
+				hitPointsShared: true,
+				totalSpellSlots: null,
+				usedSpellSlots: null,
+				spells: {},
+				specialAbilities: [],
+				category: 'monster',
+			},
+			undefined,
+			new Date('2026-01-01T10:00:01.000Z')
+		);
+
+		expect(withPending.combatants).toHaveSize(2);
+		expect(withPending.pendingCombatants).toHaveSize(1);
+		expect(withPending.pendingCombatants[0].pendingAdd).toBeTrue();
+
+		const afterFirstTurn = service.advanceTurn(withPending, new Date('2026-01-01T10:00:05.000Z'));
+		const afterSecondTurn = service.advanceTurn(afterFirstTurn, new Date('2026-01-01T10:00:10.000Z'));
+
+		expect(afterSecondTurn.round).toBe(2);
+		expect(afterSecondTurn.pendingCombatants).toHaveSize(0);
+		expect(afterSecondTurn.combatants[0].name).toBe('Wolf Reinforcement');
+	});
+
+	it('applies scheduled initiatives at the start of the next round', () => {
+		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const firstCombatantId = battle.combatants[0].id;
+		const secondCombatantId = battle.combatants[1].id;
+		const scheduled = service.scheduleCombatantInitiative(battle, secondCombatantId, 25);
+
+		expect(scheduled.combatants[1].nextRoundInitiative).toBe(25);
+
+		const afterFirstTurn = service.advanceTurn(scheduled, new Date('2026-01-01T10:00:05.000Z'));
+		const afterSecondTurn = service.advanceTurn(afterFirstTurn, new Date('2026-01-01T10:00:10.000Z'));
+
+		expect(afterSecondTurn.round).toBe(2);
+		expect(afterSecondTurn.combatants[0].id).toBe(secondCombatantId);
+		expect(afterSecondTurn.combatants[0].initiative).toBe(25);
+		expect(afterSecondTurn.combatants.find((combatant) => combatant.id === firstCombatantId)?.initiative).toBe(18);
+	});
 });

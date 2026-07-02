@@ -90,7 +90,7 @@ export class HomebrewSheets {
 		{ id: 'all', label: 'Todas' },
 		{ id: 'monster', label: 'Monstros' },
 		{ id: 'npc', label: 'NPCs' },
-		{ id: 'PC', label: 'PCs' },
+		{ id: 'pc', label: 'PCs' },
 		{ id: 'other', label: 'Outros' },
 	];
 

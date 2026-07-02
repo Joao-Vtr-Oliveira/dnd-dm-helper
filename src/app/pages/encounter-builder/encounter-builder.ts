@@ -73,7 +73,7 @@ export class EncounterBuilder {
 	apiModalOpen = signal(false); // (deixa pro futuro)
 
 	sheetQ = signal('');
-	sheetCategoryFilter = signal<'all' | 'monster' | 'npc' | 'PC' | 'other'>('all');
+	sheetCategoryFilter = signal<'all' | 'monster' | 'npc' | 'pc' | 'other'>('all');
 	sheetTagFilter = signal<string | null>(null);
 	sheetSourceFilter = signal<string | null>(null);
 
@@ -99,7 +99,7 @@ export class EncounterBuilder {
 		this.sheetTagFilter.update((curr) => (curr === tag ? null : tag));
 	}
 
-	setCategoryFilter(cat: 'all' | 'monster' | 'npc' | 'PC' | 'other') {
+	setCategoryFilter(cat: 'all' | 'monster' | 'npc' | 'pc' | 'other') {
 		this.sheetCategoryFilter.set(cat);
 	}
 
@@ -114,9 +114,9 @@ export class EncounterBuilder {
 	private metaOf(s: SavedSheetInterface): { category?: any; tags?: any; source?: any } {
 		return s as any;
 	}
-	sheetCategory(s: SavedSheetInterface): 'monster' | 'npc' | 'PC' | 'other' {
+	sheetCategory(s: SavedSheetInterface): 'monster' | 'npc' | 'pc' | 'other' {
 		const c = (this.metaOf(s).category ?? 'monster') as string;
-		if (c === 'npc' || c === 'PC' || c === 'other') return c;
+		if (c === 'npc' || c === 'pc' || c === 'other') return c;
 		return 'monster';
 	}
 	sheetTags(s: SavedSheetInterface): string[] {
@@ -176,14 +176,14 @@ export class EncounterBuilder {
 		});
 	});
 
-	categoryChipClass(cat: 'monster' | 'npc' | 'PC' | 'other', active = false): string {
+	categoryChipClass(cat: 'monster' | 'npc' | 'pc' | 'other', active = false): string {
 		const base =
 			'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold border transition';
 		const on = active ? ' ring-2 ring-white/20' : '';
 
 		if (cat === 'monster')
 			return `${base} bg-red-500/15 border-red-400/25 text-red-200 hover:bg-red-500/20${on}`;
-		if (cat === 'PC')
+		if (cat === 'pc')
 			return `${base} bg-sky-500/15 border-sky-400/25 text-sky-200 hover:bg-sky-500/20${on}`;
 		if (cat === 'npc')
 			return `${base} bg-emerald-500/15 border-emerald-400/25 text-emerald-200 hover:bg-emerald-500/20${on}`;
@@ -242,6 +242,8 @@ export class EncounterBuilder {
 
 				const c = structuredClone(base);
 				c.id = newId;
+				c.category = sheet.category ?? c.category ?? 'monster';
+				c.sourceSheetId = sheet.id;
 
 				// se importar vários, dá um sufixo só pra não ficar confuso
 				if (qty > 1) c.name = `${c.name} #${i + 1}`;
@@ -342,6 +344,7 @@ export class EncounterBuilder {
 						id: newId,
 						initiative: null,
 					});
+					c.category = 'monster';
 
 					if (qty > 1) c.name = `${c.name} #${i + 1}`;
 
@@ -464,6 +467,7 @@ export class EncounterBuilder {
 					usedSpellSlots: null,
 					spells: {},
 					specialAbilities: [],
+					category: 'monster',
 				};
 
 				next.creatures.push(c);

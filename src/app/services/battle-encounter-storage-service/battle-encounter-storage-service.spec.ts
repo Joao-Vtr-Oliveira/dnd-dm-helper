@@ -28,6 +28,7 @@ describe('BattleEncounterStorageService', () => {
 					totalSpellSlots: null,
 					usedSpellSlots: null,
 					spells: {},
+					specialAbilities: [],
 				},
 			],
 			creatureIdCount: 1,
