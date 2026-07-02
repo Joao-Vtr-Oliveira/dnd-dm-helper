@@ -24,7 +24,10 @@ import {
 	BattleConditionService,
 	type CreateBattleConditionInput,
 } from '../battle-condition-service/battle-condition-service';
-import { BattleAbilityService, type CreateBattleAbilityInput } from '../battle-ability-service/battle-ability-service';
+import {
+	BattleAbilityService,
+	type CreateBattleAbilityInput,
+} from '../battle-ability-service/battle-ability-service';
 import { BattleSpellSlotService } from '../battle-spell-slot-service/battle-spell-slot-service';
 
 const DEFAULT_SIDE: BattleCombatantSide = 'enemy';
@@ -74,13 +77,13 @@ export class BattleEncounterService {
 	createBattleFromEncounter(
 		template: EncounterTemplate,
 		options?: BattleEncounterCreateOptions,
-		now = new Date()
+		now = new Date(),
 	): BattleEncounter {
 		const timestamp = this.toIso(now);
 		const combatants = this.orderCombatants(
 			(template.data.creatures ?? []).map((creature, index) =>
-				this.createCombatantFromCreature(creature, index, options)
-			)
+				this.createCombatantFromCreature(creature, index, options),
+			),
 		);
 		const initialTurnIndex = this.normalizeActiveTurnIndex(combatants, 0, 1);
 
@@ -110,14 +113,14 @@ export class BattleEncounterService {
 		const combatants = this.orderCombatants(
 			Array.isArray(raw.combatants)
 				? raw.combatants.map((combatant, index) => this.normalizeCombatant(combatant, index))
-				: []
+				: [],
 		);
 		const pendingCombatants = Array.isArray(raw.pendingCombatants)
 			? raw.pendingCombatants.map((combatant, index) =>
 					this.normalizeCombatant(combatant, index, {
 						pendingAdd: true,
-					})
-			  )
+					}),
+				)
 			: [];
 
 		return {
@@ -134,7 +137,7 @@ export class BattleEncounterService {
 			activeTurnIndex: this.normalizeActiveTurnIndex(
 				combatants,
 				this.toNonNegativeInt(raw.activeTurnIndex),
-				Math.max(1, this.toNonNegativeInt(raw.round) || 1)
+				Math.max(1, this.toNonNegativeInt(raw.round) || 1),
 			),
 			createdAt,
 			startedAt: this.normalizeIso(raw.startedAt ?? raw.createdAt),
@@ -170,7 +173,7 @@ export class BattleEncounterService {
 
 	getInitiativeEligibleCombatants(battle: BattleEncounter): BattleCombatant[] {
 		return battle.combatants.filter((combatant) =>
-			this.isCombatantEligibleForInitiative(combatant, battle.round)
+			this.isCombatantEligibleForInitiative(combatant, battle.round),
 		);
 	}
 
@@ -179,7 +182,7 @@ export class BattleEncounterService {
 		const current = battle.combatants[battle.activeTurnIndex] ?? null;
 		if (current && this.isCombatantEligibleForInitiative(current, battle.round)) return current;
 		const fallbackIndex = this.findFirstEligibleTurnIndex(battle.combatants, battle.round);
-		return fallbackIndex >= 0 ? battle.combatants[fallbackIndex] ?? null : null;
+		return fallbackIndex >= 0 ? (battle.combatants[fallbackIndex] ?? null) : null;
 	}
 
 	getCurrentTurnElapsedSeconds(battle: BattleEncounter, now = new Date()): number {
@@ -202,15 +205,12 @@ export class BattleEncounterService {
 			const resolution = this.resolveRoundStartChanges(
 				[],
 				battle.pendingCombatants,
-				battle.round + 1
+				battle.round + 1,
 			);
 			return {
 				...battle,
 				round: battle.round + 1,
-				activeTurnIndex: this.findFirstEligibleTurnIndex(
-					resolution.combatants,
-					battle.round + 1
-				),
+				activeTurnIndex: this.findFirstEligibleTurnIndex(resolution.combatants, battle.round + 1),
 				updatedAt: timestamp,
 				turnStartedAt: resolution.combatants.length ? timestamp : undefined,
 				currentTurnElapsedSeconds: 0,
@@ -224,12 +224,12 @@ export class BattleEncounterService {
 								round: battle.round + 1,
 								turnIndex: Math.max(
 									0,
-									this.findFirstEligibleTurnIndex(resolution.combatants, battle.round + 1)
+									this.findFirstEligibleTurnIndex(resolution.combatants, battle.round + 1),
 								),
 							},
 							timestamp,
-							message
-						)
+							message,
+						),
 					),
 				],
 			};
@@ -245,13 +245,13 @@ export class BattleEncounterService {
 		const endExpire = this.conditionService.expireConditionsAtTiming(
 			battle.combatants,
 			{ round: battle.round, turnIndex: Math.max(0, currentTurnIndex) },
-			'end'
+			'end',
 		);
 
 		let nextTurnIndex = this.findNextEligibleTurnIndex(
 			endExpire.combatants,
 			Math.max(-1, currentTurnIndex),
-			battle.round
+			battle.round,
 		);
 		let nextRound = battle.round;
 		let nextCombatants = endExpire.combatants;
@@ -265,7 +265,7 @@ export class BattleEncounterService {
 			const resolution = this.resolveRoundStartChanges(
 				endExpire.combatants,
 				battle.pendingCombatants,
-				nextRound
+				nextRound,
 			);
 			nextCombatants = resolution.combatants;
 			nextPendingCombatants = resolution.pendingCombatants;
@@ -276,17 +276,17 @@ export class BattleEncounterService {
 		const startExpire = this.conditionService.expireConditionsAtTiming(
 			nextCombatants,
 			{ round: nextRound, turnIndex: Math.max(0, nextTurnIndex) },
-			'start'
+			'start',
 		);
 		const cooldownAdvance = this.abilityService.advanceCooldowns(
 			startExpire.combatants,
-			roundAdvanced
+			roundAdvanced,
 		);
 
 		const turnHistory = [...battle.turnHistory];
 		if (currentCombatant) {
 			turnHistory.push(
-				this.createTurnHistoryEntry(battle, currentCombatant, timestamp, durationSeconds, notes)
+				this.createTurnHistoryEntry(battle, currentCombatant, timestamp, durationSeconds, notes),
 			);
 		}
 
@@ -303,8 +303,8 @@ export class BattleEncounterService {
 						turnIndex: nextTurnIndex,
 					},
 					timestamp,
-					message
-				)
+					message,
+				),
 			);
 		}
 
@@ -329,7 +329,7 @@ export class BattleEncounterService {
 		const rewoundIndex = this.normalizeActiveTurnIndex(
 			battle.combatants,
 			lastTurn.turnIndex,
-			lastTurn.round
+			lastTurn.round,
 		);
 
 		return {
@@ -361,7 +361,7 @@ export class BattleEncounterService {
 		const activeTurnIndex = this.normalizeActiveTurnIndex(
 			battle.combatants,
 			battle.activeTurnIndex,
-			battle.round
+			battle.round,
 		);
 		return {
 			...battle,
@@ -396,7 +396,7 @@ export class BattleEncounterService {
 	updateCombatant(
 		battle: BattleEncounter,
 		combatantId: string,
-		patch: Partial<BattleCombatant>
+		patch: Partial<BattleCombatant>,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
@@ -407,14 +407,16 @@ export class BattleEncounterService {
 	updateCombatantHp(
 		battle: BattleEncounter,
 		combatantId: string,
-		patch: Partial<Pick<BattleCombatant, 'currentHp' | 'maxHp' | 'temporaryHp'>>
+		patch: Partial<Pick<BattleCombatant, 'currentHp' | 'maxHp' | 'temporaryHp'>>,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => {
 			const maxHp = patch.maxHp == null ? combatant.maxHp : this.toNonNegativeInt(patch.maxHp);
 			const currentHpRaw =
 				patch.currentHp == null ? combatant.currentHp : this.toNonNegativeInt(patch.currentHp);
 			const temporaryHp =
-				patch.temporaryHp == null ? combatant.temporaryHp : this.toNonNegativeInt(patch.temporaryHp);
+				patch.temporaryHp == null
+					? combatant.temporaryHp
+					: this.toNonNegativeInt(patch.temporaryHp);
 
 			const currentHp = Math.min(currentHpRaw, maxHp);
 			const defeatedState = this.resolveDefeatedState(battle, combatant, currentHp);
@@ -434,21 +436,30 @@ export class BattleEncounterService {
 		battle: BattleEncounter,
 		creature: CreatureInterface,
 		overrides?: AddCombatantOverrides,
-		now = new Date()
+		now = new Date(),
 	): BattleEncounter {
 		const joinsAtRound = this.shouldQueueCombatantForNextRound(battle)
 			? battle.round + 1
 			: undefined;
-		const combatant = this.createCombatantFromCreature(creature, battle.combatants.length, undefined, {
-			...overrides,
-			pendingAdd: joinsAtRound != null,
-			joinsAtRound,
-		});
+		const combatant = this.createCombatantFromCreature(
+			creature,
+			battle.combatants.length,
+			undefined,
+			{
+				...overrides,
+				pendingAdd: joinsAtRound != null,
+				joinsAtRound,
+			},
+		);
 
 		return this.insertCombatant(battle, combatant, now);
 	}
 
-	duplicateCombatant(battle: BattleEncounter, combatantId: string, now = new Date()): BattleEncounter {
+	duplicateCombatant(
+		battle: BattleEncounter,
+		combatantId: string,
+		now = new Date(),
+	): BattleEncounter {
 		const original = this.findCombatant(battle, combatantId);
 		if (!original) return battle;
 
@@ -479,7 +490,7 @@ export class BattleEncounterService {
 						currentCooldownTurns: 0,
 						lastUsedAtRound: undefined,
 						lastUsedAtTurnIndex: undefined,
-					})
+					}),
 				),
 				conditions: [],
 				privateNotes: undefined,
@@ -490,7 +501,7 @@ export class BattleEncounterService {
 			battle.combatants.length + battle.pendingCombatants.length,
 			{
 				pendingAdd: joinsAtRound != null,
-			}
+			},
 		);
 
 		return this.insertCombatant(battle, duplicate, now);
@@ -498,12 +509,16 @@ export class BattleEncounterService {
 
 	removeCombatant(battle: BattleEncounter, combatantId: string, now = new Date()): BattleEncounter {
 		const timestamp = this.toIso(now);
-		const pendingIndex = battle.pendingCombatants.findIndex((combatant) => combatant.id === combatantId);
+		const pendingIndex = battle.pendingCombatants.findIndex(
+			(combatant) => combatant.id === combatantId,
+		);
 		if (pendingIndex >= 0) {
 			return {
 				...battle,
 				updatedAt: timestamp,
-				pendingCombatants: battle.pendingCombatants.filter((combatant) => combatant.id !== combatantId),
+				pendingCombatants: battle.pendingCombatants.filter(
+					(combatant) => combatant.id !== combatantId,
+				),
 			};
 		}
 
@@ -545,8 +560,8 @@ export class BattleEncounterService {
 								turnIndex: Math.max(0, activeTurnIndex),
 							},
 							timestamp,
-							message
-						)
+							message,
+						),
 					);
 				}
 			} else {
@@ -574,7 +589,7 @@ export class BattleEncounterService {
 	scheduleCombatantInitiative(
 		battle: BattleEncounter,
 		combatantId: string,
-		initiative: number
+		initiative: number,
 	): BattleEncounter {
 		const normalizedInitiative = this.toFiniteNumber(initiative);
 		const pending = battle.pendingCombatants.some((combatant) => combatant.id === combatantId);
@@ -585,10 +600,7 @@ export class BattleEncounterService {
 		}));
 	}
 
-	clearScheduledCombatantInitiative(
-		battle: BattleEncounter,
-		combatantId: string
-	): BattleEncounter {
+	clearScheduledCombatantInitiative(battle: BattleEncounter, combatantId: string): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
 			nextRoundInitiative: undefined,
@@ -634,7 +646,7 @@ export class BattleEncounterService {
 	setCombatantDefeated(
 		battle: BattleEncounter,
 		combatantId: string,
-		defeated: boolean
+		defeated: boolean,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => {
 			const enforcedDefeated = combatant.currentHp <= 0 ? true : defeated;
@@ -656,7 +668,7 @@ export class BattleEncounterService {
 	updateCombatantNotes(
 		battle: BattleEncounter,
 		combatantId: string,
-		privateNotes: string
+		privateNotes: string,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
@@ -667,7 +679,7 @@ export class BattleEncounterService {
 	addCondition(
 		battle: BattleEncounter,
 		combatantId: string,
-		input: CreateBattleConditionInput
+		input: CreateBattleConditionInput,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
@@ -684,7 +696,7 @@ export class BattleEncounterService {
 	removeCondition(
 		battle: BattleEncounter,
 		combatantId: string,
-		conditionId: string
+		conditionId: string,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
@@ -699,7 +711,7 @@ export class BattleEncounterService {
 	addSpecialAbility(
 		battle: BattleEncounter,
 		combatantId: string,
-		input: CreateBattleAbilityInput
+		input: CreateBattleAbilityInput,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
@@ -710,12 +722,12 @@ export class BattleEncounterService {
 	useSpecialAbility(
 		battle: BattleEncounter,
 		combatantId: string,
-		abilityId: string
+		abilityId: string,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
 			specialAbilities: combatant.specialAbilities.map((ability) =>
-				ability.id === abilityId ? this.abilityService.useAbility(ability, battle) : ability
+				ability.id === abilityId ? this.abilityService.useAbility(ability, battle) : ability,
 			),
 		}));
 	}
@@ -723,12 +735,12 @@ export class BattleEncounterService {
 	resetSpecialAbility(
 		battle: BattleEncounter,
 		combatantId: string,
-		abilityId: string
+		abilityId: string,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
 			specialAbilities: combatant.specialAbilities.map((ability) =>
-				ability.id === abilityId ? this.abilityService.resetAbility(ability) : ability
+				ability.id === abilityId ? this.abilityService.resetAbility(ability) : ability,
 			),
 		}));
 	}
@@ -736,7 +748,7 @@ export class BattleEncounterService {
 	removeSpecialAbility(
 		battle: BattleEncounter,
 		combatantId: string,
-		abilityId: string
+		abilityId: string,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
@@ -747,7 +759,7 @@ export class BattleEncounterService {
 	rollSpecialAbilityRecharge(
 		battle: BattleEncounter,
 		combatantId: string,
-		abilityId: string
+		abilityId: string,
 	): { battle: BattleEncounter; roll: number; success: boolean } | null {
 		let result: { roll: number; success: boolean } | null = null;
 		const nextBattle = this.mapCombatant(battle, combatantId, (combatant) => ({
@@ -792,7 +804,7 @@ export class BattleEncounterService {
 	setSpellSlotsCollapsed(
 		battle: BattleEncounter,
 		combatantId: string,
-		spellSlotsCollapsed: boolean
+		spellSlotsCollapsed: boolean,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
@@ -804,7 +816,7 @@ export class BattleEncounterService {
 		battle: BattleEncounter,
 		combatantId: string,
 		level: number,
-		max: number
+		max: number,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
@@ -830,7 +842,7 @@ export class BattleEncounterService {
 		battle: BattleEncounter,
 		combatantId: string,
 		level: number,
-		used: number
+		used: number,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
@@ -844,20 +856,20 @@ export class BattleEncounterService {
 
 	getPositionAfterTurns(
 		battle: BattleEncounter,
-		steps: number
+		steps: number,
 	): { round: number; turnIndex: number } {
 		return this.conditionService.advancePosition(
 			battle.round,
 			Math.max(0, battle.activeTurnIndex),
 			steps,
-			Math.max(1, battle.combatants.length)
+			Math.max(1, battle.combatants.length),
 		);
 	}
 
 	private mapCombatant(
 		battle: BattleEncounter,
 		combatantId: string,
-		updater: (combatant: BattleCombatant) => BattleCombatant
+		updater: (combatant: BattleCombatant) => BattleCombatant,
 	): BattleEncounter {
 		let didChange = false;
 		const combatants = battle.combatants.map((combatant) => {
@@ -891,12 +903,12 @@ export class BattleEncounterService {
 	private normalizeCombatant(
 		raw: Partial<BattleCombatant>,
 		sourceIndex: number,
-		overrides?: Partial<Pick<BattleCombatant, 'pendingAdd'>>
+		overrides?: Partial<Pick<BattleCombatant, 'pendingAdd'>>,
 	): BattleCombatant {
 		const maxHp = this.toNonNegativeInt(raw.maxHp);
 		const currentHp = Math.min(
 			this.toNonNegativeInt(raw.currentHp),
-			maxHp || this.toNonNegativeInt(raw.currentHp)
+			maxHp || this.toNonNegativeInt(raw.currentHp),
 		);
 		const pendingAdd = overrides?.pendingAdd ?? raw.pendingAdd === true;
 		return {
@@ -911,7 +923,9 @@ export class BattleEncounterService {
 			nextRoundInitiative:
 				raw.nextRoundInitiative == null ? undefined : this.toFiniteNumber(raw.nextRoundInitiative),
 			initiativeTieBreaker:
-				raw.initiativeTieBreaker == null ? undefined : this.toFiniteNumber(raw.initiativeTieBreaker),
+				raw.initiativeTieBreaker == null
+					? undefined
+					: this.toFiniteNumber(raw.initiativeTieBreaker),
 			turnOrder: this.toNonNegativeInt(raw.turnOrder),
 			armorClass: this.toArmorClass(raw.armorClass),
 			maxHp,
@@ -927,7 +941,9 @@ export class BattleEncounterService {
 			spellSlotsCollapsed: raw.spellSlotsCollapsed !== false,
 			pendingAdd,
 			joinsAtRound:
-				raw.joinsAtRound == null ? undefined : Math.max(1, this.toNonNegativeInt(raw.joinsAtRound) || 1),
+				raw.joinsAtRound == null
+					? undefined
+					: Math.max(1, this.toNonNegativeInt(raw.joinsAtRound) || 1),
 			conditions: Array.isArray(raw.conditions)
 				? raw.conditions.map((condition) => this.conditionService.normalizeCondition(condition))
 				: [],
@@ -945,18 +961,18 @@ export class BattleEncounterService {
 		creature: CreatureInterface,
 		sourceIndex: number,
 		options?: BattleEncounterCreateOptions,
-		overrides?: AddCombatantOverrides
+		overrides?: AddCombatantOverrides,
 	): BattleCombatant {
 		const category = this.normalizeCreatureCategory(overrides?.category ?? creature.category);
 		const maxHp = this.toNonNegativeInt(
-			overrides?.maxHp ?? creature.maxHealthPoints ?? creature.healthPoints
+			overrides?.maxHp ?? creature.maxHealthPoints ?? creature.healthPoints,
 		);
 		const currentHp = Math.min(
 			this.toNonNegativeInt(overrides?.currentHp ?? creature.healthPoints),
-			maxHp
+			maxHp,
 		);
 		const temporaryHp = this.toNonNegativeInt(
-			overrides?.temporaryHp ?? creature.temporaryHealthPoints
+			overrides?.temporaryHp ?? creature.temporaryHealthPoints,
 		);
 		const side =
 			overrides?.side ??
@@ -964,7 +980,8 @@ export class BattleEncounterService {
 			this.inferSideFromCategory(category, creature.category);
 		const initiativeOverride = options?.initiativeOverrides?.[creature.id];
 		const initiative =
-			overrides?.initiative ?? (initiativeOverride == null ? creature.initiative : initiativeOverride);
+			overrides?.initiative ??
+			(initiativeOverride == null ? creature.initiative : initiativeOverride);
 
 		return {
 			id: this.createId(),
@@ -1002,7 +1019,7 @@ export class BattleEncounterService {
 		combatant: BattleCombatant,
 		endedAt: string,
 		durationSeconds: number,
-		notes?: string
+		notes?: string,
 	): BattleTurnLogEntry {
 		return {
 			id: this.createId(),
@@ -1020,7 +1037,7 @@ export class BattleEncounterService {
 	private createSystemHistoryEntry(
 		position: { round: number; turnIndex: number },
 		timestamp: string,
-		notes: string
+		notes: string,
 	): BattleTurnLogEntry {
 		return {
 			id: this.createId(),
@@ -1045,8 +1062,7 @@ export class BattleEncounterService {
 				id: typeof candidate.id === 'string' ? candidate.id : `turn-log-${index + 1}`,
 				round: Math.max(1, this.toNonNegativeInt(candidate.round) || 1),
 				turnIndex: Math.max(0, this.toNonNegativeInt(candidate.turnIndex)),
-				combatantId:
-					typeof candidate.combatantId === 'string' ? candidate.combatantId : 'system',
+				combatantId: typeof candidate.combatantId === 'string' ? candidate.combatantId : 'system',
 				combatantName:
 					typeof candidate.combatantName === 'string' ? candidate.combatantName : 'Sistema',
 				startedAt: timestamp,
@@ -1067,7 +1083,7 @@ export class BattleEncounterService {
 				appliedAtRound: Math.max(1, this.toNonNegativeInt(condition.appliedAtRound) || 1),
 				appliedAtTurnIndex: 0,
 				durationType: 'manual',
-			})
+			}),
 		);
 	}
 
@@ -1085,13 +1101,13 @@ export class BattleEncounterService {
 				isAvailable: true,
 				currentCooldownRounds: 0,
 				currentCooldownTurns: 0,
-			})
+			}),
 		);
 	}
 
 	private mapSpellSlots(
 		totalSpellSlots: CreatureInterface['totalSpellSlots'],
-		usedSpellSlots: CreatureInterface['usedSpellSlots']
+		usedSpellSlots: CreatureInterface['usedSpellSlots'],
 	): BattleSpellSlotLevel[] {
 		if (!totalSpellSlots && !usedSpellSlots) return [];
 
@@ -1126,7 +1142,7 @@ export class BattleEncounterService {
 				};
 				return result;
 			},
-			{}
+			{},
 		);
 	}
 
@@ -1156,7 +1172,7 @@ export class BattleEncounterService {
 
 	private inferSideFromCategory(
 		category: CreatureCategory | undefined,
-		rawCategory?: unknown
+		rawCategory?: unknown,
 	): BattleCombatantSide {
 		if (rawCategory === 'ally' || rawCategory === 'pet') return 'ally';
 		if (category === 'pc') return 'player';
@@ -1179,14 +1195,14 @@ export class BattleEncounterService {
 
 	private findFirstEligibleTurnIndex(combatants: BattleCombatant[], round: number): number {
 		return combatants.findIndex((combatant) =>
-			this.isCombatantEligibleForInitiative(combatant, round)
+			this.isCombatantEligibleForInitiative(combatant, round),
 		);
 	}
 
 	private findNextEligibleTurnIndex(
 		combatants: BattleCombatant[],
 		currentIndex: number,
-		round: number
+		round: number,
 	): number {
 		if (!combatants.length) return -1;
 		for (let offset = 1; offset <= combatants.length; offset += 1) {
@@ -1201,7 +1217,7 @@ export class BattleEncounterService {
 	private normalizeActiveTurnIndex(
 		combatants: BattleCombatant[],
 		activeTurnIndex: number,
-		round: number
+		round: number,
 	): number {
 		if (!combatants.length) return -1;
 		const clampedIndex = Math.min(Math.max(0, activeTurnIndex), combatants.length - 1);
@@ -1219,7 +1235,7 @@ export class BattleEncounterService {
 	private resolveDefeatedState(
 		battle: BattleEncounter,
 		combatant: BattleCombatant,
-		currentHp: number
+		currentHp: number,
 	): Pick<BattleCombatant, 'defeated' | 'collapsed' | 'inactiveUntilRound'> {
 		if (currentHp <= 0) {
 			return {
@@ -1273,7 +1289,7 @@ export class BattleEncounterService {
 	private insertCombatant(
 		battle: BattleEncounter,
 		combatant: BattleCombatant,
-		now: Date
+		now: Date,
 	): BattleEncounter {
 		const timestamp = this.toIso(now);
 		if (combatant.pendingAdd) {
@@ -1288,23 +1304,24 @@ export class BattleEncounterService {
 		const activeTurnIndex = this.normalizeActiveTurnIndex(
 			combatants,
 			battle.activeTurnIndex >= 0 ? battle.activeTurnIndex : 0,
-			battle.round
+			battle.round,
 		);
 		return {
 			...battle,
 			updatedAt: timestamp,
 			combatants,
 			activeTurnIndex,
-			turnStartedAt: battle.status === 'active' && activeTurnIndex >= 0
-				? battle.turnStartedAt ?? timestamp
-				: undefined,
+			turnStartedAt:
+				battle.status === 'active' && activeTurnIndex >= 0
+					? (battle.turnStartedAt ?? timestamp)
+					: undefined,
 		};
 	}
 
 	private resolveRoundStartChanges(
 		combatants: BattleCombatant[],
 		pendingCombatants: BattleCombatant[],
-		nextRound: number
+		nextRound: number,
 	): RoundStartResolution {
 		const updatedInitiatives = combatants
 			.filter((combatant) => combatant.nextRoundInitiative != null)
@@ -1312,11 +1329,11 @@ export class BattleEncounterService {
 		const reactivatedCombatants = combatants
 			.filter(
 				(combatant) =>
-					combatant.inactiveUntilRound != null && combatant.inactiveUntilRound <= nextRound
+					combatant.inactiveUntilRound != null && combatant.inactiveUntilRound <= nextRound,
 			)
 			.map((combatant) => combatant.displayName?.trim() || combatant.name);
 		const joiningCombatants = pendingCombatants.map(
-			(combatant) => combatant.displayName?.trim() || combatant.name
+			(combatant) => combatant.displayName?.trim() || combatant.name,
 		);
 		const activatedCombatants = pendingCombatants.map((combatant) => ({
 			...combatant,
@@ -1341,7 +1358,7 @@ export class BattleEncounterService {
 
 		if (updatedInitiatives.length) {
 			messages.push(
-				`Iniciativas atualizadas no início do round para ${updatedInitiatives.join(', ')}.`
+				`Iniciativas atualizadas no início do round para ${updatedInitiatives.join(', ')}.`,
 			);
 		}
 
@@ -1372,8 +1389,8 @@ export class BattleEncounterService {
 		const normalizedBase = baseName.replace(/\s+\(\d+\)$/, '').trim() || 'Combatente';
 		const names = new Set(
 			[...battle.combatants, ...battle.pendingCombatants].map(
-				(combatant) => combatant.displayName?.trim() || combatant.name
-			)
+				(combatant) => combatant.displayName?.trim() || combatant.name,
+			),
 		);
 		if (!names.has(normalizedBase)) return normalizedBase;
 

@@ -65,7 +65,11 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('creates a battle encounter from a saved encounter', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
 
 		expect(battle.sourceEncounterId).toBe('enc-1');
 		expect(battle.name).toBe('Goblin Ambush');
@@ -112,14 +116,15 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('advances the turn and then advances the round after the last combatant', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
-		const afterFirstTurn = service.advanceTurn(
-			battle,
-			new Date('2026-01-01T10:01:30.000Z')
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
 		);
+		const afterFirstTurn = service.advanceTurn(battle, new Date('2026-01-01T10:01:30.000Z'));
 		const afterSecondTurn = service.advanceTurn(
 			afterFirstTurn,
-			new Date('2026-01-01T10:02:00.000Z')
+			new Date('2026-01-01T10:02:00.000Z'),
 		);
 
 		expect(afterFirstTurn.activeTurnIndex).toBe(1);
@@ -141,7 +146,7 @@ describe('BattleEncounterService', () => {
 		const battle = service.createBattleFromEncounter(
 			singleCombatantTemplate,
 			undefined,
-			new Date('2026-01-01T10:00:00.000Z')
+			new Date('2026-01-01T10:00:00.000Z'),
 		);
 		const advanced = service.advanceTurn(battle, new Date('2026-01-01T10:00:05.000Z'));
 
@@ -150,15 +155,23 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('calculates elapsed time for the current turn', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
 
-		expect(
-			service.getCurrentTurnElapsedSeconds(battle, new Date('2026-01-01T10:01:24.000Z'))
-		).toBe(84);
+		expect(service.getCurrentTurnElapsedSeconds(battle, new Date('2026-01-01T10:01:24.000Z'))).toBe(
+			84,
+		);
 	});
 
 	it('expires turn-based conditions automatically on turn advance', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
 		const combatantId = battle.combatants[0].id;
 		const withCondition = service.addCondition(battle, combatantId, {
 			name: 'stunned',
@@ -173,7 +186,11 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('expires round-based conditions automatically when the round changes', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
 		const combatantId = battle.combatants[0].id;
 		const withCondition = service.addCondition(battle, combatantId, {
 			name: 'blessed',
@@ -183,7 +200,10 @@ describe('BattleEncounterService', () => {
 		});
 
 		const afterFirstTurn = service.advanceTurn(withCondition, new Date('2026-01-01T10:00:05.000Z'));
-		const afterSecondTurn = service.advanceTurn(afterFirstTurn, new Date('2026-01-01T10:00:10.000Z'));
+		const afterSecondTurn = service.advanceTurn(
+			afterFirstTurn,
+			new Date('2026-01-01T10:00:10.000Z'),
+		);
 
 		expect(afterSecondTurn.combatants[0].conditions).toHaveSize(0);
 	});
@@ -260,7 +280,11 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('preserves spells and ficha data when adding and duplicating combatants', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
 		const withImported = service.addCombatantFromCreature(
 			battle,
 			{
@@ -273,7 +297,9 @@ describe('BattleEncounterService', () => {
 				temporaryHealthPoints: 0,
 				alive: true,
 				conditions: [],
-				notes: [{ id: 99, text: 'Concentra em Hold Person', appliedAtRound: 0, appliedAtSeconds: 0 }],
+				notes: [
+					{ id: 99, text: 'Concentra em Hold Person', appliedAtRound: 0, appliedAtSeconds: 0 },
+				],
 				shared: true,
 				hitPointsShared: true,
 				totalSpellSlots: { '1st': 4, '2nd': 2 },
@@ -301,7 +327,7 @@ describe('BattleEncounterService', () => {
 				category: 'monster',
 			},
 			undefined,
-			new Date('2026-01-01T10:00:01.000Z')
+			new Date('2026-01-01T10:00:01.000Z'),
 		);
 
 		expect(withImported.pendingCombatants).toHaveSize(1);
@@ -312,10 +338,10 @@ describe('BattleEncounterService', () => {
 		const duplicated = service.duplicateCombatant(
 			withImported,
 			withImported.pendingCombatants[0].id,
-			new Date('2026-01-01T10:00:02.000Z')
+			new Date('2026-01-01T10:00:02.000Z'),
 		);
 		const duplicate = duplicated.pendingCombatants.find(
-			(combatant) => combatant.id !== withImported.pendingCombatants[0].id
+			(combatant) => combatant.id !== withImported.pendingCombatants[0].id,
 		);
 
 		expect(duplicate).toBeTruthy();
@@ -388,7 +414,11 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('queues added combatants for the next round and activates them on round advance', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
 		const withPending = service.addCombatantFromCreature(
 			battle,
 			{
@@ -412,7 +442,7 @@ describe('BattleEncounterService', () => {
 				category: 'monster',
 			},
 			undefined,
-			new Date('2026-01-01T10:00:01.000Z')
+			new Date('2026-01-01T10:00:01.000Z'),
 		);
 
 		expect(withPending.combatants).toHaveSize(2);
@@ -420,7 +450,10 @@ describe('BattleEncounterService', () => {
 		expect(withPending.pendingCombatants[0].pendingAdd).toBeTrue();
 
 		const afterFirstTurn = service.advanceTurn(withPending, new Date('2026-01-01T10:00:05.000Z'));
-		const afterSecondTurn = service.advanceTurn(afterFirstTurn, new Date('2026-01-01T10:00:10.000Z'));
+		const afterSecondTurn = service.advanceTurn(
+			afterFirstTurn,
+			new Date('2026-01-01T10:00:10.000Z'),
+		);
 
 		expect(afterSecondTurn.round).toBe(2);
 		expect(afterSecondTurn.pendingCombatants).toHaveSize(0);
@@ -428,7 +461,11 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('applies scheduled initiatives at the start of the next round', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
 		const firstCombatantId = battle.combatants[0].id;
 		const secondCombatantId = battle.combatants[1].id;
 		const scheduled = service.scheduleCombatantInitiative(battle, secondCombatantId, 25);
@@ -436,16 +473,25 @@ describe('BattleEncounterService', () => {
 		expect(scheduled.combatants[1].nextRoundInitiative).toBe(25);
 
 		const afterFirstTurn = service.advanceTurn(scheduled, new Date('2026-01-01T10:00:05.000Z'));
-		const afterSecondTurn = service.advanceTurn(afterFirstTurn, new Date('2026-01-01T10:00:10.000Z'));
+		const afterSecondTurn = service.advanceTurn(
+			afterFirstTurn,
+			new Date('2026-01-01T10:00:10.000Z'),
+		);
 
 		expect(afterSecondTurn.round).toBe(2);
 		expect(afterSecondTurn.combatants[0].id).toBe(secondCombatantId);
 		expect(afterSecondTurn.combatants[0].initiative).toBe(25);
-		expect(afterSecondTurn.combatants.find((combatant) => combatant.id === firstCombatantId)?.initiative).toBe(18);
+		expect(
+			afterSecondTurn.combatants.find((combatant) => combatant.id === firstCombatantId)?.initiative,
+		).toBe(18);
 	});
 
 	it('skips defeated combatants in initiative order', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
 		const defeated = service.setCombatantDefeated(battle, battle.combatants[1].id, true);
 		const advanced = service.advanceTurn(defeated, new Date('2026-01-01T10:00:10.000Z'));
 
@@ -455,7 +501,11 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('returns revived combatants to initiative only on the next round', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
 		const defeated = service.applyDamage(battle, battle.combatants[1].id, 99);
 		const revived = service.applyHealing(defeated, battle.combatants[1].id, 5);
 
@@ -469,7 +519,11 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('stops initiative safely when every combatant is defeated', () => {
-		const battle = service.createBattleFromEncounter(template, undefined, new Date('2026-01-01T10:00:00.000Z'));
+		const battle = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
 		let nextBattle = battle;
 		for (const combatant of battle.combatants) {
 			nextBattle = service.setCombatantDefeated(nextBattle, combatant.id, true);
