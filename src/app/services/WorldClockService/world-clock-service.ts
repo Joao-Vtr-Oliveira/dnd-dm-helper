@@ -2,6 +2,7 @@
 
 import { Injectable, effect, signal } from '@angular/core';
 import type { Season, WorldDate } from '../../models/calendar-model';
+import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import {
 	EPOCH_DATE,
 	addDays,
@@ -12,7 +13,7 @@ import {
 	getWeekday,
 } from '../../utils/calendar-utils/calendar-util';
 
-const STORAGE_KEY = 'dmh-world-date-v1';
+const STORAGE_KEY = APP_STORAGE_KEYS.worldDate;
 
 @Injectable({ providedIn: 'root' })
 export class WorldClockService {

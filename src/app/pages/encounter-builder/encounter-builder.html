@@ -516,7 +516,10 @@
 	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 		<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
 			<div class="flex items-center justify-between gap-2">
-				<div class="text-sm font-semibold opacity-90">Import</div>
+				<div>
+					<div class="text-sm font-semibold opacity-90">Importar encounter legado</div>
+					<div class="text-xs opacity-60">Use apenas para um encounter isolado. O backup completo fica na sidebar.</div>
+				</div>
 
 				<button
 					class="h-10 px-4 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
@@ -547,7 +550,7 @@
 						class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 transition"
 						(click)="importFromTextarea()"
 					>
-						Import
+						Importar encounter
 					</button>
 
 					<button
@@ -579,14 +582,17 @@
 
 		<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
 			<div class="flex items-center justify-between gap-2">
-				<div class="text-sm font-semibold opacity-90">Export</div>
+				<div>
+					<div class="text-sm font-semibold opacity-90">Exportar encounter</div>
+					<div class="text-xs opacity-60">Ação específica deste encounter. Para o projeto inteiro, use Exportar tudo.</div>
+				</div>
 
 				<div class="flex gap-2">
 					<button
 						class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 transition"
 						(click)="downloadExport()"
 					>
-						Download
+						Baixar JSON
 					</button>
 
 					<button
@@ -602,7 +608,7 @@
 						class="h-10 px-4 rounded-2xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 transition"
 						(click)="exportOpen.set(!exportOpen())"
 					>
-						@if (exportOpen()) { Hide } @else { Preview }
+						@if (exportOpen()) { Fechar preview } @else { Ver preview }
 					</button>
 				</div>
 			</div>

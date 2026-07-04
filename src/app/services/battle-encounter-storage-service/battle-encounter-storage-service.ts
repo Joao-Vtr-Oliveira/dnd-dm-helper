@@ -3,12 +3,13 @@ import type {
 	BattleEncounter,
 	BattleEncounterCreateOptions,
 } from '../../models/battle-encounter-model';
+import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import { BattleEncounterService } from '../battle-encounter-service/battle-encounter-service';
 import type { SavedEncounter } from '../local-storage-service/local-storage-service';
 
 @Injectable({ providedIn: 'root' })
 export class BattleEncounterStorageService {
-	private readonly storageKey = 'dnd-dm-helper.battle-encounters.v1';
+	private readonly storageKey = APP_STORAGE_KEYS.battleEncounters;
 	private readonly battleEncounterService = inject(BattleEncounterService);
 
 	getBattleEncounters(): BattleEncounter[] {

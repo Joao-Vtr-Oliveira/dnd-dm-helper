@@ -1,27 +1,47 @@
 # DndDmHelper
 
-- I will create tools to help me to DM ;)
+Ferramenta para mesa de D&D com foco em uso local durante a sessão.
 
-- I enjoy using [this](https://dndbattletracker.com/) website to help me in the combats, but I think it's very confuse to create and *edit*, so I'm going to create a tool that helps you to create and export, so you can use it in the other site.
+## O que já existe
 
-## Change-log:
-- You can create and edit encounters in a easier way.
-- Now you can import & export the encounters.
+- Encontros salvos e editáveis
+- Encounter Hub com batalhas locais
+- Battle Tracker com persistência local
+- Fichas homebrew salvas
+- Calendário / world clock
+- Backup completo em JSON do projeto
+- Sincronização global por JSON remoto
 
+## Fluxo de dados
 
+- O app salva os dados no `localStorage`
+- O fluxo principal de backup fica na sidebar:
+  - `Sincronizar`
+  - `Exportar tudo`
+- Import/export específicos continuam apenas como ações legadas ou por item
 
-## Features that I want to add:
+## Backup completo
 
-[X] An easier and better way of creating and exporting battles and encounters.
+`Exportar tudo` gera um JSON com:
 
-[X] An way of creating and saving sheets.
+- encounters
+- battle encounters
+- fichas homebrew
+- calendário
+- configurações úteis de UI
+- chaves do projeto no `localStorage`
 
-[X] Saving this sheets and encounters in localStorage.
+## Sincronização
 
-[X] Add a hub to see all encounters.
+`Sincronizar`:
 
-[] A way of organizing playlists and sounds.
+1. baixa o backup remoto configurado
+2. valida o JSON
+3. mostra um resumo
+4. cria um backup local de segurança
+5. restaura os dados do projeto
 
-[] Add the dnd API to use the bestiary for facilitate the import in the encounter builder (?).
+## Próximos passos
 
-[] Use the dnd API to check for spells and other informations.
+- Melhorar sons e playlists
+- Expandir integrações de bestiário e magias

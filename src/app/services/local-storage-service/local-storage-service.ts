@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import type { BattleTracker, CreatureInterface } from '../../models/battleTracker-model';
+import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 
 export type SavedEncounter = {
 	id: string;
@@ -33,8 +34,8 @@ export interface SavedSheetInterface {
 
 @Injectable({ providedIn: 'root' })
 export class LocalStorageService {
-	private readonly KEYEncounters = 'dnd-dm-helper.encounters.v1';
-	private readonly KEYSheets = 'dnd-dm-helper.sheets.v1';
+	private readonly KEYEncounters = APP_STORAGE_KEYS.encounters;
+	private readonly KEYSheets = APP_STORAGE_KEYS.sheets;
 
 	// ENCOUNTERS:
 

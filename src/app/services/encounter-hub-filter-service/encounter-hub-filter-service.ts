@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
+import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type { SavedEncounter } from '../local-storage-service/local-storage-service';
 
 export type EncounterHubStatusFilter = 'all' | 'prepared' | 'active' | 'paused' | 'completed';
@@ -28,7 +29,7 @@ export interface EncounterHubItem {
 
 @Injectable({ providedIn: 'root' })
 export class EncounterHubFilterService {
-	private readonly storageKey = 'dnd-dm-helper.encounter-hub.filters.v1';
+	private readonly storageKey = APP_STORAGE_KEYS.encounterHubFilters;
 
 	loadFilters(): EncounterHubFilters {
 		try {

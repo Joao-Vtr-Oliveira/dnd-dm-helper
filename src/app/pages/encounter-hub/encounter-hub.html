@@ -1,7 +1,7 @@
 <div class="mx-auto w-full max-w-[1580px] space-y-6 px-4 py-6">
 	<div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 		<div>
-			<h2 class="text-3xl font-semibold">Encounter Hub</h2>
+			<h2 class="text-3xl font-semibold">Encontros</h2>
 			<p class="mt-1 text-sm opacity-70">
 				Encontros preparados, batalhas locais e atalhos rápidos para continuar a mesa.
 			</p>
@@ -16,10 +16,10 @@
 			</button>
 
 			<button
-				class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+				class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-4 text-sm opacity-85 hover:bg-black/30 hover:opacity-100"
 				(click)="importOpen.set(!importOpen())"
 			>
-				@if (importOpen()) { Fechar importação } @else { Importar JSON }
+				@if (importOpen()) { Fechar importação legada } @else { Importar encounter legado }
 			</button>
 		</div>
 	</div>
@@ -124,6 +124,11 @@
 
 	@if (importOpen()) {
 		<div class="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4">
+			<div class="rounded-2xl border border-amber-300/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-50/90">
+				Fluxo legado para importar um encounter isolado. Para backup completo do projeto, use
+				<code>Sincronizar</code> na sidebar.
+			</div>
+
 			<input
 				type="file"
 				accept="application/json,.json"
@@ -142,7 +147,7 @@
 				class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 				(click)="importAndSave()"
 			>
-				Importar e salvar
+				Importar encounter legado
 			</button>
 
 			@if (msg()) {
@@ -298,12 +303,12 @@
 											Duplicar
 										</button>
 
-										<button
-											class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-											(click)="export(item.encounter.id)"
-										>
-											Exportar
-										</button>
+					<button
+						class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+						(click)="export(item.encounter.id)"
+					>
+						Exportar encounter
+					</button>
 
 										<button
 											class="h-10 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-4 hover:bg-red-500/20"

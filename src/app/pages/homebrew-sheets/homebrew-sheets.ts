@@ -53,13 +53,13 @@ export class HomebrewSheets {
 	duplicate(id: string) {
 		this.ls.duplicateSheet(id);
 		this.refresh();
-		this.showToast({ type: 'success', text: 'Duplicated!' });
+		this.showToast({ type: 'success', text: 'Ficha duplicada.' });
 	}
 
 	remove(id: string) {
 		this.ls.deleteSheet(id);
 		this.refresh();
-		this.showToast({ type: 'success', text: 'Deleted' });
+		this.showToast({ type: 'success', text: 'Ficha removida.' });
 	}
 
 	// ---------- helpers ----------
@@ -183,29 +183,6 @@ export class HomebrewSheets {
 				.replace(/[^a-z0-9]+/g, '-')
 				.slice(0, 40) || 'homebrew';
 		this.downloadJson(payload, `homebrew-${safeName}.json`);
-		this.showToast({ type: 'success', text: 'Exported!' });
-	}
-
-	exportAllFiltered() {
-		const list = this.filtered();
-		if (!list.length) {
-			this.showToast({ type: 'warn', text: 'Nada para exportar.' });
-			return;
-		}
-
-		const payload = {
-			version: 1,
-			exportedAt: Date.now(),
-			sheets: list.map((sheet) => ({
-				title: sheet.title,
-				category: sheet.category ?? 'monster',
-				tags: sheet.tags ?? [],
-				source: sheet.source ?? '',
-				data: sheet.data,
-			})),
-		};
-
-		this.downloadJson(payload, `homebrew-sheets-${list.length}.json`);
-		this.showToast({ type: 'success', text: `Exported ${list.length} sheet(s)!` });
+		this.showToast({ type: 'success', text: 'Ficha exportada.' });
 	}
 }
