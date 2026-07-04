@@ -23,8 +23,7 @@ describe('Calendar', () => {
 	});
 
 	it('updates the calendar immediately when changing the season select and persists the value', () => {
-		const seasonSelect = fixture.debugElement
-			.queryAll(By.css('select'))[0]
+		const seasonSelect = fixture.debugElement.queryAll(By.css('select'))[0]
 			.nativeElement as HTMLSelectElement;
 
 		seasonSelect.value = 'winter';
@@ -34,5 +33,15 @@ describe('Calendar', () => {
 		expect(component.current().season).toBe('winter');
 		expect(component.selected().season).toBe('winter');
 		expect(JSON.parse(localStorage.getItem('dmh-world-date-v1') || '{}').season).toBe('winter');
+	});
+
+	it('keeps the selected date aligned with the current world date without re-entering the effect loop', () => {
+		expect(() => {
+			component.changeHour(1);
+			fixture.detectChanges();
+		}).not.toThrow();
+
+		expect(component.selected().hour).toBe(component.current().hour);
+		expect(component.selected().day).toBe(component.current().day);
 	});
 });

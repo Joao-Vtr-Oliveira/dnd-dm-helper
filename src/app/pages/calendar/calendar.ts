@@ -33,7 +33,7 @@ export class Calendar {
 	private readonly worldClock = inject(WorldClockService);
 
 	current = this.worldClock.current;
-	selected = signal<WorldDate>(EPOCH_DATE);
+	selected = signal<WorldDate>(this.worldClock.current());
 
 	jumpYearInput = EPOCH_DATE.year;
 	jumpSeasonInput: Season = 'spring';
@@ -125,6 +125,20 @@ export class Calendar {
 			this.jumpYearInput = d.year;
 			this.jumpSeasonInput = d.season;
 			this.jumpDayInput = d.day;
+
+			this.selected.update((selected) => {
+				if (
+					selected.year === d.year &&
+					selected.season === d.season &&
+					selected.day === d.day &&
+					selected.hour === d.hour &&
+					selected.minute === d.minute
+				) {
+					return selected;
+				}
+
+				return { ...selected, ...d };
+			});
 		});
 	}
 

@@ -168,10 +168,12 @@ export class Home {
 			this.appBackupService.createSafetyBackupBeforeSync();
 			this.appBackupService.applyBackup(preview.backup);
 			this.appBackupService.storePostSyncToast('Sincronização concluída');
-			window.location.reload();
+			this.showToast('success', 'Sincronização concluída');
+			this.syncPreview.set(null);
 		} catch (error) {
-			this.syncLoading.set(false);
 			this.showToast('error', this.getErrorMessage(error, 'Erro ao sincronizar.'));
+		} finally {
+			this.syncLoading.set(false);
 		}
 	}
 
@@ -185,12 +187,28 @@ export class Home {
 
 	iconPaths(icon: IconName): string[] {
 		if (icon === 'layout') return ['M4 5h7v6H4z M13 5h7v4h-7z M13 11h7v8h-7z M4 13h7v6H4z'];
-		if (icon === 'calendar') return ['M8 3v4 M16 3v4 M4 9h16 M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z'];
-		if (icon === 'swords') return ['M14.5 5.5 18.5 9.5 M5.5 18.5 9.5 14.5 M11 13 4 20 M13 11 20 4 M7 4h4v4H7z M13 16h4v4h-4z'];
-		if (icon === 'plus-square') return ['M12 8v8 M8 12h8 M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z'];
-		if (icon === 'files') return ['M9 7h8 M9 12h8 M9 17h6 M6 4h12a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z'];
-		if (icon === 'file-pen') return ['M14 4h4a1 1 0 0 1 1 1v4 M9 15l6.5-6.5 2 2L11 17l-3 1z M6 4h8l5 5v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z'];
-		if (icon === 'refresh') return ['M20 6v6h-6 M4 18v-6h6 M7 17a8 8 0 0 0 13-5 M17 7A8 8 0 0 0 4 12'];
+		if (icon === 'calendar')
+			return [
+				'M8 3v4 M16 3v4 M4 9h16 M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z',
+			];
+		if (icon === 'swords')
+			return [
+				'M14.5 5.5 18.5 9.5 M5.5 18.5 9.5 14.5 M11 13 4 20 M13 11 20 4 M7 4h4v4H7z M13 16h4v4h-4z',
+			];
+		if (icon === 'plus-square')
+			return [
+				'M12 8v8 M8 12h8 M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z',
+			];
+		if (icon === 'files')
+			return [
+				'M9 7h8 M9 12h8 M9 17h6 M6 4h12a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z',
+			];
+		if (icon === 'file-pen')
+			return [
+				'M14 4h4a1 1 0 0 1 1 1v4 M9 15l6.5-6.5 2 2L11 17l-3 1z M6 4h8l5 5v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z',
+			];
+		if (icon === 'refresh')
+			return ['M20 6v6h-6 M4 18v-6h6 M7 17a8 8 0 0 0 13-5 M17 7A8 8 0 0 0 4 12'];
 		return ['M12 3v12 M8 11l4 4 4-4 M5 19h14'];
 	}
 

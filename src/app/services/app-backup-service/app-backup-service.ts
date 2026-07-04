@@ -1,11 +1,23 @@
 import { Injectable, inject } from '@angular/core';
 import type { WorldDate } from '../../models/calendar-model';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
-import { APP_POST_SYNC_TOAST_SESSION_KEY, APP_PRIMARY_STORAGE_KEYS, APP_STORAGE_KEYS, isProjectStorageKey } from '../../constants/app-storage-keys';
+import {
+	APP_POST_SYNC_TOAST_SESSION_KEY,
+	APP_PRIMARY_STORAGE_KEYS,
+	APP_STORAGE_KEYS,
+	isProjectStorageKey,
+} from '../../constants/app-storage-keys';
 import { environment } from '../../../environments/environment';
 import { BattleEncounterStorageService } from '../battle-encounter-storage-service/battle-encounter-storage-service';
-import { EncounterHubFilterService, type EncounterHubFilters } from '../encounter-hub-filter-service/encounter-hub-filter-service';
-import { LocalStorageService, type SavedEncounter, type SavedSheetInterface } from '../local-storage-service/local-storage-service';
+import {
+	EncounterHubFilterService,
+	type EncounterHubFilters,
+} from '../encounter-hub-filter-service/encounter-hub-filter-service';
+import {
+	LocalStorageService,
+	type SavedEncounter,
+	type SavedSheetInterface,
+} from '../local-storage-service/local-storage-service';
 import { WorldClockService } from '../WorldClockService/world-clock-service';
 
 export interface AppBackup {
@@ -30,6 +42,7 @@ export interface AppBackupSummary {
 	battleEncounters: number | null;
 	homebrewSheets: number | null;
 	hasCalendar: boolean;
+	calendarLabel: string | null;
 	exportedAt: string | null;
 }
 
@@ -119,7 +132,10 @@ export class AppBackupService {
 		if (candidate.app !== 'dnd-dm-helper') return invalid('JSON inválido ou incompatível.');
 		if (candidate.type !== 'campaign-backup') return invalid('JSON inválido ou incompatível.');
 		if (candidate.schemaVersion !== 1) return invalid('JSON inválido ou incompatível.');
-		if (typeof candidate.exportedAt !== 'string' || Number.isNaN(Date.parse(candidate.exportedAt))) {
+		if (
+			typeof candidate.exportedAt !== 'string' ||
+			Number.isNaN(Date.parse(candidate.exportedAt))
+		) {
 			return invalid('JSON inválido ou incompatível.');
 		}
 		if (!candidate.data || typeof candidate.data !== 'object') {
@@ -133,7 +149,11 @@ export class AppBackupService {
 		if (data.calendar != null && typeof data.calendar !== 'object') {
 			return invalid('JSON inválido ou incompatível.');
 		}
-		if (!data.rawLocalStorage || typeof data.rawLocalStorage !== 'object' || Array.isArray(data.rawLocalStorage)) {
+		if (
+			!data.rawLocalStorage ||
+			typeof data.rawLocalStorage !== 'object' ||
+			Array.isArray(data.rawLocalStorage)
+		) {
 			return invalid('JSON inválido ou incompatível.');
 		}
 
@@ -146,7 +166,7 @@ export class AppBackupService {
 				encounters: data.encounters,
 				battleEncounters: data.battleEncounters,
 				homebrewSheets: data.homebrewSheets,
-				calendar: this.normalizeCalendar(data.calendar),
+				calendar: this.resolveCalendarFromBackupData(data),
 				settings: {
 					encounterHubFilters:
 						data.settings && typeof data.settings === 'object'
@@ -179,15 +199,24 @@ export class AppBackupService {
 		}
 
 		const normalizedBackup = validation.backup;
-		localStorage.setItem(APP_STORAGE_KEYS.encounters, JSON.stringify(normalizedBackup.data.encounters));
+		localStorage.setItem(
+			APP_STORAGE_KEYS.encounters,
+			JSON.stringify(normalizedBackup.data.encounters),
+		);
 		localStorage.setItem(
 			APP_STORAGE_KEYS.battleEncounters,
 			JSON.stringify(normalizedBackup.data.battleEncounters),
 		);
-		localStorage.setItem(APP_STORAGE_KEYS.sheets, JSON.stringify(normalizedBackup.data.homebrewSheets));
+		localStorage.setItem(
+			APP_STORAGE_KEYS.sheets,
+			JSON.stringify(normalizedBackup.data.homebrewSheets),
+		);
 
 		if (normalizedBackup.data.calendar) {
-			localStorage.setItem(APP_STORAGE_KEYS.worldDate, JSON.stringify(normalizedBackup.data.calendar));
+			localStorage.setItem(
+				APP_STORAGE_KEYS.worldDate,
+				JSON.stringify(normalizedBackup.data.calendar),
+			);
 			this.worldClock.setDate(normalizedBackup.data.calendar);
 		}
 
@@ -200,7 +229,8 @@ export class AppBackupService {
 
 		for (const [key, value] of Object.entries(normalizedBackup.data.rawLocalStorage)) {
 			if (!isProjectStorageKey(key)) continue;
-			if (APP_PRIMARY_STORAGE_KEYS.includes(key as (typeof APP_PRIMARY_STORAGE_KEYS)[number])) continue;
+			if (APP_PRIMARY_STORAGE_KEYS.includes(key as (typeof APP_PRIMARY_STORAGE_KEYS)[number]))
+				continue;
 			if (key === APP_STORAGE_KEYS.safetyBackupBeforeSync) continue;
 			localStorage.setItem(key, value);
 		}
@@ -217,6 +247,7 @@ export class AppBackupService {
 			battleEncounters: backup.data.battleEncounters.length,
 			homebrewSheets: backup.data.homebrewSheets.length,
 			hasCalendar: backup.data.calendar != null,
+			calendarLabel: this.formatCalendarLabel(backup.data.calendar),
 			exportedAt: backup.exportedAt,
 		};
 	}
@@ -258,14 +289,36 @@ export class AppBackupService {
 		}
 	}
 
+	private resolveCalendarFromBackupData(
+		data: Partial<AppBackup['data']> | undefined,
+	): WorldDate | null {
+		const directCalendar = this.normalizeCalendar(data?.calendar);
+		if (directCalendar) return directCalendar;
+
+		const rawStorageValue =
+			data?.rawLocalStorage && typeof data.rawLocalStorage === 'object'
+				? (data.rawLocalStorage as Record<string, unknown>)[APP_STORAGE_KEYS.worldDate]
+				: undefined;
+
+		return this.normalizeCalendar(rawStorageValue);
+	}
+
 	private normalizeCalendar(raw: unknown): WorldDate | null {
-		if (!raw || typeof raw !== 'object') return null;
-		const candidate = raw as Partial<WorldDate>;
+		let parsed: unknown = raw;
+		if (typeof parsed === 'string') {
+			try {
+				parsed = JSON.parse(parsed);
+			} catch {
+				return null;
+			}
+		}
+
+		if (!parsed || typeof parsed !== 'object') return null;
+		const candidate = parsed as Partial<WorldDate>;
 		if (
 			typeof candidate.year !== 'number' ||
 			typeof candidate.day !== 'number' ||
 			typeof candidate.hour !== 'number' ||
-			typeof candidate.minute !== 'number' ||
 			(candidate.season !== 'spring' &&
 				candidate.season !== 'summer' &&
 				candidate.season !== 'autumn' &&
@@ -279,7 +332,7 @@ export class AppBackupService {
 			season: candidate.season,
 			day: candidate.day,
 			hour: candidate.hour,
-			minute: candidate.minute,
+			minute: typeof candidate.minute === 'number' ? candidate.minute : 0,
 		};
 	}
 
@@ -290,6 +343,7 @@ export class AppBackupService {
 				battleEncounters: null,
 				homebrewSheets: null,
 				hasCalendar: false,
+				calendarLabel: null,
 				exportedAt: null,
 			};
 		}
@@ -298,13 +352,28 @@ export class AppBackupService {
 		const data = candidate.data as Partial<AppBackup['data']> | undefined;
 		return {
 			encounters: Array.isArray(data?.encounters) ? data!.encounters!.length : null,
-			battleEncounters: Array.isArray(data?.battleEncounters) ? data!.battleEncounters!.length : null,
+			battleEncounters: Array.isArray(data?.battleEncounters)
+				? data!.battleEncounters!.length
+				: null,
 			homebrewSheets: Array.isArray(data?.homebrewSheets) ? data!.homebrewSheets!.length : null,
 			hasCalendar: !!data?.calendar,
+			calendarLabel: this.formatCalendarLabel(this.normalizeCalendar(data?.calendar)),
 			exportedAt:
 				typeof candidate.exportedAt === 'string' && !Number.isNaN(Date.parse(candidate.exportedAt))
 					? candidate.exportedAt
 					: null,
 		};
+	}
+
+	private formatCalendarLabel(calendar: WorldDate | null): string | null {
+		if (!calendar) return null;
+		const seasonLabels: Record<WorldDate['season'], string> = {
+			spring: 'Primavera',
+			summer: 'Verão',
+			autumn: 'Outono',
+			winter: 'Inverno',
+		};
+		const seasonLabel = seasonLabels[calendar.season] ?? calendar.season;
+		return `${seasonLabel}, Ano ${calendar.year}, Dia ${calendar.day}, ${String(calendar.hour).padStart(2, '0')}:${String(calendar.minute ?? 0).padStart(2, '0')}`;
 	}
 }

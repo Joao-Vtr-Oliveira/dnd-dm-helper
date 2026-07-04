@@ -6,6 +6,17 @@
 	font-display: swap;
 }
 
+:root {
+	--app-bg: radial-gradient(circle at top left, rgba(167, 139, 250, 0.22), rgba(14, 8, 28, 0.96));
+	--app-surface: rgba(24, 16, 40, 0.84);
+	--app-border: rgba(192, 132, 252, 0.26);
+	--app-accent: #8b5cf6;
+	--app-accent-strong: #7c3aed;
+	--app-accent-soft: rgba(139, 92, 246, 0.16);
+	--app-text: #f7ecff;
+	--app-muted: #c7b4dd;
+}
+
 * {
 	box-sizing: border-box;
 }
@@ -23,9 +34,23 @@ body {
 	margin: 0;
 	padding: 0;
 	font-family: Roboto, 'Helvetica Neue', sans-serif;
-	background: radial-gradient(circle at top left, #181023, #0b0519);
-	color: #c3b3d8;
+	background: var(--app-bg);
+	color: var(--app-muted);
 	height: 100%;
+}
+
+button,
+a,
+[role='button'],
+summary,
+input[type='button'],
+input[type='submit'] {
+	cursor: pointer;
+}
+
+button:disabled,
+a[aria-disabled='true'] {
+	cursor: not-allowed;
 }
 
 select {
@@ -41,8 +66,8 @@ select:hover {
 
 select:focus {
 	outline: none;
-	border-color: rgba(125, 211, 252, 0.45);
-	box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.28);
+	border-color: rgba(192, 132, 252, 0.45);
+	box-shadow: 0 0 0 1px rgba(192, 132, 252, 0.3);
 }
 
 select option,

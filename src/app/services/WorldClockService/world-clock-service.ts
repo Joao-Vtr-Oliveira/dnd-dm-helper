@@ -55,14 +55,16 @@ export class WorldClockService {
 
 			try {
 				localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
-			} catch {
-			}
+			} catch {}
 		});
 	}
 
-
 	setDate(d: WorldDate) {
 		this.current.set({ ...d });
+	}
+
+	reloadFromStorage() {
+		this.current.set({ ...this.loadInitial() });
 	}
 
 	setSeason(season: Season) {

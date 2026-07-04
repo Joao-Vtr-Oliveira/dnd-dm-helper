@@ -77,6 +77,60 @@ describe('AppBackupService', () => {
 		expect(result.error).toBe('JSON inválido ou incompatível.');
 	});
 
+	it('accepts legacy calendar payloads without minute and exposes a readable summary', () => {
+		const backup = service.exportAll();
+		backup.data.calendar = {
+			year: 1200,
+			season: 'summer',
+			day: 3,
+			hour: 6,
+		} as typeof backup.data.calendar;
+
+		const validation = service.validateBackup(backup);
+		const summary = service.buildSummary(backup);
+
+		expect(validation.valid).toBeTrue();
+		expect(validation.backup?.data.calendar).toEqual({
+			year: 1200,
+			season: 'summer',
+			day: 3,
+			hour: 6,
+			minute: 0,
+		});
+		expect(summary.calendarLabel).toContain('Verão');
+	});
+
+	it('restores the calendar from the rawLocalStorage payload when the top-level calendar field is absent', () => {
+		const backup = service.exportAll();
+		backup.data.calendar = null;
+		backup.data.rawLocalStorage[APP_STORAGE_KEYS.worldDate] = JSON.stringify({
+			year: 2222,
+			season: 'winter',
+			day: 15,
+			hour: 20,
+			minute: 45,
+		});
+
+		const validation = service.validateBackup(backup);
+		service.applyBackup(backup);
+
+		expect(validation.valid).toBeTrue();
+		expect(validation.backup?.data.calendar).toEqual({
+			year: 2222,
+			season: 'winter',
+			day: 15,
+			hour: 20,
+			minute: 45,
+		});
+		expect(worldClock.current()).toEqual({
+			year: 2222,
+			season: 'winter',
+			day: 15,
+			hour: 20,
+			minute: 45,
+		});
+	});
+
 	it('creates a safety backup and applies a valid backup', () => {
 		const backup = service.exportAll();
 		backup.data.encounters = [
