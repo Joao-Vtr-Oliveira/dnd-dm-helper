@@ -450,7 +450,7 @@
 									<div>
 										<h4 class="font-semibold">Habilidades especiais</h4>
 										<p class="text-sm opacity-70">
-											Controle cooldown por turnos, rounds ou recharge por dado.
+											Controle usos por dia, descanso, cooldown e recharge durante o combate.
 										</p>
 									</div>
 
@@ -459,8 +459,30 @@
 											<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
 												<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
 													<div class="min-w-0">
-														<div class="break-words font-semibold">{{ ability.name }}</div>
-														<div class="mt-1 text-sm opacity-75">{{ abilityStatusLabel(ability) }}</div>
+														<div class="flex flex-wrap items-center gap-2">
+															<div class="break-words font-semibold">{{ ability.name }}</div>
+															<span
+																class="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+																[class]="abilityAvailabilityClasses(ability)"
+															>
+																{{ abilityStatusLabel(ability) }}
+															</span>
+															@if (abilityRuleLabel(ability); as rule) {
+																<span class="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[11px] opacity-80">
+																	{{ rule }}
+																</span>
+															}
+														</div>
+														<div class="mt-1 text-sm opacity-80">{{ abilityRecoveryLabel(ability) }}</div>
+														@if (abilityUsageLabel(ability); as usage) {
+															<div class="mt-1 text-sm opacity-75">{{ usage }}</div>
+														}
+														@if (abilityLastUsedLabel(ability); as usedAt) {
+															<div class="mt-1 text-sm opacity-70">{{ usedAt }}</div>
+														}
+														@if (ability.recoveryType === 'dice-recharge' && ability.lastRechargeRoll) {
+															<div class="mt-1 text-sm opacity-70">Último recharge: {{ ability.lastRechargeRoll }}</div>
+														}
 														@if (ability.description) {
 															<div class="mt-1 break-words text-sm opacity-65">{{ ability.description }}</div>
 														}
@@ -470,12 +492,14 @@
 														<button
 															type="button"
 															class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
+															[disabled]="!canUseAbility(ability)"
+															[class.opacity-50]="!canUseAbility(ability)"
 															(click)="useAbility(combatant.id, ability.id)"
 														>
-															Usar
+															{{ abilityUseLabel(ability) }}
 														</button>
 
-														@if (ability.rechargeType === 'dice' && !ability.isAvailable) {
+														@if (ability.recoveryType === 'dice-recharge' && !ability.isAvailable) {
 															<button
 																type="button"
 																class="h-9 cursor-pointer rounded-2xl border border-sky-300/30 bg-sky-500/15 px-3 text-sm hover:bg-sky-500/20"
@@ -490,7 +514,7 @@
 															class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
 															(click)="resetAbility(combatant.id, ability.id)"
 														>
-															Resetar
+															{{ abilityResetLabel(ability) }}
 														</button>
 
 														<button
@@ -532,16 +556,19 @@
 										</label>
 
 										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Recarga</span>
+											<span class="mb-1 block opacity-70">Recuperação</span>
 											<select
 												class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getAbilityDraft(combatant.id).rechargeType"
-												(ngModelChange)="setAbilityDraft(combatant.id, { rechargeType: $event })"
+												[ngModel]="getAbilityDraft(combatant.id).recoveryType"
+												(ngModelChange)="setAbilityDraft(combatant.id, { recoveryType: $event })"
 											>
 												<option value="manual">Manual</option>
-												<option value="turns">Por turnos</option>
-												<option value="rounds">Por rounds</option>
-												<option value="dice">Recharge por dado</option>
+												<option value="turn-cooldown">Cooldown por turnos</option>
+												<option value="round-cooldown">Cooldown por rounds</option>
+												<option value="uses-per-day">Usos por dia</option>
+												<option value="short-rest">Descanso curto</option>
+												<option value="long-rest">Descanso longo</option>
+												<option value="dice-recharge">Recharge 5-6</option>
 											</select>
 										</label>
 
@@ -557,10 +584,10 @@
 										</button>
 									</div>
 
-									@if (getAbilityDraft(combatant.id).rechargeType === 'turns' || getAbilityDraft(combatant.id).rechargeType === 'rounds') {
+									@if (getAbilityDraft(combatant.id).recoveryType === 'turn-cooldown' || getAbilityDraft(combatant.id).recoveryType === 'round-cooldown') {
 										<label class="text-sm">
 											<span class="mb-1 block opacity-70">
-												@if (getAbilityDraft(combatant.id).rechargeType === 'turns') { Volta em quantos turnos? } @else { Volta em quantos rounds? }
+												@if (getAbilityDraft(combatant.id).recoveryType === 'turn-cooldown') { Volta em quantos turnos? } @else { Volta em quantos rounds? }
 											</span>
 											<input
 												type="number"
@@ -572,7 +599,20 @@
 										</label>
 									}
 
-									@if (getAbilityDraft(combatant.id).rechargeType === 'dice') {
+									@if (getAbilityDraft(combatant.id).recoveryType === 'uses-per-day' || getAbilityDraft(combatant.id).recoveryType === 'short-rest' || getAbilityDraft(combatant.id).recoveryType === 'long-rest') {
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Usos máximos</span>
+											<input
+												type="number"
+												min="1"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="getAbilityDraft(combatant.id).maxUses"
+												(ngModelChange)="setAbilityDraft(combatant.id, { maxUses: $event })"
+											/>
+										</label>
+									}
+
+									@if (getAbilityDraft(combatant.id).recoveryType === 'dice-recharge') {
 										<label class="text-sm">
 											<span class="mb-1 block opacity-70">Resultados que recarregam</span>
 											<input
@@ -768,6 +808,38 @@
 				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
 					<div class="flex items-center justify-between gap-3">
 						<div>
+							<h3 class="text-xl font-semibold">Próximos eventos</h3>
+							<p class="mt-1 text-sm opacity-75">
+								Quem joga agora, o que vem depois e o que está prestes a expirar ou voltar.
+							</p>
+						</div>
+						<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">
+							{{ upcomingEvents().length }} itens
+						</span>
+					</div>
+
+					<div class="mt-4 space-y-3">
+						@for (event of upcomingEvents(); track event.id) {
+							<div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+								<div class="flex flex-wrap items-center justify-between gap-2">
+									<div class="font-semibold">{{ event.label }}</div>
+									<span class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] opacity-80">
+										{{ eventActorLabel(event) }}
+									</span>
+								</div>
+								<div class="mt-1 text-xs opacity-70">Round {{ event.round }}</div>
+							</div>
+						} @empty {
+							<div class="rounded-2xl border border-dashed border-white/10 bg-black/10 p-4 text-sm opacity-70">
+								Nenhum próximo evento relevante calculado no momento.
+							</div>
+						}
+					</div>
+				</div>
+
+				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+					<div class="flex items-center justify-between gap-3">
+						<div>
 							<h3 class="text-xl font-semibold">Iniciativas</h3>
 							<p class="mt-1 text-sm opacity-75">
 								Edite agora e aplique no começo do próximo round.
@@ -826,6 +898,255 @@
 								</div>
 							</div>
 						}
+					</div>
+				</div>
+
+				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+					<div>
+						<h3 class="text-xl font-semibold">Ações de covil e armadilhas</h3>
+						<p class="mt-1 text-sm opacity-75">
+							Eventos de ambiente ativos, separados dos combatentes da iniciativa.
+						</p>
+					</div>
+
+					<div class="mt-4 space-y-4">
+						<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+							<div class="mb-3 flex items-center justify-between gap-3">
+								<h4 class="font-semibold">Ações de covil</h4>
+								<span class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px]">
+									{{ battle()!.lairActions.length }} ativas
+								</span>
+							</div>
+
+							<div class="space-y-2">
+								@for (action of battle()!.lairActions; track action.id) {
+									<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+										<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+											<div>
+												<div class="font-semibold">{{ action.name }}</div>
+												<div class="mt-1 text-sm opacity-75">{{ lairActionScheduleLabel(action) }}</div>
+												@if (action.description) {
+													<div class="mt-1 text-sm opacity-65">{{ action.description }}</div>
+												}
+											</div>
+											<div class="flex flex-wrap gap-2">
+												<button
+													type="button"
+													class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
+													(click)="triggerLairAction(action.id)"
+												>
+													Executar
+												</button>
+												<label class="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm">
+													<input
+														type="checkbox"
+														class="h-4 w-4"
+														[checked]="action.active"
+														(change)="toggleLairAction(action.id, $any($event.target).checked)"
+													/>
+													<span>Ativa</span>
+												</label>
+												<button
+													type="button"
+													class="h-9 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-3 text-sm hover:bg-red-500/20"
+													(click)="removeLairAction(action.id)"
+												>
+													Remover
+												</button>
+											</div>
+										</div>
+									</div>
+								} @empty {
+									<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
+										Nenhuma lair action cadastrada.
+									</div>
+								}
+							</div>
+
+							<div class="mt-3 grid gap-3">
+								<input
+									class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+									placeholder="Adicionar Lair Action"
+									[ngModel]="lairActionDraft().name"
+									(ngModelChange)="setLairActionDraft({ name: $event })"
+								/>
+								<input
+									class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+									placeholder="Descrição opcional"
+									[ngModel]="lairActionDraft().description"
+									(ngModelChange)="setLairActionDraft({ description: $event })"
+								/>
+								<div class="grid gap-3 md:grid-cols-3">
+									<label class="text-sm">
+										<span class="mb-1 block opacity-70">Iniciativa</span>
+										<input
+											type="number"
+											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+											[ngModel]="lairActionDraft().initiative"
+											(ngModelChange)="setLairActionDraft({ initiative: $event })"
+										/>
+									</label>
+									<label class="text-sm">
+										<span class="mb-1 block opacity-70">Frequência</span>
+										<select
+											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+											[ngModel]="lairActionDraft().frequency"
+											(ngModelChange)="setLairActionDraft({ frequency: $event })"
+										>
+											<option value="every-round">Todo round</option>
+											<option value="cooldown-rounds">Cooldown por rounds</option>
+											<option value="manual">Manual</option>
+										</select>
+									</label>
+									@if (lairActionDraft().frequency === 'cooldown-rounds') {
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Cooldown</span>
+											<input
+												type="number"
+												min="1"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="lairActionDraft().cooldownRounds"
+												(ngModelChange)="setLairActionDraft({ cooldownRounds: $event })"
+											/>
+										</label>
+									}
+								</div>
+								<button
+									type="button"
+									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+									(click)="addLairAction()"
+								>
+									Adicionar Lair Action
+								</button>
+							</div>
+						</div>
+
+						<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+							<div class="mb-3 flex items-center justify-between gap-3">
+								<h4 class="font-semibold">Armadilhas</h4>
+								<span class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px]">
+									{{ battle()!.traps.length }} ativas
+								</span>
+							</div>
+
+							<div class="space-y-2">
+								@for (trap of battle()!.traps; track trap.id) {
+									<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+										<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+											<div>
+												<div class="font-semibold">{{ trap.name }}</div>
+												<div class="mt-1 text-sm opacity-75">{{ trapScheduleLabel(trap) }}</div>
+												@if (trap.description) {
+													<div class="mt-1 text-sm opacity-65">{{ trap.description }}</div>
+												}
+											</div>
+											<div class="flex flex-wrap gap-2">
+												<button
+													type="button"
+													class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
+													(click)="triggerTrap(trap.id)"
+												>
+													Executar
+												</button>
+												<label class="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm">
+													<input
+														type="checkbox"
+														class="h-4 w-4"
+														[checked]="trap.active"
+														(change)="toggleTrap(trap.id, $any($event.target).checked)"
+													/>
+													<span>Ativa</span>
+												</label>
+												<button
+													type="button"
+													class="h-9 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-3 text-sm hover:bg-red-500/20"
+													(click)="removeTrap(trap.id)"
+												>
+													Remover
+												</button>
+											</div>
+										</div>
+									</div>
+								} @empty {
+									<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
+										Nenhuma armadilha cadastrada.
+									</div>
+								}
+							</div>
+
+							<div class="mt-3 grid gap-3">
+								<input
+									class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+									placeholder="Adicionar Armadilha"
+									[ngModel]="trapDraft().name"
+									(ngModelChange)="setTrapDraft({ name: $event })"
+								/>
+								<input
+									class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+									placeholder="Descrição opcional"
+									[ngModel]="trapDraft().description"
+									(ngModelChange)="setTrapDraft({ description: $event })"
+								/>
+								<div class="grid gap-3 md:grid-cols-3">
+									<label class="text-sm">
+										<span class="mb-1 block opacity-70">Gatilho</span>
+										<select
+											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+											[ngModel]="trapDraft().triggerType"
+											(ngModelChange)="setTrapDraft({ triggerType: $event })"
+										>
+											<option value="initiative">Iniciativa</option>
+											<option value="round-start">Início do round</option>
+											<option value="round-end">Fim do round</option>
+											<option value="manual">Manual</option>
+										</select>
+									</label>
+									@if (trapDraft().triggerType === 'initiative') {
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Iniciativa</span>
+											<input
+												type="number"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="trapDraft().initiative"
+												(ngModelChange)="setTrapDraft({ initiative: $event })"
+											/>
+										</label>
+									}
+									<label class="text-sm">
+										<span class="mb-1 block opacity-70">Frequência</span>
+										<select
+											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+											[ngModel]="trapDraft().frequency"
+											(ngModelChange)="setTrapDraft({ frequency: $event })"
+										>
+											<option value="once">Uma vez</option>
+											<option value="every-round">Todo round</option>
+											<option value="cooldown-rounds">Cooldown por rounds</option>
+											<option value="manual">Manual</option>
+										</select>
+									</label>
+									@if (trapDraft().frequency === 'cooldown-rounds') {
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">Cooldown</span>
+											<input
+												type="number"
+												min="1"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="trapDraft().cooldownRounds"
+												(ngModelChange)="setTrapDraft({ cooldownRounds: $event })"
+											/>
+										</label>
+									}
+								</div>
+								<button
+									type="button"
+									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+									(click)="addTrap()"
+								>
+									Adicionar Armadilha
+								</button>
+							</div>
+						</div>
 					</div>
 				</div>
 

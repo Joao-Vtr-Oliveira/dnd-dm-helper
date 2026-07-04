@@ -233,7 +233,7 @@ describe('BattleEncounterService', () => {
 		const combatantId = battle.combatants[0].id;
 		const withAbility = service.addSpecialAbility(battle, combatantId, {
 			name: 'Sopro Flamejante',
-			rechargeType: 'turns',
+			recoveryType: 'turn-cooldown',
 			cooldownTurns: 1,
 		});
 		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
@@ -242,6 +242,39 @@ describe('BattleEncounterService', () => {
 
 		expect(advanced.combatants[0].specialAbilities[0].isAvailable).toBeTrue();
 		expect(advanced.turnHistory.at(-1)?.notes).toContain('Sopro Flamejante');
+	});
+
+	it('exhausts abilities with uses per day after the configured maximum', () => {
+		const battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[0].id;
+		const withAbility = service.addSpecialAbility(battle, combatantId, {
+			name: 'Furia',
+			recoveryType: 'uses-per-day',
+			maxUses: 1,
+		});
+		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
+		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
+
+		expect(used.combatants[0].specialAbilities[0].usedCount).toBe(1);
+		expect(used.combatants[0].specialAbilities[0].isAvailable).toBeFalse();
+	});
+
+	it('rolls recharge 5-6 and restores the ability on success', () => {
+		spyOn(Math, 'random').and.returnValue(0.99);
+		const battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[0].id;
+		const withAbility = service.addSpecialAbility(battle, combatantId, {
+			name: 'Sopro Flamejante',
+			recoveryType: 'dice-recharge',
+			rechargeOn: [5, 6],
+		});
+		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
+		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
+		const rolled = service.rollSpecialAbilityRecharge(used, combatantId, abilityId);
+
+		expect(rolled?.success).toBeTrue();
+		expect(rolled?.roll).toBe(6);
+		expect(rolled?.battle.combatants[0].specialAbilities[0].isAvailable).toBeTrue();
 	});
 
 	it('uses and recovers spell slots without exceeding bounds', () => {
@@ -411,6 +444,28 @@ describe('BattleEncounterService', () => {
 		expect(normalized.combatants[0].collapsed).toBeFalse();
 		expect(normalized.combatants[0].spellSlotsCollapsed).toBeTrue();
 		expect(normalized.pendingCombatants).toEqual([]);
+		expect(normalized.lairActions).toEqual([]);
+		expect(normalized.traps).toEqual([]);
+	});
+
+	it('adds lair actions and traps without treating them as combatants', () => {
+		const battle = service.createBattleFromEncounter(template);
+		const withLairAction = service.addLairAction(battle, {
+			name: 'Olho do Covil',
+			initiative: 20,
+			frequency: 'every-round',
+		});
+		const withTrap = service.addTrap(withLairAction, {
+			name: 'Dardos da Parede',
+			triggerType: 'initiative',
+			initiative: 10,
+			frequency: 'once',
+		});
+
+		expect(withTrap.combatants).toHaveSize(2);
+		expect(service.getInitiativeEligibleCombatants(withTrap)).toHaveSize(2);
+		expect(withTrap.lairActions).toHaveSize(1);
+		expect(withTrap.traps).toHaveSize(1);
 	});
 
 	it('queues added combatants for the next round and activates them on round advance', () => {

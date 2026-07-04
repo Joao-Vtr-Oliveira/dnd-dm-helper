@@ -1,11 +1,10 @@
 // src/app/pages/world-calendar/world-calendar.ts
-import { Component, computed, effect, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import {
 	EPOCH_DATE,
 	addDays,
-	addHours,
 	buildSeasonGrid,
 	getEventsForDate,
 	getMoonInfo,
@@ -16,10 +15,10 @@ import {
 import type { MoonPhase, Season, WorldDate } from '../../models/calendar-model';
 import { SEASONS } from '../../utils/calendar-utils/calendar-constants';
 import { FormsModule } from '@angular/forms';
+import { WorldClockService } from '../../services/WorldClockService/world-clock-service';
 
 type WeekRow = (CalendarDayCell | null)[];
 
-const STORAGE_KEY = 'dmh.currentWorldDate';
 const SEASON_ORDER: Season[] = ['spring', 'summer', 'autumn', 'winter'];
 const DEFAULT_HOUR = 5;
 const DEFAULT_MINUTE = 0;
@@ -31,7 +30,9 @@ const DEFAULT_MINUTE = 0;
 	templateUrl: './calendar.html',
 })
 export class Calendar {
-	current = signal<WorldDate>(EPOCH_DATE);
+	private readonly worldClock = inject(WorldClockService);
+
+	current = this.worldClock.current;
 	selected = signal<WorldDate>(EPOCH_DATE);
 
 	jumpYearInput = EPOCH_DATE.year;
@@ -113,28 +114,22 @@ export class Calendar {
 	});
 
 	constructor() {
-		const raw = localStorage.getItem(STORAGE_KEY);
-		if (raw) {
-			try {
-				const parsed = JSON.parse(raw) as WorldDate;
-				this.current.set(parsed);
-				this.selected.set(parsed);
-			} catch {}
-		}
-
 		const start = this.current();
+		this.selected.set(start);
 		this.jumpYearInput = start.year;
 		this.jumpSeasonInput = start.season;
 		this.jumpDayInput = start.day;
 
 		effect(() => {
 			const d = this.current();
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+			this.jumpYearInput = d.year;
+			this.jumpSeasonInput = d.season;
+			this.jumpDayInput = d.day;
 		});
 	}
 
 	private setCurrent(updater: (d: WorldDate) => WorldDate) {
-		this.current.update(updater);
+		this.worldClock.setDate(updater(this.current()));
 		this.selected.set(this.current());
 	}
 
@@ -154,7 +149,8 @@ export class Calendar {
 	}
 
 	changeHour(delta: number) {
-		this.setCurrent((d) => addHours(d, delta));
+		this.worldClock.advanceHours(delta);
+		this.selected.set(this.current());
 	}
 
 	resetTime() {
@@ -185,6 +181,12 @@ export class Calendar {
 
 			return { ...d, year, season, day };
 		});
+	}
+
+	setSeason(season: Season) {
+		this.worldClock.setSeason(season);
+		this.selected.set(this.current());
+		this.jumpSeasonInput = season;
 	}
 
 	selectCell(cell: CalendarDayCell | null) {
@@ -232,7 +234,7 @@ export class Calendar {
 		const season = this.jumpSeasonInput || base.season;
 
 		const next: WorldDate = { ...base, year, season, day };
-		this.current.set(next);
+		this.worldClock.setDate(next);
 		this.selected.set(next);
 	}
 }

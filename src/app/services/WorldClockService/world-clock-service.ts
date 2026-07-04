@@ -1,7 +1,7 @@
 // src/app/services/world-clock/world-clock.service.ts
 
 import { Injectable, effect, signal } from '@angular/core';
-import type { WorldDate } from '../../models/calendar-model';
+import type { Season, WorldDate } from '../../models/calendar-model';
 import {
 	EPOCH_DATE,
 	addDays,
@@ -62,6 +62,10 @@ export class WorldClockService {
 
 	setDate(d: WorldDate) {
 		this.current.set({ ...d });
+	}
+
+	setSeason(season: Season) {
+		this.current.update((d) => ({ ...d, season }));
 	}
 
 	reset() {

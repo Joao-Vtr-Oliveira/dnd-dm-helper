@@ -3,15 +3,18 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import type {
-	BattleAbilityRechargeType,
+	BattleAbilityRecoveryType,
 	BattleCombatant,
 	BattleCombatantSide,
 	BattleCondition,
 	BattleConditionDurationType,
 	BattleConditionPreset,
 	BattleEncounter,
+	BattleLairAction,
 	BattleSpecialAbility,
 	BattleSpellSlotLevel,
+	BattleTrap,
+	BattleUpcomingEvent,
 } from '../../models/battle-encounter-model';
 import type {
 	CreatureInterface,
@@ -20,8 +23,11 @@ import type {
 } from '../../models/battleTracker-model';
 import {
 	BattleEncounterService,
+	type CreateBattleLairActionInput,
+	type CreateBattleTrapInput,
 	DEFAULT_BATTLE_CONDITIONS,
 } from '../../services/battle-encounter-service/battle-encounter-service';
+import { BattleUpcomingEventsService } from '../../services/battle-upcoming-events-service/battle-upcoming-events-service';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 import {
 	LocalStorageService,
@@ -46,9 +52,27 @@ type ConditionDraft = {
 type AbilityDraft = {
 	name: string;
 	description: string;
-	rechargeType: BattleAbilityRechargeType;
+	recoveryType: BattleAbilityRecoveryType;
+	maxUses: string;
 	cooldownValue: string;
 	rechargeOn: string;
+};
+
+type LairActionDraft = {
+	name: string;
+	description: string;
+	initiative: string;
+	frequency: CreateBattleLairActionInput['frequency'];
+	cooldownRounds: string;
+};
+
+type TrapDraft = {
+	name: string;
+	description: string;
+	triggerType: CreateBattleTrapInput['triggerType'];
+	initiative: string;
+	frequency: CreateBattleTrapInput['frequency'];
+	cooldownRounds: string;
 };
 
 type AddCombatantDraft = {
@@ -82,6 +106,7 @@ export class BattleTrackerPage {
 	private readonly router = inject(Router);
 	private readonly battleStorage = inject(BattleEncounterStorageService);
 	private readonly battleService = inject(BattleEncounterService);
+	private readonly battleUpcomingEventsService = inject(BattleUpcomingEventsService);
 	private readonly localStorageService = inject(LocalStorageService);
 	private readonly dndApi = inject(Dnd5eApiService);
 	private readonly creatureTemplateService = inject(CreatureTemplateService);
@@ -96,6 +121,8 @@ export class BattleTrackerPage {
 	readonly healingDrafts = signal<Record<string, string>>({});
 	readonly conditionDrafts = signal<Record<string, ConditionDraft>>({});
 	readonly abilityDrafts = signal<Record<string, AbilityDraft>>({});
+	readonly lairActionDraft = signal<LairActionDraft>(this.createLairActionDraft());
+	readonly trapDraft = signal<TrapDraft>(this.createTrapDraft());
 	readonly initiativeDrafts = signal<Record<string, string>>({});
 	readonly toast = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 	readonly confirmModal = signal<ConfirmModalState | null>(null);
@@ -131,6 +158,11 @@ export class BattleTrackerPage {
 		return this.battleService.getCurrentTurnElapsedSeconds(battle, new Date(this.now()));
 	});
 	readonly turnHistory = computed(() => this.battle()?.turnHistory ?? []);
+	readonly upcomingEvents = computed<BattleUpcomingEvent[]>(() => {
+		const battle = this.battle();
+		if (!battle) return [];
+		return this.battleUpcomingEventsService.buildUpcomingBattleEvents(battle, 8);
+	});
 	readonly battleStatusLabel = computed(() => {
 		const status = this.battle()?.status;
 		if (status === 'paused') return 'Pausada';
@@ -399,7 +431,8 @@ export class BattleTrackerPage {
 			this.abilityDrafts()[combatantId] ?? {
 				name: '',
 				description: '',
-				rechargeType: 'manual',
+				recoveryType: 'manual',
+				maxUses: '1',
 				cooldownValue: '1',
 				rechargeOn: '5,6',
 			}
@@ -425,6 +458,7 @@ export class BattleTrackerPage {
 		}
 
 		const cooldownValue = Math.max(1, this.parseNonNegativeInt(draft.cooldownValue) || 1);
+		const maxUses = Math.max(1, this.parseNonNegativeInt(draft.maxUses) || 1);
 		const rechargeOn = draft.rechargeOn
 			.split(',')
 			.map((item) => this.parseNonNegativeInt(item))
@@ -434,11 +468,18 @@ export class BattleTrackerPage {
 			this.battleService.addSpecialAbility(battle, combatantId, {
 				name,
 				description: draft.description,
-				rechargeType: draft.rechargeType,
-				cooldownTurns: draft.rechargeType === 'turns' ? cooldownValue : undefined,
-				cooldownRounds: draft.rechargeType === 'rounds' ? cooldownValue : undefined,
-				rechargeDice: draft.rechargeType === 'dice' ? 'd6' : undefined,
-				rechargeOn: draft.rechargeType === 'dice' ? rechargeOn : undefined,
+				recoveryType: draft.recoveryType,
+				maxUses:
+					draft.recoveryType === 'uses-per-day' ||
+					draft.recoveryType === 'short-rest' ||
+					draft.recoveryType === 'long-rest'
+						? maxUses
+						: undefined,
+				cooldownTurns: draft.recoveryType === 'turn-cooldown' ? cooldownValue : undefined,
+				cooldownRounds:
+					draft.recoveryType === 'round-cooldown' ? cooldownValue : undefined,
+				rechargeDice: draft.recoveryType === 'dice-recharge' ? 'd6' : undefined,
+				rechargeOn: draft.recoveryType === 'dice-recharge' ? rechargeOn : undefined,
 			})
 		);
 
@@ -447,7 +488,8 @@ export class BattleTrackerPage {
 			[combatantId]: {
 				name: '',
 				description: '',
-				rechargeType: 'manual',
+				recoveryType: 'manual',
+				maxUses: '1',
 				cooldownValue: '1',
 				rechargeOn: '5,6',
 			},
@@ -488,6 +530,167 @@ export class BattleTrackerPage {
 
 	abilityStatusLabel(ability: BattleSpecialAbility): string {
 		return this.battleService.describeAbilityStatus(ability);
+	}
+
+	abilityUsageLabel(ability: BattleSpecialAbility): string | null {
+		return this.battleService.describeAbilityUsage(ability);
+	}
+
+	abilityRecoveryLabel(ability: BattleSpecialAbility): string {
+		return this.battleService.describeAbilityRecovery(ability);
+	}
+
+	abilityRuleLabel(ability: BattleSpecialAbility): string | null {
+		return this.battleService.describeAbilityRule(ability);
+	}
+
+	abilityLastUsedLabel(ability: BattleSpecialAbility): string | null {
+		return this.battleService.describeAbilityLastUsed(ability);
+	}
+
+	abilityResetLabel(ability: BattleSpecialAbility): string {
+		if (ability.recoveryType === 'short-rest') return 'Resetar usos';
+		if (ability.recoveryType === 'long-rest') return 'Resetar usos';
+		if (ability.recoveryType === 'uses-per-day') return 'Resetar usos';
+		if (ability.recoveryType === 'manual' && !ability.isAvailable) return 'Marcar disponível';
+		return 'Resetar';
+	}
+
+	abilityUseLabel(ability: BattleSpecialAbility): string {
+		if (ability.recoveryType === 'manual') return 'Marcar usado';
+		return 'Usar';
+	}
+
+	canUseAbility(ability: BattleSpecialAbility): boolean {
+		return ability.isAvailable;
+	}
+
+	setLairActionDraft(patch: Partial<LairActionDraft>) {
+		this.lairActionDraft.update((draft) => ({ ...draft, ...patch }));
+	}
+
+	addLairAction() {
+		const draft = this.lairActionDraft();
+		if (!draft.name.trim()) {
+			this.showToast('error', 'Informe o nome da lair action.');
+			return;
+		}
+
+		this.updateBattle((battle) =>
+			this.battleService.addLairAction(battle, {
+				name: draft.name,
+				description: draft.description,
+				initiative: this.parseInitiativeInput(draft.initiative || '20'),
+				frequency: draft.frequency,
+				cooldownRounds:
+					draft.frequency === 'cooldown-rounds'
+						? Math.max(1, this.parseNonNegativeInt(draft.cooldownRounds) || 1)
+						: undefined,
+			}),
+		);
+
+		this.lairActionDraft.set(this.createLairActionDraft());
+	}
+
+	triggerLairAction(actionId: string) {
+		this.updateBattle((battle) => this.battleService.triggerLairAction(battle, actionId));
+	}
+
+	toggleLairAction(actionId: string, active: boolean) {
+		this.updateBattle((battle) => this.battleService.updateLairActionActive(battle, actionId, active));
+	}
+
+	removeLairAction(actionId: string) {
+		this.updateBattle((battle) => this.battleService.removeLairAction(battle, actionId));
+	}
+
+	setTrapDraft(patch: Partial<TrapDraft>) {
+		this.trapDraft.update((draft) => ({ ...draft, ...patch }));
+	}
+
+	addTrap() {
+		const draft = this.trapDraft();
+		if (!draft.name.trim()) {
+			this.showToast('error', 'Informe o nome da armadilha.');
+			return;
+		}
+
+		this.updateBattle((battle) =>
+			this.battleService.addTrap(battle, {
+				name: draft.name,
+				description: draft.description,
+				triggerType: draft.triggerType,
+				initiative:
+					draft.triggerType === 'initiative'
+						? this.parseInitiativeInput(draft.initiative || '20')
+						: undefined,
+				frequency: draft.frequency,
+				cooldownRounds:
+					draft.frequency === 'cooldown-rounds'
+						? Math.max(1, this.parseNonNegativeInt(draft.cooldownRounds) || 1)
+						: undefined,
+			}),
+		);
+
+		this.trapDraft.set(this.createTrapDraft());
+	}
+
+	triggerTrap(trapId: string) {
+		this.updateBattle((battle) => this.battleService.triggerTrap(battle, trapId));
+	}
+
+	toggleTrap(trapId: string, active: boolean) {
+		this.updateBattle((battle) => this.battleService.updateTrapActive(battle, trapId, active));
+	}
+
+	removeTrap(trapId: string) {
+		this.updateBattle((battle) => this.battleService.removeTrap(battle, trapId));
+	}
+
+	eventActorLabel(event: BattleUpcomingEvent): string {
+		if (event.type === 'lair-action') return 'Ação de covil';
+		if (event.type === 'trap') return 'Armadilha';
+		if (event.type === 'condition-expire') return 'Condição expira';
+		if (event.type === 'ability-recharge') return 'Habilidade disponível';
+		if (event.type === 'round-start') return 'Início do round';
+		if (event.type === 'pending-combatant') return 'Entrada na iniciativa';
+		return 'Próximo turno';
+	}
+
+	abilityAvailabilityClasses(ability: BattleSpecialAbility): string {
+		if (ability.isAvailable) return 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100';
+		if (ability.recoveryType === 'uses-per-day') return 'border-rose-400/30 bg-rose-500/10 text-rose-100';
+		if (ability.recoveryType === 'turn-cooldown' || ability.recoveryType === 'round-cooldown') {
+			return 'border-amber-400/30 bg-amber-500/10 text-amber-100';
+		}
+		return 'border-slate-300/20 bg-slate-500/10 text-slate-100';
+	}
+
+	encounterEventFrequencyLabel(event: BattleLairAction | BattleTrap): string {
+		if (event.frequency === 'every-round') return 'Todo round';
+		if (event.frequency === 'once') return 'Uma vez';
+		if (event.frequency === 'cooldown-rounds') {
+			const remaining = Math.max(0, event.currentCooldownRounds ?? 0);
+			if (remaining > 0) {
+				return remaining === 1 ? 'Volta em 1 round' : `Volta em ${remaining} rounds`;
+			}
+			const cooldown = Math.max(1, event.cooldownRounds ?? 1);
+			return cooldown === 1 ? 'Cooldown de 1 round' : `Cooldown de ${cooldown} rounds`;
+		}
+		return 'Manual';
+	}
+
+	lairActionScheduleLabel(action: BattleLairAction): string {
+		return `${this.encounterEventFrequencyLabel(action)} na iniciativa ${action.initiative}`;
+	}
+
+	trapScheduleLabel(trap: BattleTrap): string {
+		if (trap.triggerType === 'initiative') {
+			return `${this.encounterEventFrequencyLabel(trap)} na iniciativa ${trap.initiative ?? 20}`;
+		}
+		if (trap.triggerType === 'round-start') return `${this.encounterEventFrequencyLabel(trap)} no início do round`;
+		if (trap.triggerType === 'round-end') return `${this.encounterEventFrequencyLabel(trap)} no fim do round`;
+		return 'Manual';
 	}
 
 	enableSpellSlots(combatantId: string) {
@@ -878,6 +1081,27 @@ export class BattleTrackerPage {
 			maxHp: '0',
 			armorClass: '',
 			initiative: '0',
+		};
+	}
+
+	private createLairActionDraft(): LairActionDraft {
+		return {
+			name: '',
+			description: '',
+			initiative: '20',
+			frequency: 'every-round',
+			cooldownRounds: '1',
+		};
+	}
+
+	private createTrapDraft(): TrapDraft {
+		return {
+			name: '',
+			description: '',
+			triggerType: 'initiative',
+			initiative: '20',
+			frequency: 'once',
+			cooldownRounds: '1',
 		};
 	}
 

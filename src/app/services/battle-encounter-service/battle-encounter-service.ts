@@ -6,8 +6,10 @@ import type {
 	BattleConditionPreset,
 	BattleEncounter,
 	BattleEncounterCreateOptions,
+	BattleLairAction,
 	BattleSpecialAbility,
 	BattleSpellSlotLevel,
+	BattleTrap,
 	BattleTurnLogEntry,
 	EncounterTemplate,
 } from '../../models/battle-encounter-model';
@@ -48,9 +50,32 @@ type AddCombatantOverrides = {
 	sourceSheetId?: string;
 };
 
+export type CreateBattleLairActionInput = {
+	name: string;
+	description?: string;
+	initiative?: number;
+	frequency: BattleLairAction['frequency'];
+	cooldownRounds?: number;
+};
+
+export type CreateBattleTrapInput = {
+	name: string;
+	description?: string;
+	triggerType: BattleTrap['triggerType'];
+	initiative?: number;
+	frequency: BattleTrap['frequency'];
+	cooldownRounds?: number;
+};
+
 type RoundStartResolution = {
 	combatants: BattleCombatant[];
 	pendingCombatants: BattleCombatant[];
+	messages: string[];
+};
+
+type EncounterEventAdvanceResult = {
+	lairActions: BattleLairAction[];
+	traps: BattleTrap[];
 	messages: string[];
 };
 
@@ -102,12 +127,14 @@ export class BattleEncounterService {
 			currentTurnElapsedSeconds: 0,
 			combatants,
 			pendingCombatants: [],
+			lairActions: [],
+			traps: [],
 			turnHistory: [],
 			dmNotes: '',
 		};
 	}
 
-	normalizeBattleEncounter(raw: Partial<BattleEncounter>): BattleEncounter {
+		normalizeBattleEncounter(raw: Partial<BattleEncounter>): BattleEncounter {
 		const createdAt = this.normalizeIso(raw.createdAt);
 		const updatedAt = this.normalizeIso(raw.updatedAt ?? raw.createdAt);
 		const combatants = this.orderCombatants(
@@ -121,6 +148,12 @@ export class BattleEncounterService {
 						pendingAdd: true,
 					}),
 				)
+			: [];
+		const lairActions = Array.isArray(raw.lairActions)
+			? raw.lairActions.map((action, index) => this.normalizeLairAction(action, index))
+			: [];
+		const traps = Array.isArray(raw.traps)
+			? raw.traps.map((trap, index) => this.normalizeTrap(trap, index))
 			: [];
 
 		return {
@@ -147,6 +180,8 @@ export class BattleEncounterService {
 			currentTurnElapsedSeconds: this.toNonNegativeInt(raw.currentTurnElapsedSeconds),
 			combatants,
 			pendingCombatants,
+			lairActions,
+			traps,
 			turnHistory: this.normalizeTurnHistory(raw.turnHistory),
 			dmNotes: typeof raw.dmNotes === 'string' ? raw.dmNotes : '',
 		};
@@ -282,6 +317,11 @@ export class BattleEncounterService {
 			startExpire.combatants,
 			roundAdvanced,
 		);
+		const encounterEventAdvance = this.advanceEncounterEventCooldowns(
+			battle.lairActions,
+			battle.traps,
+			roundAdvanced,
+		);
 
 		const turnHistory = [...battle.turnHistory];
 		if (currentCombatant) {
@@ -295,6 +335,7 @@ export class BattleEncounterService {
 			...roundStartMessages,
 			...startExpire.messages,
 			...cooldownAdvance.messages,
+			...encounterEventAdvance.messages,
 		]) {
 			turnHistory.push(
 				this.createSystemHistoryEntry(
@@ -317,6 +358,8 @@ export class BattleEncounterService {
 			currentTurnElapsedSeconds: 0,
 			combatants: cooldownAdvance.combatants,
 			pendingCombatants: nextPendingCombatants,
+			lairActions: encounterEventAdvance.lairActions,
+			traps: encounterEventAdvance.traps,
 			turnHistory,
 		};
 	}
@@ -486,10 +529,13 @@ export class BattleEncounterService {
 						...ability,
 						id: this.createId(),
 						isAvailable: true,
+						usedCount: 0,
 						currentCooldownRounds: 0,
 						currentCooldownTurns: 0,
 						lastUsedAtRound: undefined,
 						lastUsedAtTurnIndex: undefined,
+						lastUsedAt: undefined,
+						lastRechargeRoll: undefined,
 					}),
 				),
 				conditions: [],
@@ -782,7 +828,190 @@ export class BattleEncounterService {
 	}
 
 	describeAbilityStatus(ability: BattleSpecialAbility): string {
-		return this.abilityService.describeAbility(ability);
+		return this.abilityService.describeAbilityStatus(ability);
+	}
+
+	describeAbilityUsage(ability: BattleSpecialAbility): string | null {
+		return this.abilityService.describeAbilityUsage(ability);
+	}
+
+	describeAbilityRecovery(ability: BattleSpecialAbility): string {
+		return this.abilityService.describeAbilityRecovery(ability);
+	}
+
+	describeAbilityRule(ability: BattleSpecialAbility): string | null {
+		return this.abilityService.describeAbilityRule(ability);
+	}
+
+	describeAbilityLastUsed(ability: BattleSpecialAbility): string | null {
+		return this.abilityService.describeAbilityLastUsed(ability);
+	}
+
+	addLairAction(battle: BattleEncounter, input: CreateBattleLairActionInput): BattleEncounter {
+		const action: BattleLairAction = {
+			id: this.createId(),
+			name: input.name.trim() || 'Lair Action',
+			description: (input.description || '').trim() || undefined,
+			initiative: this.toFiniteNumber(input.initiative ?? 20),
+			active: true,
+			frequency: input.frequency,
+			cooldownRounds:
+				input.frequency === 'cooldown-rounds'
+					? Math.max(1, this.toNonNegativeInt(input.cooldownRounds) || 1)
+					: undefined,
+			currentCooldownRounds: 0,
+		};
+
+		return {
+			...battle,
+			updatedAt: this.toIso(new Date()),
+			lairActions: [...battle.lairActions, action],
+		};
+	}
+
+	updateLairActionActive(
+		battle: BattleEncounter,
+		actionId: string,
+		active: boolean,
+	): BattleEncounter {
+		return {
+			...battle,
+			updatedAt: this.toIso(new Date()),
+			lairActions: battle.lairActions.map((action) =>
+				action.id === actionId ? { ...action, active } : action,
+			),
+		};
+	}
+
+	triggerLairAction(battle: BattleEncounter, actionId: string, now = new Date()): BattleEncounter {
+		const timestamp = this.toIso(now);
+		let triggeredName: string | null = null;
+		const lairActions = battle.lairActions.map((action) => {
+			if (action.id !== actionId || !action.active || (action.currentCooldownRounds ?? 0) > 0) {
+				return action;
+			}
+			triggeredName = action.name;
+			if (action.frequency === 'cooldown-rounds') {
+				return {
+					...action,
+					currentCooldownRounds: Math.max(1, action.cooldownRounds ?? 1),
+					lastTriggeredAtRound: battle.round,
+				};
+			}
+			return {
+				...action,
+				lastTriggeredAtRound: battle.round,
+			};
+		});
+
+		if (!triggeredName) return battle;
+		return {
+			...battle,
+			updatedAt: timestamp,
+			lairActions,
+			turnHistory: [
+				...battle.turnHistory,
+				this.createSystemHistoryEntry(
+					{ round: battle.round, turnIndex: Math.max(0, battle.activeTurnIndex) },
+					timestamp,
+					`Ação de covil executada: ${triggeredName}.`,
+				),
+			],
+		};
+	}
+
+	removeLairAction(battle: BattleEncounter, actionId: string): BattleEncounter {
+		return {
+			...battle,
+			updatedAt: this.toIso(new Date()),
+			lairActions: battle.lairActions.filter((action) => action.id !== actionId),
+		};
+	}
+
+	addTrap(battle: BattleEncounter, input: CreateBattleTrapInput): BattleEncounter {
+		const trap: BattleTrap = {
+			id: this.createId(),
+			name: input.name.trim() || 'Armadilha',
+			description: (input.description || '').trim() || undefined,
+			triggerType: input.triggerType,
+			initiative:
+				input.triggerType === 'initiative'
+					? this.toFiniteNumber(input.initiative ?? 20)
+					: undefined,
+			active: true,
+			frequency: input.frequency,
+			cooldownRounds:
+				input.frequency === 'cooldown-rounds'
+					? Math.max(1, this.toNonNegativeInt(input.cooldownRounds) || 1)
+					: undefined,
+			currentCooldownRounds: 0,
+		};
+
+		return {
+			...battle,
+			updatedAt: this.toIso(new Date()),
+			traps: [...battle.traps, trap],
+		};
+	}
+
+	updateTrapActive(battle: BattleEncounter, trapId: string, active: boolean): BattleEncounter {
+		return {
+			...battle,
+			updatedAt: this.toIso(new Date()),
+			traps: battle.traps.map((trap) => (trap.id === trapId ? { ...trap, active } : trap)),
+		};
+	}
+
+	triggerTrap(battle: BattleEncounter, trapId: string, now = new Date()): BattleEncounter {
+		const timestamp = this.toIso(now);
+		let triggeredName: string | null = null;
+		const traps = battle.traps.map((trap) => {
+			if (trap.id !== trapId || !trap.active || (trap.currentCooldownRounds ?? 0) > 0) {
+				return trap;
+			}
+			triggeredName = trap.name;
+			if (trap.frequency === 'once') {
+				return {
+					...trap,
+					active: false,
+					lastTriggeredAtRound: battle.round,
+				};
+			}
+			if (trap.frequency === 'cooldown-rounds') {
+				return {
+					...trap,
+					currentCooldownRounds: Math.max(1, trap.cooldownRounds ?? 1),
+					lastTriggeredAtRound: battle.round,
+				};
+			}
+			return {
+				...trap,
+				lastTriggeredAtRound: battle.round,
+			};
+		});
+
+		if (!triggeredName) return battle;
+		return {
+			...battle,
+			updatedAt: timestamp,
+			traps,
+			turnHistory: [
+				...battle.turnHistory,
+				this.createSystemHistoryEntry(
+					{ round: battle.round, turnIndex: Math.max(0, battle.activeTurnIndex) },
+					timestamp,
+					`Armadilha disparada: ${triggeredName}.`,
+				),
+			],
+		};
+	}
+
+	removeTrap(battle: BattleEncounter, trapId: string): BattleEncounter {
+		return {
+			...battle,
+			updatedAt: this.toIso(new Date()),
+			traps: battle.traps.filter((trap) => trap.id !== trapId),
+		};
 	}
 
 	enableSpellSlots(battle: BattleEncounter, combatantId: string): BattleEncounter {
@@ -957,6 +1186,59 @@ export class BattleEncounterService {
 		};
 	}
 
+	private normalizeLairAction(raw: Partial<BattleLairAction>, sourceIndex: number): BattleLairAction {
+		const frequency =
+			raw.frequency === 'every-round' || raw.frequency === 'cooldown-rounds' || raw.frequency === 'manual'
+				? raw.frequency
+				: 'every-round';
+		return {
+			id: typeof raw.id === 'string' ? raw.id : `lair-action-${sourceIndex + 1}`,
+			name: typeof raw.name === 'string' ? raw.name : `Lair Action ${sourceIndex + 1}`,
+			description: typeof raw.description === 'string' ? raw.description : undefined,
+			initiative: this.toFiniteNumber(raw.initiative ?? 20),
+			active: raw.active !== false,
+			frequency,
+			cooldownRounds:
+				frequency === 'cooldown-rounds'
+					? Math.max(1, this.toNonNegativeInt(raw.cooldownRounds) || 1)
+					: undefined,
+			currentCooldownRounds: this.toNonNegativeInt(raw.currentCooldownRounds),
+			lastTriggeredAtRound: this.toPositiveIntOrUndefined(raw.lastTriggeredAtRound),
+		};
+	}
+
+	private normalizeTrap(raw: Partial<BattleTrap>, sourceIndex: number): BattleTrap {
+		const triggerType =
+			raw.triggerType === 'initiative' ||
+			raw.triggerType === 'round-start' ||
+			raw.triggerType === 'round-end' ||
+			raw.triggerType === 'manual'
+				? raw.triggerType
+				: 'manual';
+		const frequency =
+			raw.frequency === 'once' ||
+			raw.frequency === 'every-round' ||
+			raw.frequency === 'cooldown-rounds' ||
+			raw.frequency === 'manual'
+				? raw.frequency
+				: 'manual';
+		return {
+			id: typeof raw.id === 'string' ? raw.id : `trap-${sourceIndex + 1}`,
+			name: typeof raw.name === 'string' ? raw.name : `Armadilha ${sourceIndex + 1}`,
+			description: typeof raw.description === 'string' ? raw.description : undefined,
+			triggerType,
+			initiative: triggerType === 'initiative' ? this.toFiniteNumber(raw.initiative ?? 20) : undefined,
+			active: raw.active !== false,
+			frequency,
+			cooldownRounds:
+				frequency === 'cooldown-rounds'
+					? Math.max(1, this.toNonNegativeInt(raw.cooldownRounds) || 1)
+					: undefined,
+			currentCooldownRounds: this.toNonNegativeInt(raw.currentCooldownRounds),
+			lastTriggeredAtRound: this.toPositiveIntOrUndefined(raw.lastTriggeredAtRound),
+		};
+	}
+
 	private createCombatantFromCreature(
 		creature: CreatureInterface,
 		sourceIndex: number,
@@ -1093,10 +1375,18 @@ export class BattleEncounterService {
 				id: ability.id || `creature-ability-${index + 1}`,
 				name: ability.name || `Habilidade ${index + 1}`,
 				description: ability.description,
+				recoveryType:
+					ability.rechargeType === 'turns'
+						? 'turn-cooldown'
+						: ability.rechargeType === 'rounds'
+							? 'round-cooldown'
+							: ability.rechargeType === 'dice'
+								? 'dice-recharge'
+								: 'manual',
 				rechargeType: ability.rechargeType,
 				cooldownTurns: ability.cooldownTurns,
 				cooldownRounds: ability.cooldownRounds,
-				rechargeDice: ability.rechargeDice,
+				rechargeDice: ability.rechargeType === 'dice' ? 'd6' : undefined,
 				rechargeOn: ability.rechargeOn,
 				isAvailable: true,
 				currentCooldownRounds: 0,
@@ -1377,6 +1667,51 @@ export class BattleEncounterService {
 		};
 	}
 
+	private advanceEncounterEventCooldowns(
+		lairActions: BattleLairAction[],
+		traps: BattleTrap[],
+		roundAdvanced: boolean,
+	): EncounterEventAdvanceResult {
+		if (!roundAdvanced) {
+			return {
+				lairActions,
+				traps,
+				messages: [],
+			};
+		}
+
+		const messages: string[] = [];
+		const nextLairActions = lairActions.map((action) => {
+			if ((action.currentCooldownRounds ?? 0) <= 0) return action;
+			const remaining = Math.max(0, (action.currentCooldownRounds ?? 0) - 1);
+			if (remaining === 0) {
+				messages.push(`Ação de covil disponível novamente: ${action.name}.`);
+			}
+			return {
+				...action,
+				currentCooldownRounds: remaining,
+			};
+		});
+
+		const nextTraps = traps.map((trap) => {
+			if ((trap.currentCooldownRounds ?? 0) <= 0) return trap;
+			const remaining = Math.max(0, (trap.currentCooldownRounds ?? 0) - 1);
+			if (remaining === 0) {
+				messages.push(`Armadilha disponível novamente: ${trap.name}.`);
+			}
+			return {
+				...trap,
+				currentCooldownRounds: remaining,
+			};
+		});
+
+		return {
+			lairActions: nextLairActions,
+			traps: nextTraps,
+			messages,
+		};
+	}
+
 	private findCombatant(battle: BattleEncounter, combatantId: string): BattleCombatant | null {
 		return (
 			battle.combatants.find((combatant) => combatant.id === combatantId) ??
@@ -1425,6 +1760,11 @@ export class BattleEncounterService {
 		const numeric = Number(value);
 		if (!Number.isFinite(numeric)) return 0;
 		return Math.max(0, Math.floor(numeric));
+	}
+
+	private toPositiveIntOrUndefined(value: unknown): number | undefined {
+		const numeric = this.toNonNegativeInt(value);
+		return numeric > 0 ? numeric : undefined;
 	}
 
 	private toFiniteNumber(value: unknown): number {

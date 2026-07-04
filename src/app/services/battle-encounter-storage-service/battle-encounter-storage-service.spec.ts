@@ -105,13 +105,21 @@ describe('BattleEncounterStorageService', () => {
 							turnOrder: 0,
 							maxHp: 10,
 							currentHp: 10,
-							temporaryHp: 0,
-							defeated: false,
-							hidden: false,
-							conditions: [],
-						},
-					],
-					turnHistory: [],
+						temporaryHp: 0,
+						defeated: false,
+						hidden: false,
+						conditions: [],
+						specialAbilities: [
+							{
+								id: 'legacy-ability',
+								name: 'Legacy Breath',
+								rechargeType: 'dice',
+								isAvailable: false,
+							},
+						],
+					},
+				],
+				turnHistory: [],
 				},
 			])
 		);
@@ -119,7 +127,9 @@ describe('BattleEncounterStorageService', () => {
 		const loaded = service.getBattleEncounterById('old-battle');
 
 		expect(loaded?.combatants[0].side).toBe('enemy');
-		expect(loaded?.combatants[0].specialAbilities).toEqual([]);
+		expect(loaded?.combatants[0].specialAbilities[0].recoveryType).toBe('dice-recharge');
 		expect(loaded?.combatants[0].spellSlots).toEqual([]);
+		expect(loaded?.lairActions).toEqual([]);
+		expect(loaded?.traps).toEqual([]);
 	});
 });

@@ -154,7 +154,8 @@
 					<span class="opacity-70">Estação</span>
 					<select
 						class="mt-1 w-full rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm"
-						[(ngModel)]="jumpSeasonInput"
+						[ngModel]="jumpSeasonInput"
+						(ngModelChange)="setSeason($event)"
 					>
 						<option value="spring">Primavera</option>
 						<option value="summer">Verão</option>
