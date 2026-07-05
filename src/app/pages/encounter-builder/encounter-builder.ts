@@ -28,6 +28,7 @@ import {
 import { ApiResourceListItem, Dnd5eApiService } from '../../services/dnd-api/dnd-api';
 import { firstValueFrom } from 'rxjs';
 import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
+import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
 
 type DraftCreature = {
 	name: string;
@@ -94,6 +95,7 @@ export class EncounterBuilder {
 	private router = inject(Router);
 	private ls = inject(LocalStorageService);
 	private creatureTemplateService = inject(CreatureTemplateService);
+	private fiveEToolsHomebrewService = inject(FiveEToolsHomebrewService);
 
 	// --- Homebrew import modal ---
 	homebrewModalOpen = signal(false);
@@ -1085,6 +1087,51 @@ export class EncounterBuilder {
 			}
 		}
 
+		void this.handleFiveEToolsNavigationImport();
 		this.refreshHomebrewSheets();
+	}
+
+	private async handleFiveEToolsNavigationImport() {
+		const importState =
+			(this.router.getCurrentNavigation()?.extras.state as { fiveEToolsImport?: { entityId?: string } } | undefined)
+				?.fiveEToolsImport ??
+			(history.state?.fiveEToolsImport as { entityId?: string } | undefined);
+		const entityId = importState?.entityId;
+		if (!entityId) return;
+
+		window.history.replaceState({ ...history.state, fiveEToolsImport: undefined }, '');
+
+		try {
+			const file = await this.fiveEToolsHomebrewService.loadLocalHomebrewJson();
+			const entity = this.fiveEToolsHomebrewService.getEntityById(file, entityId);
+			if (!entity) {
+				this.showToast({ type: 'error', text: 'Item 5etools nao encontrado no arquivo carregado.' });
+				return;
+			}
+
+			if (entityId.startsWith('monster::')) {
+				this.encounter.update((encounter) => {
+					const next = structuredClone(encounter);
+					const creature = this.fiveEToolsHomebrewService.convertMonsterToCreature(entity as any, next.creatureIdCount);
+					next.creatures.push(creature);
+					next.creatureIdCount += 1;
+					return next;
+				});
+				this.showToast({ type: 'success', text: `${entity.name} adicionado ao encounter a partir do arquivo 5etools.` });
+				return;
+			}
+
+			const trap = this.fiveEToolsHomebrewService.convertTrapToEncounterTrap(entity as any);
+			this.encounter.update((encounter) => ({
+				...structuredClone(encounter),
+				traps: [...(encounter.traps ?? []), trap],
+			}));
+			this.showToast({ type: 'success', text: `${entity.name} adicionado como trap do encounter.` });
+		} catch (error) {
+			this.showToast({
+				type: 'error',
+				text: error instanceof Error ? error.message : 'Erro ao importar item 5etools para o encounter.',
+			});
+		}
 	}
 }

@@ -113,6 +113,10 @@ export class CreatureTemplateService {
 			sheetFeatures: this.normalizeFeatures(raw.sheetFeatures),
 			category: this.normalizeCategory(raw.category),
 			sourceSheetId: typeof raw.sourceSheetId === 'string' ? raw.sourceSheetId : undefined,
+			rawFiveETools:
+				raw.rawFiveETools && typeof raw.rawFiveETools === 'object' && !Array.isArray(raw.rawFiveETools)
+					? structuredClone(raw.rawFiveETools)
+					: undefined,
 		};
 	}
 

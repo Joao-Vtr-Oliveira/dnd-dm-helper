@@ -60,6 +60,10 @@ function normalizeCreature(raw: CreatureInterface): CreatureInterface {
 		usedSpellSlots: raw.usedSpellSlots ?? null,
 		specialAbilities: Array.isArray(raw.specialAbilities) ? raw.specialAbilities : [],
 		sheetFeatures: Array.isArray(raw.sheetFeatures) ? raw.sheetFeatures : [],
+		rawFiveETools:
+			raw.rawFiveETools && typeof raw.rawFiveETools === 'object' && !Array.isArray(raw.rawFiveETools)
+				? structuredClone(raw.rawFiveETools)
+				: undefined,
 	};
 }
 

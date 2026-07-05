@@ -167,6 +167,13 @@
 
 				<button
 					class="h-10 px-4 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
+					(click)="addToFiveETools(e.id)"
+				>
+					Adicionar ao 5etools
+				</button>
+
+				<button
+					class="h-10 px-4 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
 					(click)="duplicate(e.id)"
 				>
 					Duplicar

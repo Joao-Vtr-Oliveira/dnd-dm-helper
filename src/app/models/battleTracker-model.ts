@@ -1,3 +1,5 @@
+import type { FiveEToolsMonster } from './fiveetools-homebrew-model';
+
 // TODO: Create the types, all here or in differents files.
 
 export interface BattleTracker {
@@ -34,6 +36,7 @@ export interface CreatureInterface {
 	sheetFeatures?: CreatureFeature[];
 	category?: CreatureCategory;
 	sourceSheetId?: string;
+	rawFiveETools?: FiveEToolsMonster;
 }
 
 export interface NoteInterface {

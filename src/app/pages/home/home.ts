@@ -112,6 +112,12 @@ export class Home {
 					icon: 'file-pen',
 					path: '/home/homebrew-builder',
 				},
+				{
+					label: 'Arquivo 5etools',
+					description: 'Editor e gerenciador do JSON homebrew 5etools.',
+					icon: 'files',
+					path: '/home/5etools-homebrew',
+				},
 			],
 		},
 		{

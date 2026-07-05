@@ -8,6 +8,7 @@ import {
 	SavedSheetInterface,
 	HomebrewCategory,
 } from '../../services/local-storage-service/local-storage-service';
+import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
 
 type FilterAll<T extends string> = 'all' | T;
 
@@ -20,6 +21,7 @@ type FilterAll<T extends string> = 'all' | T;
 export class HomebrewSheets {
 	private router = inject(Router);
 	private ls = inject(LocalStorageService);
+	private fiveEToolsService = inject(FiveEToolsHomebrewService);
 
 	sheets = signal<SavedSheetInterface[]>(this.ls.listSheets());
 
@@ -60,6 +62,25 @@ export class HomebrewSheets {
 		this.ls.deleteSheet(id);
 		this.refresh();
 		this.showToast({ type: 'success', text: 'Ficha removida.' });
+	}
+
+	async addToFiveETools(id: string) {
+		const sheet = this.sheets().find((item) => item.id === id);
+		if (!sheet) return;
+
+		try {
+			const file = await this.fiveEToolsService.loadLocalHomebrewJson();
+			this.fiveEToolsService.createBackup(file, `Antes de adicionar ficha interna: ${sheet.title}`);
+			const monster = this.fiveEToolsService.convertSheetToMonster(sheet, this.fiveEToolsService.buildSummary(file).primarySource);
+			const next = this.fiveEToolsService.upsertMonster(file, monster);
+			this.fiveEToolsService.saveHomebrewFile(next);
+			this.showToast({ type: 'success', text: 'Ficha adicionada ao arquivo 5etools.' });
+		} catch (error) {
+			this.showToast({
+				type: 'error',
+				text: error instanceof Error ? error.message : 'Erro ao adicionar ficha ao arquivo 5etools.',
+			});
+		}
 	}
 
 	// ---------- helpers ----------

@@ -6,6 +6,7 @@ import { BattleTrackerPage } from './pages/battle-tracker/battle-tracker';
 import { HomebrewSheets } from './pages/homebrew-sheets/homebrew-sheets';
 import { Calendar } from './pages/calendar/calendar';
 import { HomebrewBuilder } from './pages/homebrew-builder/homebrew-builder';
+import { FiveEToolsHomebrewPage } from './pages/fiveetools-homebrew/fiveetools-homebrew';
 
 export const routes: Routes = [
 	{ path: '', redirectTo: 'home/encounter-builder', pathMatch: 'full' },
@@ -20,6 +21,7 @@ export const routes: Routes = [
 			{ path: 'homebrew', component: HomebrewSheets },
 			{ path: 'homebrew-builder', component: HomebrewBuilder },
 			{ path: 'homebrew-builder/:id', component: HomebrewBuilder },
+			{ path: '5etools-homebrew', component: FiveEToolsHomebrewPage },
 			{ path: 'calendar', component: Calendar },
 		],
 	},

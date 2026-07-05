@@ -226,6 +226,10 @@ export class EncounterIoService {
 
 			spells: this.normalizeSpells(rc?.spells),
 			specialAbilities: this.normalizeSpecialAbilities(rc?.specialAbilities),
+			rawFiveETools:
+				rc?.rawFiveETools && typeof rc.rawFiveETools === 'object' && !Array.isArray(rc.rawFiveETools)
+					? structuredClone(rc.rawFiveETools)
+					: undefined,
 		};
 	}
 

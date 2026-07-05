@@ -1,0 +1,406 @@
+<div class="mx-auto w-full max-w-[1760px] space-y-6 px-4 py-6">
+	<div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+		<div>
+			<h2 class="text-2xl font-semibold">Arquivo 5etools</h2>
+			<p class="mt-1 max-w-3xl text-sm opacity-75">
+				Editor local do JSON homebrew da campanha com sync, merge de trechos, preview e export seguro.
+			</p>
+		</div>
+		<div class="flex flex-wrap gap-2">
+			<button class="h-11 rounded-2xl border border-fuchsia-400/25 bg-violet-500/15 px-4 cursor-pointer font-semibold hover:bg-violet-500/20" [disabled]="syncing()" (click)="previewSync()">
+				{{ syncing() ? 'Sincronizando...' : 'Sincronizar JSON 5etools' }}
+			</button>
+			<button class="h-11 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="openImport()">Importar trecho</button>
+			<button class="h-11 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="exportFull()">Exportar JSON 5etools</button>
+			<button class="h-11 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="newMonster()">+ Monster</button>
+			<button class="h-11 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="newTrap()">+ Trap</button>
+		</div>
+	</div>
+
+	<div *ngIf="loading()" class="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm opacity-80">
+		Carregando arquivo 5etools...
+	</div>
+
+	<div *ngIf="summary() as summary">
+		<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+			<div class="rounded-3xl border border-white/10 bg-white/5 p-4">
+				<div class="text-xs uppercase tracking-[0.18em] opacity-60">Source</div>
+				<div class="mt-2 text-2xl font-semibold">{{ summary.primarySource }}</div>
+			</div>
+			<div class="rounded-3xl border border-white/10 bg-white/5 p-4">
+				<div class="text-xs uppercase tracking-[0.18em] opacity-60">siteVersion</div>
+				<div class="mt-2 text-lg font-semibold">{{ summary.siteVersion || 'Nao informado' }}</div>
+			</div>
+			<div class="rounded-3xl border border-white/10 bg-white/5 p-4">
+				<div class="text-xs uppercase tracking-[0.18em] opacity-60">Monstros</div>
+				<div class="mt-2 text-2xl font-semibold">{{ summary.monsterCount }}</div>
+			</div>
+			<div class="rounded-3xl border border-white/10 bg-white/5 p-4">
+				<div class="text-xs uppercase tracking-[0.18em] opacity-60">Traps</div>
+				<div class="mt-2 text-2xl font-semibold">{{ summary.trapCount }}</div>
+			</div>
+			<div class="rounded-3xl border border-white/10 bg-white/5 p-4 md:col-span-2 xl:col-span-1">
+				<div class="text-xs uppercase tracking-[0.18em] opacity-60">Última modificação</div>
+				<div class="mt-2 text-sm font-semibold">{{ formatDate(summary.dateLastModified) }}</div>
+			</div>
+		</div>
+
+		<div class="rounded-3xl border border-white/10 bg-white/5 p-4 space-y-4">
+			<div class="flex flex-col gap-3 xl:flex-row xl:items-end">
+				<label class="block flex-1">
+					<span class="text-xs opacity-70">Buscar</span>
+					<input class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3" [value]="search()" (input)="search.set($any($event.target).value || '')" placeholder="name, alias, group, source, type, traits..." />
+				</label>
+				<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:w-[58rem]">
+					<label class="block">
+						<span class="text-xs opacity-70">Source</span>
+						<select class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-3" [ngModel]="sourceFilter()" (ngModelChange)="sourceFilter.set($event)">
+							<option value="all">Todos</option>
+							<option *ngFor="let source of summary.availableSources" [value]="source">{{ source }}</option>
+						</select>
+					</label>
+					<label class="block">
+						<span class="text-xs opacity-70">Group / tag</span>
+						<select class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-3" [ngModel]="groupFilter()" (ngModelChange)="groupFilter.set($event)">
+							<option value="all">Todos</option>
+							<option *ngFor="let group of summary.availableGroups" [value]="group">{{ group }}</option>
+						</select>
+					</label>
+					<label class="block">
+						<span class="text-xs opacity-70">Tipo de criatura</span>
+						<select class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-3" [ngModel]="creatureTypeFilter()" (ngModelChange)="creatureTypeFilter.set($event)">
+							<option value="all">Todos</option>
+							<option *ngFor="let type of summary.availableCreatureTypes" [value]="type">{{ type }}</option>
+						</select>
+					</label>
+					<label class="block">
+						<span class="text-xs opacity-70">CR</span>
+						<select class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-3" [ngModel]="crFilter()" (ngModelChange)="crFilter.set($event)">
+							<option value="all">Todos</option>
+							<option value="0-1">0-1</option>
+							<option value="2-4">2-4</option>
+							<option value="5-10">5-10</option>
+							<option value="11+">11+</option>
+						</select>
+					</label>
+				</div>
+			</div>
+
+			<div class="flex flex-wrap items-center gap-2">
+				<button *ngFor="let tab of ['all','monster','trap','extras']" class="h-10 rounded-2xl border px-4 cursor-pointer text-sm font-semibold" [class.border-fuchsia-400/25]="collectionTab() === tab" [class.bg-violet-500/15]="collectionTab() === tab" [class.border-white/10]="collectionTab() !== tab" [class.bg-white/5]="collectionTab() !== tab" (click)="setCollectionTab($any(tab))">{{ collectionTabLabel($any(tab)) }}</button>
+				<button class="ml-auto h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="clearFilters()">Limpar filtros</button>
+			</div>
+
+			<div class="flex flex-wrap gap-4 text-sm opacity-75">
+				<span>Monstros: <b>{{ monsterSummaries().length }}</b></span>
+				<span>Traps: <b>{{ trapSummaries().length }}</b></span>
+				<span>Resultados: <b>{{ resultCount() }}</b></span>
+			</div>
+		</div>
+
+		<div class="grid gap-6 2xl:grid-cols-[minmax(0,1.45fr)_minmax(440px,0.95fr)]">
+			<div class="space-y-6">
+				<section *ngIf="collectionTab() === 'all' || collectionTab() === 'monster'" class="space-y-3">
+					<div class="flex items-center justify-between gap-3">
+						<div>
+							<h3 class="text-xl font-semibold">Monstros e fichas</h3>
+							<p class="text-sm opacity-70">Stat blocks do arquivo 5etools prontos para editar, visualizar e usar no encounter.</p>
+						</div>
+						<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">{{ monsterSummaries().length }} itens</span>
+					</div>
+					<div class="grid gap-3 xl:grid-cols-2">
+						<div *ngFor="let entity of monsterSummaries()" class="rounded-3xl border border-white/10 bg-white/5 p-4">
+							<div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+								<div class="min-w-0">
+									<div class="flex flex-wrap items-center gap-2">
+										<span class="rounded-full border border-fuchsia-400/25 bg-violet-500/15 px-2.5 py-1 text-[11px] font-semibold">[Monster]</span>
+										<div class="break-words text-lg font-semibold">{{ entity.name }}</div>
+									</div>
+									<div class="mt-2 flex flex-wrap gap-3 text-xs opacity-75">
+										<span>{{ entity.source }}</span>
+										<span *ngIf="entity.creatureType">{{ entity.creatureType }}</span>
+										<span *ngIf="entity.cr">CR {{ entity.cr }}</span>
+										<span *ngIf="entity.level != null">Nível {{ entity.level }}</span>
+										<span *ngIf="entity.acLabel">CA {{ entity.acLabel }}</span>
+										<span *ngIf="entity.hpAverage != null">HP {{ entity.hpAverage }}</span>
+									</div>
+									<div *ngIf="entity.groups.length" class="mt-2 flex flex-wrap gap-2">
+										<span *ngFor="let group of entity.groups" class="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[11px]">{{ group }}</span>
+									</div>
+									<div *ngIf="entity.firstDetailTitle || entity.firstDetailText" class="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm">
+										<div *ngIf="entity.firstDetailTitle" class="font-semibold">{{ entity.firstDetailTitle }}</div>
+										<div *ngIf="entity.firstDetailText" class="mt-1 opacity-80">{{ renderText(entity.firstDetailText) }}</div>
+									</div>
+								</div>
+								<div class="flex flex-wrap gap-2 xl:justify-end">
+									<button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="openPreview(entity)">Ver</button>
+									<button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="editEntity(entity)">Editar</button>
+									<button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="addEntityToEncounter(entity)">Adicionar ao Encounter</button>
+									<button class="h-10 rounded-2xl border border-white/10 bg-black/20 px-4 cursor-pointer hover:bg-black/30" (click)="createInternalSheet(entity)">Criar ficha interna</button>
+									<button class="h-10 rounded-2xl border border-white/10 bg-black/20 px-4 cursor-pointer hover:bg-black/30" (click)="exportEntity(entity)">Exportar item</button>
+									<button class="h-10 rounded-2xl border border-white/10 bg-black/20 px-4 cursor-pointer hover:bg-black/30" (click)="duplicateEntity(entity)">Duplicar</button>
+									<button class="h-10 rounded-2xl border border-red-400/20 bg-red-500/15 px-4 cursor-pointer hover:bg-red-500/20" (click)="removeEntity(entity)">Remover</button>
+								</div>
+							</div>
+						</div>
+						<div *ngIf="monsterSummaries().length === 0" class="rounded-3xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75 xl:col-span-2">Nenhum monster encontrado.</div>
+					</div>
+				</section>
+
+				<section *ngIf="collectionTab() === 'all' || collectionTab() === 'trap'" class="space-y-3">
+					<div class="flex items-center justify-between gap-3">
+						<div>
+							<h3 class="text-xl font-semibold">Traps e hazards</h3>
+							<p class="text-sm opacity-70">Eventos de ambiente e hazards separados dos combatentes.</p>
+						</div>
+						<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">{{ trapSummaries().length }} itens</span>
+					</div>
+					<div class="grid gap-3 xl:grid-cols-2">
+						<div *ngFor="let entity of trapSummaries()" class="rounded-3xl border border-white/10 bg-white/5 p-4">
+							<div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+								<div class="min-w-0">
+									<div class="flex flex-wrap items-center gap-2">
+										<span class="rounded-full border border-amber-400/25 bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold">[Trap]</span>
+										<div class="break-words text-lg font-semibold">{{ entity.name }}</div>
+									</div>
+									<div class="mt-2 flex flex-wrap gap-3 text-xs opacity-75">
+										<span>{{ entity.source }}</span>
+										<span *ngIf="entity.trapHazType">{{ entity.trapHazType }}</span>
+										<span *ngIf="entity.initiativeHint">{{ entity.initiativeHint }}</span>
+									</div>
+									<div *ngIf="entity.firstDetailText" class="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm opacity-80">{{ renderText(entity.firstDetailText) }}</div>
+								</div>
+								<div class="flex flex-wrap gap-2 xl:justify-end">
+									<button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="openPreview(entity)">Ver</button>
+									<button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="editEntity(entity)">Editar</button>
+									<button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="addEntityToEncounter(entity)">Adicionar ao Encounter</button>
+									<button class="h-10 rounded-2xl border border-white/10 bg-black/20 px-4 cursor-pointer hover:bg-black/30" (click)="exportEntity(entity)">Exportar item</button>
+									<button class="h-10 rounded-2xl border border-white/10 bg-black/20 px-4 cursor-pointer hover:bg-black/30" (click)="duplicateEntity(entity)">Duplicar</button>
+									<button class="h-10 rounded-2xl border border-red-400/20 bg-red-500/15 px-4 cursor-pointer hover:bg-red-500/20" (click)="removeEntity(entity)">Remover</button>
+								</div>
+							</div>
+						</div>
+						<div *ngIf="trapSummaries().length === 0" class="rounded-3xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75 xl:col-span-2">Nenhum trap encontrado.</div>
+					</div>
+				</section>
+
+				<section *ngIf="collectionTab() === 'extras'" class="space-y-3">
+					<h3 class="text-xl font-semibold">Coleções extras</h3>
+					<div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+						<div *ngFor="let collection of summary.otherCollections" class="rounded-3xl border border-white/10 bg-white/5 p-4">
+							<div class="font-semibold">{{ collection.key }}</div>
+							<div class="mt-1 text-sm opacity-75">{{ collection.count }} item(ns)</div>
+						</div>
+						<div *ngIf="summary.otherCollections.length === 0" class="rounded-3xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75">Sem coleções extras detectadas.</div>
+					</div>
+				</section>
+			</div>
+
+			<div class="space-y-4">
+				<div class="rounded-3xl border border-white/10 bg-white/5 p-5 space-y-3">
+					<div>
+						<h3 class="text-xl font-semibold">Inserir tag 5etools</h3>
+						<p class="text-sm opacity-70">Gere tags prontas para colar nos campos de entries e spellcasting.</p>
+					</div>
+					<div class="flex flex-wrap gap-2">
+						<button *ngFor="let kind of ['spell', 'damage', 'condition', 'dc', 'hit', 'dice', 'save']" class="h-9 rounded-2xl border px-3 cursor-pointer text-sm" [class.border-fuchsia-400/25]="tagHelperKind() === kind" [class.bg-violet-500/15]="tagHelperKind() === kind" [class.border-white/10]="tagHelperKind() !== kind" [class.bg-white/5]="tagHelperKind() !== kind" (click)="tagHelperKind.set($any(kind))">{{ kind }}</button>
+					</div>
+					<div *ngIf="tagHelperKind() === 'spell'" class="grid gap-3 md:grid-cols-2">
+						<label class="text-sm"><span class="mb-1 block opacity-70">Nome da magia</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="tagSpellName()" (ngModelChange)="tagSpellName.set($event)" /></label>
+						<label class="text-sm"><span class="mb-1 block opacity-70">Source</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="tagSpellSource()" (ngModelChange)="tagSpellSource.set($event)" /></label>
+					</div>
+					<label *ngIf="tagHelperKind() === 'damage'" class="text-sm"><span class="mb-1 block opacity-70">Dano</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="tagDamage()" (ngModelChange)="tagDamage.set($event)" /></label>
+					<div *ngIf="tagHelperKind() === 'condition'" class="grid gap-3 md:grid-cols-2">
+						<label class="text-sm"><span class="mb-1 block opacity-70">Condição</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="tagCondition()" (ngModelChange)="tagCondition.set($event)" /></label>
+						<label class="text-sm"><span class="mb-1 block opacity-70">Source</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="tagConditionSource()" (ngModelChange)="tagConditionSource.set($event)" /></label>
+					</div>
+					<label *ngIf="tagHelperKind() === 'dc'" class="text-sm"><span class="mb-1 block opacity-70">DC</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="tagDc()" (ngModelChange)="tagDc.set($event)" /></label>
+					<label *ngIf="tagHelperKind() === 'hit'" class="text-sm"><span class="mb-1 block opacity-70">Hit</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="tagHit()" (ngModelChange)="tagHit.set($event)" /></label>
+					<label *ngIf="tagHelperKind() === 'dice'" class="text-sm"><span class="mb-1 block opacity-70">Dice</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="tagDice()" (ngModelChange)="tagDice.set($event)" /></label>
+					<label *ngIf="tagHelperKind() === 'save'" class="text-sm"><span class="mb-1 block opacity-70">Ability</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="tagSaveAbility()" (ngModelChange)="tagSaveAbility.set($event)" /></label>
+					<div class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-3 font-mono text-xs">{{ generatedTag() }}</div>
+					<div class="flex justify-end"><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="copyGeneratedTag()">Copiar tag</button></div>
+				</div>
+
+				<div *ngIf="editorMode() === 'monster'">
+					<div *ngIf="selectedMonster() as monster" class="rounded-3xl border border-fuchsia-400/20 bg-[rgba(30,18,46,0.72)] p-5 space-y-4">
+						<div class="flex flex-wrap items-center justify-between gap-3">
+							<div>
+								<h3 class="text-xl font-semibold">Editor de Monster</h3>
+								<p class="text-sm opacity-70">Editor visual, preview e modo JSON avançado.</p>
+							</div>
+							<button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="cancelEditor()">Fechar</button>
+						</div>
+						<div class="flex flex-wrap gap-2">
+							<button *ngFor="let tab of ['visual','preview','json']" class="h-10 rounded-2xl border px-4 cursor-pointer text-sm font-semibold" [class.border-fuchsia-400/25]="editorTab() === tab" [class.bg-violet-500/15]="editorTab() === tab" [class.border-white/10]="editorTab() !== tab" [class.bg-white/5]="editorTab() !== tab" (click)="setEditorTab($any(tab))">{{ editorTabLabel($any(tab)) }}</button>
+						</div>
+
+						<div *ngIf="editorTab() === 'visual'" class="space-y-4">
+							<div class="grid gap-3 md:grid-cols-2">
+								<label class="text-sm"><span class="mb-1 block opacity-70">Nome</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="monster.name" (ngModelChange)="setMonsterField('name', $event)" /></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Source</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="monster.source" (ngModelChange)="setMonsterField('source', $event)" /></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Alias</span><textarea class="min-h-20 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="(monster.alias ?? []).join(', ')" (ngModelChange)="setMonsterStringArrayField('alias', $event)"></textarea></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Groups</span><textarea class="min-h-20 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="(monster.group ?? []).join(', ')" (ngModelChange)="setMonsterStringArrayField('group', $event)"></textarea></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Size</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="(monster.size ?? []).join(', ')" (ngModelChange)="setMonsterStringArrayField('size', $event)" /></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Alignment</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="(monster.alignment ?? []).join(', ')" (ngModelChange)="setMonsterStringArrayField('alignment', $event)" /></label>
+								<label class="text-sm md:col-span-2"><span class="mb-1 block opacity-70">Type</span><textarea class="min-h-20 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="typeof monster.type === 'string' ? monster.type : formatJson(monster.type ?? '')" (change)="setMonsterTypeField($any($event.target).value)"></textarea></label>
+							</div>
+							<div class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+								<label class="text-sm"><span class="mb-1 block opacity-70">HP médio</span><input type="number" class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="monster.hp?.average ?? ''" (ngModelChange)="setMonsterHpField('average', $event)" /></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">HP fórmula</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="monster.hp?.formula ?? ''" (ngModelChange)="setMonsterHpField('formula', $event)" /></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">CR</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="monster.cr ?? ''" (ngModelChange)="setMonsterField('cr', $event)" /></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Level</span><input type="number" class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="monster.level ?? ''" (ngModelChange)="setMonsterNumberField('level', $event)" /></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Passive</span><input type="number" class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="monster.passive ?? ''" (ngModelChange)="setMonsterNumberField('passive', $event)" /></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">AC (JSON)</span><textarea class="min-h-20 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs" [value]="formatJson(monster.ac ?? [])" (change)="setMonsterJsonField('ac', $any($event.target).value, [])"></textarea></label>
+							</div>
+							<div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+								<label *ngFor="let ability of ['str','dex','con','int','wis','cha']" class="text-sm"><span class="mb-1 block opacity-70">{{ ability | uppercase }}</span><input type="number" class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="$any(monster)[ability] ?? ''" (ngModelChange)="setMonsterNumberField($any(ability), $event)" /></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Speed (JSON)</span><textarea class="min-h-24 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs" [value]="formatJson(monster.speed ?? {})" (change)="setMonsterJsonField('speed', $any($event.target).value, {})"></textarea></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Saves (JSON)</span><textarea class="min-h-24 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs" [value]="formatJson(monster.save ?? {})" (change)="setMonsterJsonField('save', $any($event.target).value, {})"></textarea></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Skills (JSON)</span><textarea class="min-h-24 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs" [value]="formatJson(monster.skill ?? {})" (change)="setMonsterJsonField('skill', $any($event.target).value, {})"></textarea></label>
+								<label class="text-sm"><span class="mb-1 block opacity-70">Languages</span><textarea class="min-h-24 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="(monster.languages ?? []).join(', ')" (ngModelChange)="setMonsterStringArrayField('languages', $event)"></textarea></label>
+							</div>
+							<div class="space-y-4">
+								<div *ngFor="let section of monsterSections" class="rounded-3xl border border-white/10 bg-black/20 p-4 space-y-3">
+									<div class="flex items-center justify-between gap-3"><div><h4 class="font-semibold">{{ section.label }}</h4><p class="text-sm opacity-70">Blocos visuais simples com fallback em JSON avançado.</p></div><button class="h-9 rounded-2xl border border-white/10 bg-white/10 px-3 cursor-pointer hover:bg-white/15" (click)="addMonsterBlock(section.key)">Adicionar bloco</button></div>
+									<div *ngFor="let block of getMonsterBlocks(section.key); let blockIndex = index" class="rounded-2xl border border-white/10 bg-white/5 p-3 space-y-3">
+										<div class="flex flex-wrap gap-2 justify-between">
+											<input class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="block.name ?? ''" (ngModelChange)="updateMonsterBlockName(section.key, blockIndex, $event)" />
+											<div class="flex flex-wrap gap-2"><button class="h-9 rounded-xl border border-white/10 bg-black/20 px-3 cursor-pointer hover:bg-black/30" (click)="moveMonsterBlock(section.key, blockIndex, -1)">↑</button><button class="h-9 rounded-xl border border-white/10 bg-black/20 px-3 cursor-pointer hover:bg-black/30" (click)="moveMonsterBlock(section.key, blockIndex, 1)">↓</button><button class="h-9 rounded-xl border border-white/10 bg-black/20 px-3 cursor-pointer hover:bg-black/30" (click)="duplicateMonsterBlock(section.key, blockIndex)">Duplicar</button><button class="h-9 rounded-xl border border-red-400/20 bg-red-500/15 px-3 cursor-pointer hover:bg-red-500/20" (click)="removeMonsterBlock(section.key, blockIndex)">Remover</button></div>
+										</div>
+										<div *ngIf="monsterBlockHasAdvancedStructure(block)" class="rounded-2xl border border-yellow-400/25 bg-yellow-500/10 p-3 text-sm">Este bloco possui estrutura avançada. Use o modo JSON para editar sem perder dados.</div>
+										<div *ngIf="!monsterBlockHasAdvancedStructure(block)" class="space-y-2">
+											<textarea class="min-h-28 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm" [ngModel]="monsterBlockEntries(block).join('\n')" (ngModelChange)="setMonsterBlockEntriesText(section.key, blockIndex, $event)"></textarea>
+											<div class="flex justify-end"><button class="h-9 rounded-2xl border border-white/10 bg-white/10 px-3 cursor-pointer hover:bg-white/15 text-xs" (click)="appendGeneratedTagToMonsterEntry(section.key, blockIndex, 0)">Inserir tag na 1ª entry</button></div>
+										</div>
+									</div>
+								</div>
+								<div class="rounded-3xl border border-white/10 bg-black/20 p-4 space-y-3">
+									<div class="flex items-center justify-between gap-3"><div><h4 class="font-semibold">Spellcasting</h4><p class="text-sm opacity-70">Editor visual básico com cabeçalhos, rodapé e níveis em JSON preservado.</p></div><button class="h-9 rounded-2xl border border-white/10 bg-white/10 px-3 cursor-pointer hover:bg-white/15" (click)="addSpellcastingBlock()">Adicionar bloco</button></div>
+									<div *ngFor="let block of getSpellcastingBlocks(); let blockIndex = index" class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+										<div class="flex flex-wrap gap-2 justify-between"><div class="grid min-w-0 flex-1 gap-2 md:grid-cols-2"><input class="rounded-xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="block.name ?? ''" (ngModelChange)="updateSpellcastingName(blockIndex, $event)" placeholder="Nome do bloco" /><input class="rounded-xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="block.type ?? 'spellcasting'" (ngModelChange)="updateSpellcastingType(blockIndex, $event)" placeholder="type" /></div><div class="flex flex-wrap gap-2"><button class="h-9 rounded-xl border border-white/10 bg-black/20 px-3 cursor-pointer hover:bg-black/30" (click)="moveSpellcastingBlock(blockIndex, -1)">↑</button><button class="h-9 rounded-xl border border-white/10 bg-black/20 px-3 cursor-pointer hover:bg-black/30" (click)="moveSpellcastingBlock(blockIndex, 1)">↓</button><button class="h-9 rounded-xl border border-white/10 bg-black/20 px-3 cursor-pointer hover:bg-black/30" (click)="duplicateSpellcastingBlock(blockIndex)">Duplicar</button><button class="h-9 rounded-xl border border-red-400/20 bg-red-500/15 px-3 cursor-pointer hover:bg-red-500/20" (click)="removeSpellcastingBlock(blockIndex)">Remover</button></div></div>
+										<div *ngIf="spellcastingHasAdvancedStructure(block)" class="rounded-2xl border border-yellow-400/25 bg-yellow-500/10 p-3 text-sm">Este bloco possui campos avançados. Eles serão preservados; use JSON avançado para ajustes finos.</div>
+										<div class="grid gap-3 xl:grid-cols-2"><label class="text-sm"><span class="mb-1 block opacity-70">Header entries</span><textarea class="min-h-24 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm" [ngModel]="spellHeaderEntries(block).join('\n')" (ngModelChange)="setSpellHeaderText(blockIndex, $event)"></textarea></label><label class="text-sm"><span class="mb-1 block opacity-70">Footer entries</span><textarea class="min-h-24 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm" [ngModel]="spellFooterEntries(block).join('\n')" (ngModelChange)="setSpellFooterText(blockIndex, $event)"></textarea></label></div>
+										<div class="rounded-2xl border border-white/10 bg-black/20 p-3 space-y-2"><div class="flex items-center justify-between gap-3"><div class="font-semibold text-sm">Níveis / spells / slots</div><div class="flex gap-2"><button class="h-8 rounded-xl border border-white/10 bg-white/10 px-3 cursor-pointer hover:bg-white/15 text-xs" (click)="addSpellLevel(blockIndex)">Adicionar nível</button><button class="h-8 rounded-xl border border-white/10 bg-white/10 px-3 cursor-pointer hover:bg-white/15 text-xs" (click)="copyGeneratedTag()">Copiar tag gerada</button></div></div><textarea class="min-h-32 w-full rounded-2xl border border-white/10 bg-black/20 p-3 font-mono text-xs" [value]="formatJson(block.spells ?? {})" (change)="setSpellLevelsJson(blockIndex, $any($event.target).value)"></textarea></div>
+									</div>
+								</div>
+								<div class="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-4 space-y-2 text-sm"><div class="font-semibold">Validações</div><div *ngFor="let issue of currentMonsterWarnings()">{{ issue.message }}</div><div *ngIf="currentMonsterWarnings().length === 0">Nenhum aviso no monster atual.</div></div>
+								<div class="flex justify-end"><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="saveMonster()">Salvar monster</button></div>
+							</div>
+
+						<div *ngIf="editorTab() === 'preview'" class="space-y-4">
+							<div class="rounded-3xl border border-white/10 bg-black/20 p-4"><div class="text-2xl font-semibold">{{ monster.name }}</div><div class="mt-2 flex flex-wrap gap-3 text-sm opacity-80"><span>{{ monster.source }}</span><span *ngIf="monster.cr">CR {{ monster.cr }}</span><span *ngIf="monster.level != null">Nível {{ monster.level }}</span></div></div>
+							<div *ngFor="let section of monsterSections" class="rounded-3xl border border-white/10 bg-black/20 p-4 space-y-3" [hidden]="monsterSectionPreview(section.key).length === 0"><h4 class="font-semibold">{{ section.label }}</h4><div *ngFor="let block of monsterSectionPreview(section.key)" class="rounded-2xl border border-white/10 bg-white/5 p-3"><div class="font-semibold">{{ block.title }}</div><div *ngFor="let line of block.lines" class="mt-1 text-sm opacity-85">{{ line }}</div></div></div>
+							<div *ngIf="monsterSpellPreview().length" class="rounded-3xl border border-white/10 bg-black/20 p-4 space-y-3"><h4 class="font-semibold">Spellcasting</h4><div *ngFor="let block of monsterSpellPreview()" class="rounded-2xl border border-white/10 bg-white/5 p-3"><div class="font-semibold">{{ block.title }}</div><div *ngFor="let line of block.lines" class="mt-1 text-sm opacity-85">{{ line }}</div></div></div>
+						</div>
+
+						<div *ngIf="editorTab() === 'json'" class="space-y-3"><textarea class="min-h-[32rem] w-full rounded-2xl border border-white/10 bg-black/20 p-4 font-mono text-xs" [ngModel]="monsterJsonDraft()" (ngModelChange)="monsterJsonDraft.set($event)"></textarea><div class="flex justify-between gap-3"><div class="text-sm opacity-70">JSON avançado mantém o modo seguro para estruturas não cobertas pelo editor visual.</div><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="applyMonsterJsonDraft()">Aplicar JSON avançado</button></div></div>
+					</div>
+				</div>
+
+				<div *ngIf="editorMode() === 'trap'">
+					<div *ngIf="selectedTrap() as trap" class="rounded-3xl border border-fuchsia-400/20 bg-[rgba(30,18,46,0.72)] p-5 space-y-4">
+						<div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-xl font-semibold">Editor de Trap / Hazard</h3><p class="text-sm opacity-70">Editor visual de entries, preview e modo JSON avançado.</p></div><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="cancelEditor()">Fechar</button></div>
+						<div class="flex flex-wrap gap-2"><button *ngFor="let tab of ['visual','preview','json']" class="h-10 rounded-2xl border px-4 cursor-pointer text-sm font-semibold" [class.border-fuchsia-400/25]="editorTab() === tab" [class.bg-violet-500/15]="editorTab() === tab" [class.border-white/10]="editorTab() !== tab" [class.bg-white/5]="editorTab() !== tab" (click)="setEditorTab($any(tab))">{{ editorTabLabel($any(tab)) }}</button></div>
+
+						<div *ngIf="editorTab() === 'visual'" class="space-y-4">
+							<div class="grid gap-3 md:grid-cols-2"><label class="text-sm"><span class="mb-1 block opacity-70">Nome</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="trap.name" (ngModelChange)="setTrapField('name', $event)" /></label><label class="text-sm"><span class="mb-1 block opacity-70">Source</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="trap.source" (ngModelChange)="setTrapField('source', $event)" /></label><label class="text-sm md:col-span-2"><span class="mb-1 block opacity-70">trapHazType</span><input class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="trap.trapHazType ?? ''" (ngModelChange)="setTrapField('trapHazType', $event)" /></label></div>
+							<div class="rounded-3xl border border-white/10 bg-black/20 p-4 space-y-3">
+								<div class="flex items-center justify-between gap-3"><div><h4 class="font-semibold">Entries</h4><p class="text-sm opacity-70">Edite textos simples e blocos `type: entries` visualmente.</p></div><div class="flex gap-2"><button class="h-9 rounded-2xl border border-white/10 bg-white/10 px-3 cursor-pointer hover:bg-white/15" (click)="addTrapTextEntry()">Adicionar texto</button><button class="h-9 rounded-2xl border border-white/10 bg-white/10 px-3 cursor-pointer hover:bg-white/15" (click)="addTrapEntriesBlock()">Adicionar bloco</button></div></div>
+								<div *ngFor="let entry of getTrapEntries(); let entryIndex = index" class="rounded-2xl border border-white/10 bg-white/5 p-3 space-y-3">
+									<div class="flex justify-end gap-2"><button class="h-8 rounded-xl border border-white/10 bg-black/20 px-3 cursor-pointer hover:bg-black/30 text-xs" (click)="moveTrapEntry(entryIndex, -1)">↑</button><button class="h-8 rounded-xl border border-white/10 bg-black/20 px-3 cursor-pointer hover:bg-black/30 text-xs" (click)="moveTrapEntry(entryIndex, 1)">↓</button><button class="h-8 rounded-xl border border-red-400/20 bg-red-500/15 px-3 cursor-pointer hover:bg-red-500/20 text-xs" (click)="removeTrapEntry(entryIndex)">Remover</button></div>
+									<div *ngIf="trapEntryHasAdvancedStructure(entry)" class="rounded-2xl border border-yellow-400/25 bg-yellow-500/10 p-3 text-sm">Entry com estrutura avançada detectada. Use o modo JSON avançado para editar com segurança.</div>
+									<div *ngIf="isTrapTextEntry(entry) && !trapEntryHasAdvancedStructure(entry)" class="space-y-2"><textarea class="min-h-24 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm" [ngModel]="getTrapStringEntry(entryIndex)" (ngModelChange)="updateTrapEntryText(entryIndex, $event)"></textarea><div class="flex justify-end"><button class="h-8 rounded-xl border border-white/10 bg-white/10 px-3 cursor-pointer hover:bg-white/15 text-xs" (click)="appendGeneratedTagToTrapEntry(entryIndex)">Inserir tag</button></div></div>
+									<div *ngIf="isTrapEntriesBlock(entry) && !trapEntryHasAdvancedStructure(entry)" class="space-y-2"><input class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="entry.name ?? ''" (ngModelChange)="updateTrapEntriesBlockName(entryIndex, $event)" /><textarea class="min-h-24 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm" [ngModel]="(entry.entries ?? []).join('\n')" (ngModelChange)="setTrapEntriesBlockText(entryIndex, $event)"></textarea><div class="flex justify-end"><button class="h-8 rounded-xl border border-white/10 bg-white/10 px-3 cursor-pointer hover:bg-white/15 text-xs" (click)="appendGeneratedTagToTrapNestedEntry(entryIndex, 0)">Inserir tag na 1ª entry</button></div></div>
+								</div>
+							</div>
+							<div class="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-4 space-y-2 text-sm"><div class="font-semibold">Avisos</div><div *ngFor="let issue of currentTrapWarnings()">{{ issue.message }}</div><div *ngIf="currentTrapWarnings().length === 0">Nenhum aviso no trap atual.</div></div>
+							<div class="flex justify-end"><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="saveTrap()">Salvar trap</button></div>
+						</div>
+
+						<div *ngIf="editorTab() === 'preview'" class="space-y-4"><div class="rounded-3xl border border-white/10 bg-black/20 p-4"><div class="text-2xl font-semibold">{{ trap.name }}</div><div class="mt-2 flex flex-wrap gap-3 text-sm opacity-80"><span>{{ trap.source }}</span><span *ngIf="trap.trapHazType">{{ trap.trapHazType }}</span></div></div><div *ngFor="let entry of trapPreviewLines(trap)" class="rounded-3xl border border-white/10 bg-black/20 p-4"><div *ngIf="entry.title" class="font-semibold">{{ entry.title }}</div><div *ngFor="let line of entry.lines" class="mt-2 text-sm opacity-85">{{ line }}</div></div></div>
+
+						<div *ngIf="editorTab() === 'json'" class="space-y-3"><textarea class="min-h-[32rem] w-full rounded-2xl border border-white/10 bg-black/20 p-4 font-mono text-xs" [ngModel]="trapJsonDraft()" (ngModelChange)="trapJsonDraft.set($event)"></textarea><div class="flex justify-between gap-3"><div class="text-sm opacity-70">Modo seguro para editar entries e estruturas avançadas sem perder dados.</div><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="applyTrapJsonDraft()">Aplicar JSON avançado</button></div></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<ng-container *ngIf="previewModal() as preview">
+	<div class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" (click)="closePreview()">
+		<div class="flex min-h-screen items-center justify-center p-4">
+			<div class="w-full max-w-5xl rounded-3xl border border-white/10 bg-[#120c20] p-5 max-h-[90vh] overflow-auto" (click)="$event.stopPropagation()">
+				<div class="flex flex-wrap items-start justify-between gap-3">
+					<div>
+						<div class="flex flex-wrap items-center gap-2"><span class="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[11px] font-semibold">{{ preview.type === 'monster' ? '[Monster]' : '[Trap]' }}</span><h3 class="text-2xl font-semibold">{{ preview.summary.name }}</h3></div>
+						<div class="mt-2 flex flex-wrap gap-3 text-sm opacity-75"><span>{{ preview.summary.source }}</span><span *ngIf="preview.type === 'monster' && preview.summary.creatureType">{{ preview.summary.creatureType }}</span><span *ngIf="preview.type === 'monster' && preview.summary.cr">CR {{ preview.summary.cr }}</span><span *ngIf="preview.type === 'trap' && preview.summary.trapHazType">{{ preview.summary.trapHazType }}</span></div>
+					</div>
+					<div class="flex flex-wrap gap-2"><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="previewEdit()">Editar</button><button *ngIf="preview.type === 'monster'" class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="createInternalSheet(preview.summary)">Criar ficha interna</button><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="addEntityToEncounter(preview.summary)">Adicionar ao Encounter</button><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="exportEntity(preview.summary)">Exportar item</button><button class="h-10 rounded-2xl border border-white/10 bg-black/20 px-4 cursor-pointer hover:bg-black/30" (click)="closePreview()">Fechar</button></div>
+				</div>
+
+				<div *ngIf="preview.type === 'monster'; else trapPreview" class="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+					<div class="space-y-4">
+						<div class="rounded-3xl border border-white/10 bg-white/5 p-4"><div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-sm"><div>CA: <b>{{ preview.summary.acLabel || '-' }}</b></div><div>HP: <b>{{ preview.summary.hpAverage ?? '-' }}</b></div><div>Groups: <b>{{ preview.summary.groups.join(', ') || '-' }}</b></div><div>Level: <b>{{ preview.summary.level ?? '-' }}</b></div></div></div>
+						<div *ngFor="let section of monsterSections" class="rounded-3xl border border-white/10 bg-white/5 p-4 space-y-3" [hidden]="monsterSectionPreview(section.key).length === 0"><h4 class="font-semibold">{{ section.label }}</h4><div *ngFor="let block of monsterSectionPreview(section.key)" class="rounded-2xl border border-white/10 bg-black/20 p-3"><div class="font-semibold">{{ block.title }}</div><div *ngFor="let line of block.lines" class="mt-1 text-sm opacity-85">{{ line }}</div></div></div>
+						<div *ngIf="monsterSpellPreview().length" class="rounded-3xl border border-white/10 bg-white/5 p-4 space-y-3"><h4 class="font-semibold">Spellcasting</h4><div *ngFor="let block of monsterSpellPreview()" class="rounded-2xl border border-white/10 bg-black/20 p-3"><div class="font-semibold">{{ block.title }}</div><div *ngFor="let line of block.lines" class="mt-1 text-sm opacity-85">{{ line }}</div></div></div>
+					</div>
+					<div class="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-4 space-y-2 text-sm h-fit"><div class="font-semibold">Avisos</div><div *ngFor="let issue of previewWarningsForModal(preview)">{{ issue.message }}</div><div *ngIf="previewWarningsForModal(preview).length === 0">Nenhum aviso.</div></div>
+				</div>
+
+				<ng-template #trapPreview>
+					<div class="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+						<div class="space-y-4"><div *ngFor="let entry of previewTrapLines(preview)" class="rounded-3xl border border-white/10 bg-white/5 p-4"><div *ngIf="entry.title" class="font-semibold">{{ entry.title }}</div><div *ngFor="let line of entry.lines" class="mt-2 text-sm opacity-85">{{ line }}</div></div></div>
+						<div class="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-4 space-y-2 text-sm h-fit"><div class="font-semibold">Avisos</div><div *ngFor="let issue of previewWarningsForModal(preview)">{{ issue.message }}</div><div *ngIf="previewWarningsForModal(preview).length === 0">Nenhum aviso.</div></div>
+					</div>
+				</ng-template>
+			</div>
+		</div>
+	</div>
+</ng-container>
+
+<ng-container *ngIf="importOpen() && importPreview() as preview; else importShell">
+</ng-container>
+
+<ng-template #importShell>
+<div *ngIf="importOpen()" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" (click)="closeImport()">
+	<div class="flex min-h-screen items-center justify-center p-4">
+		<div class="w-full max-w-6xl rounded-3xl border border-white/10 bg-[#120c20] p-5 max-h-[92vh] overflow-auto" (click)="$event.stopPropagation()">
+			<div class="flex items-center justify-between gap-3"><div><h3 class="text-xl font-semibold">Importar trecho 5etools</h3><p class="text-sm opacity-70">Valide, compare e resolva conflitos antes de aplicar o merge ao arquivo principal.</p></div><button class="h-10 w-10 rounded-2xl border border-white/10 bg-white/10 cursor-pointer hover:bg-white/15" (click)="closeImport()">✕</button></div>
+			<div class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(380px,0.95fr)]">
+				<div><textarea class="min-h-[26rem] w-full rounded-2xl border border-white/10 bg-black/20 p-4 font-mono text-xs" [ngModel]="importText()" (ngModelChange)="importText.set($event)" placeholder='{"monster": [...], "trap": [...]}'></textarea></div>
+				<div class="space-y-4">
+					<label class="flex items-center gap-3 text-sm"><input type="checkbox" class="h-4 w-4" [checked]="importCoerceSource()" (change)="importCoerceSource.set($any($event.target).checked)" />Converter source para o source principal</label>
+					<label class="flex items-center gap-3 text-sm"><input type="checkbox" class="h-4 w-4" [checked]="importAddSourcesToMeta()" (change)="importAddSourcesToMeta.set($any($event.target).checked)" />Adicionar novos sources ao `_meta`</label>
+					<div class="flex flex-wrap gap-2"><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="prepareImport()">Validar trecho</button><button *ngIf="importPreview()" class="h-10 rounded-2xl border border-emerald-400/25 bg-emerald-500/15 px-4 cursor-pointer hover:bg-emerald-500/20" (click)="applyImport()">Aplicar merge</button></div>
+					<div *ngIf="importPreview() as livePreview" class="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm space-y-1"><div class="font-semibold">Resumo</div><div>Monstros: {{ livePreview.summary.monsters }}</div><div>Traps: {{ livePreview.summary.traps }}</div><div>Sources: {{ livePreview.summary.sources.join(', ') || 'nenhum' }}</div></div>
+					<div *ngIf="importPreview() as livePreview" class="rounded-2xl border border-yellow-400/30 bg-yellow-500/10 p-4 text-sm space-y-1" [hidden]="!livePreview.warnings.length"><div class="font-semibold">Avisos</div><div *ngFor="let warning of livePreview.warnings">{{ warning }}</div></div>
+				</div>
+			</div>
+			<div *ngIf="importPreview() as livePreview" class="mt-4 space-y-4">
+				<div *ngIf="livePreview.conflicts.length" class="rounded-3xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-4 space-y-4"><div class="font-semibold">Conflito encontrado</div><div *ngFor="let conflict of livePreview.conflicts" class="rounded-2xl border border-white/10 bg-black/20 p-4 space-y-3"><div class="flex flex-wrap items-center justify-between gap-3"><div><div class="font-semibold">{{ conflict.name }} — {{ conflict.source }}</div><div class="text-sm opacity-75">Comparar alterações</div></div><select class="w-full max-w-xs rounded-xl border border-white/10 bg-black/20 px-3 py-2" [ngModel]="conflictResolutions()[conflict.id]" (ngModelChange)="setConflictResolution(conflict.id, $event)"><option value="replace">Substituir</option><option value="keep-existing">Manter existente</option><option value="duplicate">Duplicar</option><option value="cancel">Cancelar</option></select></div><div class="overflow-auto rounded-2xl border border-white/10 bg-white/5"><table class="min-w-full text-sm"><thead class="bg-black/20 text-left opacity-80"><tr><th class="px-3 py-2">Campo</th><th class="px-3 py-2">Existente</th><th class="px-3 py-2">Novo</th></tr></thead><tbody><tr *ngFor="let row of conflictComparison(conflict.id)" class="border-t border-white/10" [class.bg-violet-500/10]="row.changed"><td class="px-3 py-2 font-semibold">{{ row.label }}</td><td class="px-3 py-2">{{ row.existing }}</td><td class="px-3 py-2">{{ row.incoming }}</td></tr></tbody></table></div></div></div>
+			</div>
+		</div>
+	</div>
+</div>
+</ng-template>
+
+<ng-container *ngIf="syncPreview() as preview">
+	<div class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" (click)="closeSyncPreview()">
+		<div class="flex min-h-screen items-center justify-center p-4">
+			<div class="w-full max-w-2xl rounded-3xl border border-white/10 bg-[#120c20] p-5" (click)="$event.stopPropagation()">
+				<div class="text-xl font-semibold">Sincronizar JSON 5etools</div>
+				<p class="mt-2 text-sm opacity-70">O estado local atual será salvo em backup antes de aplicar o arquivo remoto.</p>
+				<div class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm space-y-1"><div>Source: {{ preview.summary.primarySource }}</div><div>Monstros: {{ preview.summary.monsterCount }}</div><div>Traps: {{ preview.summary.trapCount }}</div><div>Última modificação: {{ formatDate(preview.summary.dateLastModified) }}</div></div>
+				<div class="mt-4 flex justify-end gap-2"><button class="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 cursor-pointer hover:bg-white/15" (click)="closeSyncPreview()">Cancelar</button><button class="h-10 rounded-2xl border border-emerald-400/25 bg-emerald-500/15 px-4 cursor-pointer hover:bg-emerald-500/20" (click)="confirmSync()">Aplicar sincronização</button></div>
+			</div>
+		</div>
+	</div>
+</ng-container>
+
+<ng-container *ngIf="toast() as t">
+	<div class="fixed top-4 right-4 z-50 pointer-events-none">
+		<div class="pointer-events-auto max-w-sm rounded-2xl border px-4 py-3 shadow-lg bg-black/50 backdrop-blur" [class.border-emerald-400/30]="t.type === 'success'" [class.bg-emerald-500/10]="t.type === 'success'" [class.border-red-400/30]="t.type === 'error'" [class.bg-red-500/10]="t.type === 'error'" [class.border-yellow-400/30]="t.type === 'warn'" [class.bg-yellow-500/10]="t.type === 'warn'"><div class="flex items-start justify-between gap-3"><div class="text-sm opacity-95">{{ t.text }}</div><button class="h-8 w-8 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:bg-white/10" (click)="toast.set(null)">✕</button></div></div>
+	</div>
+</ng-container>
