@@ -18,13 +18,14 @@ import type {
 } from '../../models/battleTracker-model';
 
 type SpellDraft = { label: string; total: number };
-type AbilityDraft = {
-	name: string;
-	description: string;
-	rechargeType: CreatureAbilityRechargeType;
-	cooldownValue: number;
-	rechargeOn: string;
-};
+	type AbilityDraft = {
+		name: string;
+		description: string;
+		rechargeType: CreatureAbilityRechargeType;
+		maxUses: number;
+		cooldownValue: number;
+		rechargeOn: string;
+	};
 
 function createEmptyCreature(): CreatureInterface {
 	return {
@@ -76,6 +77,7 @@ export class HomebrewBuilder {
 	sheetId = signal<string | null>(null);
 	title = signal<string>('');
 	creature = signal<CreatureInterface>(createEmptyCreature());
+	private lastAutoCreatureName = signal<string>('');
 
 	category = signal<HomebrewCategory>('monster');
 	tagsText = signal<string>('');
@@ -87,6 +89,7 @@ export class HomebrewBuilder {
 		name: '',
 		description: '',
 		rechargeType: 'manual',
+		maxUses: 1,
 		cooldownValue: 1,
 		rechargeOn: '5,6',
 	});
@@ -107,6 +110,7 @@ export class HomebrewBuilder {
 						...normalizeCreature(sheet.data),
 						category: sheet.category ?? sheet.data.category ?? 'monster',
 					});
+					this.lastAutoCreatureName.set(sheet.data.name === sheet.title ? sheet.title : '');
 
 				// 👇 popula meta
 				this.category.set(sheet.category ?? 'monster');
@@ -147,8 +151,23 @@ export class HomebrewBuilder {
 	}
 
 	// -------- setters básicos --------
+	setTitle(v: string) {
+		const currentName = this.creature().name;
+		const previousAutoName = this.lastAutoCreatureName();
+		const shouldSync = !currentName.trim() || currentName === previousAutoName;
+
+		this.title.set(v);
+		if (!shouldSync) return;
+
+		this.creature.update((c) => ({ ...c, name: v }));
+		this.lastAutoCreatureName.set(v);
+	}
+
 	setName(v: string) {
 		this.creature.update((c) => ({ ...c, name: v }));
+		if (v === this.title()) {
+			this.lastAutoCreatureName.set(v);
+		}
 	}
 
 	setHp(v: any) {
@@ -300,6 +319,12 @@ export class HomebrewBuilder {
 			name,
 			description: (draft.description || '').trim() || undefined,
 			rechargeType: draft.rechargeType,
+			maxUses:
+				draft.rechargeType === 'per-day' ||
+				draft.rechargeType === 'short-rest' ||
+				draft.rechargeType === 'long-rest'
+					? Math.max(1, this.parseNonNegInt(draft.maxUses) || 1)
+					: undefined,
 			cooldownTurns: draft.rechargeType === 'turns' ? Math.max(1, this.parseNonNegInt(draft.cooldownValue)) : undefined,
 			cooldownRounds: draft.rechargeType === 'rounds' ? Math.max(1, this.parseNonNegInt(draft.cooldownValue)) : undefined,
 			rechargeDice: draft.rechargeType === 'dice' ? 'd6' : undefined,
@@ -315,6 +340,7 @@ export class HomebrewBuilder {
 			name: '',
 			description: '',
 			rechargeType: 'manual',
+			maxUses: 1,
 			cooldownValue: 1,
 			rechargeOn: '5,6',
 		});
@@ -348,6 +374,18 @@ export class HomebrewBuilder {
 		if (ability.rechargeType === 'dice') {
 			const targets = ability.rechargeOn?.length ? ability.rechargeOn.join('–') : '5–6';
 			return `Recharge ${targets}`;
+		}
+		if (ability.rechargeType === 'per-day') {
+			const uses = Math.max(1, ability.maxUses ?? 1);
+			return uses === 1 ? '1 uso por dia' : `${uses} usos por dia`;
+		}
+		if (ability.rechargeType === 'short-rest') {
+			const uses = Math.max(1, ability.maxUses ?? 1);
+			return uses === 1 ? '1 uso por descanso curto' : `${uses} usos por descanso curto`;
+		}
+		if (ability.rechargeType === 'long-rest') {
+			const uses = Math.max(1, ability.maxUses ?? 1);
+			return uses === 1 ? '1 uso por descanso longo' : `${uses} usos por descanso longo`;
 		}
 		return 'Recarga manual';
 	}

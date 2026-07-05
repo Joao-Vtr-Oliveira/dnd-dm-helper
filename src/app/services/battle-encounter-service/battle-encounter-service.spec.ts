@@ -50,6 +50,8 @@ describe('BattleEncounterService', () => {
 				},
 			],
 			creatureIdCount: 2,
+			lairActions: [],
+			traps: [],
 			round: 0,
 			battleCreated: false,
 			shareEnabled: false,
@@ -406,6 +408,66 @@ describe('BattleEncounterService', () => {
 		expect(battle.combatants[0].side).toBe('player');
 	});
 
+	it('does not auto-defeat pcs with 0 hp when the sheet leaves hp tracking to the player', () => {
+		const withPcNoHp: EncounterTemplate = {
+			...template,
+			data: {
+				...template.data,
+				creatures: [
+					{
+						...template.data.creatures[0],
+						name: 'Barda do grupo',
+						category: 'pc',
+						healthPoints: 0,
+						maxHealthPoints: 0,
+						alive: true,
+					},
+				],
+			},
+		};
+
+		const battle = service.createBattleFromEncounter(withPcNoHp);
+
+		expect(battle.combatants[0].side).toBe('player');
+		expect(battle.combatants[0].currentHp).toBe(0);
+		expect(battle.combatants[0].defeated).toBeFalse();
+	});
+
+	it('lets players clear defeated manually even while they are at 0 hp', () => {
+		const withPc: EncounterTemplate = {
+			...template,
+			data: {
+				...template.data,
+				creatures: [
+					{
+						...template.data.creatures[0],
+						name: 'Cleriga do grupo',
+						category: 'pc',
+						healthPoints: 0,
+						maxHealthPoints: 0,
+						alive: true,
+					},
+				],
+			},
+		};
+
+		const battle = service.createBattleFromEncounter(withPc);
+		const marked = service.setCombatantDefeated(battle, battle.combatants[0].id, true);
+		const cleared = service.setCombatantDefeated(marked, marked.combatants[0].id, false);
+
+		expect(marked.combatants[0].defeated).toBeTrue();
+		expect(cleared.combatants[0].defeated).toBeFalse();
+		expect(cleared.combatants[0].collapsed).toBeFalse();
+	});
+
+	it('still auto-defeats non-player combatants when they hit 0 hp', () => {
+		const battle = service.createBattleFromEncounter(template);
+		const defeated = service.applyDamage(battle, battle.combatants[1].id, 999);
+
+		expect(defeated.combatants[1].currentHp).toBe(0);
+		expect(defeated.combatants[1].defeated).toBeTrue();
+	});
+
 	it('starts spell slots collapsed by default when normalizing battles antigas', () => {
 		const normalized = service.normalizeBattleEncounter({
 			id: 'legacy',
@@ -466,6 +528,44 @@ describe('BattleEncounterService', () => {
 		expect(service.getInitiativeEligibleCombatants(withTrap)).toHaveSize(2);
 		expect(withTrap.lairActions).toHaveSize(1);
 		expect(withTrap.traps).toHaveSize(1);
+	});
+
+	it('copies configured lair actions and traps from the encounter into the battle session', () => {
+		const withEvents: EncounterTemplate = {
+			...template,
+			data: {
+				...template.data,
+				lairActions: [
+					{
+						id: 'lair-1',
+						name: 'Olho do Covil',
+						initiative: 20,
+						active: true,
+						frequency: 'cooldown-rounds',
+						cooldownRounds: 2,
+						currentCooldownRounds: 1,
+					},
+				],
+				traps: [
+					{
+						id: 'trap-1',
+						name: 'Dardos da Parede',
+						triggerType: 'initiative',
+						initiative: 10,
+						active: true,
+						frequency: 'every-round',
+					},
+				],
+			},
+		};
+
+		const battle = service.createBattleFromEncounter(withEvents);
+
+		expect(battle.lairActions).toHaveSize(1);
+		expect(battle.lairActions[0].name).toBe('Olho do Covil');
+		expect(battle.lairActions[0].currentCooldownRounds).toBe(0);
+		expect(battle.traps).toHaveSize(1);
+		expect(battle.traps[0].name).toBe('Dardos da Parede');
 	});
 
 	it('queues added combatants for the next round and activates them on round advance', () => {

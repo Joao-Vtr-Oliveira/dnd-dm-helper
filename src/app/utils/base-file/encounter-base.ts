@@ -3,6 +3,8 @@ import { BattleTracker } from '../../models/battleTracker-model';
 export let encounterBase: BattleTracker = {
 	creatures: [],
 	creatureIdCount: 0,
+	lairActions: [],
+	traps: [],
 	round: 0,
 	battleCreated: false,
 	shareEnabled: false,

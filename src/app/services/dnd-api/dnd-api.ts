@@ -25,11 +25,31 @@ export type ApiMonsterArmorClass = {
 export type ApiMonsterSpecialAbility = {
 	name?: string;
 	desc?: string;
+	usage?: ApiMonsterUsage;
+	spellcasting?: ApiMonsterSpellcasting;
 };
 
 export type ApiMonsterAction = {
 	name?: string;
 	desc?: string;
+	usage?: ApiMonsterUsage;
+};
+
+export type ApiMonsterUsage = {
+	type?: string;
+	dice?: string;
+	min_value?: number;
+	times?: number;
+	rest_types?: string[];
+};
+
+export type ApiMonsterSpellcasting = {
+	spells?: Array<{
+		name?: string;
+		level?: number;
+		url?: string;
+		usage?: ApiMonsterUsage;
+	}>;
 };
 
 export type ApiMonster = {
@@ -38,6 +58,7 @@ export type ApiMonster = {
 	hit_points?: number;
 	armor_class?: ApiMonsterArmorClass[];
 	dexterity?: number;
+	traits?: ApiMonsterSpecialAbility[];
 	special_abilities?: ApiMonsterSpecialAbility[];
 	actions?: ApiMonsterAction[];
 	reactions?: ApiMonsterAction[];
@@ -159,7 +180,7 @@ export class Dnd5eApiService {
 	 *   "2nd level (3 slots): ..."
 	 */
 	private extractSpellSlots(monster: ApiMonster): SpellSlots | null {
-		const abilities = monster.special_abilities;
+		const abilities = this.getTraitEntries(monster);
 		if (!Array.isArray(abilities) || !abilities.length) return null;
 
 		const spellTexts = abilities
@@ -193,21 +214,24 @@ export class Dnd5eApiService {
 	}
 
 	private extractSpecialAbilities(monster: ApiMonster): CreatureSpecialAbility[] {
-		const abilities = monster.special_abilities;
-		if (!Array.isArray(abilities) || !abilities.length) return [];
+		const abilities: CreatureSpecialAbility[] = [];
+		const pushEntries = (
+			items: Array<ApiMonsterSpecialAbility | ApiMonsterAction> | undefined,
+			source: 'trait' | 'action' | 'reaction' | 'legendary',
+		) => {
+			if (!Array.isArray(items)) return;
+			for (const [index, item] of items.entries()) {
+				if (!this.shouldPromoteToSpecialAbility(item, source)) continue;
+				abilities.push(this.toSpecialAbility(monster, item, source, index));
+			}
+		};
 
-		return abilities
-			.filter((ability) => {
-				const name = (ability.name || '').trim().toLowerCase();
-				return !name.includes('spellcasting');
-			})
-			.map((ability, index) => ({
-				id: `api-ability-${monster.index}-${index + 1}`,
-				name: ability.name?.trim() || `Habilidade ${index + 1}`,
-				description: ability.desc?.trim() || undefined,
-				rechargeType: 'manual' as const,
-			}))
-			.filter((ability) => ability.name);
+		pushEntries(this.getTraitEntries(monster), 'trait');
+		pushEntries(monster.actions, 'action');
+		pushEntries(monster.reactions, 'reaction');
+		pushEntries(monster.legendary_actions, 'legendary');
+
+		return abilities;
 	}
 
 	private extractSheetFeatures(monster: ApiMonster): CreatureFeature[] {
@@ -230,13 +254,13 @@ export class Dnd5eApiService {
 		};
 
 		pushEntries(
-			(monster.special_abilities ?? []).filter(
+			this.getTraitEntries(monster).filter(
 				(ability) => !(ability.name || '').toLowerCase().includes('spellcasting')
 			),
 			'trait'
 		);
 		pushEntries(
-			(monster.special_abilities ?? []).filter((ability) =>
+			this.getTraitEntries(monster).filter((ability) =>
 				(ability.name || '').toLowerCase().includes('spellcasting')
 			),
 			'spellcasting'
@@ -246,6 +270,118 @@ export class Dnd5eApiService {
 		pushEntries(monster.legendary_actions, 'legendary');
 
 		return features;
+	}
+
+	private getTraitEntries(monster: ApiMonster): ApiMonsterSpecialAbility[] {
+		if (Array.isArray(monster.traits) && monster.traits.length) return monster.traits;
+		return Array.isArray(monster.special_abilities) ? monster.special_abilities : [];
+	}
+
+	private shouldPromoteToSpecialAbility(
+		entry: ApiMonsterSpecialAbility | ApiMonsterAction,
+		source: 'trait' | 'action' | 'reaction' | 'legendary',
+	): boolean {
+		if (this.isSpellcastingEntry(entry)) return false;
+		if (this.getAbilityRecovery(entry) !== null) return true;
+		if (source === 'trait') return false;
+		return false;
+	}
+
+	private toSpecialAbility(
+		monster: ApiMonster,
+		entry: ApiMonsterSpecialAbility | ApiMonsterAction,
+		source: 'trait' | 'action' | 'reaction' | 'legendary',
+		index: number,
+	): CreatureSpecialAbility {
+		const recovery = this.getAbilityRecovery(entry);
+		return {
+			id: `api-ability-${monster.index}-${source}-${index + 1}`,
+			name: entry.name?.trim() || `Habilidade ${index + 1}`,
+			description: entry.desc?.trim() || undefined,
+			rechargeType: recovery?.type ?? 'manual',
+			maxUses: recovery?.maxUses,
+			cooldownTurns: recovery?.cooldownTurns,
+			cooldownRounds: recovery?.cooldownRounds,
+			rechargeDice: recovery?.rechargeDice,
+			rechargeOn: recovery?.rechargeOn,
+		};
+	}
+
+	private getAbilityRecovery(
+		entry: ApiMonsterSpecialAbility | ApiMonsterAction,
+	): {
+		type: CreatureSpecialAbility['rechargeType'];
+		maxUses?: number;
+		cooldownTurns?: number;
+		cooldownRounds?: number;
+		rechargeDice?: string;
+		rechargeOn?: number[];
+	} | null {
+		const usage = entry.usage;
+		const usageType = (usage?.type || '').trim().toLowerCase();
+		const restTypes = (usage?.rest_types ?? []).map((item) => (item || '').trim().toLowerCase());
+
+		if (usageType === 'recharge on roll') {
+			const minimum = Math.max(1, Math.floor(Number(usage?.min_value ?? 5) || 5));
+			return {
+				type: 'dice',
+				rechargeDice: usage?.dice?.trim() || 'd6',
+				rechargeOn: this.buildRechargeTargets(minimum),
+			};
+		}
+
+		if (usageType === 'per day') {
+			return {
+				type: 'per-day',
+				maxUses: Math.max(1, Math.floor(Number(usage?.times ?? 1) || 1)),
+			};
+		}
+
+		if (restTypes.includes('short')) {
+			return {
+				type: 'short-rest',
+				maxUses: Math.max(1, Math.floor(Number(usage?.times ?? 1) || 1)),
+			};
+		}
+
+		if (restTypes.includes('long')) {
+			return {
+				type: 'long-rest',
+				maxUses: Math.max(1, Math.floor(Number(usage?.times ?? 1) || 1)),
+			};
+		}
+
+		const text = `${entry.name || ''} ${entry.desc || ''}`.toLowerCase();
+		const rechargeMatch = text.match(/recharge\s*(\d)\s*[\-\u2013]\s*(\d)/i);
+		if (rechargeMatch) {
+			const minimum = Math.max(1, Number(rechargeMatch[1] || 5));
+			return {
+				type: 'dice',
+				rechargeDice: 'd6',
+				rechargeOn: this.buildRechargeTargets(minimum),
+			};
+		}
+
+		const perDayMatch = text.match(/(\d+)\s*\/\s*day/i);
+		if (perDayMatch) {
+			return {
+				type: 'per-day',
+				maxUses: Math.max(1, Number(perDayMatch[1] || 1)),
+			};
+		}
+
+		return null;
+	}
+
+	private isSpellcastingEntry(entry: ApiMonsterSpecialAbility | ApiMonsterAction): boolean {
+		const name = (entry.name || '').toLowerCase();
+		return name.includes('spellcasting') || !!(entry as ApiMonsterSpecialAbility).spellcasting;
+	}
+
+	private buildRechargeTargets(minimum: number): number[] {
+		const targets: number[] = [];
+		for (let value = minimum; value <= 6; value += 1) targets.push(value);
+		return targets.length ? targets : [5, 6];
 	}
 
 	private zeroUsedSlots(total: SpellSlots): SpellSlots {

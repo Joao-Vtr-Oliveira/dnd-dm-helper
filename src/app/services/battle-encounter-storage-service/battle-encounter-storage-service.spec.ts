@@ -32,6 +32,8 @@ describe('BattleEncounterStorageService', () => {
 				},
 			],
 			creatureIdCount: 1,
+			lairActions: [],
+			traps: [],
 			round: 0,
 			battleCreated: false,
 			shareEnabled: false,

@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import type {
 	BattleTracker,
 	CreatureInterface,
+	EncounterLairAction,
+	EncounterTrap,
 	CreatureSpecialAbility,
 	SpellLevel,
 	SpellSlots,
@@ -71,6 +73,8 @@ export class EncounterIoService {
 		return {
 			creatures,
 			creatureIdCount: Math.max(e.creatureIdCount, maxId + 1),
+			lairActions: e.lairActions ?? [],
+			traps: e.traps ?? [],
 
 			activeCreature: null,
 			round: 0,
@@ -174,6 +178,8 @@ export class EncounterIoService {
 		const encounter: BattleTracker = {
 			creatures,
 			creatureIdCount,
+			lairActions: this.normalizeLairActions(raw.lairActions),
+			traps: this.normalizeTraps(raw.traps),
 			round: this.toFiniteInt(raw.round, 0) ?? 0,
 			battleCreated: this.toBool(raw.battleCreated, false),
 
@@ -289,6 +295,7 @@ export class EncounterIoService {
 			name: this.toStr(ability?.name, `Habilidade ${idx + 1}`),
 			description: this.toStr(ability?.description, '') || undefined,
 			rechargeType: this.normalizeRechargeType(ability?.rechargeType),
+			maxUses: this.toFiniteInt(ability?.maxUses, null) ?? undefined,
 			cooldownTurns: this.toFiniteInt(ability?.cooldownTurns, null) ?? undefined,
 			cooldownRounds: this.toFiniteInt(ability?.cooldownRounds, null) ?? undefined,
 			rechargeDice: this.toStr(ability?.rechargeDice, '') || undefined,
@@ -301,10 +308,66 @@ export class EncounterIoService {
 	}
 
 	private normalizeRechargeType(value: any): CreatureSpecialAbility['rechargeType'] {
-		if (value === 'manual' || value === 'turns' || value === 'rounds' || value === 'dice') {
+		if (
+			value === 'manual' ||
+			value === 'turns' ||
+			value === 'rounds' ||
+			value === 'dice' ||
+			value === 'per-day' ||
+			value === 'short-rest' ||
+			value === 'long-rest'
+		) {
 			return value;
 		}
 		return 'manual';
+	}
+
+	private normalizeLairActions(raw: any): EncounterLairAction[] {
+		if (!Array.isArray(raw)) return [];
+		return raw.map((action: any, index: number) => ({
+			id: this.toStr(action?.id, `lair-action-${index + 1}`),
+			name: this.toStr(action?.name, `Lair Action ${index + 1}`),
+			description: this.toStr(action?.description, '') || undefined,
+			initiative: this.toFiniteInt(action?.initiative, 20) ?? 20,
+			active: this.toBool(action?.active, true),
+			frequency:
+				action?.frequency === 'every-round' ||
+				action?.frequency === 'cooldown-rounds' ||
+				action?.frequency === 'manual'
+					? action.frequency
+					: 'every-round',
+			cooldownRounds: this.toFiniteInt(action?.cooldownRounds, null) ?? undefined,
+			currentCooldownRounds: this.toFiniteInt(action?.currentCooldownRounds, 0) ?? 0,
+			lastTriggeredAtRound: this.toFiniteInt(action?.lastTriggeredAtRound, null) ?? undefined,
+		}));
+	}
+
+	private normalizeTraps(raw: any): EncounterTrap[] {
+		if (!Array.isArray(raw)) return [];
+		return raw.map((trap: any, index: number) => ({
+			id: this.toStr(trap?.id, `trap-${index + 1}`),
+			name: this.toStr(trap?.name, `Armadilha ${index + 1}`),
+			description: this.toStr(trap?.description, '') || undefined,
+			triggerType:
+				trap?.triggerType === 'initiative' ||
+				trap?.triggerType === 'round-start' ||
+				trap?.triggerType === 'round-end' ||
+				trap?.triggerType === 'manual'
+					? trap.triggerType
+					: 'manual',
+			initiative: this.toFiniteInt(trap?.initiative, null) ?? undefined,
+			active: this.toBool(trap?.active, true),
+			frequency:
+				trap?.frequency === 'once' ||
+				trap?.frequency === 'every-round' ||
+				trap?.frequency === 'cooldown-rounds' ||
+				trap?.frequency === 'manual'
+					? trap.frequency
+					: 'manual',
+			cooldownRounds: this.toFiniteInt(trap?.cooldownRounds, null) ?? undefined,
+			currentCooldownRounds: this.toFiniteInt(trap?.currentCooldownRounds, 0) ?? 0,
+			lastTriggeredAtRound: this.toFiniteInt(trap?.lastTriggeredAtRound, null) ?? undefined,
+		}));
 	}
 
 	private toStr(v: any, fallback: string): string {

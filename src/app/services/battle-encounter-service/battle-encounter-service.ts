@@ -18,6 +18,8 @@ import type {
 	CreatureCategory,
 	CreatureFeature,
 	CreatureInterface,
+	EncounterLairAction,
+	EncounterTrap,
 	CreatureSpecialAbility,
 	SpellInterface,
 	SpellsByKey,
@@ -127,8 +129,8 @@ export class BattleEncounterService {
 			currentTurnElapsedSeconds: 0,
 			combatants,
 			pendingCombatants: [],
-			lairActions: [],
-			traps: [],
+			lairActions: this.mapEncounterLairActions(template.data.lairActions),
+			traps: this.mapEncounterTraps(template.data.traps),
 			turnHistory: [],
 			dmNotes: '',
 		};
@@ -695,7 +697,8 @@ export class BattleEncounterService {
 		defeated: boolean,
 	): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => {
-			const enforcedDefeated = combatant.currentHp <= 0 ? true : defeated;
+			const autoDefeat = this.shouldAutoDefeatCombatant(combatant);
+			const enforcedDefeated = autoDefeat && combatant.currentHp <= 0 ? true : defeated;
 			const inactiveUntilRound =
 				!enforcedDefeated && combatant.defeated
 					? this.getNextRoundForReentry(battle)
@@ -705,7 +708,7 @@ export class BattleEncounterService {
 			return {
 				...combatant,
 				defeated: enforcedDefeated,
-				collapsed: enforcedDefeated ? true : combatant.collapsed,
+				collapsed: enforcedDefeated ? true : combatant.defeated ? false : combatant.collapsed,
 				inactiveUntilRound,
 			};
 		});
@@ -1140,14 +1143,17 @@ export class BattleEncounterService {
 			maxHp || this.toNonNegativeInt(raw.currentHp),
 		);
 		const pendingAdd = overrides?.pendingAdd ?? raw.pendingAdd === true;
+		const category = this.normalizeCreatureCategory(raw.category);
+		const side = this.normalizeSide(raw.side);
+		const autoDefeat = this.shouldAutoDefeatCombatant({ category, side });
 		return {
 			id: typeof raw.id === 'string' ? raw.id : this.createId(),
 			sourceCreatureId: typeof raw.sourceCreatureId === 'number' ? raw.sourceCreatureId : undefined,
 			sourceSheetId: typeof raw.sourceSheetId === 'string' ? raw.sourceSheetId : undefined,
 			name: typeof raw.name === 'string' ? raw.name : `Combatente ${sourceIndex + 1}`,
 			displayName: typeof raw.displayName === 'string' ? raw.displayName : undefined,
-			category: this.normalizeCreatureCategory(raw.category),
-			side: this.normalizeSide(raw.side),
+			category,
+			side,
 			initiative: this.toFiniteNumber(raw.initiative),
 			nextRoundInitiative:
 				raw.nextRoundInitiative == null ? undefined : this.toFiniteNumber(raw.nextRoundInitiative),
@@ -1160,7 +1166,7 @@ export class BattleEncounterService {
 			maxHp,
 			currentHp,
 			temporaryHp: this.toNonNegativeInt(raw.temporaryHp),
-			defeated: raw.defeated === true || currentHp <= 0,
+			defeated: raw.defeated === true || (autoDefeat && currentHp <= 0),
 			hidden: raw.hidden === true,
 			inactiveUntilRound:
 				raw.inactiveUntilRound == null
@@ -1239,6 +1245,34 @@ export class BattleEncounterService {
 		};
 	}
 
+	private mapEncounterLairActions(actions: EncounterLairAction[] | undefined): BattleLairAction[] {
+		if (!Array.isArray(actions)) return [];
+		return actions.map((action, index) =>
+			this.normalizeLairAction(
+				{
+					...structuredClone(action),
+					currentCooldownRounds: 0,
+					lastTriggeredAtRound: undefined,
+				},
+				index,
+			),
+		);
+	}
+
+	private mapEncounterTraps(traps: EncounterTrap[] | undefined): BattleTrap[] {
+		if (!Array.isArray(traps)) return [];
+		return traps.map((trap, index) =>
+			this.normalizeTrap(
+				{
+					...structuredClone(trap),
+					currentCooldownRounds: 0,
+					lastTriggeredAtRound: undefined,
+				},
+				index,
+			),
+		);
+	}
+
 	private createCombatantFromCreature(
 		creature: CreatureInterface,
 		sourceIndex: number,
@@ -1260,6 +1294,7 @@ export class BattleEncounterService {
 			overrides?.side ??
 			options?.combatantSides?.[creature.id] ??
 			this.inferSideFromCategory(category, creature.category);
+		const autoDefeat = this.shouldAutoDefeatCombatant({ category, side });
 		const initiativeOverride = options?.initiativeOverrides?.[creature.id];
 		const initiative =
 			overrides?.initiative ??
@@ -1280,7 +1315,7 @@ export class BattleEncounterService {
 			maxHp,
 			currentHp,
 			temporaryHp,
-			defeated: creature.alive === false || currentHp <= 0,
+			defeated: creature.alive === false || (autoDefeat && currentHp <= 0),
 			hidden: false,
 			inactiveUntilRound: undefined,
 			collapsed: false,
@@ -1382,8 +1417,22 @@ export class BattleEncounterService {
 							? 'round-cooldown'
 							: ability.rechargeType === 'dice'
 								? 'dice-recharge'
+								: ability.rechargeType === 'per-day'
+									? 'uses-per-day'
+									: ability.rechargeType === 'short-rest'
+										? 'short-rest'
+									: ability.rechargeType === 'long-rest'
+											? 'long-rest'
+										: 'manual',
+				rechargeType:
+					ability.rechargeType === 'turns'
+						? 'turns'
+						: ability.rechargeType === 'rounds'
+							? 'rounds'
+							: ability.rechargeType === 'dice'
+								? 'dice'
 								: 'manual',
-				rechargeType: ability.rechargeType,
+				maxUses: ability.maxUses,
 				cooldownTurns: ability.cooldownTurns,
 				cooldownRounds: ability.cooldownRounds,
 				rechargeDice: ability.rechargeType === 'dice' ? 'd6' : undefined,
@@ -1527,6 +1576,14 @@ export class BattleEncounterService {
 		combatant: BattleCombatant,
 		currentHp: number,
 	): Pick<BattleCombatant, 'defeated' | 'collapsed' | 'inactiveUntilRound'> {
+		if (!this.shouldAutoDefeatCombatant(combatant)) {
+			return {
+				defeated: combatant.defeated,
+				collapsed: combatant.collapsed,
+				inactiveUntilRound: combatant.inactiveUntilRound,
+			};
+		}
+
 		if (currentHp <= 0) {
 			return {
 				defeated: true,
@@ -1548,6 +1605,12 @@ export class BattleEncounterService {
 			collapsed: combatant.collapsed,
 			inactiveUntilRound: combatant.inactiveUntilRound,
 		};
+	}
+
+	private shouldAutoDefeatCombatant(
+		combatant: Pick<BattleCombatant, 'category' | 'side'>,
+	): boolean {
+		return combatant.category !== 'pc' && combatant.side !== 'player';
 	}
 
 	private mapSheetFeatures(features: unknown): CreatureFeature[] {

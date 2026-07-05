@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -8,6 +8,11 @@ import type {
 	CreatureInterface,
 	CreatureSpecialAbility,
 	CreatureAbilityRechargeType,
+	EncounterLairAction,
+	EncounterLairActionFrequency,
+	EncounterTrap,
+	EncounterTrapFrequency,
+	EncounterTrapTriggerType,
 	NoteInterface,
 	SpellLevel,
 	SpellInterface,
@@ -38,8 +43,26 @@ type AbilityDraft = {
 	name: string;
 	description: string;
 	rechargeType: CreatureAbilityRechargeType;
+	maxUses: number;
 	cooldownValue: number;
 	rechargeOn: string;
+};
+
+type LairActionDraft = {
+	name: string;
+	description: string;
+	initiative: string;
+	frequency: EncounterLairActionFrequency;
+	cooldownRounds: string;
+};
+
+type TrapDraft = {
+	name: string;
+	description: string;
+	triggerType: EncounterTrapTriggerType;
+	initiative: string;
+	frequency: EncounterTrapFrequency;
+	cooldownRounds: string;
 };
 
 @Component({
@@ -60,6 +83,8 @@ export class EncounterBuilder {
 	spellDrafts = signal<Record<number, SpellDraft>>({});
 	conditionDrafts = signal<Record<number, ConditionDraft>>({});
 	abilityDrafts = signal<Record<number, AbilityDraft>>({});
+	lairActionDraft = signal<LairActionDraft>(this.createLairActionDraft());
+	trapDraft = signal<TrapDraft>(this.createTrapDraft());
 
 	importOpen = signal(false);
 	importText = signal('');
@@ -398,6 +423,108 @@ export class EncounterBuilder {
 			.slice(0, 40);
 	}
 
+	private createLairActionDraft(): LairActionDraft {
+		return {
+			name: '',
+			description: '',
+			initiative: '20',
+			frequency: 'every-round',
+			cooldownRounds: '1',
+		};
+	}
+
+	private createTrapDraft(): TrapDraft {
+		return {
+			name: '',
+			description: '',
+			triggerType: 'initiative',
+			initiative: '20',
+			frequency: 'manual',
+			cooldownRounds: '1',
+		};
+	}
+
+	private normalizeEncounter(raw: BattleTracker): BattleTracker {
+		return {
+			...structuredClone(raw),
+			creatures: structuredClone(raw.creatures ?? []).map((creature) => ({
+				...creature,
+				spells: creature.spells ?? {},
+				totalSpellSlots: creature.totalSpellSlots ?? null,
+				usedSpellSlots: creature.usedSpellSlots ?? null,
+				specialAbilities: Array.isArray(creature.specialAbilities) ? creature.specialAbilities : [],
+			})),
+			lairActions: this.normalizeEncounterLairActions(raw.lairActions),
+			traps: this.normalizeEncounterTraps(raw.traps),
+		};
+	}
+
+	private normalizeEncounterLairActions(raw: BattleTracker['lairActions']): EncounterLairAction[] {
+		if (!Array.isArray(raw)) return [];
+		return raw.map((action, index) => {
+			const frequency =
+				action?.frequency === 'every-round' ||
+				action?.frequency === 'cooldown-rounds' ||
+				action?.frequency === 'manual'
+					? action.frequency
+					: 'every-round';
+			return {
+				id: typeof action?.id === 'string' ? action.id : `encounter-lair-action-${index + 1}`,
+				name: typeof action?.name === 'string' ? action.name : `Lair Action ${index + 1}`,
+				description: typeof action?.description === 'string' ? action.description : undefined,
+				initiative: Number.isFinite(Number(action?.initiative)) ? Number(action?.initiative) : 20,
+				active: action?.active !== false,
+				frequency,
+				cooldownRounds:
+					frequency === 'cooldown-rounds'
+						? Math.max(1, this.parseNonNegInt(action?.cooldownRounds) || 1)
+						: undefined,
+				currentCooldownRounds: this.parseNonNegInt(action?.currentCooldownRounds),
+				lastTriggeredAtRound: this.parseNonNegInt(action?.lastTriggeredAtRound) || undefined,
+			};
+		});
+	}
+
+	private normalizeEncounterTraps(raw: BattleTracker['traps']): EncounterTrap[] {
+		if (!Array.isArray(raw)) return [];
+		return raw.map((trap, index) => {
+			const triggerType =
+				trap?.triggerType === 'initiative' ||
+				trap?.triggerType === 'round-start' ||
+				trap?.triggerType === 'round-end' ||
+				trap?.triggerType === 'manual'
+					? trap.triggerType
+					: 'manual';
+			const frequency =
+				trap?.frequency === 'once' ||
+				trap?.frequency === 'every-round' ||
+				trap?.frequency === 'cooldown-rounds' ||
+				trap?.frequency === 'manual'
+					? trap.frequency
+					: 'manual';
+			return {
+				id: typeof trap?.id === 'string' ? trap.id : `encounter-trap-${index + 1}`,
+				name: typeof trap?.name === 'string' ? trap.name : `Armadilha ${index + 1}`,
+				description: typeof trap?.description === 'string' ? trap.description : undefined,
+				triggerType,
+				initiative:
+					triggerType === 'initiative' && Number.isFinite(Number(trap?.initiative))
+						? Number(trap?.initiative)
+						: triggerType === 'initiative'
+							? 20
+							: undefined,
+				active: trap?.active !== false,
+				frequency,
+				cooldownRounds:
+					frequency === 'cooldown-rounds'
+						? Math.max(1, this.parseNonNegInt(trap?.cooldownRounds) || 1)
+						: undefined,
+				currentCooldownRounds: this.parseNonNegInt(trap?.currentCooldownRounds),
+				lastTriggeredAtRound: this.parseNonNegInt(trap?.lastTriggeredAtRound) || undefined,
+			};
+		});
+	}
+
 	setDraftName(v: string) {
 		this.draft.update((d) => ({ ...d, name: v }));
 	}
@@ -643,6 +770,7 @@ export class EncounterBuilder {
 				name: '',
 				description: '',
 				rechargeType: 'manual',
+				maxUses: 1,
 				cooldownValue: 1,
 				rechargeOn: '5,6',
 			}
@@ -672,6 +800,12 @@ export class EncounterBuilder {
 			name,
 			description: (draft.description || '').trim() || undefined,
 			rechargeType: draft.rechargeType,
+			maxUses:
+				draft.rechargeType === 'per-day' ||
+				draft.rechargeType === 'short-rest' ||
+				draft.rechargeType === 'long-rest'
+					? Math.max(1, this.parseNonNegInt(draft.maxUses) || 1)
+					: undefined,
 			cooldownTurns:
 				draft.rechargeType === 'turns' ? Math.max(1, this.parseNonNegInt(draft.cooldownValue)) : undefined,
 			cooldownRounds:
@@ -693,6 +827,7 @@ export class EncounterBuilder {
 			name: '',
 			description: '',
 			rechargeType: 'manual',
+			maxUses: 1,
 			cooldownValue: 1,
 			rechargeOn: '5,6',
 		});
@@ -733,7 +868,138 @@ export class EncounterBuilder {
 			const targets = ability.rechargeOn?.length ? ability.rechargeOn.join('–') : '5–6';
 			return `Recharge ${targets}`;
 		}
+		if (ability.rechargeType === 'per-day') {
+			const uses = Math.max(1, ability.maxUses ?? 1);
+			return uses === 1 ? '1 uso por dia' : `${uses} usos por dia`;
+		}
+		if (ability.rechargeType === 'short-rest') {
+			const uses = Math.max(1, ability.maxUses ?? 1);
+			return uses === 1 ? '1 uso por descanso curto' : `${uses} usos por descanso curto`;
+		}
+		if (ability.rechargeType === 'long-rest') {
+			const uses = Math.max(1, ability.maxUses ?? 1);
+			return uses === 1 ? '1 uso por descanso longo' : `${uses} usos por descanso longo`;
+		}
 		return 'Recarga manual';
+	}
+
+	setLairActionDraft(patch: Partial<LairActionDraft>) {
+		this.lairActionDraft.update((draft) => ({ ...draft, ...patch }));
+	}
+
+	addLairAction() {
+		const draft = this.lairActionDraft();
+		if (!draft.name.trim()) {
+			this.showToast({ type: 'warn', text: 'Defina um nome para a lair action.' });
+			return;
+		}
+
+		const action: EncounterLairAction = {
+			id: crypto.randomUUID(),
+			name: draft.name.trim(),
+			description: draft.description.trim() || undefined,
+			initiative: this.parseNullableNumber(draft.initiative) ?? 20,
+			active: true,
+			frequency: draft.frequency,
+			cooldownRounds:
+				draft.frequency === 'cooldown-rounds'
+					? Math.max(1, this.parseNonNegInt(draft.cooldownRounds) || 1)
+					: undefined,
+			currentCooldownRounds: 0,
+		};
+
+		this.encounter.update((encounter) => ({
+			...structuredClone(encounter),
+			lairActions: [...(encounter.lairActions ?? []), action],
+		}));
+		this.lairActionDraft.set(this.createLairActionDraft());
+	}
+
+	updateEncounterLairAction(actionId: string, patch: Partial<EncounterLairAction>) {
+		this.encounter.update((encounter) => ({
+			...structuredClone(encounter),
+			lairActions: (encounter.lairActions ?? []).map((action) =>
+				action.id === actionId ? { ...action, ...patch } : action,
+			),
+		}));
+	}
+
+	removeEncounterLairAction(actionId: string) {
+		this.encounter.update((encounter) => ({
+			...structuredClone(encounter),
+			lairActions: (encounter.lairActions ?? []).filter((action) => action.id !== actionId),
+		}));
+	}
+
+	setTrapDraft(patch: Partial<TrapDraft>) {
+		this.trapDraft.update((draft) => ({ ...draft, ...patch }));
+	}
+
+	addTrap() {
+		const draft = this.trapDraft();
+		if (!draft.name.trim()) {
+			this.showToast({ type: 'warn', text: 'Defina um nome para a armadilha.' });
+			return;
+		}
+
+		const trap: EncounterTrap = {
+			id: crypto.randomUUID(),
+			name: draft.name.trim(),
+			description: draft.description.trim() || undefined,
+			triggerType: draft.triggerType,
+			initiative:
+				draft.triggerType === 'initiative' ? this.parseNullableNumber(draft.initiative) ?? 20 : undefined,
+			active: true,
+			frequency: draft.frequency,
+			cooldownRounds:
+				draft.frequency === 'cooldown-rounds'
+					? Math.max(1, this.parseNonNegInt(draft.cooldownRounds) || 1)
+					: undefined,
+			currentCooldownRounds: 0,
+		};
+
+		this.encounter.update((encounter) => ({
+			...structuredClone(encounter),
+			traps: [...(encounter.traps ?? []), trap],
+		}));
+		this.trapDraft.set(this.createTrapDraft());
+	}
+
+	updateEncounterTrap(trapId: string, patch: Partial<EncounterTrap>) {
+		this.encounter.update((encounter) => ({
+			...structuredClone(encounter),
+			traps: (encounter.traps ?? []).map((trap) => (trap.id === trapId ? { ...trap, ...patch } : trap)),
+		}));
+	}
+
+	removeEncounterTrap(trapId: string) {
+		this.encounter.update((encounter) => ({
+			...structuredClone(encounter),
+			traps: (encounter.traps ?? []).filter((trap) => trap.id !== trapId),
+		}));
+	}
+
+	encounterEventFrequencyLabel(event: EncounterLairAction | EncounterTrap): string {
+		if (event.frequency === 'every-round') return 'Todo round';
+		if (event.frequency === 'once') return 'Uma vez';
+		if (event.frequency === 'cooldown-rounds') {
+			const cooldown = Math.max(1, event.cooldownRounds ?? 1);
+			return cooldown === 1 ? 'Cooldown de 1 round' : `Cooldown de ${cooldown} rounds`;
+		}
+		return 'Manual';
+	}
+
+	lairActionScheduleLabel(action: EncounterLairAction): string {
+		return `${this.encounterEventFrequencyLabel(action)} na iniciativa ${action.initiative}`;
+	}
+
+	trapScheduleLabel(trap: EncounterTrap): string {
+		if (trap.triggerType === 'initiative') {
+			return `${this.encounterEventFrequencyLabel(trap)} na iniciativa ${trap.initiative ?? 20}`;
+		}
+		if (trap.triggerType === 'round-start') return `${this.encounterEventFrequencyLabel(trap)} no início do round`;
+		if (trap.triggerType === 'round-end') return `${this.encounterEventFrequencyLabel(trap)} no fim do round`;
+		return 'Manual';
 	}
 
 	downloadExport() {
@@ -752,7 +1018,7 @@ export class EncounterBuilder {
 	importFromTextarea() {
 		try {
 			const { encounter, warnings } = this.io.fromJsonText(this.importText());
-			this.encounter.set(encounter);
+			this.encounter.set(this.normalizeEncounter(encounter));
 
 			if (warnings.length) {
 				this.ioMsg.set({ type: 'warn', text: warnings.join(' ') });
@@ -815,20 +1081,10 @@ export class EncounterBuilder {
 			if (item) {
 				this.savedId.set(id);
 				this.title.set(item.title);
-				this.encounter.set({
-					...structuredClone(item.data),
-					creatures: structuredClone(item.data.creatures ?? []).map((creature) => ({
-						...creature,
-						spells: creature.spells ?? {},
-						totalSpellSlots: creature.totalSpellSlots ?? null,
-						usedSpellSlots: creature.usedSpellSlots ?? null,
-						specialAbilities: Array.isArray(creature.specialAbilities) ? creature.specialAbilities : [],
-					})),
-				});
+				this.encounter.set(this.normalizeEncounter(item.data));
 			}
 		}
 
-		effect(() => console.log(this.encounter()));
 		this.refreshHomebrewSheets();
 	}
 }

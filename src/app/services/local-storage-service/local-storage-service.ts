@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import type { BattleTracker, CreatureInterface } from '../../models/battleTracker-model';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
+import type { BattleEncounter } from '../../models/battle-encounter-model';
 
 export type SavedEncounter = {
 	id: string;
@@ -36,6 +37,7 @@ export interface SavedSheetInterface {
 export class LocalStorageService {
 	private readonly KEYEncounters = APP_STORAGE_KEYS.encounters;
 	private readonly KEYSheets = APP_STORAGE_KEYS.sheets;
+	private readonly KEYBattleEncounters = APP_STORAGE_KEYS.battleEncounters;
 
 	// ENCOUNTERS:
 
@@ -155,11 +157,13 @@ export class LocalStorageService {
 	updateSheet(id: string, patch: Partial<Omit<SavedSheetInterface, 'id'>>) {
 		const curr = this.getSheet(id);
 		if (!curr) return;
-		this.upsertSheet({
+		const nextSheet = this.normalizeSheet({
 			...curr,
 			...patch,
 			updatedAt: Date.now(),
 		});
+		this.upsertSheet(nextSheet);
+		this.syncSheetNameReferences(curr, nextSheet);
 	}
 
 	deleteSheet(id: string) {
@@ -200,5 +204,129 @@ export class LocalStorageService {
 		if (category === 'npc' || category === 'ally' || category === 'pet') return 'npc';
 		if (category === 'other' || category === 'item') return 'other';
 		return 'monster';
+	}
+
+	private syncSheetNameReferences(previous: SavedSheetInterface, next: SavedSheetInterface) {
+		const previousName = previous.data?.name?.trim();
+		const nextName = next.data?.name?.trim();
+		if (!previousName || !nextName || previousName === nextName) return;
+
+		this.syncEncounterSheetNames(next.id, previousName, nextName);
+		this.syncBattleSheetNames(next.id, previousName, nextName);
+	}
+
+	private syncEncounterSheetNames(sheetId: string, previousName: string, nextName: string) {
+		const encounters = this.listEncounters();
+		let changed = false;
+
+		const updated = encounters.map((encounter) => {
+			const creatures = encounter.data?.creatures ?? [];
+			let encounterChanged = false;
+			const nextCreatures = creatures.map((creature) => {
+				if (creature.sourceSheetId !== sheetId) return creature;
+				const renamed = this.renameDefaultSheetName(creature.name, previousName, nextName);
+				if (!renamed) return creature;
+				changed = true;
+				encounterChanged = true;
+				return {
+					...creature,
+					name: renamed,
+				};
+			});
+
+			if (!encounterChanged) return encounter;
+			return {
+				...encounter,
+				updatedAt: Date.now(),
+				data: {
+					...encounter.data,
+					creatures: nextCreatures,
+				},
+			};
+		});
+
+		if (changed) {
+			localStorage.setItem(this.KEYEncounters, JSON.stringify(updated));
+		}
+	}
+
+	private syncBattleSheetNames(sheetId: string, previousName: string, nextName: string) {
+		const raw = localStorage.getItem(this.KEYBattleEncounters);
+		if (!raw) return;
+
+		try {
+			const parsed = JSON.parse(raw);
+			if (!Array.isArray(parsed)) return;
+
+			let changed = false;
+			const updated = parsed.map((entry) => {
+				if (!entry || typeof entry !== 'object') return entry;
+				const battle = entry as Partial<BattleEncounter>;
+				const combatantsChanged = this.renameBattleCombatants(
+					battle.combatants,
+					sheetId,
+					previousName,
+					nextName,
+				);
+				const pendingChanged = this.renameBattleCombatants(
+					battle.pendingCombatants,
+					sheetId,
+					previousName,
+					nextName,
+				);
+
+				if (combatantsChanged === battle.combatants && pendingChanged === battle.pendingCombatants) {
+					return entry;
+				}
+
+				changed = true;
+				return {
+					...entry,
+					updatedAt: new Date().toISOString(),
+					combatants: combatantsChanged,
+					pendingCombatants: pendingChanged,
+				};
+			});
+
+			if (changed) {
+				localStorage.setItem(this.KEYBattleEncounters, JSON.stringify(updated));
+			}
+		} catch {
+			return;
+		}
+	}
+
+	private renameBattleCombatants(
+		combatants: BattleEncounter['combatants'] | BattleEncounter['pendingCombatants'] | undefined,
+		sheetId: string,
+		previousName: string,
+		nextName: string,
+	) {
+		if (!Array.isArray(combatants)) return combatants;
+
+		let changed = false;
+		const renamed = combatants.map((combatant) => {
+			if (!combatant || combatant.sourceSheetId !== sheetId) return combatant;
+			if ((combatant.displayName || '').trim()) return combatant;
+			const nextCombatantName = this.renameDefaultSheetName(combatant.name, previousName, nextName);
+			if (!nextCombatantName) return combatant;
+			changed = true;
+			return {
+				...combatant,
+				name: nextCombatantName,
+			};
+		});
+
+		return changed ? renamed : combatants;
+	}
+
+	private renameDefaultSheetName(currentName: string, previousName: string, nextName: string): string | null {
+		const trimmedCurrentName = (currentName || '').trim();
+		if (!trimmedCurrentName) return null;
+		if (trimmedCurrentName === previousName) return nextName;
+		if (trimmedCurrentName.startsWith(`${previousName} #`)) {
+			return `${nextName}${trimmedCurrentName.slice(previousName.length)}`;
+		}
+		return null;
 	}
 }

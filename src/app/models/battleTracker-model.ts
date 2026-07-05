@@ -3,6 +3,8 @@
 export interface BattleTracker {
 	creatures: CreatureInterface[];
 	creatureIdCount: number;
+	lairActions?: EncounterLairAction[];
+	traps?: EncounterTrap[];
 	round: number;
 	battleCreated: boolean;
 	shareEnabled: false;
@@ -54,7 +56,14 @@ export interface SpellInterface {
 	total: number;
 }
 
-export type CreatureAbilityRechargeType = 'manual' | 'turns' | 'rounds' | 'dice';
+export type CreatureAbilityRechargeType =
+	| 'manual'
+	| 'turns'
+	| 'rounds'
+	| 'dice'
+	| 'per-day'
+	| 'short-rest'
+	| 'long-rest';
 export type CreatureCategory = 'monster' | 'npc' | 'pc' | 'other';
 export type CreatureFeatureKind =
 	| 'trait'
@@ -76,10 +85,40 @@ export interface CreatureSpecialAbility {
 	name: string;
 	description?: string;
 	rechargeType: CreatureAbilityRechargeType;
+	maxUses?: number;
 	cooldownTurns?: number;
 	cooldownRounds?: number;
 	rechargeDice?: string;
 	rechargeOn?: number[];
+}
+
+export type EncounterLairActionFrequency = 'every-round' | 'cooldown-rounds' | 'manual';
+export type EncounterTrapTriggerType = 'initiative' | 'round-start' | 'round-end' | 'manual';
+export type EncounterTrapFrequency = 'once' | 'every-round' | 'cooldown-rounds' | 'manual';
+
+export interface EncounterLairAction {
+	id: string;
+	name: string;
+	description?: string;
+	initiative: number;
+	active: boolean;
+	frequency: EncounterLairActionFrequency;
+	cooldownRounds?: number;
+	currentCooldownRounds?: number;
+	lastTriggeredAtRound?: number;
+}
+
+export interface EncounterTrap {
+	id: string;
+	name: string;
+	description?: string;
+	triggerType: EncounterTrapTriggerType;
+	initiative?: number;
+	active: boolean;
+	frequency: EncounterTrapFrequency;
+	cooldownRounds?: number;
+	currentCooldownRounds?: number;
+	lastTriggeredAtRound?: number;
 }
 
 export type SpellsByKey = Record<string, SpellInterface>;
