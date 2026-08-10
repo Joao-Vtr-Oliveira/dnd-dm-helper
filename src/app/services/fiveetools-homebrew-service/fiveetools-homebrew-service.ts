@@ -31,6 +31,9 @@ import type {
 	FiveEToolsValidationResult,
 	FiveEToolsEntry,
 	FiveEToolsEntryObject,
+	FiveEToolsCompositionPackage,
+	FiveEToolsLegendaryGroup,
+	FiveEToolsMonsterTemplate,
 } from '../../models/fiveetools-homebrew-model';
 import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
 import type { SavedSheetInterface } from '../local-storage-service/local-storage-service';
@@ -43,6 +46,7 @@ export class FiveEToolsHomebrewService {
 	private readonly creatureTemplateService = inject(CreatureTemplateService);
 	private readonly storageKey = APP_STORAGE_KEYS.fiveEToolsHomebrew;
 	private readonly backupKey = APP_STORAGE_KEYS.fiveEToolsHomebrewBackups;
+	private readonly compositionPackagesKey = APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages;
 
 	async loadLocalHomebrewJson(): Promise<FiveEToolsHomebrewFile> {
 		const stored = this.readStoredFile();
@@ -160,6 +164,16 @@ export class FiveEToolsHomebrewService {
 			trap: Array.isArray(candidate.trap)
 				? candidate.trap.map((trap: unknown, index: number) => this.normalizeTrap(trap, index, meta.sources[0]?.json, warnings))
 				: [],
+			monsterTemplate: Array.isArray(candidate.monsterTemplate)
+				? candidate.monsterTemplate.map((template: unknown, index: number) =>
+					this.normalizeMonsterTemplate(template, index, meta.sources[0]?.json, warnings),
+				)
+				: [],
+			legendaryGroup: Array.isArray(candidate.legendaryGroup)
+				? candidate.legendaryGroup.map((group: unknown, index: number) =>
+					this.normalizeLegendaryGroup(group, index, meta.sources[0]?.json, warnings),
+				)
+				: [],
 		};
 
 		return {
@@ -241,6 +255,28 @@ export class FiveEToolsHomebrewService {
 		return file.trap?.find((trap) => trap.name === name && trap.source === source) ?? null;
 	}
 
+	listMonsterTemplates(file: FiveEToolsHomebrewFile): FiveEToolsMonsterTemplate[] {
+		return [...(file.monsterTemplate ?? [])].sort((left, right) => {
+			if (left.source !== right.source) return left.source.localeCompare(right.source);
+			return left.name.localeCompare(right.name);
+		});
+	}
+
+	listLegendaryGroups(file: FiveEToolsHomebrewFile): FiveEToolsLegendaryGroup[] {
+		return [...(file.legendaryGroup ?? [])].sort((left, right) => {
+			if (left.source !== right.source) return left.source.localeCompare(right.source);
+			return left.name.localeCompare(right.name);
+		});
+	}
+
+	getMonsterTemplate(file: FiveEToolsHomebrewFile, name: string, source: string): FiveEToolsMonsterTemplate | null {
+		return file.monsterTemplate?.find((template) => template.name === name && template.source === source) ?? null;
+	}
+
+	getLegendaryGroup(file: FiveEToolsHomebrewFile, name: string, source: string): FiveEToolsLegendaryGroup | null {
+		return file.legendaryGroup?.find((group) => group.name === name && group.source === source) ?? null;
+	}
+
 	getEntityById(file: FiveEToolsHomebrewFile, entityId: string): FiveEToolsMonster | FiveEToolsTrap | null {
 		const [type, source, ...nameParts] = entityId.split('::');
 		const name = nameParts.join('::');
@@ -273,6 +309,46 @@ export class FiveEToolsHomebrewService {
 			this.normalizeTrap(trap, 0, this.getPrimarySource(file), []),
 			options,
 		);
+	}
+
+	upsertMonsterTemplate(
+		file: FiveEToolsHomebrewFile,
+		template: FiveEToolsMonsterTemplate,
+		options?: { matchBy?: { name: string; source: string } },
+	): FiveEToolsHomebrewFile {
+		return this.upsertNamedCollectionItem(
+			file,
+			'monsterTemplate',
+			this.normalizeMonsterTemplate(template, 0, this.getPrimarySource(file), []),
+			options,
+		);
+	}
+
+	upsertLegendaryGroup(
+		file: FiveEToolsHomebrewFile,
+		group: FiveEToolsLegendaryGroup,
+		options?: { matchBy?: { name: string; source: string } },
+	): FiveEToolsHomebrewFile {
+		return this.upsertNamedCollectionItem(
+			file,
+			'legendaryGroup',
+			this.normalizeLegendaryGroup(group, 0, this.getPrimarySource(file), []),
+			options,
+		);
+	}
+
+	deleteNamedCollectionItem(
+		file: FiveEToolsHomebrewFile,
+		collection: 'monsterTemplate' | 'legendaryGroup',
+		name: string,
+		source: string,
+	): FiveEToolsHomebrewFile {
+		return this.touchFile({
+			...structuredClone(file),
+			[collection]: (file[collection] as Array<{ name: string; source: string }> | undefined)?.filter(
+				(item) => !(item.name === name && item.source === source),
+			) ?? [],
+		});
 	}
 
 	duplicateEntity(file: FiveEToolsHomebrewFile, entityId: string): FiveEToolsHomebrewFile {
@@ -797,6 +873,119 @@ export class FiveEToolsHomebrewService {
 		};
 	}
 
+	createEmptyMonsterTemplate(primarySource = 'Notion'): FiveEToolsMonsterTemplate {
+		return {
+			name: 'Novo Template',
+			source: primarySource,
+			apply: {
+				_root: {},
+			},
+		};
+	}
+
+	createEmptyLegendaryGroup(primarySource = 'Notion'): FiveEToolsLegendaryGroup {
+		return {
+			name: 'Novo Legendary Group',
+			source: primarySource,
+			lairActions: [],
+			regionalEffects: [],
+		};
+	}
+
+	parseMonsterTemplate(raw: unknown, primarySource = 'Notion'): FiveEToolsMonsterTemplate {
+		return this.parseHomebrewJson({
+			_meta: {
+				sources: [{ json: primarySource, abbreviation: primarySource.slice(0, 3).toUpperCase(), full: primarySource, version: '1.0.0' }],
+			},
+			monster: [],
+			trap: [],
+			monsterTemplate: [raw],
+			legendaryGroup: [],
+		}).monsterTemplate?.[0] ?? this.createEmptyMonsterTemplate(primarySource);
+	}
+
+	parseLegendaryGroup(raw: unknown, primarySource = 'Notion'): FiveEToolsLegendaryGroup {
+		return this.parseHomebrewJson({
+			_meta: {
+				sources: [{ json: primarySource, abbreviation: primarySource.slice(0, 3).toUpperCase(), full: primarySource, version: '1.0.0' }],
+			},
+			monster: [],
+			trap: [],
+			monsterTemplate: [],
+			legendaryGroup: [raw],
+		}).legendaryGroup?.[0] ?? this.createEmptyLegendaryGroup(primarySource);
+	}
+
+	listCompositionPackages(): FiveEToolsCompositionPackage[] {
+		const raw = localStorage.getItem(this.compositionPackagesKey);
+		if (!raw) return [];
+		try {
+			const parsed = JSON.parse(raw);
+			if (!Array.isArray(parsed)) return [];
+			return parsed
+				.filter((item) => item && typeof item === 'object')
+				.map((item, index) => this.normalizeCompositionPackage(item, index))
+				.sort((left, right) => left.name.localeCompare(right.name));
+		} catch {
+			return [];
+		}
+	}
+
+	saveCompositionPackage(pkg: FiveEToolsCompositionPackage): FiveEToolsCompositionPackage {
+		const current = this.listCompositionPackages();
+		const existing = current.find((item) => item.id === pkg.id);
+		const normalized = this.normalizeCompositionPackage(
+			{
+				...pkg,
+				createdAt: existing?.createdAt ?? pkg.createdAt,
+				updatedAt: new Date().toISOString(),
+			},
+			current.length,
+		);
+		const next = current.filter((item) => item.id !== normalized.id);
+		next.unshift(normalized);
+		localStorage.setItem(this.compositionPackagesKey, JSON.stringify(next));
+		return normalized;
+	}
+
+	deleteCompositionPackage(id: string): void {
+		const next = this.listCompositionPackages().filter((item) => item.id !== id);
+		localStorage.setItem(this.compositionPackagesKey, JSON.stringify(next));
+	}
+
+	createCompositionPackageFromMonster(
+		monster: FiveEToolsMonster,
+		options?: { name?: string; description?: string },
+	): FiveEToolsCompositionPackage {
+		const timestamp = new Date().toISOString();
+		return {
+			id: globalThis.crypto?.randomUUID?.() ?? `composition-package-${Date.now()}`,
+			name: options?.name?.trim() || `${monster.name.trim() || 'Monster'} Composition`,
+			source: monster.source,
+			description: options?.description?.trim() || undefined,
+			trait: structuredClone(monster.trait ?? []),
+			action: structuredClone(monster.action ?? []),
+			bonus: structuredClone(monster.bonus ?? []),
+			reaction: structuredClone(monster.reaction ?? []),
+			legendary: structuredClone(monster.legendary ?? []),
+			spellcasting: structuredClone(monster.spellcasting ?? []),
+			createdAt: timestamp,
+			updatedAt: timestamp,
+		};
+	}
+
+	applyCompositionPackage(monster: FiveEToolsMonster, pkg: FiveEToolsCompositionPackage): FiveEToolsMonster {
+		return {
+			...structuredClone(monster),
+			trait: [...(monster.trait ?? []), ...structuredClone(pkg.trait ?? [])],
+			action: [...(monster.action ?? []), ...structuredClone(pkg.action ?? [])],
+			bonus: [...(monster.bonus ?? []), ...structuredClone(pkg.bonus ?? [])],
+			reaction: [...(monster.reaction ?? []), ...structuredClone(pkg.reaction ?? [])],
+			legendary: [...(monster.legendary ?? []), ...structuredClone(pkg.legendary ?? [])],
+			spellcasting: [...(monster.spellcasting ?? []), ...structuredClone(pkg.spellcasting ?? [])],
+		};
+	}
+
 	private readStoredFile(): FiveEToolsHomebrewFile | null {
 		const raw = localStorage.getItem(this.storageKey);
 		if (!raw) return null;
@@ -912,6 +1101,62 @@ export class FiveEToolsHomebrewService {
 					: primarySource || 'Notion',
 			trapHazType: typeof candidate.trapHazType === 'string' ? candidate.trapHazType : undefined,
 			entries: Array.isArray(candidate.entries) ? candidate.entries.map((entry: unknown) => this.normalizeEntry(entry)) : [],
+		};
+	}
+
+	private normalizeMonsterTemplate(
+		raw: unknown,
+		index: number,
+		primarySource: string | undefined,
+		warnings: string[],
+	): FiveEToolsMonsterTemplate {
+		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const name = typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim() : `Template ${index + 1}`;
+		if (typeof candidate.name !== 'string') warnings.push(`Template ${index + 1} sem nome; nome padrao aplicado.`);
+		return {
+			...candidate,
+			name,
+			source:
+				typeof candidate.source === 'string' && candidate.source.trim()
+					? candidate.source.trim()
+					: primarySource || 'Notion',
+			apply:
+				candidate.apply && typeof candidate.apply === 'object' && !Array.isArray(candidate.apply)
+					? structuredClone(candidate.apply)
+					: undefined,
+			ref: typeof candidate.ref === 'string' ? candidate.ref : undefined,
+			prerequisite:
+				candidate.prerequisite && typeof candidate.prerequisite === 'object' && !Array.isArray(candidate.prerequisite)
+					? structuredClone(candidate.prerequisite)
+					: undefined,
+		};
+	}
+
+	private normalizeLegendaryGroup(
+		raw: unknown,
+		index: number,
+		primarySource: string | undefined,
+		warnings: string[],
+	): FiveEToolsLegendaryGroup {
+		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const name = typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim() : `Legendary Group ${index + 1}`;
+		if (typeof candidate.name !== 'string') warnings.push(`Legendary Group ${index + 1} sem nome; nome padrao aplicado.`);
+		return {
+			...candidate,
+			name,
+			source:
+				typeof candidate.source === 'string' && candidate.source.trim()
+					? candidate.source.trim()
+					: primarySource || 'Notion',
+			lairActions: Array.isArray(candidate.lairActions)
+				? candidate.lairActions.map((entry: unknown) => this.normalizeEntry(entry))
+				: undefined,
+			regionalEffects: Array.isArray(candidate.regionalEffects)
+				? candidate.regionalEffects.map((entry: unknown) => this.normalizeEntry(entry))
+				: undefined,
+			mythicEncounter: Array.isArray(candidate.mythicEncounter)
+				? candidate.mythicEncounter.map((entry: unknown) => this.normalizeEntry(entry))
+				: undefined,
 		};
 	}
 
@@ -1046,6 +1291,34 @@ export class FiveEToolsHomebrewService {
 		return this.touchFile(nextFile);
 	}
 
+	private upsertNamedCollectionItem<T extends { name: string; source: string }>(
+		file: FiveEToolsHomebrewFile,
+		collectionKey: 'monsterTemplate' | 'legendaryGroup',
+		item: T,
+		options?: { matchBy?: { name: string; source: string } },
+	): FiveEToolsHomebrewFile {
+		const nextFile = structuredClone(file);
+		const collection = [...((nextFile[collectionKey] as T[] | undefined) ?? [])];
+		const matchBy = options?.matchBy;
+		const index = matchBy
+			? collection.findIndex((candidate) => candidate.name === matchBy.name && candidate.source === matchBy.source)
+			: collection.findIndex((candidate) => candidate.name === item.name && candidate.source === item.source);
+		const conflictingIndex = collection.findIndex(
+			(candidate) => candidate.name === item.name && candidate.source === item.source,
+		);
+
+		if (index >= 0 && conflictingIndex >= 0 && conflictingIndex !== index) {
+			throw new Error(`Ja existe um item em ${collectionKey} com o mesmo nome e source.`);
+		}
+
+		if (index >= 0) collection[index] = structuredClone(item);
+		else if (conflictingIndex >= 0) collection[conflictingIndex] = structuredClone(item);
+		else collection.push(structuredClone(item));
+
+		nextFile[collectionKey] = collection;
+		return this.touchFile(nextFile);
+	}
+
 	private applyImportEntity<T extends FiveEToolsMonster | FiveEToolsTrap>(
 		file: FiveEToolsHomebrewFile,
 		type: FiveEToolsEntityType,
@@ -1098,6 +1371,35 @@ export class FiveEToolsHomebrewService {
 				sources: nextSources,
 			},
 		});
+	}
+
+	private normalizeCompositionPackage(raw: unknown, index: number): FiveEToolsCompositionPackage {
+		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const createdAt =
+			typeof candidate.createdAt === 'string' && !Number.isNaN(Date.parse(candidate.createdAt))
+				? candidate.createdAt
+				: new Date().toISOString();
+		const updatedAt =
+			typeof candidate.updatedAt === 'string' && !Number.isNaN(Date.parse(candidate.updatedAt))
+				? candidate.updatedAt
+				: createdAt;
+		return {
+			id: typeof candidate.id === 'string' && candidate.id.trim() ? candidate.id : `composition-package-${index + 1}`,
+			name: typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim() : `Pacote ${index + 1}`,
+			source: typeof candidate.source === 'string' && candidate.source.trim() ? candidate.source.trim() : undefined,
+			description:
+				typeof candidate.description === 'string' && candidate.description.trim()
+					? candidate.description.trim()
+					: undefined,
+			trait: this.normalizeFeatureBlocks(candidate.trait) ?? [],
+			action: this.normalizeFeatureBlocks(candidate.action) ?? [],
+			bonus: this.normalizeFeatureBlocks(candidate.bonus) ?? [],
+			reaction: this.normalizeFeatureBlocks(candidate.reaction) ?? [],
+			legendary: this.normalizeFeatureBlocks(candidate.legendary) ?? [],
+			spellcasting: this.normalizeSpellcastingBlocks(candidate.spellcasting) ?? [],
+			createdAt,
+			updatedAt,
+		};
 	}
 
 	private touchFile(file: FiveEToolsHomebrewFile): FiveEToolsHomebrewFile {

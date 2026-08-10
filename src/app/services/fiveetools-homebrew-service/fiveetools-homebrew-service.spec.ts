@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { provideZonelessChangeDetection } from '@angular/core';
 
 import { FiveEToolsHomebrewService } from './fiveetools-homebrew-service';
 
@@ -9,7 +10,7 @@ describe('FiveEToolsHomebrewService', () => {
 	beforeEach(() => {
 		localStorage.clear();
 		TestBed.configureTestingModule({
-			providers: [provideHttpClient()],
+			providers: [provideZonelessChangeDetection(), provideHttpClient()],
 		});
 		service = TestBed.inject(FiveEToolsHomebrewService);
 	});
@@ -71,6 +72,43 @@ describe('FiveEToolsHomebrewService', () => {
 
 		expect(service.toSpellTag('Fire Bolt', 'XPHB')).toBe('{@spell Fire Bolt|XPHB}');
 		expect(parsed._meta.dateLastModified).toBeGreaterThanOrEqual(before);
+	});
+
+	it('normalizes and upserts monster templates and legendary groups', () => {
+		const file = service.createEmptyFile('Notion');
+		const template = service.parseMonsterTemplate({
+			name: 'Half-Dragon Draft',
+			source: 'Notion',
+			apply: { _root: { type: { type: 'dragon' } } },
+		});
+		const group = service.parseLegendaryGroup({
+			name: 'Lair of Embers',
+			source: 'Notion',
+			lairActions: ['Flames burst from the walls.'],
+		});
+
+		const withTemplate = service.upsertMonsterTemplate(file, template);
+		const withGroup = service.upsertLegendaryGroup(withTemplate, group);
+
+		expect(withGroup.monsterTemplate).toHaveSize(1);
+		expect(withGroup.legendaryGroup).toHaveSize(1);
+		expect(withGroup.monsterTemplate?.[0].name).toBe('Half-Dragon Draft');
+		expect(withGroup.legendaryGroup?.[0].lairActions?.[0]).toBe('Flames burst from the walls.');
+	});
+
+	it('saves and reapplies local composition packages', () => {
+		const monster = service.createEmptyMonster('Notion');
+		monster.trait = [{ name: 'Pack Tactics', entries: ['Advantage near allies.'] }];
+		monster.spellcasting = [{ name: 'Innate Spellcasting', type: 'spellcasting', headerEntries: ['Magic.'], spells: {} }];
+
+		const pkg = service.saveCompositionPackage(
+			service.createCompositionPackageFromMonster(monster, { name: 'Wolf Package' }),
+		);
+		const applied = service.applyCompositionPackage(service.createEmptyMonster('Notion'), pkg);
+
+		expect(service.listCompositionPackages()).toHaveSize(1);
+		expect(applied.trait?.[0].name).toBe('Pack Tactics');
+		expect(applied.spellcasting?.[0].name).toBe('Innate Spellcasting');
 	});
 
 	it('converts a 5etools monster into an internal creature with spells and special abilities', () => {

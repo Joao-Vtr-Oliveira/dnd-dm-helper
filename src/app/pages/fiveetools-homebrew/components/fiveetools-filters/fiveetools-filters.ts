@@ -25,6 +25,7 @@ export class FiveEToolsFiltersComponent {
 	@Input({ required: true }) advancedOpen = false;
 	@Input({ required: true }) monsterCount = 0;
 	@Input({ required: true }) trapCount = 0;
+	@Input({ required: true }) extraCount = 0;
 	@Input({ required: true }) resultCount = 0;
 
 	@Output() readonly searchChange = new EventEmitter<string>();
@@ -46,7 +47,7 @@ export class FiveEToolsFiltersComponent {
 	countForTab(tab: CollectionTab): number {
 		if (tab === 'monster') return this.monsterCount;
 		if (tab === 'trap') return this.trapCount;
-		if (tab === 'extras') return this.summary.otherCollections.length;
+		if (tab === 'extras') return this.extraCount;
 		return this.resultCount;
 	}
 }

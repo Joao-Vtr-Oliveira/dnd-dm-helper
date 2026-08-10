@@ -20,8 +20,11 @@ import type {
 	FiveEToolsHomebrewFile,
 	FiveEToolsHomebrewSummary,
 	FiveEToolsImportPreview,
+	FiveEToolsCompositionPackage,
+	FiveEToolsLegendaryGroup,
 	FiveEToolsMonster,
 	FiveEToolsMonsterFeatureBlock,
+	FiveEToolsMonsterTemplate,
 	FiveEToolsSpellcastingBlock,
 	FiveEToolsTrap,
 	FiveEToolsValidationIssue,
@@ -36,8 +39,14 @@ type EditorMode = 'monster' | 'trap' | null;
 type EditorTab = 'basic' | 'blocks' | 'spellcasting' | 'preview' | 'json';
 type CollectionTab = 'all' | 'monster' | 'trap' | 'extras';
 type MonsterBlockSection = 'trait' | 'action' | 'bonus' | 'reaction' | 'legendary';
+type ExtraCollectionKey = 'monsterTemplate' | 'legendaryGroup';
 type EditingEntityRef = {
 	type: 'monster' | 'trap';
+	originalName: string;
+	originalSource: string;
+};
+type EditingExtraRef = {
+	collection: ExtraCollectionKey;
 	originalName: string;
 	originalSource: string;
 };
@@ -149,8 +158,12 @@ export class FiveEToolsHomebrewPage {
 	readonly editorTagHelperOpen = signal(false);
 	readonly selectedMonster = signal<FiveEToolsMonster | null>(null);
 	readonly selectedTrap = signal<FiveEToolsTrap | null>(null);
+	readonly extraEditorCollection = signal<ExtraCollectionKey | null>(null);
+	readonly editingExtraRef = signal<EditingExtraRef | null>(null);
+	readonly extraJsonDraft = signal('');
 	readonly monsterJsonDraft = signal('');
 	readonly trapJsonDraft = signal('');
+	readonly compositionPackages = signal<FiveEToolsCompositionPackage[]>([]);
 	readonly previewModal = signal<PreviewState | null>(null);
 	readonly spellPickerState = signal<{ blockIndex: number; levelKey: string } | null>(null);
 	readonly referencePickerState = signal<ReferencePickerState | null>(null);
@@ -200,6 +213,18 @@ export class FiveEToolsHomebrewPage {
 
 	readonly monsterSummaries = computed(() => this.entitySummaries().filter((entity) => entity.type === 'monster'));
 	readonly trapSummaries = computed(() => this.entitySummaries().filter((entity) => entity.type === 'trap'));
+	readonly monsterTemplates = computed(() => {
+		const file = this.file();
+		return file ? this.fiveEToolsService.listMonsterTemplates(file) : [];
+	});
+	readonly legendaryGroups = computed(() => {
+		const file = this.file();
+		return file ? this.fiveEToolsService.listLegendaryGroups(file) : [];
+	});
+	readonly extrasCount = computed(() => {
+		const summary = this.summary();
+		return (summary?.otherCollections.reduce((count, collection) => count + collection.count, 0) ?? 0) + this.compositionPackages().length;
+	});
 	readonly resultCount = computed(() => this.entitySummaries().length);
 	readonly currentMonsterWarnings = computed(() => {
 		const monster = this.selectedMonster();
@@ -264,6 +289,7 @@ export class FiveEToolsHomebrewPage {
 	];
 
 	constructor() {
+		this.refreshCompositionPackages();
 		void this.loadFile();
 	}
 
@@ -314,6 +340,7 @@ export class FiveEToolsHomebrewPage {
 	newMonster() {
 		const primarySource = this.summary()?.primarySource || 'Notion';
 		this.closeNewItemMenu();
+		this.cancelExtraEditor();
 		this.editorMode.set('monster');
 		this.editorTab.set('basic');
 		this.editorTagHelperOpen.set(false);
@@ -328,6 +355,7 @@ export class FiveEToolsHomebrewPage {
 	newTrap() {
 		const primarySource = this.summary()?.primarySource || 'Notion';
 		this.closeNewItemMenu();
+		this.cancelExtraEditor();
 		this.editorMode.set('trap');
 		this.editorTab.set('basic');
 		this.editorTagHelperOpen.set(false);
@@ -339,10 +367,29 @@ export class FiveEToolsHomebrewPage {
 		this.trapJsonDraft.set(this.fiveEToolsService.formatJson(trap));
 	}
 
+	newMonsterTemplate() {
+		const primarySource = this.summary()?.primarySource || 'Notion';
+		this.closeNewItemMenu();
+		this.collectionTab.set('extras');
+		this.extraEditorCollection.set('monsterTemplate');
+		this.editingExtraRef.set(null);
+		this.extraJsonDraft.set(this.fiveEToolsService.formatJson(this.fiveEToolsService.createEmptyMonsterTemplate(primarySource)));
+	}
+
+	newLegendaryGroup() {
+		const primarySource = this.summary()?.primarySource || 'Notion';
+		this.closeNewItemMenu();
+		this.collectionTab.set('extras');
+		this.extraEditorCollection.set('legendaryGroup');
+		this.editingExtraRef.set(null);
+		this.extraJsonDraft.set(this.fiveEToolsService.formatJson(this.fiveEToolsService.createEmptyLegendaryGroup(primarySource)));
+	}
+
 	editEntity(entity: FiveEToolsEntitySummary) {
 		const file = this.file();
 		if (!file) return;
 		this.closeNewItemMenu();
+		this.cancelExtraEditor();
 		this.editorTagHelperOpen.set(false);
 		const selected = this.fiveEToolsService.getEntityById(file, entity.id);
 		if (!selected) return;
@@ -506,6 +553,151 @@ export class FiveEToolsHomebrewPage {
 		} catch (error) {
 			this.showToast('error', this.getErrorMessage(error, 'JSON avançado inválido para trap.'));
 		}
+	}
+
+	editMonsterTemplate(template: FiveEToolsMonsterTemplate) {
+		this.collectionTab.set('extras');
+		this.extraEditorCollection.set('monsterTemplate');
+		this.editingExtraRef.set({
+			collection: 'monsterTemplate',
+			originalName: template.name,
+			originalSource: template.source,
+		});
+		this.extraJsonDraft.set(this.fiveEToolsService.formatJson(template));
+	}
+
+	editLegendaryGroup(group: FiveEToolsLegendaryGroup) {
+		this.collectionTab.set('extras');
+		this.extraEditorCollection.set('legendaryGroup');
+		this.editingExtraRef.set({
+			collection: 'legendaryGroup',
+			originalName: group.name,
+			originalSource: group.source,
+		});
+		this.extraJsonDraft.set(this.fiveEToolsService.formatJson(group));
+	}
+
+	cancelExtraEditor() {
+		this.extraEditorCollection.set(null);
+		this.editingExtraRef.set(null);
+		this.extraJsonDraft.set('');
+	}
+
+	saveExtraCollection() {
+		const file = this.file();
+		const collection = this.extraEditorCollection();
+		if (!file || !collection) return;
+		const primarySource = this.summary()?.primarySource || 'Notion';
+
+		try {
+			const parsed = JSON.parse(this.extraJsonDraft());
+			if (collection === 'monsterTemplate') {
+				const template = this.fiveEToolsService.parseMonsterTemplate(parsed, primarySource);
+				this.fiveEToolsService.createBackup(file, `Antes de salvar template: ${template.name}`);
+				const next = this.fiveEToolsService.upsertMonsterTemplate(file, template, {
+					matchBy:
+						this.editingExtraRef()?.collection === 'monsterTemplate'
+							? {
+								name: this.editingExtraRef()!.originalName,
+								source: this.editingExtraRef()!.originalSource,
+							}
+							: undefined,
+				});
+				this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
+				this.editingExtraRef.set({
+					collection: 'monsterTemplate',
+					originalName: template.name,
+					originalSource: template.source,
+				});
+				this.extraJsonDraft.set(this.fiveEToolsService.formatJson(template));
+				this.showToast('success', 'Template salvo no arquivo 5etools.');
+				return;
+			}
+
+			const group = this.fiveEToolsService.parseLegendaryGroup(parsed, primarySource);
+			this.fiveEToolsService.createBackup(file, `Antes de salvar legendary group: ${group.name}`);
+			const next = this.fiveEToolsService.upsertLegendaryGroup(file, group, {
+				matchBy:
+					this.editingExtraRef()?.collection === 'legendaryGroup'
+						? {
+							name: this.editingExtraRef()!.originalName,
+							source: this.editingExtraRef()!.originalSource,
+						}
+						: undefined,
+			});
+			this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
+			this.editingExtraRef.set({
+				collection: 'legendaryGroup',
+				originalName: group.name,
+				originalSource: group.source,
+			});
+			this.extraJsonDraft.set(this.fiveEToolsService.formatJson(group));
+			this.showToast('success', 'Legendary group salvo no arquivo 5etools.');
+		} catch (error) {
+			this.showToast('error', this.getErrorMessage(error, 'Nao foi possivel salvar a colecao extra.'));
+		}
+	}
+
+	removeMonsterTemplate(template: FiveEToolsMonsterTemplate) {
+		const file = this.file();
+		if (!file) return;
+		if (!window.confirm(`Remover o template ${template.name}?`)) return;
+		this.fiveEToolsService.createBackup(file, `Antes de remover template: ${template.name}`);
+		const next = this.fiveEToolsService.deleteNamedCollectionItem(file, 'monsterTemplate', template.name, template.source);
+		this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
+		if (
+			this.editingExtraRef()?.collection === 'monsterTemplate' &&
+			this.editingExtraRef()?.originalName === template.name &&
+			this.editingExtraRef()?.originalSource === template.source
+		) {
+			this.cancelExtraEditor();
+		}
+		this.showToast('success', 'Template removido.');
+	}
+
+	removeLegendaryGroup(group: FiveEToolsLegendaryGroup) {
+		const file = this.file();
+		if (!file) return;
+		if (!window.confirm(`Remover o legendary group ${group.name}?`)) return;
+		this.fiveEToolsService.createBackup(file, `Antes de remover legendary group: ${group.name}`);
+		const next = this.fiveEToolsService.deleteNamedCollectionItem(file, 'legendaryGroup', group.name, group.source);
+		this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
+		if (
+			this.editingExtraRef()?.collection === 'legendaryGroup' &&
+			this.editingExtraRef()?.originalName === group.name &&
+			this.editingExtraRef()?.originalSource === group.source
+		) {
+			this.cancelExtraEditor();
+		}
+		this.showToast('success', 'Legendary group removido.');
+	}
+
+	saveCurrentMonsterAsCompositionPackage() {
+		const monster = this.selectedMonster();
+		if (!monster) return;
+		const suggestedName = `${monster.name.trim() || 'Monster'} Composition`;
+		const name = window.prompt('Nome do pacote de composicao', suggestedName);
+		if (name == null) return;
+		if (!name.trim()) {
+			this.showToast('warn', 'Informe um nome para o pacote.');
+			return;
+		}
+		const pkg = this.fiveEToolsService.createCompositionPackageFromMonster(monster, { name });
+		this.fiveEToolsService.saveCompositionPackage(pkg);
+		this.refreshCompositionPackages();
+		this.showToast('success', 'Pacote de composicao salvo.');
+	}
+
+	applyCompositionPackage(pkg: FiveEToolsCompositionPackage) {
+		this.updateMonster((monster) => this.fiveEToolsService.applyCompositionPackage(monster, pkg));
+		this.showToast('success', `${pkg.name} aplicado ao monster atual.`);
+	}
+
+	removeCompositionPackage(pkg: FiveEToolsCompositionPackage) {
+		if (!window.confirm(`Remover o pacote ${pkg.name}?`)) return;
+		this.fiveEToolsService.deleteCompositionPackage(pkg.id);
+		this.refreshCompositionPackages();
+		this.showToast('success', 'Pacote removido.');
 	}
 
 	duplicateEntity(entity: FiveEToolsEntitySummary) {
@@ -1837,6 +2029,48 @@ export class FiveEToolsHomebrewPage {
 		return this.fiveEToolsService.formatJson(value);
 	}
 
+	extraEditorTitle(): string {
+		return this.extraEditorCollection() === 'monsterTemplate' ? 'Editor de Template' : 'Editor de Legendary Group';
+	}
+
+	extraEditorHint(): string {
+		if (this.extraEditorCollection() === 'monsterTemplate') {
+			return 'Templates costumam usar estruturas de apply/_mod complexas. O fluxo aqui e JSON-first para preservar compatibilidade com o 5etools.';
+		}
+		return 'Legendary groups carregam lair actions, regional effects e campos especiais. O editor usa JSON direto para nao perder estrutura.';
+	}
+
+	unknownExtraCollections() {
+		return (this.summary()?.otherCollections ?? []).filter(
+			(collection) => !['monsterTemplate', 'legendaryGroup'].includes(collection.key),
+		);
+	}
+
+	monsterTemplateSummary(template: FiveEToolsMonsterTemplate): string {
+		const parts = [template.ref ? `ref ${template.ref}` : null, template.apply ? 'apply configurado' : 'sem apply'];
+		return parts.filter(Boolean).join(' • ');
+	}
+
+	legendaryGroupSummary(group: FiveEToolsLegendaryGroup): string {
+		const counts = [
+			group.lairActions?.length ? `${group.lairActions.length} lair action(ns)` : null,
+			group.regionalEffects?.length ? `${group.regionalEffects.length} efeito(s) regional(is)` : null,
+			group.mythicEncounter?.length ? `${group.mythicEncounter.length} bloco(s) mythic` : null,
+		];
+		return counts.filter(Boolean).join(' • ') || 'Sem entries configuradas';
+	}
+
+	compositionPackageSummary(pkg: FiveEToolsCompositionPackage): string {
+		const totalBlocks =
+			(pkg.trait?.length ?? 0) +
+			(pkg.action?.length ?? 0) +
+			(pkg.bonus?.length ?? 0) +
+			(pkg.reaction?.length ?? 0) +
+			(pkg.legendary?.length ?? 0) +
+			(pkg.spellcasting?.length ?? 0);
+		return totalBlocks ? `${totalBlocks} bloco(s) reaproveitaveis` : 'Pacote vazio';
+	}
+
 	renderText(value: string): string {
 		return this.fiveEToolsService.renderText(value);
 	}
@@ -1957,6 +2191,10 @@ export class FiveEToolsHomebrewPage {
 		const [left, right] = value.split('/').map((part) => Number(part.trim()));
 		if (!Number.isFinite(left) || !Number.isFinite(right) || right === 0) return Number.NaN;
 		return left / right;
+	}
+
+	private refreshCompositionPackages() {
+		this.compositionPackages.set(this.fiveEToolsService.listCompositionPackages());
 	}
 
 	private executeRemoveEntity(entity: FiveEToolsEntitySummary) {

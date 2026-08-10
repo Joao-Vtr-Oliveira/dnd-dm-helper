@@ -8,6 +8,8 @@ export interface FiveEToolsHomebrewFile {
 	_meta: FiveEToolsMeta;
 	monster?: FiveEToolsMonster[];
 	trap?: FiveEToolsTrap[];
+	monsterTemplate?: FiveEToolsMonsterTemplate[];
+	legendaryGroup?: FiveEToolsLegendaryGroup[];
 	[key: string]: unknown;
 }
 
@@ -100,6 +102,39 @@ export interface FiveEToolsMonster {
 	legendary?: FiveEToolsMonsterFeatureBlock[];
 	spellcasting?: FiveEToolsSpellcastingBlock[];
 	[key: string]: unknown;
+}
+
+export interface FiveEToolsMonsterTemplate {
+	name: string;
+	source: string;
+	apply?: Record<string, unknown>;
+	ref?: string;
+	prerequisite?: Record<string, unknown>;
+	[key: string]: unknown;
+}
+
+export interface FiveEToolsLegendaryGroup {
+	name: string;
+	source: string;
+	lairActions?: FiveEToolsEntry[];
+	regionalEffects?: FiveEToolsEntry[];
+	mythicEncounter?: FiveEToolsEntry[];
+	[key: string]: unknown;
+}
+
+export interface FiveEToolsCompositionPackage {
+	id: string;
+	name: string;
+	source?: string;
+	description?: string;
+	trait?: FiveEToolsMonsterFeatureBlock[];
+	action?: FiveEToolsMonsterFeatureBlock[];
+	bonus?: FiveEToolsMonsterFeatureBlock[];
+	reaction?: FiveEToolsMonsterFeatureBlock[];
+	legendary?: FiveEToolsMonsterFeatureBlock[];
+	spellcasting?: FiveEToolsSpellcastingBlock[];
+	createdAt: string;
+	updatedAt: string;
 }
 
 export interface FiveEToolsTrap {
