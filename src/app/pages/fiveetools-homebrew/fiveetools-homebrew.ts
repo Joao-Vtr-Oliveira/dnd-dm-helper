@@ -2,6 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { FiveEToolsEntityCardComponent } from './components/fiveetools-entity-card/fiveetools-entity-card';
+import { FiveEToolsEntryReferencePickerComponent } from './components/fiveetools-entry-reference-picker/fiveetools-entry-reference-picker';
+import { FiveEToolsFiltersComponent } from './components/fiveetools-filters/fiveetools-filters';
+import { FiveEToolsPreviewModalComponent } from './components/fiveetools-preview-modal/fiveetools-preview-modal';
+import { FiveEToolsSpellReferencePickerComponent } from './components/fiveetools-spell-reference-picker/fiveetools-spell-reference-picker';
+import { FiveEToolsSummaryCardsComponent } from './components/fiveetools-summary-cards/fiveetools-summary-cards';
+import { FiveEToolsTagHelperComponent } from './components/fiveetools-tag-helper/fiveetools-tag-helper';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
 import type {
 	FiveEToolsConflictComparisonRow,
@@ -20,20 +27,99 @@ import type {
 	FiveEToolsValidationIssue,
 } from '../../models/fiveetools-homebrew-model';
 import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
+import type {
+	FiveEToolsReferenceImportable,
+	FiveEToolsReferenceSpell,
+} from '../../services/fiveetools-reference-data-service/fiveetools-reference-data-service';
 
 type EditorMode = 'monster' | 'trap' | null;
-type EditorTab = 'visual' | 'preview' | 'json';
+type EditorTab = 'basic' | 'blocks' | 'spellcasting' | 'preview' | 'json';
 type CollectionTab = 'all' | 'monster' | 'trap' | 'extras';
 type MonsterBlockSection = 'trait' | 'action' | 'bonus' | 'reaction' | 'legendary';
+type EditingEntityRef = {
+	type: 'monster' | 'trap';
+	originalName: string;
+	originalSource: string;
+};
 type PreviewState =
 	| { type: 'monster'; monster: FiveEToolsMonster; summary: FiveEToolsEntitySummary }
 	| { type: 'trap'; trap: FiveEToolsTrap; summary: FiveEToolsEntitySummary };
 type TagHelperKind = 'spell' | 'damage' | 'condition' | 'dc' | 'hit' | 'dice' | 'save';
+type ConfirmModalState =
+	| {
+			action: 'remove-entity';
+			title: string;
+			description: string;
+			confirmLabel: string;
+			tone: 'danger';
+			entity: FiveEToolsEntitySummary;
+	  }
+	| {
+			action: 'export-with-warnings';
+			title: string;
+			description: string;
+			confirmLabel: string;
+			tone: 'warning';
+			warningCount: number;
+	  };
+
+type MonsterSkillKey =
+	| 'acrobatics'
+	| 'animal handling'
+	| 'arcana'
+	| 'athletics'
+	| 'deception'
+	| 'history'
+	| 'insight'
+	| 'intimidation'
+	| 'investigation'
+	| 'medicine'
+	| 'nature'
+	| 'perception'
+	| 'performance'
+	| 'persuasion'
+	| 'religion'
+	| 'sleight of hand'
+	| 'stealth'
+	| 'survival';
+
+type ReferencePickerState = {
+	kind: 'action' | 'optionalfeature' | 'feat' | 'item' | 'condition' | 'status';
+	section: MonsterBlockSection;
+};
+
+type LanguagePickerState = {
+	targetField: 'languages';
+};
+
+type TagInsertionTarget =
+	| { kind: 'monster-entry'; section: MonsterBlockSection; blockIndex: number; entryIndex: number }
+	| {
+			kind: 'monster-nested-entry';
+			section: MonsterBlockSection;
+			blockIndex: number;
+			entryIndex: number;
+			childIndex: number;
+	  }
+	| { kind: 'trap-entry'; entryIndex: number }
+	| { kind: 'trap-nested-entry'; entryIndex: number; childIndex: number }
+	| { kind: 'spell-header'; blockIndex: number; entryIndex: number }
+	| { kind: 'spell-footer'; blockIndex: number; entryIndex: number };
 
 @Component({
 	selector: 'app-fiveetools-homebrew',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [
+		CommonModule,
+		FormsModule,
+		FiveEToolsEntityCardComponent,
+		FiveEToolsEntryReferencePickerComponent,
+		FiveEToolsFiltersComponent,
+		FiveEToolsPreviewModalComponent,
+		FiveEToolsSpellReferencePickerComponent,
+		FiveEToolsSummaryCardsComponent,
+		FiveEToolsTagHelperComponent,
+	],
 	templateUrl: './fiveetools-homebrew.html',
 })
 export class FiveEToolsHomebrewPage {
@@ -54,14 +140,24 @@ export class FiveEToolsHomebrewPage {
 	readonly groupFilter = signal('all');
 	readonly creatureTypeFilter = signal('all');
 	readonly crFilter = signal<'all' | '0-1' | '2-4' | '5-10' | '11+'>('all');
+	readonly advancedFiltersOpen = signal(false);
+	readonly newItemMenuOpen = signal(false);
 	readonly selectedEntityId = signal<string | null>(null);
+	readonly editingEntityRef = signal<EditingEntityRef | null>(null);
 	readonly editorMode = signal<EditorMode>(null);
-	readonly editorTab = signal<EditorTab>('visual');
+	readonly editorTab = signal<EditorTab>('basic');
+	readonly editorTagHelperOpen = signal(false);
 	readonly selectedMonster = signal<FiveEToolsMonster | null>(null);
 	readonly selectedTrap = signal<FiveEToolsTrap | null>(null);
 	readonly monsterJsonDraft = signal('');
 	readonly trapJsonDraft = signal('');
 	readonly previewModal = signal<PreviewState | null>(null);
+	readonly spellPickerState = signal<{ blockIndex: number; levelKey: string } | null>(null);
+	readonly referencePickerState = signal<ReferencePickerState | null>(null);
+	readonly languagePickerState = signal<LanguagePickerState | null>(null);
+	readonly tagInsertionTarget = signal<TagInsertionTarget | null>(null);
+	readonly confirmModal = signal<ConfirmModalState | null>(null);
+	readonly copyTagFallback = signal<string | null>(null);
 	readonly toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
 	readonly importOpen = signal(false);
 	readonly importText = signal('');
@@ -143,6 +239,30 @@ export class FiveEToolsHomebrewPage {
 		{ key: 'legendary', label: 'Legendary Actions' },
 	];
 
+	readonly monsterEditorTabs: EditorTab[] = ['basic', 'blocks', 'spellcasting', 'preview', 'json'];
+	readonly trapEditorTabs: EditorTab[] = ['basic', 'blocks', 'preview', 'json'];
+	readonly abilityKeys = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
+	readonly monsterSkillOptions: Array<{ key: MonsterSkillKey; label: string }> = [
+		{ key: 'acrobatics', label: 'Acrobatics' },
+		{ key: 'animal handling', label: 'Animal Handling' },
+		{ key: 'arcana', label: 'Arcana' },
+		{ key: 'athletics', label: 'Athletics' },
+		{ key: 'deception', label: 'Deception' },
+		{ key: 'history', label: 'History' },
+		{ key: 'insight', label: 'Insight' },
+		{ key: 'intimidation', label: 'Intimidation' },
+		{ key: 'investigation', label: 'Investigation' },
+		{ key: 'medicine', label: 'Medicine' },
+		{ key: 'nature', label: 'Nature' },
+		{ key: 'perception', label: 'Perception' },
+		{ key: 'performance', label: 'Performance' },
+		{ key: 'persuasion', label: 'Persuasion' },
+		{ key: 'religion', label: 'Religion' },
+		{ key: 'sleight of hand', label: 'Sleight of Hand' },
+		{ key: 'stealth', label: 'Stealth' },
+		{ key: 'survival', label: 'Survival' },
+	];
+
 	constructor() {
 		void this.loadFile();
 	}
@@ -168,17 +288,37 @@ export class FiveEToolsHomebrewPage {
 		this.groupFilter.set('all');
 		this.creatureTypeFilter.set('all');
 		this.crFilter.set('all');
+		this.advancedFiltersOpen.set(false);
 	}
 
 	setCollectionTab(tab: CollectionTab) {
 		this.collectionTab.set(tab);
 	}
 
+	toggleAdvancedFilters() {
+		this.advancedFiltersOpen.update((open) => !open);
+	}
+
+	toggleNewItemMenu() {
+		this.newItemMenuOpen.update((open) => !open);
+	}
+
+	closeNewItemMenu() {
+		this.newItemMenuOpen.set(false);
+	}
+
+	toggleEditorTagHelper() {
+		this.editorTagHelperOpen.update((open) => !open);
+	}
+
 	newMonster() {
 		const primarySource = this.summary()?.primarySource || 'Notion';
+		this.closeNewItemMenu();
 		this.editorMode.set('monster');
-		this.editorTab.set('visual');
+		this.editorTab.set('basic');
+		this.editorTagHelperOpen.set(false);
 		this.selectedEntityId.set(null);
+		this.editingEntityRef.set(null);
 		this.selectedTrap.set(null);
 		const monster = this.fiveEToolsService.createEmptyMonster(primarySource);
 		this.selectedMonster.set(monster);
@@ -187,9 +327,12 @@ export class FiveEToolsHomebrewPage {
 
 	newTrap() {
 		const primarySource = this.summary()?.primarySource || 'Notion';
+		this.closeNewItemMenu();
 		this.editorMode.set('trap');
-		this.editorTab.set('visual');
+		this.editorTab.set('basic');
+		this.editorTagHelperOpen.set(false);
 		this.selectedEntityId.set(null);
+		this.editingEntityRef.set(null);
 		this.selectedMonster.set(null);
 		const trap = this.fiveEToolsService.createEmptyTrap(primarySource);
 		this.selectedTrap.set(trap);
@@ -199,10 +342,17 @@ export class FiveEToolsHomebrewPage {
 	editEntity(entity: FiveEToolsEntitySummary) {
 		const file = this.file();
 		if (!file) return;
+		this.closeNewItemMenu();
+		this.editorTagHelperOpen.set(false);
 		const selected = this.fiveEToolsService.getEntityById(file, entity.id);
 		if (!selected) return;
 		this.selectedEntityId.set(entity.id);
-		this.editorTab.set('visual');
+		this.editingEntityRef.set({
+			type: entity.type,
+			originalName: entity.name,
+			originalSource: entity.source,
+		});
+		this.editorTab.set('basic');
 		if (entity.type === 'monster') {
 			this.editorMode.set('monster');
 			this.selectedTrap.set(null);
@@ -243,7 +393,13 @@ export class FiveEToolsHomebrewPage {
 
 	cancelEditor() {
 		this.editorMode.set(null);
+		this.editorTagHelperOpen.set(false);
+		this.tagInsertionTarget.set(null);
+		this.referencePickerState.set(null);
+		this.languagePickerState.set(null);
+		this.spellPickerState.set(null);
 		this.selectedEntityId.set(null);
+		this.editingEntityRef.set(null);
 		this.selectedMonster.set(null);
 		this.selectedTrap.set(null);
 		this.monsterJsonDraft.set('');
@@ -262,11 +418,30 @@ export class FiveEToolsHomebrewPage {
 			this.showToast('error', 'Informe um nome para o monster.');
 			return;
 		}
-		this.fiveEToolsService.createBackup(file, `Antes de salvar monster: ${monster.name}`);
-		const next = this.fiveEToolsService.upsertMonster(file, monster);
-		this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
-		this.monsterJsonDraft.set(this.fiveEToolsService.formatJson(monster));
-		this.showToast('success', 'Monster salvo no arquivo 5etools.');
+
+		try {
+			this.fiveEToolsService.createBackup(file, `Antes de salvar monster: ${monster.name}`);
+			const next = this.fiveEToolsService.upsertMonster(file, monster, {
+				matchBy:
+					this.editingEntityRef()?.type === 'monster'
+						? {
+							name: this.editingEntityRef()!.originalName,
+							source: this.editingEntityRef()!.originalSource,
+						}
+						: undefined,
+			});
+			this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
+			this.monsterJsonDraft.set(this.fiveEToolsService.formatJson(monster));
+			this.selectedEntityId.set(this.buildEntityId('monster', monster.name, monster.source));
+			this.editingEntityRef.set({
+				type: 'monster',
+				originalName: monster.name,
+				originalSource: monster.source,
+			});
+			this.showToast('success', 'Monster salvo no arquivo 5etools.');
+		} catch (error) {
+			this.showToast('error', this.getErrorMessage(error, 'Nao foi possivel salvar o monster.'));
+		}
 	}
 
 	saveTrap() {
@@ -277,11 +452,30 @@ export class FiveEToolsHomebrewPage {
 			this.showToast('error', 'Informe um nome para a armadilha.');
 			return;
 		}
-		this.fiveEToolsService.createBackup(file, `Antes de salvar trap: ${trap.name}`);
-		const next = this.fiveEToolsService.upsertTrap(file, trap);
-		this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
-		this.trapJsonDraft.set(this.fiveEToolsService.formatJson(trap));
-		this.showToast('success', 'Trap salva no arquivo 5etools.');
+
+		try {
+			this.fiveEToolsService.createBackup(file, `Antes de salvar trap: ${trap.name}`);
+			const next = this.fiveEToolsService.upsertTrap(file, trap, {
+				matchBy:
+					this.editingEntityRef()?.type === 'trap'
+						? {
+							name: this.editingEntityRef()!.originalName,
+							source: this.editingEntityRef()!.originalSource,
+						}
+						: undefined,
+			});
+			this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
+			this.trapJsonDraft.set(this.fiveEToolsService.formatJson(trap));
+			this.selectedEntityId.set(this.buildEntityId('trap', trap.name, trap.source));
+			this.editingEntityRef.set({
+				type: 'trap',
+				originalName: trap.name,
+				originalSource: trap.source,
+			});
+			this.showToast('success', 'Trap salva no arquivo 5etools.');
+		} catch (error) {
+			this.showToast('error', this.getErrorMessage(error, 'Nao foi possivel salvar a trap.'));
+		}
 	}
 
 	applyMonsterJsonDraft() {
@@ -323,24 +517,38 @@ export class FiveEToolsHomebrewPage {
 		this.showToast('success', 'Entidade duplicada.');
 	}
 
-	removeEntity(entity: FiveEToolsEntitySummary) {
+	requestRemoveEntity(entity: FiveEToolsEntitySummary) {
+		this.confirmModal.set({
+			action: 'remove-entity',
+			title: 'Remover item?',
+			description: `O item ${entity.name} sera removido do arquivo 5etools.`,
+			confirmLabel: 'Remover',
+			tone: 'danger',
+			entity,
+		});
+	}
+
+	requestExportFull() {
 		const file = this.file();
 		if (!file) return;
-		if (!window.confirm(`Remover ${entity.name} do arquivo 5etools?`)) return;
-		this.fiveEToolsService.createBackup(file, `Antes de remover: ${entity.name}`);
-		const next = this.fiveEToolsService.deleteEntity(file, entity.type, entity.name, entity.source);
-		this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
-		if (this.selectedEntityId() === entity.id) this.cancelEditor();
-		this.showToast('success', 'Entidade removida.');
+		const warningCount = this.exportWarningCount();
+		if (warningCount > 0) {
+			this.confirmModal.set({
+				action: 'export-with-warnings',
+				title: 'Exportar com avisos?',
+				description: `Existem ${warningCount} avisos de validacao no arquivo atual.`,
+				confirmLabel: 'Exportar mesmo assim',
+				tone: 'warning',
+				warningCount,
+			});
+			return;
+		}
+		this.exportFull();
 	}
 
 	exportFull() {
 		const file = this.file();
 		if (!file) return;
-		const warningCount = this.exportWarningCount();
-		if (warningCount > 0 && !window.confirm(`Existem ${warningCount} avisos. Deseja exportar mesmo assim?`)) {
-			return;
-		}
 		this.fiveEToolsService.downloadFullJson(file);
 		this.showToast('success', 'JSON 5etools exportado.');
 	}
@@ -353,6 +561,7 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	async previewSync() {
+		this.closeNewItemMenu();
 		this.syncing.set(true);
 		try {
 			const remote = await this.fiveEToolsService.fetchRemoteHomebrewJson();
@@ -380,6 +589,7 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	openImport() {
+		this.closeNewItemMenu();
 		this.importOpen.set(true);
 		this.importPreview.set(null);
 		this.importText.set('');
@@ -458,11 +668,247 @@ export class FiveEToolsHomebrewPage {
 	copyGeneratedTag() {
 		const tag = this.generatedTag();
 		if (!navigator.clipboard?.writeText) {
-			window.prompt('Copie a tag:', tag);
+			this.copyTagFallback.set(tag);
 			return;
 		}
-		void navigator.clipboard.writeText(tag);
-		this.showToast('success', 'Tag copiada.');
+		void navigator.clipboard
+			.writeText(tag)
+			.then(() => this.showToast('success', 'Tag copiada.'))
+			.catch(() => {
+				this.copyTagFallback.set(tag);
+			});
+	}
+
+	closeConfirmModal() {
+		this.confirmModal.set(null);
+	}
+
+	confirmModalAction() {
+		const modal = this.confirmModal();
+		if (!modal) return;
+
+		if (modal.action === 'remove-entity') {
+			this.executeRemoveEntity(modal.entity);
+		}
+
+		if (modal.action === 'export-with-warnings') {
+			this.exportFull();
+		}
+
+		this.closeConfirmModal();
+	}
+
+	closeCopyTagFallback() {
+		this.copyTagFallback.set(null);
+	}
+
+	openTagHelper() {
+		this.editorTagHelperOpen.set(true);
+	}
+
+	openContextualTagHelper(target: TagInsertionTarget) {
+		this.tagInsertionTarget.set(target);
+		this.editorTagHelperOpen.set(true);
+	}
+
+	closeTagHelper() {
+		this.editorTagHelperOpen.set(false);
+		this.tagInsertionTarget.set(null);
+	}
+
+	insertGeneratedTagToTarget() {
+		const target = this.tagInsertionTarget();
+		if (!target) return;
+
+		if (target.kind === 'monster-entry') {
+			this.appendGeneratedTagToMonsterEntry(target.section, target.blockIndex, target.entryIndex);
+		}
+
+		if (target.kind === 'monster-nested-entry') {
+			this.appendGeneratedTagToMonsterNestedEntry(
+				target.section,
+				target.blockIndex,
+				target.entryIndex,
+				target.childIndex,
+			);
+		}
+
+		if (target.kind === 'trap-entry') {
+			this.appendGeneratedTagToTrapEntry(target.entryIndex);
+		}
+
+		if (target.kind === 'trap-nested-entry') {
+			this.appendGeneratedTagToTrapNestedEntry(target.entryIndex, target.childIndex);
+		}
+
+		if (target.kind === 'spell-header') {
+			this.appendGeneratedTagToSpellHeader(target.blockIndex, target.entryIndex);
+		}
+
+		if (target.kind === 'spell-footer') {
+			this.appendGeneratedTagToSpellFooter(target.blockIndex, target.entryIndex);
+		}
+
+		this.showToast('success', 'Tag inserida.');
+		this.closeTagHelper();
+	}
+
+	tagInsertionTargetLabel(): string {
+		const target = this.tagInsertionTarget();
+		if (!target) return 'Use o helper para gerar e copiar tags 5etools.';
+		if (target.kind === 'monster-entry') return 'Inserir na entry do bloco do monster';
+		if (target.kind === 'monster-nested-entry') return 'Inserir na entry interna do sub-bloco';
+		if (target.kind === 'trap-entry') return 'Inserir na entry da trap';
+		if (target.kind === 'trap-nested-entry') return 'Inserir na entry interna da trap';
+		if (target.kind === 'spell-header') return 'Inserir na header entry do spellcasting';
+		return 'Inserir na footer entry do spellcasting';
+	}
+
+	openSpellPicker(blockIndex: number, levelKey: string) {
+		this.spellPickerState.set({ blockIndex, levelKey });
+	}
+
+	closeSpellPicker() {
+		this.spellPickerState.set(null);
+	}
+
+	importSpellReference(spell: FiveEToolsReferenceSpell) {
+		const picker = this.spellPickerState();
+		if (!picker) return;
+
+		this.updateSpellcastingLevel(picker.blockIndex, picker.levelKey, (level) => {
+			const currentSpells = [...(level.spells ?? [])];
+			const spellTag = this.buildSpellTag(spell.name, spell.source);
+			if (currentSpells.includes(spellTag)) return level;
+			return { ...level, spells: [...currentSpells, spellTag] };
+		});
+		this.closeSpellPicker();
+		this.showToast('success', `${spell.name} importada para o spellcasting.`);
+	}
+
+	spellLevelDisplayLabel(levelKey: string): string {
+		if (levelKey === '0') return 'cantrips';
+		if (levelKey === '1') return '1º nível';
+		return `${levelKey}º nível`;
+	}
+
+	getSpellLevelSpellName(blockIndex: number, levelKey: string, spellIndex: number): string {
+		const value = this.getSpellLevelSpell(blockIndex, levelKey, spellIndex);
+		const parsed = this.parseSpellTag(value);
+		return parsed?.name ?? value;
+	}
+
+	getSpellLevelSpellSource(blockIndex: number, levelKey: string, spellIndex: number): string {
+		const value = this.getSpellLevelSpell(blockIndex, levelKey, spellIndex);
+		const parsed = this.parseSpellTag(value);
+		return parsed?.source ?? this.defaultSpellSource();
+	}
+
+	updateSpellLevelSpellName(
+		blockIndex: number,
+		levelKey: string,
+		spellIndex: number,
+		value: string,
+	) {
+		const source = this.getSpellLevelSpellSource(blockIndex, levelKey, spellIndex);
+		this.updateSpellLevelSpellReference(blockIndex, levelKey, spellIndex, value, source);
+	}
+
+	updateSpellLevelSpellSource(
+		blockIndex: number,
+		levelKey: string,
+		spellIndex: number,
+		value: string,
+	) {
+		const name = this.getSpellLevelSpellName(blockIndex, levelKey, spellIndex);
+		this.updateSpellLevelSpellReference(blockIndex, levelKey, spellIndex, name, value);
+	}
+
+	spellInputPreview(value: string | FiveEToolsEntry): string {
+		if (typeof value === 'string') return this.fiveEToolsService.renderText(value || '');
+		return this.fiveEToolsService.renderEntries([value]).join(' ');
+	}
+
+	openReferencePicker(
+		kind: 'action' | 'optionalfeature' | 'feat' | 'item' | 'condition' | 'status',
+		section: MonsterBlockSection,
+	) {
+		this.referencePickerState.set({ kind, section });
+	}
+
+	closeReferencePicker() {
+		this.referencePickerState.set(null);
+	}
+
+	openLanguagePicker() {
+		this.languagePickerState.set({ targetField: 'languages' });
+	}
+
+	closeLanguagePicker() {
+		this.languagePickerState.set(null);
+	}
+
+	importReferenceToMonsterSection(reference: FiveEToolsReferenceImportable) {
+		const picker = this.referencePickerState();
+		if (!picker) return;
+
+		const nextBlock: FiveEToolsMonsterFeatureBlock = {
+			name: reference.name,
+			entries: structuredClone(reference.entries),
+		};
+
+		this.updateMonster((monster) => ({
+			...monster,
+			[picker.section]: [...this.getMonsterBlocks(picker.section), nextBlock],
+		}));
+
+		this.closeReferencePicker();
+
+		if (reference.kind === 'item' && reference.hasAttachedSpells) {
+			this.showToast(
+				'warn',
+				`${reference.name} importado. Esse item também possui spells anexadas, que poderão ser integradas em uma próxima etapa.`,
+				4200,
+			);
+			return;
+		}
+
+		if ((reference.kind === 'optionalfeature' || reference.kind === 'feat') && reference.hasAdditionalSpells) {
+			this.showToast(
+				'warn',
+				`${reference.name} importada. Essa referência também inclui spells associadas, que poderão ser integradas em uma próxima etapa.`,
+				4200,
+			);
+			return;
+		}
+
+		this.showToast('success', `${reference.name} importada para ${this.monsterSectionLabel(picker.section)}.`);
+	}
+
+	importLanguageReference(reference: FiveEToolsReferenceImportable) {
+		const picker = this.languagePickerState();
+		if (!picker || reference.kind !== 'language') return;
+
+		const current = this.selectedMonster()?.[picker.targetField] ?? [];
+		const currentNames = Array.isArray(current)
+			? current.filter((entry): entry is string => typeof entry === 'string')
+			: [];
+		if (currentNames.includes(reference.name)) {
+			this.closeLanguagePicker();
+			this.showToast('warn', `${reference.name} já está presente na lista de idiomas.`);
+			return;
+		}
+
+		this.updateMonster((monster) => ({
+			...monster,
+			[picker.targetField]: [...currentNames, reference.name],
+		}));
+		this.closeLanguagePicker();
+		this.showToast('success', `${reference.name} adicionado aos idiomas.`);
+	}
+
+	monsterSectionLabel(section: MonsterBlockSection): string {
+		return this.monsterSections.find((item) => item.key === section)?.label ?? section;
 	}
 
 	appendGeneratedTagToMonsterEntry(section: MonsterBlockSection, blockIndex: number, entryIndex: number) {
@@ -498,6 +944,225 @@ export class FiveEToolsHomebrewPage {
 		this.updateMonster((monster) => ({ ...monster, [field]: value }));
 	}
 
+	getMonsterTypeBase(): string {
+		const type = this.selectedMonster()?.type;
+		if (typeof type === 'string') return type;
+		if (type && typeof type === 'object' && !Array.isArray(type)) {
+			const value = (type as Record<string, unknown>)['type'];
+			return typeof value === 'string' ? value : '';
+		}
+		return '';
+	}
+
+	getMonsterTypeTagsText(): string {
+		const type = this.selectedMonster()?.type;
+		if (!type || typeof type !== 'object' || Array.isArray(type)) return '';
+		const tags = (type as Record<string, unknown>)['tags'];
+		return Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === 'string').join(', ') : '';
+	}
+
+	setMonsterTypeBase(value: string) {
+		const nextType = value.trim();
+		this.updateMonster((monster) => {
+			const current = monster.type;
+			const currentTags =
+				current && typeof current === 'object' && !Array.isArray(current)
+					? Array.isArray((current as Record<string, unknown>)['tags'])
+						? ((current as Record<string, unknown>)['tags'] as unknown[])
+						: []
+					: [];
+
+			if (!nextType) {
+				return {
+					...monster,
+					type: currentTags.length
+						? { ...(typeof current === 'object' && current && !Array.isArray(current) ? current : {}), type: '', tags: currentTags }
+						: '',
+				};
+			}
+
+			if (currentTags.length || (current && typeof current === 'object' && !Array.isArray(current))) {
+				return {
+					...monster,
+					type: {
+						...(typeof current === 'object' && current && !Array.isArray(current) ? current : {}),
+						type: nextType,
+						tags: currentTags,
+					},
+				};
+			}
+
+			return { ...monster, type: nextType };
+		});
+	}
+
+	setMonsterTypeTagsText(value: string) {
+		const tags = this.parseCommaSeparated(value);
+		this.updateMonster((monster) => {
+			const baseType = this.getMonsterTypeBase().trim() || 'humanoid';
+			const current = monster.type;
+			if (!tags.length) {
+				return {
+					...monster,
+					type: baseType,
+				};
+			}
+
+			return {
+				...monster,
+				type: {
+					...(typeof current === 'object' && current && !Array.isArray(current) ? current : {}),
+					type: baseType,
+					tags,
+				},
+			};
+		});
+	}
+
+	monsterTypeHasAdvancedStructure(): boolean {
+		const type = this.selectedMonster()?.type;
+		if (!type || typeof type !== 'object' || Array.isArray(type)) return false;
+		return Object.keys(type).some((key) => !['type', 'tags'].includes(key));
+	}
+
+	getMonsterAcBase(): number | '' {
+		const first = this.selectedMonster()?.ac?.[0];
+		if (typeof first === 'number') return first;
+		if (first && typeof first === 'object' && !Array.isArray(first)) {
+			const ac = (first as Record<string, unknown>)['ac'];
+			return typeof ac === 'number' ? ac : '';
+		}
+		return '';
+	}
+
+	getMonsterAcFromText(): string {
+		const first = this.selectedMonster()?.ac?.[0];
+		if (!first || typeof first !== 'object' || Array.isArray(first)) return '';
+		const from = (first as Record<string, unknown>)['from'];
+		return Array.isArray(from)
+			? from.filter((entry): entry is string => typeof entry === 'string').join(', ')
+			: '';
+	}
+
+	setMonsterAcBase(value: unknown) {
+		const numeric = Number(value);
+		this.updateMonster((monster) => {
+			const nextAc = Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
+			const first = monster.ac?.[0];
+			if (first && typeof first === 'object' && !Array.isArray(first)) {
+				return {
+					...monster,
+					ac: [{ ...(first as Record<string, unknown>), ac: nextAc }],
+				};
+			}
+			return { ...monster, ac: [nextAc] };
+		});
+	}
+
+	setMonsterAcFromText(value: string) {
+		const from = this.parseCommaSeparated(value);
+		this.updateMonster((monster) => {
+			const acBase = this.getMonsterAcBase();
+			const current = monster.ac?.[0];
+			const nextAc = typeof acBase === 'number' ? acBase : 10;
+			if (!from.length) {
+				return { ...monster, ac: [nextAc] };
+			}
+			return {
+				...monster,
+				ac: [
+					{
+						...(current && typeof current === 'object' && !Array.isArray(current)
+							? (current as Record<string, unknown>)
+							: {}),
+						ac: nextAc,
+						from,
+					},
+				],
+			};
+		});
+	}
+
+	monsterAcHasAdvancedStructure(): boolean {
+		const ac = this.selectedMonster()?.ac ?? [];
+		if (ac.length > 1) return true;
+		const first = ac[0];
+		if (!first || typeof first !== 'object' || Array.isArray(first)) return false;
+		return Object.keys(first).some((key) => !['ac', 'from'].includes(key));
+	}
+
+	getMonsterSpeedValue(kind: 'walk' | 'fly' | 'swim' | 'climb' | 'burrow'): number | '' {
+		const value = this.selectedMonster()?.speed?.[kind];
+		return typeof value === 'number' && Number.isFinite(value) ? value : '';
+	}
+
+	setMonsterSpeedValue(kind: 'walk' | 'fly' | 'swim' | 'climb' | 'burrow', value: unknown) {
+		const numeric = Number(value);
+		this.updateMonster((monster) => {
+			const speed = { ...(monster.speed ?? {}) };
+			if (Number.isFinite(numeric) && numeric > 0) speed[kind] = Math.floor(numeric);
+			else delete speed[kind];
+			return { ...monster, speed };
+		});
+	}
+
+	monsterSpeedHasAdvancedStructure(): boolean {
+		const speed = this.selectedMonster()?.speed ?? {};
+		return Object.keys(speed).some(
+			(key) => !['walk', 'fly', 'swim', 'climb', 'burrow'].includes(key) || typeof speed[key] !== 'number',
+		);
+	}
+
+	getMonsterSaveValue(ability: (typeof this.abilityKeys)[number]): string {
+		const value = this.selectedMonster()?.save?.[ability];
+		return typeof value === 'string' ? value : '';
+	}
+
+	setMonsterSaveValue(ability: (typeof this.abilityKeys)[number], value: string) {
+		this.updateMonster((monster) => {
+			const save = { ...(monster.save ?? {}) };
+			const nextValue = value.trim();
+			if (nextValue) save[ability] = nextValue;
+			else delete save[ability];
+			return { ...monster, save };
+		});
+	}
+
+	getMonsterSkillValue(skill: MonsterSkillKey): string {
+		const value = this.selectedMonster()?.skill?.[skill];
+		return typeof value === 'string' ? value : '';
+	}
+
+	setMonsterSkillValue(skill: MonsterSkillKey, value: string) {
+		this.updateMonster((monster) => {
+			const nextSkill = { ...(monster.skill ?? {}) };
+			const nextValue = value.trim();
+			if (nextValue) nextSkill[skill] = nextValue;
+			else delete nextSkill[skill];
+			return { ...monster, skill: nextSkill };
+		});
+	}
+
+	getMonsterListText(
+		field: 'senses' | 'languages' | 'resist' | 'immune' | 'vulnerable' | 'conditionImmune',
+	): string {
+		const value = this.selectedMonster()?.[field];
+		return Array.isArray(value)
+			? value
+					.map((entry) => (typeof entry === 'string' ? entry : ''))
+					.filter(Boolean)
+					.join(', ')
+			: '';
+	}
+
+	setMonsterSimpleArrayField(
+		field: 'senses' | 'languages' | 'resist' | 'immune' | 'vulnerable' | 'conditionImmune',
+		value: string,
+	) {
+		const items = this.parseCommaSeparated(value);
+		this.updateMonster((monster) => ({ ...monster, [field]: items }));
+	}
+
 	setMonsterNumberField(field: keyof FiveEToolsMonster, value: unknown) {
 		const numeric = Number(value);
 		this.updateMonster((monster) => ({
@@ -510,10 +1175,7 @@ export class FiveEToolsHomebrewPage {
 		field: 'alias' | 'group' | 'size' | 'alignment' | 'senses' | 'languages',
 		value: string,
 	) {
-		const items = value
-			.split(/\n|,/) 
-			.map((item) => item.trim())
-			.filter(Boolean);
+		const items = this.parseCommaSeparated(value);
 		this.updateMonster((monster) => ({ ...monster, [field]: items }));
 	}
 
@@ -602,8 +1264,27 @@ export class FiveEToolsHomebrewPage {
 
 	monsterBlockHasAdvancedStructure(block: FiveEToolsMonsterFeatureBlock): boolean {
 		const keys = Object.keys(block);
-		const hasExtraKeys = keys.some((key) => !['name', 'entries'].includes(key));
-		const hasComplexEntries = (block.entries ?? []).some((entry) => typeof entry !== 'string');
+		return keys.some((key) => !['name', 'entries'].includes(key));
+	}
+
+	getMonsterBlockEntries(section: MonsterBlockSection, blockIndex: number): FiveEToolsEntry[] {
+		return this.getMonsterBlocks(section)[blockIndex]?.entries ?? [];
+	}
+
+	isMonsterTextEntry(entry: FiveEToolsEntry): boolean {
+		return typeof entry === 'string';
+	}
+
+	isMonsterEntriesBlock(entry: FiveEToolsEntry): entry is FiveEToolsEntryObject {
+		return !!entry && typeof entry === 'object' && !Array.isArray(entry) && entry.type === 'entries' && Array.isArray(entry.entries);
+	}
+
+	monsterEntryHasAdvancedStructure(entry: FiveEToolsEntry): boolean {
+		if (typeof entry === 'string') return false;
+		if (!this.isMonsterEntriesBlock(entry)) return true;
+		const keys = Object.keys(entry);
+		const hasExtraKeys = keys.some((key) => !['type', 'name', 'entries'].includes(key));
+		const hasComplexEntries = (entry.entries ?? []).some((child) => typeof child !== 'string');
 		return hasExtraKeys || hasComplexEntries;
 	}
 
@@ -618,6 +1299,17 @@ export class FiveEToolsHomebrewPage {
 
 	addMonsterBlockEntry(section: MonsterBlockSection, blockIndex: number) {
 		this.updateMonsterBlock(section, blockIndex, (block) => ({ ...block, entries: [...(block.entries ?? []), ''] }));
+	}
+
+	addMonsterTextEntry(section: MonsterBlockSection, blockIndex: number) {
+		this.addMonsterBlockEntry(section, blockIndex);
+	}
+
+	addMonsterEntriesBlockEntry(section: MonsterBlockSection, blockIndex: number) {
+		this.updateMonsterBlock(section, blockIndex, (block) => ({
+			...block,
+			entries: [...(block.entries ?? []), { type: 'entries', name: 'Novo sub-bloco', entries: [''] }],
+		}));
 	}
 
 	setMonsterBlockEntriesText(section: MonsterBlockSection, blockIndex: number, value: string) {
@@ -654,6 +1346,127 @@ export class FiveEToolsHomebrewPage {
 			entries.splice(targetIndex, 0, entry);
 			return { ...block, entries };
 		});
+	}
+
+	getMonsterEntriesBlockName(section: MonsterBlockSection, blockIndex: number, entryIndex: number): string {
+		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
+		return this.isMonsterEntriesBlock(entry) ? entry.name?.trim() || '' : '';
+	}
+
+	updateMonsterEntriesBlockName(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+		value: string,
+	) {
+		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
+		if (!this.isMonsterEntriesBlock(entry)) return;
+		this.updateMonsterEntryObject(section, blockIndex, entryIndex, { ...entry, name: value });
+	}
+
+	getMonsterEntriesBlockText(section: MonsterBlockSection, blockIndex: number, entryIndex: number): string {
+		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
+		if (!this.isMonsterEntriesBlock(entry)) return '';
+		return (entry.entries ?? []).filter((child): child is string => typeof child === 'string').join('\n');
+	}
+
+	setMonsterEntriesBlockText(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+		value: string,
+	) {
+		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
+		if (!this.isMonsterEntriesBlock(entry)) return;
+		this.updateMonsterEntryObject(section, blockIndex, entryIndex, {
+			...entry,
+			entries: value
+				.split('\n')
+				.map((line) => line.trim())
+				.filter(Boolean),
+		});
+	}
+
+	addMonsterNestedEntry(section: MonsterBlockSection, blockIndex: number, entryIndex: number) {
+		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
+		if (!this.isMonsterEntriesBlock(entry)) return;
+		this.updateMonsterEntryObject(section, blockIndex, entryIndex, {
+			...entry,
+			entries: [...(entry.entries ?? []), ''],
+		});
+	}
+
+	getMonsterNestedEntryText(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+		childIndex: number,
+	): string {
+		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
+		if (!this.isMonsterEntriesBlock(entry)) return '';
+		const child = entry.entries?.[childIndex];
+		return typeof child === 'string' ? child : '';
+	}
+
+	updateMonsterNestedEntry(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+		childIndex: number,
+		value: string,
+	) {
+		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
+		if (!this.isMonsterEntriesBlock(entry)) return;
+		const entries = [...(entry.entries ?? [])];
+		entries[childIndex] = value;
+		this.updateMonsterEntryObject(section, blockIndex, entryIndex, { ...entry, entries });
+	}
+
+	removeMonsterNestedEntry(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+		childIndex: number,
+	) {
+		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
+		if (!this.isMonsterEntriesBlock(entry)) return;
+		this.updateMonsterEntryObject(section, blockIndex, entryIndex, {
+			...entry,
+			entries: (entry.entries ?? []).filter((_, index) => index !== childIndex),
+		});
+	}
+
+	moveMonsterNestedEntry(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+		childIndex: number,
+		direction: -1 | 1,
+	) {
+		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
+		if (!this.isMonsterEntriesBlock(entry)) return;
+		const entries = [...(entry.entries ?? [])];
+		const targetIndex = childIndex + direction;
+		if (targetIndex < 0 || targetIndex >= entries.length) return;
+		const [child] = entries.splice(childIndex, 1);
+		entries.splice(targetIndex, 0, child);
+		this.updateMonsterEntryObject(section, blockIndex, entryIndex, { ...entry, entries });
+	}
+
+	appendGeneratedTagToMonsterNestedEntry(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+		childIndex: number,
+	) {
+		const current = this.getMonsterNestedEntryText(section, blockIndex, entryIndex, childIndex);
+		this.updateMonsterNestedEntry(
+			section,
+			blockIndex,
+			entryIndex,
+			childIndex,
+			`${current} ${this.generatedTag()}`.trim(),
+		);
 	}
 
 	getSpellcastingBlocks(): FiveEToolsSpellcastingBlock[] {
@@ -958,15 +1771,19 @@ export class FiveEToolsHomebrewPage {
 		this.updateTrapEntryObject(entryIndex, { ...entry, entries });
 	}
 
-	monsterSectionPreview(section: MonsterBlockSection): Array<{ title: string; lines: string[] }> {
-		return this.getMonsterBlocks(section).map((block) => ({
+	monsterSectionPreview(
+		monster: FiveEToolsMonster,
+		section: MonsterBlockSection,
+	): Array<{ title: string; lines: string[] }> {
+		const blocks = (monster[section] as FiveEToolsMonsterFeatureBlock[] | undefined) ?? [];
+		return blocks.map((block) => ({
 			title: block.name?.trim() || 'Bloco sem nome',
 			lines: this.fiveEToolsService.renderEntries(block.entries),
 		}));
 	}
 
-	monsterSpellPreview(): Array<{ title: string; lines: string[] }> {
-		return this.getSpellcastingBlocks().map((block) => ({
+	monsterSpellPreview(monster: FiveEToolsMonster): Array<{ title: string; lines: string[] }> {
+		return (monster.spellcasting ?? []).map((block) => ({
 			title: block.name?.trim() || 'Spellcasting',
 			lines: [
 				...this.fiveEToolsService.renderEntries(block.headerEntries),
@@ -1036,7 +1853,9 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	editorTabLabel(value: EditorTab): string {
-		if (value === 'visual') return 'Editor';
+		if (value === 'basic') return 'Basico';
+		if (value === 'blocks') return 'Blocos';
+		if (value === 'spellcasting') return 'Spellcasting';
 		if (value === 'preview') return 'Preview';
 		return 'JSON avançado';
 	}
@@ -1088,6 +1907,19 @@ export class FiveEToolsHomebrewPage {
 		});
 	}
 
+	private updateMonsterEntryObject(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+		nextEntry: FiveEToolsEntryObject,
+	) {
+		this.updateMonsterBlock(section, blockIndex, (block) => {
+			const entries = [...(block.entries ?? [])];
+			entries[entryIndex] = nextEntry;
+			return { ...block, entries };
+		});
+	}
+
 	updateTrapEntryObject(entryIndex: number, nextEntry: FiveEToolsEntryObject) {
 		this.updateTrap((trap) => {
 			const entries = [...trap.entries];
@@ -1125,6 +1957,59 @@ export class FiveEToolsHomebrewPage {
 		const [left, right] = value.split('/').map((part) => Number(part.trim()));
 		if (!Number.isFinite(left) || !Number.isFinite(right) || right === 0) return Number.NaN;
 		return left / right;
+	}
+
+	private executeRemoveEntity(entity: FiveEToolsEntitySummary) {
+		const file = this.file();
+		if (!file) return;
+		this.fiveEToolsService.createBackup(file, `Antes de remover: ${entity.name}`);
+		const next = this.fiveEToolsService.deleteEntity(file, entity.type, entity.name, entity.source);
+		this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
+		if (this.selectedEntityId() === entity.id) this.cancelEditor();
+		this.showToast('success', 'Entidade removida.');
+	}
+
+	private buildEntityId(type: 'monster' | 'trap', name: string, source: string): string {
+		return `${type}::${source}::${name}`;
+	}
+
+	private buildSpellTag(name: string, source: string): string {
+		const cleanName = (name || '').trim();
+		const cleanSource = (source || '').trim() || this.defaultSpellSource();
+		return cleanName ? `{@spell ${cleanName}|${cleanSource}}` : '';
+	}
+
+	private parseSpellTag(value: string): { name: string; source: string } | null {
+		const text = (value || '').trim();
+		const match = text.match(/^\{@spell\s+([^|}]+?)(?:\|([^}]+))?\}$/i);
+		if (!match) return null;
+		return {
+			name: (match[1] || '').trim(),
+			source: (match[2] || '').trim() || this.defaultSpellSource(),
+		};
+	}
+
+	private defaultSpellSource(): string {
+		return 'XPHB';
+	}
+
+	private updateSpellLevelSpellReference(
+		blockIndex: number,
+		levelKey: string,
+		spellIndex: number,
+		name: string,
+		source: string,
+	) {
+		const cleanName = (name || '').trim();
+		const nextValue = cleanName ? this.buildSpellTag(cleanName, source) : '';
+		this.updateSpellLevelSpell(blockIndex, levelKey, spellIndex, nextValue);
+	}
+
+	private parseCommaSeparated(value: string): string[] {
+		return (value || '')
+			.split(/\n|,/) 
+			.map((item) => item.trim())
+			.filter(Boolean);
 	}
 
 	private normalize(value: string): string {

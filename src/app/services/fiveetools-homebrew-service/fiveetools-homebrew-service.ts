@@ -249,12 +249,30 @@ export class FiveEToolsHomebrewService {
 		return null;
 	}
 
-	upsertMonster(file: FiveEToolsHomebrewFile, monster: FiveEToolsMonster): FiveEToolsHomebrewFile {
-		return this.upsertEntity(file, 'monster', this.normalizeMonster(monster, 0, this.getPrimarySource(file), []));
+	upsertMonster(
+		file: FiveEToolsHomebrewFile,
+		monster: FiveEToolsMonster,
+		options?: { matchBy?: { name: string; source: string } },
+	): FiveEToolsHomebrewFile {
+		return this.upsertEntity(
+			file,
+			'monster',
+			this.normalizeMonster(monster, 0, this.getPrimarySource(file), []),
+			options,
+		);
 	}
 
-	upsertTrap(file: FiveEToolsHomebrewFile, trap: FiveEToolsTrap): FiveEToolsHomebrewFile {
-		return this.upsertEntity(file, 'trap', this.normalizeTrap(trap, 0, this.getPrimarySource(file), []));
+	upsertTrap(
+		file: FiveEToolsHomebrewFile,
+		trap: FiveEToolsTrap,
+		options?: { matchBy?: { name: string; source: string } },
+	): FiveEToolsHomebrewFile {
+		return this.upsertEntity(
+			file,
+			'trap',
+			this.normalizeTrap(trap, 0, this.getPrimarySource(file), []),
+			options,
+		);
 	}
 
 	duplicateEntity(file: FiveEToolsHomebrewFile, entityId: string): FiveEToolsHomebrewFile {
@@ -1004,11 +1022,24 @@ export class FiveEToolsHomebrewService {
 		file: FiveEToolsHomebrewFile,
 		type: FiveEToolsEntityType,
 		entity: T,
+		options?: { matchBy?: { name: string; source: string } },
 	): FiveEToolsHomebrewFile {
 		const nextFile = structuredClone(file);
 		const collection = type === 'monster' ? (nextFile.monster ?? []) : (nextFile.trap ?? []);
-		const index = collection.findIndex((item) => item.name === entity.name && item.source === entity.source);
+		const matchBy = options?.matchBy;
+		const index = matchBy
+			? collection.findIndex((item) => item.name === matchBy.name && item.source === matchBy.source)
+			: collection.findIndex((item) => item.name === entity.name && item.source === entity.source);
+		const conflictingIndex = collection.findIndex(
+			(item) => item.name === entity.name && item.source === entity.source,
+		);
+
+		if (index >= 0 && conflictingIndex >= 0 && conflictingIndex !== index) {
+			throw new Error(`Ja existe um ${type === 'monster' ? 'monster' : 'trap'} com o mesmo nome e source.`);
+		}
+
 		if (index >= 0) collection[index] = structuredClone(entity) as never;
+		else if (conflictingIndex >= 0) collection[conflictingIndex] = structuredClone(entity) as never;
 		else collection.push(structuredClone(entity) as never);
 		if (type === 'monster') nextFile.monster = collection as FiveEToolsMonster[];
 		else nextFile.trap = collection as FiveEToolsTrap[];

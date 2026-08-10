@@ -1,0 +1,127 @@
+<section
+	class="rounded-[28px] border border-white/10 bg-[rgba(18,12,32,0.72)] p-8 shadow-[0_18px_40px_rgba(0,0,0,0.24)] backdrop-blur-sm sm:p-10"
+>
+	<div class="flex flex-col gap-14">
+		<div class="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
+			<label class="block min-w-0 flex-1">
+				<span class="text-xs uppercase tracking-[0.2em] text-white/50">Busca</span>
+				<input
+					class="mt-2 w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white placeholder:text-white/35"
+					[value]="search"
+					(input)="searchChange.emit($any($event.target).value || '')"
+					placeholder="Buscar por nome, source, grupo, tipo, spell, trait..."
+				/>
+			</label>
+
+			<div class="flex flex-wrap items-center gap-4 xl:justify-end xl:max-w-[40rem]">
+				@for (tab of tabs; track tab.key) {
+					<button
+						type="button"
+						class="inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-sm font-semibold transition"
+						[class.border-fuchsia-400/35]="collectionTab === tab.key"
+						[class.bg-violet-500/20]="collectionTab === tab.key"
+						[class.text-white]="collectionTab === tab.key"
+						[class.border-white/10]="collectionTab !== tab.key"
+						[class.bg-white/5]="collectionTab !== tab.key"
+						[class.text-white/75]="collectionTab !== tab.key"
+						(click)="collectionTabChange.emit(tab.key)"
+					>
+						<span>{{ tab.label }}</span>
+						<span class="rounded-full bg-black/25 px-2 py-0.5 text-[11px] text-white/70">
+							{{ countForTab(tab.key) }}
+						</span>
+					</button>
+				}
+			</div>
+		</div>
+
+		<div class="flex flex-col gap-10 xl:flex-row xl:items-center xl:justify-between">
+			<div class="flex flex-wrap items-center gap-6">
+				<button
+					type="button"
+					class="inline-flex h-10 items-center rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-white/80 transition hover:bg-white/10"
+					(click)="advancedToggle.emit()"
+				>
+					{{ advancedOpen ? 'Ocultar filtros avancados' : 'Filtros avancados' }}
+				</button>
+
+				<button
+					type="button"
+					class="inline-flex h-10 items-center rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white/70 transition hover:bg-black/30"
+					(click)="clearFilters.emit()"
+				>
+					Limpar filtros
+				</button>
+			</div>
+
+			<div class="flex flex-wrap gap-12 text-sm text-white/65 xl:justify-end">
+				<span>{{ monsterCount }} monstros</span>
+				<span>{{ trapCount }} traps</span>
+				<span>{{ resultCount }} resultados</span>
+			</div>
+		</div>
+
+		@if (advancedOpen) {
+			<div
+				class="grid gap-8 rounded-3xl border border-white/10 bg-black/20 p-7 md:grid-cols-2 xl:grid-cols-4"
+			>
+				<label class="text-sm">
+					<span class="mb-1 block text-white/60">Source</span>
+					<select
+						class="w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5 text-white"
+						[ngModel]="sourceFilter"
+						(ngModelChange)="sourceFilterChange.emit($event)"
+					>
+						<option value="all">Todos</option>
+						<option *ngFor="let source of summary.availableSources" [value]="source">
+							{{ source }}
+						</option>
+					</select>
+				</label>
+
+				<label class="text-sm">
+					<span class="mb-1 block text-white/60">Group / tag</span>
+					<select
+						class="w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5 text-white"
+						[ngModel]="groupFilter"
+						(ngModelChange)="groupFilterChange.emit($event)"
+					>
+						<option value="all">Todos</option>
+						<option *ngFor="let group of summary.availableGroups" [value]="group">
+							{{ group }}
+						</option>
+					</select>
+				</label>
+
+				<label class="text-sm">
+					<span class="mb-1 block text-white/60">Tipo de criatura</span>
+					<select
+						class="w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5 text-white"
+						[ngModel]="creatureTypeFilter"
+						(ngModelChange)="creatureTypeFilterChange.emit($event)"
+					>
+						<option value="all">Todos</option>
+						<option *ngFor="let type of summary.availableCreatureTypes" [value]="type">
+							{{ type }}
+						</option>
+					</select>
+				</label>
+
+				<label class="text-sm">
+					<span class="mb-1 block text-white/60">CR</span>
+					<select
+						class="w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5 text-white"
+						[ngModel]="crFilter"
+						(ngModelChange)="crFilterChange.emit($event)"
+					>
+						<option value="all">Todos</option>
+						<option value="0-1">0-1</option>
+						<option value="2-4">2-4</option>
+						<option value="5-10">5-10</option>
+						<option value="11+">11+</option>
+					</select>
+				</label>
+			</div>
+		}
+	</div>
+</section>
