@@ -108,9 +108,10 @@ export class BattleEncounterService {
 	): BattleEncounter {
 		const timestamp = this.toIso(now);
 		const combatants = this.orderCombatants(
-			(template.data.creatures ?? []).map((creature, index) =>
-				this.createCombatantFromCreature(creature, index, options),
-			),
+			(template.data.creatures ?? []).map((creature, index) => ({
+				...this.createCombatantFromCreature(creature, index, options),
+				collapsed: true,
+			})),
 		);
 		const initialTurnIndex = this.normalizeActiveTurnIndex(combatants, 0, 1);
 

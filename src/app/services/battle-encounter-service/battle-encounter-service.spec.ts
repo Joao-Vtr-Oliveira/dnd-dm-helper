@@ -81,6 +81,7 @@ describe('BattleEncounterService', () => {
 		expect(battle.combatants[0].name).toBe('Goblin Boss');
 		expect(battle.combatants[0].privateNotes).toContain('Focus no wizard');
 		expect(battle.combatants[0].side).toBe('enemy');
+		expect(battle.combatants.every((combatant) => combatant.collapsed)).toBeTrue();
 	});
 
 	it('supports selecting sides before the battle starts', () => {
@@ -369,6 +370,7 @@ describe('BattleEncounterService', () => {
 		expect(withImported.pendingCombatants[0].spells['holdPerson']?.label).toBe('Hold Person');
 		expect(withImported.pendingCombatants[0].specialAbilities[0].name).toBe('Dark Devotion');
 		expect(withImported.pendingCombatants[0].sheetFeatures[0].name).toBe('Spellcasting');
+		expect(withImported.pendingCombatants[0].collapsed).toBeFalse();
 
 		const duplicated = service.duplicateCombatant(
 			withImported,
@@ -385,6 +387,7 @@ describe('BattleEncounterService', () => {
 		expect(duplicate?.conditions).toEqual([]);
 		expect(duplicate?.spells['spiritualWeapon']?.label).toBe('Spiritual Weapon');
 		expect(duplicate?.sheetFeatures[0].name).toBe('Spellcasting');
+		expect(duplicate?.collapsed).toBeFalse();
 	});
 
 	it('keeps pc category separated from battle side defaults', () => {

@@ -54,7 +54,7 @@ describe('BattleTrackerPage', () => {
 							temporaryHp: 0,
 							defeated: false,
 							hidden: false,
-							collapsed: false,
+							collapsed: true,
 							spellSlotsCollapsed: true,
 							pendingAdd: false,
 							conditions: [],
@@ -79,5 +79,29 @@ describe('BattleTrackerPage', () => {
 	it('should create', () => {
 		expect(component).toBeTruthy();
 		expect(storage.getBattleEncounterById('battle-1')).toBeTruthy();
+	});
+
+	it('shows quick damage controls while the combatant is collapsed', () => {
+		const text = fixture.nativeElement.textContent as string;
+
+		expect(text).toContain('Aplicar dano');
+		expect(text).not.toContain('HP atual');
+	});
+
+	it('applies damage without expanding the combatant card', () => {
+		component.setDamageDraft('c1', '7');
+		fixture.detectChanges();
+
+		const buttons = Array.from(
+			fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
+		);
+		const damageButton = buttons.find((button) => (button.textContent || '').includes('Aplicar dano'));
+
+		expect(damageButton).toBeTruthy();
+		damageButton?.click();
+		fixture.detectChanges();
+
+		expect(component.battle()?.combatants[0].currentHp).toBe(13);
+		expect(component.battle()?.combatants[0].collapsed).toBeTrue();
 	});
 });
