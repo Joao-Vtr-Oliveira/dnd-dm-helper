@@ -38,7 +38,7 @@ import type {
 import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
 import type { SavedSheetInterface } from '../local-storage-service/local-storage-service';
 
-const DEFAULT_FILE_NAME = 'Notion_updated_Nagawoods_FULL.json';
+const DEFAULT_FILE_NAME = 'homebrew.json';
 const SPELL_LEVEL_KEYS: SpellLevel[] = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
 
 @Injectable({ providedIn: 'root' })

@@ -15,10 +15,18 @@ Ferramenta para mesa de D&D com foco em uso local durante a sessão.
 ## Fluxo de dados
 
 - O app salva os dados no `localStorage`
+- O arquivo canonico de homebrew 5eTools do projeto e `rpg_files/homebrew.json`
+- Os arquivos `rpg_files/Notion_updated.json` e `rpg_files/Notion_updated_Nagawoods_FULL.json` ficam apenas como legado por enquanto
 - O fluxo principal de backup fica na sidebar:
   - `Sincronizar`
   - `Exportar tudo`
 - Import/export específicos continuam apenas como ações legadas ou por item
+
+## Homebrew canonico
+
+- O carregamento padrao de homebrew 5eTools deve apontar para `rpg_files/homebrew.json`
+- O app online consome a copia publicada desse mesmo arquivo no GitHub
+- Esse mesmo arquivo tambem e o usado pelo MCP e para import manual no 5eTools
 
 ## Backup completo
 

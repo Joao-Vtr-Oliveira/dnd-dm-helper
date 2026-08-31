@@ -74,6 +74,25 @@ describe('FiveEToolsHomebrewService', () => {
 		expect(parsed._meta.dateLastModified).toBeGreaterThanOrEqual(before);
 	});
 
+	it('downloads the full file using homebrew.json as the default filename', () => {
+		const file = service.createEmptyFile('Notion');
+		const anchor = {
+			href: '',
+			download: '',
+			click: jasmine.createSpy('click'),
+		} as unknown as HTMLAnchorElement;
+
+		spyOn(URL, 'createObjectURL').and.returnValue('blob:test');
+		spyOn(URL, 'revokeObjectURL').and.stub();
+		spyOn(document, 'createElement').and.returnValue(anchor as any);
+
+		service.downloadFullJson(file);
+
+		expect(anchor.download).toBe('homebrew.json');
+		expect((anchor.click as jasmine.Spy)).toHaveBeenCalled();
+		expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
+	});
+
 	it('normalizes and upserts monster templates and legendary groups', () => {
 		const file = service.createEmptyFile('Notion');
 		const template = service.parseMonsterTemplate({

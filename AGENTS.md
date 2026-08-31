@@ -23,6 +23,7 @@
 
 ## Environment And Seed Data
 - `src/environments/environment.ts` and `src/environments/environment.prod.ts` define the default remote sync URLs.
+- The canonical 5etools campaign homebrew file is `rpg_files/homebrew.json`. The legacy `Notion_updated.json` and `Notion_updated_Nagawoods_FULL.json` files are not current runtime defaults.
 - Those URLs point to raw GitHub copies of files committed under `rpg_files/`. If you change the default backup or default 5etools JSON, update both the file in `rpg_files/` and the environment URL target.
 - `showDmCalendar` differs by env: `true` in dev, `false` in prod.
 
