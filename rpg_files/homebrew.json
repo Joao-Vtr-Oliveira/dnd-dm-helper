@@ -15,7 +15,7 @@
       }
     ],
     "dateAdded": 1769603141,
-    "dateLastModified": 1782891967,
+    "dateLastModified": 1788160776,
     "edition": "classic"
   },
   "monster": [
@@ -1671,5 +1671,7 @@
         }
       ]
     }
-  ]
+  ],
+  "monsterTemplate": [],
+  "legendaryGroup": []
 }
