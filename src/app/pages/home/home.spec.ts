@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { Home } from './home';
@@ -22,7 +23,11 @@ describe('Home', () => {
 
     await TestBed.configureTestingModule({
       imports: [Home],
-      providers: [provideRouter([]), { provide: AppBackupService, useValue: appBackupService }],
+      providers: [
+			provideZonelessChangeDetection(),
+			provideRouter([]),
+			{ provide: AppBackupService, useValue: appBackupService },
+		],
     })
     .compileComponents();
 

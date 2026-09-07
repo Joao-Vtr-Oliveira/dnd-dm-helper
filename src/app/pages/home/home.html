@@ -184,8 +184,8 @@
 				}
 			</div>
 
-			<aside class="hidden w-80 shrink-0 xl:w-[22rem] lg:block">
-				<div class="sticky top-6 space-y-4">
+			<aside class="hidden w-80 shrink-0 lg:block xl:w-[22rem]">
+				<div class="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto overscroll-contain space-y-4">
 					@for (group of navGroups; track group.label) {
 						<section
 							class="rounded-[28px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm"
