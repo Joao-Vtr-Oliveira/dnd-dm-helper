@@ -75,3 +75,26 @@ select optgroup {
 	background-color: #120d1f;
 	color: #f8f5ff;
 }
+
+.app-action-button {
+	display: flex;
+	min-width: 0;
+	min-height: 2.5rem;
+	height: auto;
+	max-width: 100%;
+	align-items: center;
+	justify-content: center;
+	padding: 0.5rem 1rem;
+	text-align: center;
+	line-height: 1.2;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.app-action-group {
+	display: flex;
+	min-width: 0;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}

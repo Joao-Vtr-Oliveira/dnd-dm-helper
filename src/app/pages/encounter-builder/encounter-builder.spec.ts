@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 
@@ -12,6 +13,7 @@ describe('EncounterBuilder', () => {
     await TestBed.configureTestingModule({
 		imports: [EncounterBuilder],
 		providers: [
+			provideZonelessChangeDetection(),
 			provideHttpClient(),
 			provideRouter([]),
 			{
