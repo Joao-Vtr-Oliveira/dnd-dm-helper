@@ -9,6 +9,12 @@ import {
 	HomebrewCategory,
 } from '../../services/local-storage-service/local-storage-service';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
+import {
+	HomebrewSheetImportService,
+	type HomebrewSheetConflictResolution,
+	type HomebrewSheetImportPreview,
+	type HomebrewSheetImportResult,
+} from '../../services/homebrew-sheet-import-service/homebrew-sheet-import-service';
 
 type FilterAll<T extends string> = 'all' | T;
 
@@ -22,6 +28,7 @@ export class HomebrewSheets {
 	private router = inject(Router);
 	private ls = inject(LocalStorageService);
 	private fiveEToolsService = inject(FiveEToolsHomebrewService);
+	private sheetImportService = inject(HomebrewSheetImportService);
 
 	sheets = signal<SavedSheetInterface[]>(this.ls.listSheets());
 
@@ -32,6 +39,12 @@ export class HomebrewSheets {
 	sourceFilter = signal<FilterAll<string>>('all');
 
 	toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
+	importOpen = signal(false);
+	importText = signal('');
+	importPreview = signal<HomebrewSheetImportPreview | null>(null);
+	importResolutions = signal<Record<number, HomebrewSheetConflictResolution>>({});
+	importResult = signal<HomebrewSheetImportResult | null>(null);
+	private importFileInput: HTMLInputElement | null = null;
 	private toastTimer: number | null = null;
 
 	private showToast(t: { type: 'success' | 'error' | 'warn'; text: string }, ms = 2200) {
@@ -46,6 +59,76 @@ export class HomebrewSheets {
 
 	newSheet() {
 		this.router.navigate(['/home/homebrew-builder']);
+	}
+
+	openImport() {
+		this.importOpen.set(true);
+		this.importText.set('');
+		this.importPreview.set(null);
+		this.importResolutions.set({});
+		this.importResult.set(null);
+	}
+
+	closeImport() {
+		this.importOpen.set(false);
+		this.importPreview.set(null);
+		this.importResult.set(null);
+		if (this.importFileInput) this.importFileInput.value = '';
+	}
+
+	async onImportFile(event: Event) {
+		const input = event.target as HTMLInputElement;
+		this.importFileInput = input;
+		const file = input.files?.[0];
+		if (!file) return;
+		try {
+			this.importText.set(await file.text());
+			this.previewImport();
+		} catch {
+			this.showToast({ type: 'error', text: 'Não foi possível ler o arquivo JSON.' });
+		}
+	}
+
+	previewImport() {
+		try {
+			const preview = this.sheetImportService.parseText(this.importText());
+			this.importPreview.set(preview);
+			this.importResolutions.set(
+				Object.fromEntries(preview.conflicts.map((conflict) => [conflict.index, conflict.resolution])),
+			);
+		} catch (error) {
+			this.importPreview.set(null);
+			this.showToast({
+				type: 'error',
+				text: error instanceof Error ? error.message : 'JSON incompatível.',
+			});
+		}
+	}
+
+	setImportResolution(index: number, resolution: HomebrewSheetConflictResolution) {
+		this.importResolutions.update((current) => ({ ...current, [index]: resolution }));
+	}
+
+	importResolution(index: number): HomebrewSheetConflictResolution {
+		return this.importResolutions()[index] ?? 'replace';
+	}
+
+	confirmImport() {
+		const preview = this.importPreview();
+		if (!preview) return;
+		try {
+			const result = this.sheetImportService.apply(preview, this.importResolutions());
+			this.importResult.set(result);
+			this.importPreview.set(null);
+			this.importOpen.set(false);
+			this.refresh();
+			this.showToast({ type: 'success', text: 'Importação de fichas concluída.' });
+		} catch (error) {
+			this.showToast({
+				type: 'error',
+				text: error instanceof Error ? error.message : 'Não foi possível importar as fichas.',
+			});
+		}
 	}
 
 	edit(id: string) {
@@ -186,10 +269,13 @@ export class HomebrewSheets {
 		if (!sheet) return;
 
 		const payload = {
-			version: 1,
-			exportedAt: Date.now(),
+			app: 'dnd-dm-helper',
+			type: 'homebrew-sheets',
+			schemaVersion: 1,
+			exportedAt: new Date().toISOString(),
 			sheets: [
 				{
+					externalId: sheet.externalId,
 					title: sheet.title,
 					category: sheet.category ?? 'monster',
 					tags: sheet.tags ?? [],

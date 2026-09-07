@@ -23,6 +23,7 @@ type LegacyHomebrewCategory =
 
 export interface SavedSheetInterface {
 	id: string;
+	externalId?: string;
 	title: string;
 	createdAt: number;
 	updatedAt: number;
@@ -135,13 +136,29 @@ export class LocalStorageService {
 		category: HomebrewCategory;
 		tags?: string[];
 		source?: string;
+		externalId?: string;
+	}): SavedSheetInterface {
+		const item = this.buildSheet(params);
+
+		this.upsertSheet(item);
+		return item;
+	}
+
+	buildSheet(params: {
+		title: string;
+		data: CreatureInterface;
+		category: HomebrewCategory;
+		tags?: string[];
+		source?: string;
+		externalId?: string;
+		extra?: Record<string, unknown>;
 	}): SavedSheetInterface {
 		const now = Date.now();
-		const cleanTitle = (params.title || '').trim() || 'Untitled Homebrew';
-
-		const item: SavedSheetInterface = {
-			id: crypto.randomUUID(),
-			title: cleanTitle,
+		return {
+			...(params.extra ?? {}),
+			id: globalThis.crypto?.randomUUID?.() ?? `sheet-${now}-${Math.random().toString(36).slice(2)}`,
+			externalId: this.normalizeExternalId(params.externalId) ?? this.newExternalId(),
+			title: (params.title || '').trim() || 'Untitled Homebrew',
 			createdAt: now,
 			updatedAt: now,
 			data: structuredClone(params.data),
@@ -149,9 +166,6 @@ export class LocalStorageService {
 			tags: (params.tags ?? []).map((t) => t.trim()).filter(Boolean),
 			source: (params.source || '').trim(),
 		};
-
-		this.upsertSheet(item);
-		return item;
 	}
 
 	updateSheet(id: string, patch: Partial<Omit<SavedSheetInterface, 'id'>>) {
@@ -181,13 +195,31 @@ export class LocalStorageService {
 			category: curr.category,
 			tags: curr.tags,
 			source: curr.source,
+			externalId: this.deriveDuplicateExternalId(curr.externalId),
 		});
+	}
+
+	applySheetBatch(
+		sheets: SavedSheetInterface[],
+		replacements: Array<{ previous: SavedSheetInterface; next: SavedSheetInterface }> = [],
+	): SavedSheetInterface[] {
+		const normalized = sheets.map((sheet) => this.normalizeSheet(sheet));
+		localStorage.setItem(this.KEYSheets, JSON.stringify(normalized));
+
+		for (const replacement of replacements) {
+			this.syncSheetNameReferences(replacement.previous, replacement.next);
+		}
+
+		return normalized;
 	}
 
 	private normalizeSheet(sheet: Partial<SavedSheetInterface>): SavedSheetInterface {
 		const now = Date.now();
+		const candidate = structuredClone(sheet) as Record<string, unknown>;
 		return {
+			...candidate,
 			id: typeof sheet.id === 'string' ? sheet.id : crypto.randomUUID(),
+			externalId: this.normalizeExternalId(sheet.externalId) ?? this.newExternalId(),
 			title: (sheet.title || '').trim() || 'Untitled Homebrew',
 			createdAt: typeof sheet.createdAt === 'number' ? sheet.createdAt : now,
 			updatedAt: typeof sheet.updatedAt === 'number' ? sheet.updatedAt : now,
@@ -196,6 +228,21 @@ export class LocalStorageService {
 			tags: Array.isArray(sheet.tags) ? sheet.tags.map((tag) => tag.trim()).filter(Boolean) : [],
 			source: (sheet.source || '').trim(),
 		};
+	}
+
+	private normalizeExternalId(value: unknown): string | undefined {
+		if (typeof value !== 'string') return undefined;
+		const normalized = value.trim();
+		return normalized || undefined;
+	}
+
+	private newExternalId(): string {
+		return `sheet-${globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)}`;
+	}
+
+	private deriveDuplicateExternalId(externalId: string | undefined): string {
+		const base = this.normalizeExternalId(externalId) ?? this.newExternalId();
+		return `${base}-copy-${globalThis.crypto?.randomUUID?.()?.slice(0, 8) ?? Date.now().toString(36)}`;
 	}
 
 	private normalizeHomebrewCategory(value: unknown): HomebrewCategory {

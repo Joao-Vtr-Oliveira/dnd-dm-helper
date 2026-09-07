@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import { BattleEncounterStorageService } from '../battle-encounter-storage-service/battle-encounter-storage-service';
 import { AppBackupService } from './app-backup-service';
@@ -14,7 +15,7 @@ describe('AppBackupService', () => {
 	beforeEach(() => {
 		localStorage.clear();
 		sessionStorage.clear();
-		TestBed.configureTestingModule({});
+		TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
 		service = TestBed.inject(AppBackupService);
 		localStorageService = TestBed.inject(LocalStorageService);
 		battleStorage = TestBed.inject(BattleEncounterStorageService);
@@ -56,6 +57,7 @@ describe('AppBackupService', () => {
 				specialAbilities: [],
 				sheetFeatures: [],
 			},
+			externalId: 'npc-cultista',
 		});
 		worldClock.setSeason('winter');
 
@@ -66,6 +68,7 @@ describe('AppBackupService', () => {
 		expect(backup.schemaVersion).toBe(1);
 		expect(backup.data.encounters).toHaveSize(1);
 		expect(backup.data.homebrewSheets).toHaveSize(1);
+		expect(backup.data.homebrewSheets[0].externalId).toBe('npc-cultista');
 		expect(backup.data.calendar?.season).toBe('winter');
 		expect(backup.data.rawLocalStorage[APP_STORAGE_KEYS.encounters]).toBeTruthy();
 	});
