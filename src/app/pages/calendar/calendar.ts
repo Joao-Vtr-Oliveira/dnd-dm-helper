@@ -68,23 +68,8 @@ export class Calendar {
 	});
 
 	changeMinutes(delta: number) {
-		this.setCurrent((d) => {
-			const total = d.hour * 60 + d.minute + delta;
-
-			let dayDelta = Math.floor(total / 1440);
-			let minOfDay = total % 1440;
-
-			if (minOfDay < 0) {
-				minOfDay += 1440;
-				dayDelta -= 1;
-			}
-
-			const hour = Math.floor(minOfDay / 60);
-			const minute = minOfDay % 60;
-
-			const movedDay = addDays(d, dayDelta);
-			return { ...movedDay, hour, minute };
-		});
+		this.worldClock.advanceMinutes(delta);
+		this.selected.set(this.current());
 	}
 
 	seasonLabel = computed(() => {

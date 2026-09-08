@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { Calendar } from './calendar';
 
@@ -11,6 +12,7 @@ describe('Calendar', () => {
 
 		await TestBed.configureTestingModule({
 			imports: [Calendar],
+			providers: [provideZonelessChangeDetection()],
 		}).compileComponents();
 
 		fixture = TestBed.createComponent(Calendar);

@@ -28,21 +28,39 @@ export class WorldClockService {
 			const raw = localStorage.getItem(STORAGE_KEY);
 			if (!raw) return { ...EPOCH_DATE };
 
-			const parsed = JSON.parse(raw);
-			if (
-				typeof parsed.year === 'number' &&
-				typeof parsed.season === 'string' &&
-				typeof parsed.day === 'number' &&
-				typeof parsed.hour === 'number' &&
-				typeof parsed.minute === 'number'
-			) {
-				return parsed as WorldDate;
-			}
-
-			return { ...EPOCH_DATE };
+			return this.normalizeDate(JSON.parse(raw), EPOCH_DATE);
 		} catch {
 			return { ...EPOCH_DATE };
 		}
+	}
+
+	private normalizeDate(raw: unknown, fallback: WorldDate): WorldDate {
+		if (!raw || typeof raw !== 'object') return { ...fallback };
+
+		const candidate = raw as Partial<WorldDate>;
+		const integerInRange = (value: unknown, defaultValue: number, min: number, max?: number) => {
+			if (typeof value !== 'number' || !Number.isFinite(value)) return defaultValue;
+			const normalized = Math.floor(value);
+			if (normalized < min) return min;
+			if (max !== undefined && normalized > max) return max;
+			return normalized;
+		};
+
+		const season =
+			candidate.season === 'spring' ||
+			candidate.season === 'summer' ||
+			candidate.season === 'autumn' ||
+			candidate.season === 'winter'
+				? candidate.season
+				: fallback.season;
+
+		return {
+			year: integerInRange(candidate.year, fallback.year, EPOCH_DATE.year),
+			season,
+			day: integerInRange(candidate.day, fallback.day, 1, 30),
+			hour: integerInRange(candidate.hour, fallback.hour, 0, 23),
+			minute: integerInRange(candidate.minute, fallback.minute, 0, 59),
+		};
 	}
 
 	constructor() {
@@ -60,7 +78,7 @@ export class WorldClockService {
 	}
 
 	setDate(d: WorldDate) {
-		this.current.set({ ...d });
+		this.current.set(this.normalizeDate(d, this.current()));
 	}
 
 	reloadFromStorage() {
@@ -68,7 +86,7 @@ export class WorldClockService {
 	}
 
 	setSeason(season: Season) {
-		this.current.update((d) => ({ ...d, season }));
+		this.setDate({ ...this.current(), season });
 	}
 
 	reset() {
@@ -76,14 +94,14 @@ export class WorldClockService {
 	}
 
 	advanceMinutes(delta: number) {
-		this.current.update((d) => addMinutes(d, delta));
+		this.setDate(addMinutes(this.current(), delta));
 	}
 
 	advanceHours(delta: number) {
-		this.current.update((d) => addHours(d, delta));
+		this.setDate(addHours(this.current(), delta));
 	}
 
 	advanceDays(delta: number) {
-		this.current.update((d) => addDays(d, delta));
+		this.setDate(addDays(this.current(), delta));
 	}
 }

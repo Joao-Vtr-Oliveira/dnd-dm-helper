@@ -7,6 +7,7 @@ import {
 	type AppBackup,
 	type AppBackupSummary,
 } from '../../services/app-backup-service/app-backup-service';
+import { CampaignClock } from '../../components/campaign-clock/campaign-clock';
 
 type IconName =
 	| 'layout'
@@ -48,7 +49,7 @@ type SyncPreviewState = {
 
 @Component({
 	selector: 'app-home',
-	imports: [CommonModule, RouterOutlet, RouterModule],
+	imports: [CampaignClock, CommonModule, RouterOutlet, RouterModule],
 	templateUrl: './home.html',
 })
 export class Home {
