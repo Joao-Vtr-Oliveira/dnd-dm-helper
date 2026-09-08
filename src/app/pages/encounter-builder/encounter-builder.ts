@@ -23,12 +23,14 @@ import { EncounterIoService } from '../../services/encounter-io-service/encounte
 import { ActivatedRoute, Router } from '@angular/router';
 import {
 	LocalStorageService,
+	SavedEncounter,
 	SavedSheetInterface,
 } from '../../services/local-storage-service/local-storage-service';
 import { ApiResourceListItem, Dnd5eApiService } from '../../services/dnd-api/dnd-api';
 import { firstValueFrom } from 'rxjs';
 import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
+import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 
 type DraftCreature = {
 	name: string;
@@ -94,6 +96,7 @@ export class EncounterBuilder {
 	private route = inject(ActivatedRoute);
 	private router = inject(Router);
 	private ls = inject(LocalStorageService);
+	private battleStorage = inject(BattleEncounterStorageService);
 	private creatureTemplateService = inject(CreatureTemplateService);
 	private fiveEToolsHomebrewService = inject(FiveEToolsHomebrewService);
 
@@ -377,6 +380,11 @@ export class EncounterBuilder {
 
 	savedId = signal<string | null>(null);
 	title = signal<string>('');
+	saveAndBattleLabel = computed(() =>
+		this.savedId() && this.battleStorage.getActiveBattleByEncounterId(this.savedId()!)
+			? 'Salvar e continuar batalha'
+			: 'Salvar e iniciar batalha',
+	);
 
 	exportOpen = signal(false);
 	exportJson = computed(() => this.io.toJson(this.encounter()));
@@ -439,8 +447,8 @@ export class EncounterBuilder {
 		return {
 			name: '',
 			description: '',
-			triggerType: 'initiative',
-			initiative: '20',
+			triggerType: 'manual',
+			initiative: '',
 			frequency: 'manual',
 			cooldownRounds: '1',
 		};
@@ -937,6 +945,13 @@ export class EncounterBuilder {
 		this.trapDraft.update((draft) => ({ ...draft, ...patch }));
 	}
 
+	setTrapDraftTriggerType(triggerType: EncounterTrapTriggerType) {
+		this.setTrapDraft({
+			triggerType,
+			initiative: triggerType === 'initiative' ? this.trapDraft().initiative || '20' : '',
+		});
+	}
+
 	addTrap() {
 		const draft = this.trapDraft();
 		if (!draft.name.trim()) {
@@ -1049,23 +1064,55 @@ export class EncounterBuilder {
 	}
 
 	save() {
-		const data = this.encounter();
-		const title = this.title().trim() || 'Untitled Encounter';
+		const result = this.persistEncounter();
+		if (!result) return;
 
-		const id = this.savedId();
-		if (!id) {
-			const saved = this.ls.createEncounter(title, data);
-			this.savedId.set(saved.id);
-
-			this.router.navigate(['/home/encounter-builder', saved.id], {
+		if (result.created) {
+			this.router.navigate(['/home/encounter-builder', result.encounter.id], {
 				state: { toast: { type: 'success', text: 'Encounter saved' } },
 			});
-
 			return;
 		}
 
-		this.ls.updateEncounter(id, { title, data: structuredClone(data) });
 		this.showToast({ type: 'success', text: 'Encounter updated' });
+	}
+
+	saveAndStartBattle() {
+		const result = this.persistEncounter();
+		if (!result) return;
+
+		const prepared = this.battleStorage.getOrCreateBattleFromEncounter(result.encounter);
+		let battle = prepared.battle;
+		if (prepared.kind === 'existing' && battle.status === 'paused') {
+			battle = this.battleStorage.resumeBattleEncounter(battle.id) ?? battle;
+		}
+
+		this.router.navigate(['/home/battle-tracker', battle.id]);
+	}
+
+	private persistEncounter(): { encounter: SavedEncounter; created: boolean } | null {
+		const title = this.title().trim() || 'Untitled Encounter';
+		const data = structuredClone(this.encounter());
+
+		try {
+			const id = this.savedId();
+			if (!id) {
+				const encounter = this.ls.createEncounter(title, data);
+				this.savedId.set(encounter.id);
+				return { encounter, created: true };
+			}
+
+			const encounter = this.ls.updateEncounter(id, { title, data });
+			if (!encounter) {
+				this.showToast({ type: 'error', text: 'Encounter não encontrado para salvar.' });
+				return null;
+			}
+
+			return { encounter, created: false };
+		} catch {
+			this.showToast({ type: 'error', text: 'Não foi possível salvar o encounter.' });
+			return null;
+		}
 	}
 
 	constructor() {

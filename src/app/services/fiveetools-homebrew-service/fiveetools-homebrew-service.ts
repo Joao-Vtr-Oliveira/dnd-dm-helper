@@ -1,11 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
-import type { BattleTrap } from '../../models/battle-encounter-model';
 import type {
 	CreatureFeature,
 	CreatureInterface,
 	CreatureSpecialAbility,
+	EncounterTrap,
 	SpellLevel,
 	SpellSlots,
 	SpellsByKey,
@@ -784,17 +784,56 @@ export class FiveEToolsHomebrewService {
 		return nextMonster;
 	}
 
-	convertTrapToEncounterTrap(trap: FiveEToolsTrap): BattleTrap {
+	convertTrapToEncounterTrap(trap: FiveEToolsTrap): EncounterTrap {
+		const description = this.flattenEntries(trap.entries);
 		return {
 			id: globalThis.crypto?.randomUUID?.() ?? `trap-${Date.now()}`,
 			name: trap.name,
-			description: this.flattenEntries(trap.entries),
-			triggerType: 'initiative',
-			initiative: 20,
+			description,
 			active: true,
-			frequency: 'every-round',
+			...this.getExplicitTrapSchedule(description),
 			currentCooldownRounds: 0,
 		};
+	}
+
+	private getExplicitTrapSchedule(description: string): Pick<
+		EncounterTrap,
+		'triggerType' | 'initiative' | 'frequency' | 'cooldownRounds'
+	> {
+		const initiative = description.match(/\binitiative(?:\s+count)?\s*(?:of|at)?\s*(\d+)\b/i);
+		const hasRoundStart = /\b(?:at|on)\s+(?:the\s+)?start\s+of\s+(?:each|every|the)\s+round\b/i.test(
+			description,
+		);
+		const hasRoundEnd = /\b(?:at|on)\s+(?:the\s+)?end\s+of\s+(?:each|every|the)\s+round\b/i.test(
+			description,
+		);
+		const isRecurring = /\b(?:once|one time)\s+per\s+round\b|\bevery\s+round\b/i.test(
+			description,
+		);
+		const cooldown = description.match(/\bcooldown(?:\s+of)?\s+(\d+)\s+rounds?\b/i);
+		const frequency = cooldown
+			? 'cooldown-rounds'
+			: isRecurring
+				? 'every-round'
+				: 'once';
+
+		if (initiative) {
+			return {
+				triggerType: 'initiative',
+				initiative: Number(initiative[1]),
+				frequency,
+				cooldownRounds: cooldown ? Math.max(1, Number(cooldown[1])) : undefined,
+			};
+		}
+		if (hasRoundStart || hasRoundEnd) {
+			return {
+				triggerType: hasRoundStart ? 'round-start' : 'round-end',
+				frequency,
+				cooldownRounds: cooldown ? Math.max(1, Number(cooldown[1])) : undefined,
+			};
+		}
+
+		return { triggerType: 'manual', frequency: 'manual' };
 	}
 
 	flattenEntries(entries: FiveEToolsEntry[] | undefined): string {

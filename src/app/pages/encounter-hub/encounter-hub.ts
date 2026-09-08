@@ -259,7 +259,15 @@ export class EncounterHub {
 			initiativeOverrides: modal.initiatives,
 		};
 
-		const battle = this.battleStorage.createBattleFromEncounter(encounter, options);
+		const prepared = this.battleStorage.getOrCreateBattleFromEncounter(
+			encounter,
+			options,
+			modal.mode === 'new',
+		);
+		let battle = prepared.battle;
+		if (prepared.kind === 'existing' && battle.status === 'paused') {
+			battle = this.battleStorage.resumeBattleEncounter(battle.id) ?? battle;
+		}
 		this.closeBattleSetupModal();
 		this.refreshBattles();
 		this.router.navigate(['/home/battle-tracker', battle.id]);

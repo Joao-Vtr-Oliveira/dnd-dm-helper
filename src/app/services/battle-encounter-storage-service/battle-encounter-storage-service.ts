@@ -7,6 +7,10 @@ import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import { BattleEncounterService } from '../battle-encounter-service/battle-encounter-service';
 import type { SavedEncounter } from '../local-storage-service/local-storage-service';
 
+export type BattlePreparationResult =
+	| { kind: 'existing'; battle: BattleEncounter }
+	| { kind: 'created'; battle: BattleEncounter };
+
 @Injectable({ providedIn: 'root' })
 export class BattleEncounterStorageService {
 	private readonly storageKey = APP_STORAGE_KEYS.battleEncounters;
@@ -76,6 +80,19 @@ export class BattleEncounterStorageService {
 
 		this.saveBattleEncounter(battle);
 		return battle;
+	}
+
+	getOrCreateBattleFromEncounter(
+		encounter: SavedEncounter,
+		options?: BattleEncounterCreateOptions,
+		allowConcurrent = false,
+	): BattlePreparationResult {
+		if (!allowConcurrent) {
+			const existing = this.getActiveBattleByEncounterId(encounter.id);
+			if (existing) return { kind: 'existing', battle: existing };
+		}
+
+		return { kind: 'created', battle: this.createBattleFromEncounter(encounter, options) };
 	}
 
 	saveBattleEncounter(battle: BattleEncounter): void {

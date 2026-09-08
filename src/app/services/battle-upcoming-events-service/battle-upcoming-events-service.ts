@@ -449,7 +449,7 @@ export class BattleUpcomingEventsService {
 		trap: BattleTrap,
 		currentInitiative: number | null,
 	): number | null {
-		if (!trap.active || trap.triggerType === 'manual') return null;
+		if (!trap.active || trap.triggerType === 'manual' || trap.frequency === 'manual') return null;
 		if (trap.frequency === 'cooldown-rounds' && (trap.currentCooldownRounds ?? 0) > 0) {
 			return battle.round + (trap.currentCooldownRounds ?? 0);
 		}

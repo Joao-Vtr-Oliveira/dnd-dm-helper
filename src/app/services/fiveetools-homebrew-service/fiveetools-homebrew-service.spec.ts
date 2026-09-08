@@ -45,6 +45,30 @@ describe('FiveEToolsHomebrewService', () => {
 		expect(entities.some((entity) => entity.type === 'trap' && entity.name === 'Arcane Pulse')).toBeTrue();
 	});
 
+	it('converts traps without explicit scheduling to manual controls', () => {
+		const trap = service.convertTrapToEncounterTrap({
+			name: 'Pressure Plate',
+			source: 'Notion',
+			entries: ['A hidden plate triggers a dart when stepped on.'],
+		});
+
+		expect(trap.triggerType).toBe('manual');
+		expect(trap.frequency).toBe('manual');
+		expect(trap.initiative).toBeUndefined();
+	});
+
+	it('preserves explicit initiative and recurring trap text', () => {
+		const trap = service.convertTrapToEncounterTrap({
+			name: 'Ritual Pulse',
+			source: 'Notion',
+			entries: ['The pulse happens on initiative count 20, once per round.'],
+		});
+
+		expect(trap.triggerType).toBe('initiative');
+		expect(trap.initiative).toBe(20);
+		expect(trap.frequency).toBe('every-round');
+	});
+
 	it('merges a partial file and resolves conflicts by duplication', () => {
 		const file = service.parseHomebrewJson({
 			_meta: { sources: [{ json: 'Notion', abbreviation: 'NT', full: 'Notion', version: '1.0.0' }] },

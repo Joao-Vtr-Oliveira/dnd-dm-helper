@@ -1,12 +1,15 @@
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 
 import { EncounterIoService } from './encounter-io-service';
 
 describe('EncounterIoService', () => {
   let service: EncounterIoService;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
+	beforeEach(() => {
+		TestBed.configureTestingModule({
+			providers: [provideZonelessChangeDetection()],
+		});
     service = TestBed.inject(EncounterIoService);
   });
 
@@ -33,9 +36,9 @@ describe('EncounterIoService', () => {
 						id: 't1',
 						name: 'Dardos',
 						triggerType: 'initiative',
-						initiative: 10,
+						initiative: 20,
 						active: true,
-						frequency: 'once',
+						frequency: 'every-round',
 					},
 				],
 				round: 0,
@@ -51,5 +54,8 @@ describe('EncounterIoService', () => {
 		expect(result.encounter.traps).toHaveSize(1);
 		expect(result.encounter.lairActions?.[0].name).toBe('Olho do Covil');
 		expect(result.encounter.traps?.[0].name).toBe('Dardos');
+		expect(result.encounter.traps?.[0].triggerType).toBe('initiative');
+		expect(result.encounter.traps?.[0].initiative).toBe(20);
+		expect(result.encounter.traps?.[0].frequency).toBe('every-round');
 	});
 });

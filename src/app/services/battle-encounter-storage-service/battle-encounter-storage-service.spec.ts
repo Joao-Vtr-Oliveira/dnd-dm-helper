@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { BattleEncounterStorageService } from './battle-encounter-storage-service';
 import type { SavedEncounter } from '../local-storage-service/local-storage-service';
 
@@ -45,7 +46,9 @@ describe('BattleEncounterStorageService', () => {
 
 	beforeEach(() => {
 		localStorage.clear();
-		TestBed.configureTestingModule({});
+		TestBed.configureTestingModule({
+			providers: [provideZonelessChangeDetection()],
+		});
 		service = TestBed.inject(BattleEncounterStorageService);
 	});
 
@@ -69,6 +72,28 @@ describe('BattleEncounterStorageService', () => {
 
 		expect(service.getBattleEncounterById(battle.id)?.status).toBe('completed');
 		expect(service.getActiveBattleByEncounterId(encounter.id)).toBeNull();
+	});
+
+	it('reuses an ongoing battle unless concurrent creation is explicit', () => {
+		const first = service.getOrCreateBattleFromEncounter(encounter);
+		const reused = service.getOrCreateBattleFromEncounter(encounter);
+		const concurrent = service.getOrCreateBattleFromEncounter(encounter, undefined, true);
+
+		expect(first.kind).toBe('created');
+		expect(reused.kind).toBe('existing');
+		expect(reused.battle.id).toBe(first.battle.id);
+		expect(concurrent.kind).toBe('created');
+		expect(concurrent.battle.id).not.toBe(first.battle.id);
+	});
+
+	it('creates a new battle when the previous battle is completed', () => {
+		const first = service.createBattleFromEncounter(encounter);
+		service.completeBattleEncounter(first.id);
+
+		const next = service.getOrCreateBattleFromEncounter(encounter);
+
+		expect(next.kind).toBe('created');
+		expect(next.battle.id).not.toBe(first.id);
 	});
 
 	it('deletes all battles associated to an encounter', () => {

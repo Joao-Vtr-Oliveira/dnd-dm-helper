@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import type { EncounterTemplate } from '../../models/battle-encounter-model';
 import { BattleEncounterService } from '../battle-encounter-service/battle-encounter-service';
 import { BattleUpcomingEventsService } from './battle-upcoming-events-service';
@@ -82,7 +83,9 @@ describe('BattleUpcomingEventsService', () => {
 	};
 
 	beforeEach(() => {
-		TestBed.configureTestingModule({});
+		TestBed.configureTestingModule({
+			providers: [provideZonelessChangeDetection()],
+		});
 		battleService = TestBed.inject(BattleEncounterService);
 		service = TestBed.inject(BattleUpcomingEventsService);
 	});
@@ -134,5 +137,36 @@ describe('BattleUpcomingEventsService', () => {
 
 		expect(events.some((event) => event.type === 'lair-action' && event.label.includes('Olho do Covil'))).toBeTrue();
 		expect(withLairAction.combatants).toHaveSize(3);
+	});
+
+	it('does not show manual traps as upcoming automatic events', () => {
+		const battle = battleService.createBattleFromEncounter({
+			...template,
+			data: {
+				...template.data,
+				traps: [
+					{
+						id: 'manual-trap',
+						name: 'Pressure Plate',
+						triggerType: 'initiative',
+						initiative: 20,
+						active: true,
+						frequency: 'manual',
+					},
+					{
+						id: 'automatic-trap',
+						name: 'Ritual Pulse',
+						triggerType: 'initiative',
+						initiative: 20,
+						active: true,
+						frequency: 'every-round',
+					},
+				],
+			},
+		});
+		const events = service.buildUpcomingBattleEvents(battle, 8);
+
+		expect(events.some((event) => event.type === 'trap' && event.label.includes('Pressure Plate'))).toBeFalse();
+		expect(events.some((event) => event.type === 'trap' && event.label.includes('Ritual Pulse'))).toBeTrue();
 	});
 });

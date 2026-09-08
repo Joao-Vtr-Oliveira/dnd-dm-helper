@@ -318,7 +318,7 @@
 						<select
 							class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
 							[ngModel]="trapDraft().triggerType"
-							(ngModelChange)="setTrapDraft({ triggerType: $event })"
+							(ngModelChange)="setTrapDraftTriggerType($event)"
 						>
 							<option value="initiative">Na iniciativa</option>
 							<option value="round-start">Início do round</option>
@@ -403,7 +403,7 @@
 
 	<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
 		<div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-			<label class="md:col-span-10 block">
+			<label class="md:col-span-8 block">
 				<span class="text-xs opacity-70">Encounter title</span>
 				<input
 					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2 placeholder:italic"
@@ -418,6 +418,13 @@
 				(click)="save()"
 			>
 				Save
+			</button>
+
+			<button
+				class="app-action-button md:col-span-2 w-full shrink-0 cursor-pointer rounded-2xl border border-fuchsia-400/30 bg-violet-500/15 font-semibold hover:bg-violet-500/25"
+				(click)="saveAndStartBattle()"
+			>
+				{{ saveAndBattleLabel() }}
 			</button>
 		</div>
 	</div>

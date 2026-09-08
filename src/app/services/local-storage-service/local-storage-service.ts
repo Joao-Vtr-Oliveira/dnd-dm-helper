@@ -78,14 +78,16 @@ export class LocalStorageService {
 		return item;
 	}
 
-	updateEncounter(id: string, patch: Partial<Omit<SavedEncounter, 'id'>>) {
+	updateEncounter(id: string, patch: Partial<Omit<SavedEncounter, 'id'>>): SavedEncounter | null {
 		const curr = this.getEncounter(id);
-		if (!curr) return;
-		this.upsertEncounter({
+		if (!curr) return null;
+		const updated = {
 			...curr,
 			...patch,
 			updatedAt: Date.now(),
-		});
+		};
+		this.upsertEncounter(updated);
+		return updated;
 	}
 
 	deleteEncounter(id: string) {
