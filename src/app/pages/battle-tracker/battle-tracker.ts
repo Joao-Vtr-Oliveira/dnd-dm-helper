@@ -133,6 +133,7 @@ export class BattleTrackerPage {
 	readonly apiMonsters = signal<ApiResourceListItem[]>([]);
 	readonly apiLoading = signal(false);
 	readonly apiSearch = signal('');
+	readonly cockpitAbilitiesExpanded = signal(false);
 	readonly filteredApiMonsters = computed(() => {
 		const query = this.apiSearch().trim().toLowerCase();
 		if (!query) return this.apiMonsters();
@@ -161,8 +162,38 @@ export class BattleTrackerPage {
 	readonly upcomingEvents = computed<BattleUpcomingEvent[]>(() => {
 		const battle = this.battle();
 		if (!battle) return [];
-		return this.battleUpcomingEventsService.buildUpcomingBattleEvents(battle, 8);
+		return this.battleUpcomingEventsService.buildUpcomingBattleEvents(battle, 12);
 	});
+	readonly upcomingTurns = computed<BattleUpcomingEvent[]>(() => {
+		const battle = this.battle();
+		if (!battle) return [];
+		return this.battleUpcomingEventsService.buildUpcomingTurnEvents(battle, 3);
+	});
+	readonly nextEnvironmentEvent = computed<BattleUpcomingEvent | null>(() =>
+		this.upcomingEvents().find(
+			(event) => event.type === 'lair-action' || event.type === 'trap',
+		) ?? null,
+	);
+	readonly pendingDiceRechargeAbilities = computed<BattleSpecialAbility[]>(() => {
+		const battle = this.battle();
+		if (!battle || battle.status !== 'active') return [];
+		return this.battleService.getPendingDiceRechargeAbilities(battle);
+	});
+	readonly cockpitAbilities = computed<BattleSpecialAbility[]>(() => {
+		const combatant = this.currentCombatant();
+		if (!combatant) return [];
+		const pendingAbilityIds = new Set(this.pendingDiceRechargeAbilities().map((ability) => ability.id));
+		return combatant.specialAbilities
+			.filter((ability) => ability.recoveryType !== 'manual')
+			.sort((left, right) => Number(pendingAbilityIds.has(right.id)) - Number(pendingAbilityIds.has(left.id)));
+	});
+	readonly visibleCockpitAbilities = computed(() =>
+		this.cockpitAbilitiesExpanded() ? this.cockpitAbilities() : this.cockpitAbilities().slice(0, 3),
+	);
+	readonly hiddenCockpitAbilityCount = computed(() =>
+		Math.max(0, this.cockpitAbilities().length - this.visibleCockpitAbilities().length),
+	);
+	readonly rechargeDieResults = [1, 2, 3, 4, 5, 6];
 	readonly battleStatusLabel = computed(() => {
 		const status = this.battle()?.status;
 		if (status === 'paused') return 'Pausada';
@@ -512,11 +543,19 @@ export class BattleTrackerPage {
 		);
 	}
 
-	rollAbilityRecharge(combatantId: string, abilityId: string) {
+	recordAbilityRecharge(combatantId: string, abilityId: string, roll: number) {
 		const battle = this.battle();
 		if (!battle) return;
 
-		const result = this.battleService.rollSpecialAbilityRecharge(battle, combatantId, abilityId);
+		const ability = this.combatants()
+			.find((combatant) => combatant.id === combatantId)
+			?.specialAbilities.find((item) => item.id === abilityId);
+		const result = this.battleService.recordSpecialAbilityRecharge(
+			battle,
+			combatantId,
+			abilityId,
+			roll,
+		);
 		if (!result) return;
 
 		this.battle.set(result.battle);
@@ -524,8 +563,20 @@ export class BattleTrackerPage {
 			result.success
 				? 'success'
 				: 'error',
-			result.success ? `Recharge bem-sucedido: ${result.roll}.` : `Recharge falhou: ${result.roll}.`
+			result.success
+				? `${result.roll} - ${ability?.name ?? 'Habilidade'} recarregou.`
+				: `${result.roll} - ${ability?.name ?? 'Habilidade'} continua em recarga.`,
 		);
+	}
+
+	canAttemptAbilityRecharge(combatant: BattleCombatant, ability: BattleSpecialAbility): boolean {
+		const battle = this.battle();
+		return battle != null && this.battleService.canAttemptSpecialAbilityRecharge(battle, combatant.id, ability.id);
+	}
+
+	diceRechargeAttemptLabel(ability: BattleSpecialAbility): string | null {
+		const battle = this.battle();
+		return battle ? this.battleService.describeDiceRechargeAttempt(ability, battle) : null;
 	}
 
 	abilityStatusLabel(ability: BattleSpecialAbility): string {
@@ -657,6 +708,11 @@ export class BattleTrackerPage {
 		return 'Próximo turno';
 	}
 
+	upcomingTurnLabel(event: BattleUpcomingEvent): string {
+		const label = event.label.replace('Depois: ', '');
+		return event.round === this.battle()?.round ? label : `${label} · Round ${event.round}`;
+	}
+
 	abilityAvailabilityClasses(ability: BattleSpecialAbility): string {
 		if (ability.isAvailable) return 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100';
 		if (ability.recoveryType === 'uses-per-day') return 'border-rose-400/30 bg-rose-500/10 text-rose-100';
@@ -664,6 +720,16 @@ export class BattleTrackerPage {
 			return 'border-amber-400/30 bg-amber-500/10 text-amber-100';
 		}
 		return 'border-slate-300/20 bg-slate-500/10 text-slate-100';
+	}
+
+	spellSlotsSummary(combatant: BattleCombatant): string | null {
+		if (!combatant.spellSlots.length) return null;
+		const max = combatant.spellSlots.reduce((total, slot) => total + slot.max, 0);
+		const available = combatant.spellSlots.reduce(
+			(total, slot) => total + this.availableSpellSlots(slot),
+			0,
+		);
+		return `${available}/${max} slots disponíveis`;
 	}
 
 	encounterEventFrequencyLabel(event: BattleLairAction | BattleTrap): string {

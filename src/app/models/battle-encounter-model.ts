@@ -79,6 +79,7 @@ export interface BattleSpecialAbility {
 	lastUsedAtTurnIndex?: number;
 	lastUsedAt?: string;
 	lastRechargeRoll?: number;
+	lastRechargeAttemptAtRound?: number;
 }
 
 export interface BattleLairAction {

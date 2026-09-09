@@ -123,6 +123,251 @@
 
 		<div class="grid gap-6 2xl:grid-cols-[minmax(0,1.72fr)_minmax(360px,0.88fr)]">
 			<div class="space-y-4">
+				@if (currentCombatant(); as combatant) {
+					<section
+						data-testid="current-turn-cockpit"
+						class="sticky top-3 z-20 rounded-3xl border border-amber-300/35 bg-[#211b31]/95 p-4 shadow-xl shadow-black/20 backdrop-blur"
+					>
+						<div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+							<div class="min-w-0">
+								<div class="flex flex-wrap items-center gap-2">
+									<span class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100">Turno atual</span>
+									<span
+										class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold"
+										[class]="sideBadgeClasses(combatant.side)"
+									>
+										<span class="h-2 w-2 rounded-full bg-current opacity-80"></span>
+										{{ sideLabel(combatant.side) }}
+									</span>
+									@if (combatant.defeated) {
+										<span class="rounded-full border border-red-400/30 bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-100">
+											Derrotado
+										</span>
+									}
+								</div>
+								<h3 class="mt-1 break-words text-2xl font-semibold">
+									{{ combatant.displayName || combatant.name }}
+								</h3>
+								<div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm opacity-80">
+									<span>Iniciativa {{ combatant.initiative }}</span>
+									<span>HP {{ combatant.currentHp }} / {{ combatant.maxHp }}</span>
+									@if (combatant.temporaryHp > 0) {
+										<span>Temp {{ combatant.temporaryHp }}</span>
+									}
+									@if (spellSlotsSummary(combatant); as slots) {
+										<span>{{ slots }}</span>
+									}
+								</div>
+							</div>
+
+							@if (battle()!.status === 'active') {
+								<button
+									type="button"
+									data-testid="cockpit-next-turn"
+									class="h-12 cursor-pointer rounded-2xl border border-amber-300/40 bg-amber-500/20 px-5 font-semibold text-amber-50 hover:bg-amber-500/30"
+									(click)="nextTurn()"
+								>
+									Próximo turno
+								</button>
+							}
+						</div>
+
+						@if (pendingDiceRechargeAbilities().length > 0) {
+							<div class="mt-4 border-y border-amber-300/25 py-3" aria-live="polite">
+								<div class="text-sm font-semibold uppercase tracking-[0.16em] text-amber-100">Recarga pendente</div>
+								<p class="mt-1 text-sm text-amber-50/80">Role o dado fisicamente e registre o resultado.</p>
+								<div class="mt-3 space-y-3">
+									@for (ability of pendingDiceRechargeAbilities(); track ability.id) {
+										<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+											<div>
+												<div class="font-semibold">{{ ability.name }}</div>
+												<div class="text-sm opacity-80">{{ abilityRecoveryLabel(ability) }}</div>
+											</div>
+											<div class="grid grid-cols-6 gap-1.5" [attr.aria-label]="'Resultado do d6 para ' + ability.name">
+												@for (result of rechargeDieResults; track result) {
+													<button
+														type="button"
+														class="flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-xl border border-amber-300/35 bg-amber-500/15 font-semibold hover:bg-amber-500/30"
+														(click)="recordAbilityRecharge(combatant.id, ability.id, result)"
+													>
+														{{ result }}
+													</button>
+												}
+											</div>
+										</div>
+									}
+								</div>
+							</div>
+						}
+
+						<div class="mt-4 flex flex-wrap gap-2">
+							@for (condition of combatant.conditions; track condition.id) {
+								<button
+									type="button"
+									class="cursor-pointer rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs hover:bg-white/15"
+									[attr.aria-label]="'Remover condição ' + condition.label"
+									(click)="removeCondition(combatant.id, condition.id)"
+								>
+									{{ condition.label }} x
+								</button>
+							}
+						</div>
+
+						<div class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(9rem,0.7fr)_auto]">
+							<input
+								type="number"
+								min="0"
+								data-testid="cockpit-damage-input"
+								class="h-10 min-w-0 rounded-2xl border border-red-400/20 bg-black/20 px-3"
+								placeholder="Dano"
+								[ngModel]="damageDrafts()[combatant.id] || ''"
+								(ngModelChange)="setDamageDraft(combatant.id, $event)"
+							/>
+							<button
+								type="button"
+								data-testid="cockpit-apply-damage"
+								class="h-10 cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 text-sm hover:bg-red-500/20"
+								(click)="applyDamage(combatant.id)"
+							>
+								Dano
+							</button>
+							<input
+								type="number"
+								min="0"
+								data-testid="cockpit-healing-input"
+								class="h-10 min-w-0 rounded-2xl border border-emerald-400/20 bg-black/20 px-3"
+								placeholder="Cura"
+								[ngModel]="healingDrafts()[combatant.id] || ''"
+								(ngModelChange)="setHealingDraft(combatant.id, $event)"
+							/>
+							<button
+								type="button"
+								data-testid="cockpit-apply-healing"
+								class="h-10 cursor-pointer rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 text-sm hover:bg-emerald-500/20"
+								(click)="applyHealing(combatant.id)"
+							>
+								Cura
+							</button>
+							<input
+								type="number"
+								min="0"
+								class="h-10 min-w-0 rounded-2xl border border-white/10 bg-black/20 px-3"
+								placeholder="HP temp"
+								[ngModel]="combatant.temporaryHp"
+								(ngModelChange)="setTemporaryHp(combatant.id, $event)"
+							/>
+							<button
+								type="button"
+								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 text-sm hover:bg-white/15"
+								(click)="toggleDefeated(combatant.id, !combatant.defeated)"
+							>
+								{{ combatant.defeated ? 'Reerguer' : 'Derrotar' }}
+							</button>
+						</div>
+
+						<div class="mt-3 flex flex-wrap gap-2">
+							<select
+								class="h-10 min-w-44 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 text-sm"
+								[ngModel]="getConditionDraft(combatant.id).preset"
+								(ngModelChange)="setConditionDraft(combatant.id, { preset: $event })"
+							>
+								@for (option of conditionOptions; track option.name) {
+									@if (option.name !== 'custom') {
+										<option [value]="option.name">{{ option.label }}</option>
+									}
+								}
+							</select>
+							<button
+								type="button"
+								data-testid="cockpit-add-condition"
+								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 text-sm hover:bg-white/15"
+								(click)="addCondition(combatant.id)"
+							>
+								Adicionar condição
+							</button>
+						</div>
+
+						@if (visibleCockpitAbilities().length > 0) {
+							<div class="mt-4 border-t border-white/10 pt-3">
+								<div class="text-sm font-semibold">Habilidades</div>
+								<div class="mt-2 space-y-2">
+									@for (ability of visibleCockpitAbilities(); track ability.id) {
+										<div class="flex flex-col gap-2 rounded-2xl bg-black/15 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+											<div class="min-w-0">
+												<div class="flex flex-wrap items-center gap-2">
+													<span class="font-semibold">{{ ability.name }}</span>
+													<span class="rounded-full border px-2 py-0.5 text-[11px] font-semibold" [class]="abilityAvailabilityClasses(ability)">
+														{{ abilityStatusLabel(ability) }}
+													</span>
+												</div>
+												<div class="mt-1 text-xs opacity-75">{{ abilityRecoveryLabel(ability) }}</div>
+												@if (diceRechargeAttemptLabel(ability); as attempt) {
+													<div class="mt-1 text-xs font-semibold text-amber-100">{{ attempt }}</div>
+												}
+											</div>
+											<div class="flex flex-wrap gap-2">
+												<button
+													type="button"
+													class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+													[disabled]="!canUseAbility(ability)"
+													(click)="useAbility(combatant.id, ability.id)"
+												>
+													{{ abilityUseLabel(ability) }}
+												</button>
+												@if (!ability.isAvailable && ability.recoveryType !== 'dice-recharge') {
+													<button
+														type="button"
+														class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-3 text-sm hover:bg-white/15"
+														(click)="resetAbility(combatant.id, ability.id)"
+													>
+														Recuperar
+													</button>
+												}
+											</div>
+										</div>
+									}
+								</div>
+								@if (hiddenCockpitAbilityCount() > 0) {
+									<button
+										type="button"
+										class="mt-2 cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50"
+										(click)="cockpitAbilitiesExpanded.set(true)"
+									>
+										+ {{ hiddenCockpitAbilityCount() }} habilidades
+									</button>
+								} @else if (cockpitAbilitiesExpanded() && cockpitAbilities().length > 3) {
+									<button
+										type="button"
+										class="mt-2 cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50"
+										(click)="cockpitAbilitiesExpanded.set(false)"
+									>
+										Mostrar menos
+									</button>
+								}
+							</div>
+						}
+
+						<div class="mt-4 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-2">
+							<div>
+								<div class="text-xs font-semibold uppercase tracking-[0.14em] opacity-65">A seguir</div>
+								<div class="mt-1 space-y-1 text-sm">
+									@for (event of upcomingTurns(); track event.id) {
+										<div>{{ upcomingTurnLabel(event) }}</div>
+									} @empty {
+										<div class="opacity-70">Nenhum turno seguinte.</div>
+									}
+								</div>
+							</div>
+							@if (nextEnvironmentEvent(); as event) {
+								<div>
+									<div class="text-xs font-semibold uppercase tracking-[0.14em] opacity-65">Próximo evento</div>
+									<div class="mt-1 text-sm font-semibold">{{ event.label }}</div>
+								</div>
+							}
+						</div>
+					</section>
+				}
+
 				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
 					<div class="mb-4">
 						<h3 class="text-xl font-semibold">Ordem de iniciativa</h3>
@@ -484,12 +729,17 @@
 													<div class="min-w-0">
 														<div class="flex flex-wrap items-center gap-2">
 															<div class="break-words font-semibold">{{ ability.name }}</div>
-															<span
-																class="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
-																[class]="abilityAvailabilityClasses(ability)"
-															>
-																{{ abilityStatusLabel(ability) }}
-															</span>
+													<span
+														class="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+														[class]="abilityAvailabilityClasses(ability)"
+													>
+														{{ abilityStatusLabel(ability) }}
+													</span>
+													@if (canAttemptAbilityRecharge(combatant, ability)) {
+														<span class="rounded-full border border-amber-300/40 bg-amber-500/20 px-2 py-0.5 text-[11px] font-semibold text-amber-100">
+															Recarga pendente
+														</span>
+													}
 															@if (abilityRuleLabel(ability); as rule) {
 																<span class="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[11px] opacity-80">
 																	{{ rule }}
@@ -503,8 +753,10 @@
 														@if (abilityLastUsedLabel(ability); as usedAt) {
 															<div class="mt-1 text-sm opacity-70">{{ usedAt }}</div>
 														}
-														@if (ability.recoveryType === 'dice-recharge' && ability.lastRechargeRoll) {
-															<div class="mt-1 text-sm opacity-70">Último recharge: {{ ability.lastRechargeRoll }}</div>
+													@if (diceRechargeAttemptLabel(ability); as attempt) {
+														<div class="mt-1 text-sm font-semibold text-amber-100">{{ attempt }}</div>
+													} @else if (ability.recoveryType === 'dice-recharge' && ability.lastRechargeRoll) {
+														<div class="mt-1 text-sm opacity-70">Último recharge: {{ ability.lastRechargeRoll }}</div>
 														}
 														@if (ability.description) {
 															<div class="mt-1 break-words text-sm opacity-65">{{ ability.description }}</div>
@@ -522,15 +774,19 @@
 															{{ abilityUseLabel(ability) }}
 														</button>
 
-														@if (ability.recoveryType === 'dice-recharge' && !ability.isAvailable) {
-															<button
-																type="button"
-																class="h-9 cursor-pointer rounded-2xl border border-sky-300/30 bg-sky-500/15 px-3 text-sm hover:bg-sky-500/20"
-																(click)="rollAbilityRecharge(combatant.id, ability.id)"
-															>
-																Rolar recharge
-															</button>
-														}
+													@if (canAttemptAbilityRecharge(combatant, ability)) {
+														<div class="flex items-center gap-1" [attr.aria-label]="'Resultado do d6 para ' + ability.name">
+															@for (result of rechargeDieResults; track result) {
+																<button
+																	type="button"
+																	class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-sky-300/30 bg-sky-500/15 text-sm font-semibold hover:bg-sky-500/25"
+																	(click)="recordAbilityRecharge(combatant.id, ability.id, result)"
+																>
+																	{{ result }}
+																</button>
+															}
+														</div>
+													}
 
 														<button
 															type="button"

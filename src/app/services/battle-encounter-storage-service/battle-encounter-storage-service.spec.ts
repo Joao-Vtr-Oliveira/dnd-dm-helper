@@ -142,6 +142,8 @@ describe('BattleEncounterStorageService', () => {
 								name: 'Legacy Breath',
 								rechargeType: 'dice',
 								isAvailable: false,
+								lastRechargeRoll: 3,
+								lastRechargeAttemptAtRound: 1,
 							},
 						],
 					},
@@ -155,6 +157,8 @@ describe('BattleEncounterStorageService', () => {
 
 		expect(loaded?.combatants[0].side).toBe('enemy');
 		expect(loaded?.combatants[0].specialAbilities[0].recoveryType).toBe('dice-recharge');
+		expect(loaded?.combatants[0].specialAbilities[0].lastRechargeAttemptAtRound).toBe(1);
+		expect(loaded?.combatants[0].specialAbilities[0].lastRechargeRoll).toBe(3);
 		expect(loaded?.combatants[0].spellSlots).toEqual([]);
 		expect(loaded?.lairActions).toEqual([]);
 		expect(loaded?.traps).toEqual([]);

@@ -86,6 +86,9 @@ export class BattleAbilityService {
 					: Math.max(0, this.toNonNegativeInt(ability.lastUsedAtTurnIndex)),
 			lastUsedAt: typeof ability.lastUsedAt === 'string' ? ability.lastUsedAt : undefined,
 			lastRechargeRoll: this.toPositiveIntOrUndefined(ability.lastRechargeRoll),
+			lastRechargeAttemptAtRound: this.toPositiveIntOrUndefined(
+				ability.lastRechargeAttemptAtRound,
+			),
 		};
 	}
 
@@ -211,41 +214,74 @@ export class BattleAbilityService {
 		return { combatants: nextCombatants, messages };
 	}
 
-	rollRecharge(ability: BattleSpecialAbility): {
+	canAttemptRecharge(ability: BattleSpecialAbility, round: number): boolean {
+		const normalized = this.normalizeAbility(ability);
+		return (
+			normalized.recoveryType === 'dice-recharge' &&
+			!normalized.isAvailable &&
+			this.toPositiveIntOrUndefined(round) != null &&
+			normalized.lastRechargeAttemptAtRound !== this.toPositiveIntOrUndefined(round)
+		);
+	}
+
+	recordRechargeResult(
+		ability: BattleSpecialAbility,
+		round: number,
+		roll: number,
+	): {
 		ability: BattleSpecialAbility;
 		roll: number;
 		success: boolean;
-	} {
+	} | null {
 		const normalized = this.normalizeAbility(ability);
-		const roll = this.rollDie(6);
+		const normalizedRound = this.toPositiveIntOrUndefined(round);
+		const normalizedRoll = this.toPositiveIntOrUndefined(roll);
+		if (
+			normalizedRound == null ||
+			normalizedRoll == null ||
+			normalizedRoll > 6 ||
+			!this.canAttemptRecharge(normalized, normalizedRound)
+		) {
+			return null;
+		}
+
 		const targets = normalized.rechargeOn?.length ? normalized.rechargeOn : [5, 6];
-		const success = normalized.recoveryType === 'dice-recharge' && targets.includes(roll);
+		const success = targets.includes(normalizedRoll);
 		const nextAbility = success ? this.resetAbility(normalized) : normalized;
 
 		return {
-			roll,
+			roll: normalizedRoll,
 			success,
 			ability: {
 				...nextAbility,
-				lastRechargeRoll: roll,
+				lastRechargeRoll: normalizedRoll,
+				lastRechargeAttemptAtRound: normalizedRound,
 			},
 		};
 	}
 
+	rollRecharge(
+		ability: BattleSpecialAbility,
+		round: number,
+	): { ability: BattleSpecialAbility; roll: number; success: boolean } | null {
+		if (!this.canAttemptRecharge(ability, round)) return null;
+		return this.recordRechargeResult(ability, round, this.rollDie(6));
+	}
+
 	describeAbilityStatus(ability: BattleSpecialAbility): string {
 		const normalized = this.normalizeAbility(ability);
-		if (normalized.isAvailable) return 'Disponível';
+		if (normalized.isAvailable) return 'Pronta';
 		if (
 			normalized.recoveryType === 'turn-cooldown' ||
 			normalized.recoveryType === 'round-cooldown'
 		) {
-			return 'Em cooldown';
+			return 'Em recarga';
 		}
 		if (normalized.recoveryType === 'uses-per-day') return 'Esgotada';
 		if (normalized.recoveryType === 'short-rest' || normalized.recoveryType === 'long-rest') {
 			return 'Usada';
 		}
-		if (normalized.recoveryType === 'dice-recharge') return 'Indisponível';
+		if (normalized.recoveryType === 'dice-recharge') return 'Em recarga';
 		return 'Usada';
 	}
 
@@ -254,22 +290,21 @@ export class BattleAbilityService {
 		if (!this.usesRecovery(normalized.recoveryType)) return null;
 
 		const maxUses = this.normalizeMaxUses(normalized.recoveryType, normalized.maxUses) ?? 1;
-		const usedCount = Math.min(maxUses, normalized.usedCount ?? 0);
-		const label = normalized.recoveryType === 'uses-per-day' ? 'Usos por dia' : 'Usos';
-		return `${label}: ${usedCount}/${maxUses}`;
+		const remaining = Math.max(0, maxUses - Math.min(maxUses, normalized.usedCount ?? 0));
+		return remaining === 1 ? `1/${maxUses} uso restante` : `${remaining}/${maxUses} usos restantes`;
 	}
 
 	describeAbilityRecovery(ability: BattleSpecialAbility): string {
 		const normalized = this.normalizeAbility(ability);
 		if (normalized.recoveryType === 'turn-cooldown') {
 			const remaining = Math.max(0, normalized.currentCooldownTurns ?? 0);
-			if (remaining === 0) return 'Disponível novamente';
-			return remaining === 1 ? 'Volta em 1 turno' : `Volta em ${remaining} turnos`;
+			if (remaining === 0) return 'Pronta';
+			return remaining === 1 ? '1 turno restante' : `${remaining} turnos restantes`;
 		}
 		if (normalized.recoveryType === 'round-cooldown') {
 			const remaining = Math.max(0, normalized.currentCooldownRounds ?? 0);
-			if (remaining === 0) return 'Disponível novamente';
-			return remaining === 1 ? 'Volta em 1 round' : `Volta em ${remaining} rounds`;
+			if (remaining === 0) return 'Pronta';
+			return remaining === 1 ? '1 round restante' : `${remaining} rounds restantes`;
 		}
 		if (normalized.recoveryType === 'uses-per-day') {
 			return normalized.isAvailable ? 'Recupera no próximo dia' : 'Esgotado até o próximo dia';
@@ -280,7 +315,7 @@ export class BattleAbilityService {
 			const targets = (normalized.rechargeOn?.length ? normalized.rechargeOn : [5, 6]).join('–');
 			return normalized.isAvailable
 				? `Recharge ${targets}`
-				: `Recharge ${targets} - role recharge para recuperar`;
+				: `Recupera com ${targets} no d6`;
 		}
 		return normalized.isAvailable ? 'Controle manual' : 'Marque como disponível manualmente';
 	}
@@ -314,6 +349,21 @@ export class BattleAbilityService {
 			return `Usada no round ${normalized.lastUsedAtRound}`;
 		}
 		return `Usada no round ${normalized.lastUsedAtRound}, turno ${normalized.lastUsedAtTurnIndex + 1}`;
+	}
+
+	describeDiceRechargeAttempt(ability: BattleSpecialAbility, round: number): string | null {
+		const normalized = this.normalizeAbility(ability);
+		if (
+			normalized.recoveryType !== 'dice-recharge' ||
+			normalized.lastRechargeAttemptAtRound !== this.toPositiveIntOrUndefined(round) ||
+			normalized.lastRechargeRoll == null
+		) {
+			return null;
+		}
+
+		return normalized.isAvailable
+			? `${normalized.lastRechargeRoll} - recarregou neste turno`
+			: `${normalized.lastRechargeRoll} - continua em recarga neste turno`;
 	}
 
 	private normalizeRecoveryType(

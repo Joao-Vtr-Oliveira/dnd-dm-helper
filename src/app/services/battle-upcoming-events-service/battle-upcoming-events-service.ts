@@ -68,6 +68,23 @@ export class BattleUpcomingEventsService {
 			.map(({ sortOrder, ...event }) => event);
 	}
 
+	buildUpcomingTurnEvents(battle: BattleEncounter, limit = 3): BattleUpcomingEvent[] {
+		const horizonTurns = Math.max(limit + 5, 10);
+		const horizonRounds = Math.max(
+			3,
+			Math.ceil(horizonTurns / Math.max(1, battle.combatants.length)) + 1,
+		);
+		const turnSlots = this.buildTurnSlots(
+			battle,
+			this.buildRoundStates(battle, horizonRounds),
+			horizonTurns,
+		);
+
+		return this.buildTurnEvents(turnSlots)
+			.slice(1, limit + 1)
+			.map(({ sortOrder, ...event }) => event);
+	}
+
 	private buildTurnEvents(turnSlots: TurnSlot[]): UpcomingEventCandidate[] {
 		return turnSlots.map((slot) => ({
 			id: `turn-${slot.round}-${slot.turnIndex}-${slot.combatant.id}`,

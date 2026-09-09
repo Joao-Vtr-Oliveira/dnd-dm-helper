@@ -539,6 +539,7 @@ export class BattleEncounterService {
 						lastUsedAtTurnIndex: undefined,
 						lastUsedAt: undefined,
 						lastRechargeRoll: undefined,
+						lastRechargeAttemptAtRound: undefined,
 					}),
 				),
 				conditions: [],
@@ -806,17 +807,21 @@ export class BattleEncounterService {
 		}));
 	}
 
-	rollSpecialAbilityRecharge(
+	recordSpecialAbilityRecharge(
 		battle: BattleEncounter,
 		combatantId: string,
 		abilityId: string,
+		roll: number,
 	): { battle: BattleEncounter; roll: number; success: boolean } | null {
+		if (!this.canAttemptSpecialAbilityRecharge(battle, combatantId, abilityId)) return null;
+
 		let result: { roll: number; success: boolean } | null = null;
 		const nextBattle = this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
 			specialAbilities: combatant.specialAbilities.map((ability) => {
 				if (ability.id !== abilityId) return ability;
-				const rolled = this.abilityService.rollRecharge(ability);
+				const rolled = this.abilityService.recordRechargeResult(ability, battle.round, roll);
+				if (!rolled) return ability;
 				result = { roll: rolled.roll, success: rolled.success };
 				return rolled.ability;
 			}),
@@ -829,6 +834,61 @@ export class BattleEncounterService {
 			roll: rechargeResult.roll,
 			success: rechargeResult.success,
 		};
+	}
+
+	rollSpecialAbilityRecharge(
+		battle: BattleEncounter,
+		combatantId: string,
+		abilityId: string,
+	): { battle: BattleEncounter; roll: number; success: boolean } | null {
+		if (!this.canAttemptSpecialAbilityRecharge(battle, combatantId, abilityId)) return null;
+
+		let result: { roll: number; success: boolean } | null = null;
+		const nextBattle = this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			specialAbilities: combatant.specialAbilities.map((ability) => {
+				if (ability.id !== abilityId) return ability;
+				const rolled = this.abilityService.rollRecharge(ability, battle.round);
+				if (!rolled) return ability;
+				result = { roll: rolled.roll, success: rolled.success };
+				return rolled.ability;
+			}),
+		}));
+
+		if (!result) return null;
+		const rechargeResult = result as { roll: number; success: boolean };
+		return {
+			battle: nextBattle,
+			roll: rechargeResult.roll,
+			success: rechargeResult.success,
+		};
+	}
+
+	canAttemptSpecialAbilityRecharge(
+		battle: BattleEncounter,
+		combatantId: string,
+		abilityId: string,
+	): boolean {
+		const currentCombatant = this.getCurrentCombatant(battle);
+		if (!currentCombatant || currentCombatant.id !== combatantId) return false;
+
+		const currentTurnIndex = battle.combatants.findIndex(
+			(combatant) => combatant.id === currentCombatant.id,
+		);
+		const ability = currentCombatant.specialAbilities.find((item) => item.id === abilityId);
+		if (!ability) return false;
+
+		const usedThisTurn =
+			ability.lastUsedAtRound === battle.round && ability.lastUsedAtTurnIndex === currentTurnIndex;
+		return !usedThisTurn && this.abilityService.canAttemptRecharge(ability, battle.round);
+	}
+
+	getPendingDiceRechargeAbilities(battle: BattleEncounter): BattleSpecialAbility[] {
+		const currentCombatant = this.getCurrentCombatant(battle);
+		if (!currentCombatant) return [];
+		return currentCombatant.specialAbilities.filter((ability) =>
+			this.canAttemptSpecialAbilityRecharge(battle, currentCombatant.id, ability.id),
+		);
 	}
 
 	describeAbilityStatus(ability: BattleSpecialAbility): string {
@@ -849,6 +909,10 @@ export class BattleEncounterService {
 
 	describeAbilityLastUsed(ability: BattleSpecialAbility): string | null {
 		return this.abilityService.describeAbilityLastUsed(ability);
+	}
+
+	describeDiceRechargeAttempt(ability: BattleSpecialAbility, battle: BattleEncounter): string | null {
+		return this.abilityService.describeDiceRechargeAttempt(ability, battle.round);
 	}
 
 	addLairAction(battle: BattleEncounter, input: CreateBattleLairActionInput): BattleEncounter {

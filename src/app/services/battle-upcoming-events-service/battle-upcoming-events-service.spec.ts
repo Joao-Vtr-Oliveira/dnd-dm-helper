@@ -99,6 +99,44 @@ describe('BattleUpcomingEventsService', () => {
 		expect(events.some((event) => event.type === 'turn' && event.label.includes('Orc Bruto'))).toBeTrue();
 	});
 
+	it('projects the three turns after the current combatant across round boundaries', () => {
+		const battle = battleService.createBattleFromEncounter(template);
+		const turns = service.buildUpcomingTurnEvents(battle, 3);
+
+		expect(turns.map((event) => event.combatantId)).toEqual([
+			battle.combatants[1].id,
+			battle.combatants[2].id,
+			battle.combatants[0].id,
+		]);
+		expect(turns[2].round).toBe(2);
+	});
+
+	it('includes pending combatants when they join on the next round', () => {
+		const battle = battleService.createBattleFromEncounter(template);
+		const withPending = battleService.addCombatantFromCreature(battle, {
+			id: 4,
+			name: 'Dodman',
+			initiative: 16,
+			healthPoints: 20,
+			maxHealthPoints: 20,
+			armorClass: 14,
+			temporaryHealthPoints: 0,
+			alive: true,
+			conditions: [],
+			notes: [],
+			shared: true,
+			hitPointsShared: true,
+			totalSpellSlots: null,
+			usedSpellSlots: null,
+			spells: {},
+			specialAbilities: [],
+			sheetFeatures: [],
+		});
+
+		const turns = service.buildUpcomingTurnEvents(withPending, 4);
+		expect(turns.some((event) => event.combatantId === withPending.pendingCombatants[0].id)).toBeTrue();
+	});
+
 	it('shows conditions that are about to expire', () => {
 		const battle = battleService.createBattleFromEncounter(template);
 		const withCondition = battleService.addCondition(battle, battle.combatants[0].id, {

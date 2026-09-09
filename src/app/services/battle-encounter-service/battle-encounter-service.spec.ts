@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { EncounterTemplate } from '../../models/battle-encounter-model';
 import { BattleEncounterService } from './battle-encounter-service';
@@ -62,7 +63,9 @@ describe('BattleEncounterService', () => {
 	};
 
 	beforeEach(() => {
-		TestBed.configureTestingModule({});
+		TestBed.configureTestingModule({
+			providers: [provideZonelessChangeDetection()],
+		});
 		service = TestBed.inject(BattleEncounterService);
 	});
 
@@ -262,8 +265,7 @@ describe('BattleEncounterService', () => {
 		expect(used.combatants[0].specialAbilities[0].isAvailable).toBeFalse();
 	});
 
-	it('rolls recharge 5-6 and restores the ability on success', () => {
-		spyOn(Math, 'random').and.returnValue(0.99);
+	it('records a physical recharge result and restores the ability on success', () => {
 		const battle = service.createBattleFromEncounter(template);
 		const combatantId = battle.combatants[0].id;
 		const withAbility = service.addSpecialAbility(battle, combatantId, {
@@ -273,11 +275,101 @@ describe('BattleEncounterService', () => {
 		});
 		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
 		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
-		const rolled = service.rollSpecialAbilityRecharge(used, combatantId, abilityId);
+		const afterOtherCombatant = service.advanceTurn(used);
+		const ownerNextTurn = service.advanceTurn(afterOtherCombatant);
+		const rolled = service.recordSpecialAbilityRecharge(ownerNextTurn, combatantId, abilityId, 5);
 
 		expect(rolled?.success).toBeTrue();
-		expect(rolled?.roll).toBe(6);
+		expect(rolled?.roll).toBe(5);
 		expect(rolled?.battle.combatants[0].specialAbilities[0].isAvailable).toBeTrue();
+	});
+
+	it('only prompts an unavailable dice recharge at the owner next turn', () => {
+		const battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[0].id;
+		const withAbility = service.addSpecialAbility(battle, combatantId, {
+			name: 'Sopro Flamejante',
+			recoveryType: 'dice-recharge',
+			rechargeOn: [5, 6],
+		});
+		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
+		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
+
+		expect(service.getPendingDiceRechargeAbilities(used)).toEqual([]);
+
+		const afterOtherCombatant = service.advanceTurn(used);
+		const ownerNextTurn = service.advanceTurn(afterOtherCombatant);
+		expect(service.getPendingDiceRechargeAbilities(ownerNextTurn).map((ability) => ability.id)).toEqual([
+			abilityId,
+		]);
+	});
+
+	it('keeps a failed physical recharge unavailable and blocks a second attempt that turn', () => {
+		const battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[0].id;
+		const withAbility = service.addSpecialAbility(battle, combatantId, {
+			name: 'Sopro Flamejante',
+			recoveryType: 'dice-recharge',
+			rechargeOn: [5, 6],
+		});
+		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
+		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
+		const ownerNextTurn = service.advanceTurn(service.advanceTurn(used));
+
+		const failed = service.recordSpecialAbilityRecharge(ownerNextTurn, combatantId, abilityId, 3);
+		expect(failed?.success).toBeFalse();
+		expect(failed?.battle.combatants[0].specialAbilities[0].isAvailable).toBeFalse();
+		expect(failed?.battle.combatants[0].specialAbilities[0].lastRechargeAttemptAtRound).toBe(2);
+		expect(service.getPendingDiceRechargeAbilities(failed!.battle)).toEqual([]);
+		expect(service.recordSpecialAbilityRecharge(failed!.battle, combatantId, abilityId, 6)).toBeNull();
+	});
+
+	it('asks again at the owner next turn after a failed recharge without auto-rolling', () => {
+		spyOn(Math, 'random');
+		const battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[0].id;
+		const withAbility = service.addSpecialAbility(battle, combatantId, {
+			name: 'Sopro Flamejante',
+			recoveryType: 'dice-recharge',
+			rechargeOn: [5, 6],
+		});
+		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
+		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
+		const firstOwnerTurn = service.advanceTurn(service.advanceTurn(used));
+		const failed = service.recordSpecialAbilityRecharge(firstOwnerTurn, combatantId, abilityId, 3)!.battle;
+		const nextOwnerTurn = service.advanceTurn(service.advanceTurn(failed));
+
+		expect(Math.random).not.toHaveBeenCalled();
+		expect(service.getPendingDiceRechargeAbilities(nextOwnerTurn).map((ability) => ability.id)).toEqual([
+			abilityId,
+		]);
+	});
+
+	it('resolves each pending dice recharge independently', () => {
+		const battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[0].id;
+		const withFirst = service.addSpecialAbility(battle, combatantId, {
+			name: 'Sopro Flamejante',
+			recoveryType: 'dice-recharge',
+			rechargeOn: [5, 6],
+		});
+		const withBoth = service.addSpecialAbility(withFirst, combatantId, {
+			name: 'Explosão de Asas',
+			recoveryType: 'dice-recharge',
+			rechargeOn: [6],
+		});
+		const [first, second] = withBoth.combatants[0].specialAbilities;
+		const usedFirst = service.useSpecialAbility(withBoth, combatantId, first.id);
+		const usedBoth = service.useSpecialAbility(usedFirst, combatantId, second.id);
+		const ownerNextTurn = service.advanceTurn(service.advanceTurn(usedBoth));
+
+		expect(service.getPendingDiceRechargeAbilities(ownerNextTurn)).toHaveSize(2);
+		const rechargedFirst = service.recordSpecialAbilityRecharge(ownerNextTurn, combatantId, first.id, 5)!;
+		const failedSecond = service.recordSpecialAbilityRecharge(rechargedFirst.battle, combatantId, second.id, 5)!;
+
+		expect(failedSecond.battle.combatants[0].specialAbilities[0].isAvailable).toBeTrue();
+		expect(failedSecond.battle.combatants[0].specialAbilities[1].isAvailable).toBeFalse();
+		expect(service.getPendingDiceRechargeAbilities(failedSecond.battle)).toEqual([]);
 	});
 
 	it('uses and recovers spell slots without exceeding bounds', () => {
