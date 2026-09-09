@@ -1144,7 +1144,7 @@
 											{{ combatant.displayName || combatant.name }}
 										</div>
 										<div class="mt-1 text-sm opacity-75">
-											Iniciativa atual: {{ combatant.initiative }}
+											Iniciativa: {{ combatant.initiative }}
 											@if (shouldShowPendingInitiative(combatant)) {
 												<span> · Próximo round: {{ combatant.nextRoundInitiative }}</span>
 											}
@@ -1161,21 +1161,21 @@
 										</div>
 									</div>
 
-									<div class="grid gap-3 lg:grid-cols-2">
-										<div class="grid gap-2 sm:grid-cols-[minmax(0,9rem)_auto_auto]">
+									<div class="w-full space-y-2 lg:w-64">
+										<div class="flex gap-2">
 											<input
 												type="number"
 												aria-label="Iniciativa"
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												class="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
 												[ngModel]="getInitiativeDraft(combatant)"
 												(ngModelChange)="setInitiativeDraft(combatant.id, $event)"
 											/>
 											<button
 												type="button"
-												class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+												class="h-10 shrink-0 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
 												(click)="applyInitiativeChange(combatant.id)"
 											>
-												Aplicar iniciativa
+												Aplicar
 											</button>
 											@if (combatant.nextRoundInitiative != null) {
 												<button
@@ -1187,22 +1187,23 @@
 												</button>
 											}
 										</div>
-										<div class="flex flex-wrap items-center gap-2">
+										<label class="flex items-center gap-2 text-sm">
+											<span class="shrink-0 opacity-70">DES</span>
 											<input
 												type="number"
 												aria-label="DES de desempate"
-												placeholder="DES"
-												class="w-24 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												placeholder="-"
+												class="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
 												[ngModel]="getInitiativeTieBreakerValue(combatant)"
 												(ngModelChange)="scheduleInitiativeTieBreaker(combatant.id, $event)"
 											/>
-											@if (shouldShowPendingInitiativeTieBreaker(combatant)) {
-												<span class="text-xs opacity-70">Aplicado no próximo round</span>
-											}
+										</label>
+										@if (shouldShowPendingInitiativeTieBreaker(combatant)) {
+											<div class="text-xs opacity-70">DES aplicado no próximo round</div>
+										}
 										</div>
 									</div>
 								</div>
-							</div>
 						}
 					</div>
 				</div>

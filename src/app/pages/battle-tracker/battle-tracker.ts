@@ -1056,14 +1056,15 @@ export class BattleTrackerPage {
 	}
 
 	initiativeSummary(combatant: BattleCombatant): string {
-		if (combatant.pendingAdd) return `Entra com iniciativa ${combatant.initiative}`;
+		const tieBreaker = combatant.initiativeTieBreaker == null ? '-' : combatant.initiativeTieBreaker;
+		if (combatant.pendingAdd) return `Entra com iniciativa ${combatant.initiative} (DES ${tieBreaker})`;
 		if (this.isInactiveUntilNextRound(combatant)) {
 			return `Fora da rotação até o round ${combatant.inactiveUntilRound}`;
 		}
 		if (this.shouldShowPendingInitiative(combatant)) {
-			return `Atual ${combatant.initiative} · Próximo round ${combatant.nextRoundInitiative}`;
+			return `Iniciativa ${combatant.initiative} (DES ${tieBreaker}) · Próximo round ${combatant.nextRoundInitiative}`;
 		}
-		return `Atual ${combatant.initiative}`;
+		return `Iniciativa ${combatant.initiative} (DES ${tieBreaker})`;
 	}
 
 	hpSummary(combatant: BattleCombatant): string {
