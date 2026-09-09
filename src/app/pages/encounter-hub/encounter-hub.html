@@ -379,34 +379,43 @@
 
 				<div class="space-y-3">
 					@for (creature of getBattleSetupEncounter()?.data?.creatures ?? []; track creature.id) {
-						<div class="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,0.7fr)] lg:items-center">
+						<div [class]="battleSetupRowClasses(creature.id)">
 							<div>
-								<div class="font-semibold">{{ creature.name }}</div>
+								<div class="flex flex-wrap items-center gap-2">
+									<div class="font-semibold">{{ creature.name }}</div>
+									<span
+										class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold"
+										[class]="sideBadgeClasses(modal.sides[creature.id] || 'enemy')"
+									>
+										<span class="h-2 w-2 rounded-full bg-current opacity-80"></span>
+										{{ sideLabel(modal.sides[creature.id] || 'enemy') }}
+									</span>
+								</div>
 								<div class="text-sm opacity-70">
 									HP {{ creature.maxHealthPoints }} · CA {{ creature.armorClass || '-' }}
 								</div>
+								@if (battleSetupTieLabel(creature.id); as tieLabel) {
+									<span
+										[class]="battleSetupTieBadgeClasses(creature.id)"
+									>
+										{{ tieLabel }}
+									</span>
+								}
 							</div>
 
-							<div>
-								<span
-									class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold"
-									[class]="sideBadgeClasses(modal.sides[creature.id] || 'enemy')"
+							<label class="text-sm">
+								<span class="mb-1 block opacity-70">Lado</span>
+								<select
+									class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+									[ngModel]="modal.sides[creature.id] || 'enemy'"
+									(ngModelChange)="setBattleSetupSide(creature.id, $event)"
 								>
-									<span class="h-2 w-2 rounded-full bg-current opacity-80"></span>
-									{{ sideLabel(modal.sides[creature.id] || 'enemy') }}
-								</span>
-							</div>
-
-							<select
-								class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-								[ngModel]="modal.sides[creature.id] || 'enemy'"
-								(ngModelChange)="setBattleSetupSide(creature.id, $event)"
-							>
-								<option value="player">Jogador</option>
-								<option value="ally">Aliado</option>
-								<option value="enemy">Inimigo</option>
-								<option value="neutral">Neutro</option>
-							</select>
+									<option value="player">Jogador</option>
+									<option value="ally">Aliado</option>
+									<option value="enemy">Inimigo</option>
+									<option value="neutral">Neutro</option>
+								</select>
+							</label>
 
 							<label class="text-sm">
 								<span class="mb-1 block opacity-70">Iniciativa</span>
@@ -417,6 +426,19 @@
 									(ngModelChange)="setBattleSetupInitiative(creature.id, $event)"
 								/>
 							</label>
+
+							@if (isBattleSetupInitiativeTied(creature.id)) {
+								<label class="text-sm">
+									<span class="mb-1 block opacity-70">DES (desempate)</span>
+									<input
+										type="number"
+										placeholder="-"
+										[class]="battleSetupTieBreakerInputClasses(creature.id)"
+										[ngModel]="modal.initiativeTieBreakers[creature.id]"
+										(ngModelChange)="setBattleSetupInitiativeTieBreaker(creature.id, $event)"
+									/>
+								</label>
+							}
 						</div>
 					}
 				</div>

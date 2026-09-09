@@ -135,6 +135,7 @@ export interface BattleCombatant {
 	initiative: number;
 	nextRoundInitiative?: number;
 	initiativeTieBreaker?: number;
+	nextRoundInitiativeTieBreaker?: number | null;
 	turnOrder: number;
 	armorClass?: number;
 	maxHp: number;
@@ -167,6 +168,30 @@ export interface BattleTurnLogEntry {
 	notes?: string;
 }
 
+export interface BattleTurnSnapshotState {
+	status: BattleEncounterStatus;
+	round: number;
+	activeTurnIndex: number;
+	completedAt?: string;
+	turnStartedAt?: string;
+	currentTurnElapsedSeconds?: number;
+	combatants: BattleCombatant[];
+	pendingCombatants: BattleCombatant[];
+	lairActions: BattleLairAction[];
+	traps: BattleTrap[];
+	turnHistory: BattleTurnLogEntry[];
+	dmNotes?: string;
+}
+
+export interface BattleTurnSnapshot {
+	id: string;
+	createdAt: string;
+	round: number;
+	activeTurnIndex: number;
+	combatantName?: string;
+	state: BattleTurnSnapshotState;
+}
+
 export interface BattleEncounter {
 	id: string;
 	sourceEncounterId: string;
@@ -187,6 +212,7 @@ export interface BattleEncounter {
 	traps: BattleTrap[];
 	turnHistory: BattleTurnLogEntry[];
 	dmNotes?: string;
+	turnSnapshots: BattleTurnSnapshot[];
 }
 
 export interface BattleConditionPreset {
@@ -199,4 +225,5 @@ export interface BattleEncounterCreateOptions {
 	name?: string;
 	combatantSides?: Record<number, BattleCombatantSide>;
 	initiativeOverrides?: Record<number, number>;
+	initiativeTieBreakerOverrides?: Record<number, number>;
 }

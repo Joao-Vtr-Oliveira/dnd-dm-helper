@@ -36,6 +36,7 @@ type BattleSetupModalState = {
 	battleName: string;
 	sides: Record<number, BattleCombatantSide>;
 	initiatives: Record<number, number>;
+	initiativeTieBreakers: Record<number, number>;
 };
 
 @Component({
@@ -202,6 +203,7 @@ export class EncounterHub {
 			battleName: encounter.title,
 			sides,
 			initiatives,
+			initiativeTieBreakers: {},
 		});
 	}
 
@@ -242,6 +244,18 @@ export class EncounterHub {
 		);
 	}
 
+	setBattleSetupInitiativeTieBreaker(creatureId: number, value: unknown) {
+		const text = String(value ?? '').trim();
+		const numeric = Number(text);
+		this.battleSetupModal.update((modal) => {
+			if (!modal) return modal;
+			const initiativeTieBreakers = { ...modal.initiativeTieBreakers };
+			if (!text || !Number.isFinite(numeric)) delete initiativeTieBreakers[creatureId];
+			else initiativeTieBreakers[creatureId] = numeric;
+			return { ...modal, initiativeTieBreakers };
+		});
+	}
+
 	launchBattleFromSetup() {
 		const modal = this.battleSetupModal();
 		if (!modal) return;
@@ -257,6 +271,7 @@ export class EncounterHub {
 			name: modal.battleName.trim() || encounter.title,
 			combatantSides: modal.sides,
 			initiativeOverrides: modal.initiatives,
+			initiativeTieBreakerOverrides: modal.initiativeTieBreakers,
 		};
 
 		const prepared = this.battleStorage.getOrCreateBattleFromEncounter(
@@ -382,6 +397,55 @@ export class EncounterHub {
 		const modal = this.battleSetupModal();
 		if (!modal) return null;
 		return this.ls.getEncounter(modal.encounterId);
+	}
+
+	isBattleSetupInitiativeTied(creatureId: number): boolean {
+		return this.getBattleSetupTieGroup(creatureId).length > 1;
+	}
+
+	isBattleSetupTieResolved(creatureId: number): boolean {
+		const group = this.getBattleSetupTieGroup(creatureId);
+		if (group.length < 2) return false;
+		const tieBreakers = this.battleSetupModal()?.initiativeTieBreakers ?? {};
+		const values = group.map((creature) => tieBreakers[creature.id]);
+		return values.every((value) => value != null) && new Set(values).size === group.length;
+	}
+
+	battleSetupTieLabel(creatureId: number): string | null {
+		if (!this.isBattleSetupInitiativeTied(creatureId)) return null;
+		return this.isBattleSetupTieResolved(creatureId) ? 'Empate resolvido por DES' : 'Empate';
+	}
+
+	battleSetupRowClasses(creatureId: number): string {
+		const base = 'grid gap-3 rounded-2xl border bg-white/5 p-3 md:grid-cols-4 md:items-end';
+		if (!this.isBattleSetupInitiativeTied(creatureId)) return `${base} border-white/10`;
+		return this.isBattleSetupTieResolved(creatureId)
+			? `${base} border-amber-300/25 bg-amber-500/5`
+			: `${base} border-rose-400/35 bg-rose-500/10`;
+	}
+
+	battleSetupTieBreakerInputClasses(creatureId: number): string {
+		const base = 'w-full rounded-2xl border bg-black/20 px-3 py-2';
+		if (!this.isBattleSetupInitiativeTied(creatureId)) return `${base} border-white/10`;
+		return this.isBattleSetupTieResolved(creatureId)
+			? `${base} border-amber-300/30`
+			: `${base} border-rose-400/45`;
+	}
+
+	battleSetupTieBadgeClasses(creatureId: number): string {
+		const base = 'mt-2 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold';
+		return this.isBattleSetupTieResolved(creatureId)
+			? `${base} border-amber-300/25 bg-amber-500/10 text-amber-100`
+			: `${base} border-rose-400/35 bg-rose-500/15 text-rose-100`;
+	}
+
+	private getBattleSetupTieGroup(creatureId: number) {
+		const modal = this.battleSetupModal();
+		const creatures = this.getBattleSetupEncounter()?.data.creatures ?? [];
+		if (!modal) return [];
+		const initiative = modal.initiatives[creatureId];
+		if (initiative === 0) return [];
+		return creatures.filter((creature) => modal.initiatives[creature.id] === initiative);
 	}
 
 	updateQuery(value: string) {

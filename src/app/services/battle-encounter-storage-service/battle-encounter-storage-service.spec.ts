@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { BattleEncounterStorageService } from './battle-encounter-storage-service';
+import { BattleEncounterService } from '../battle-encounter-service/battle-encounter-service';
 import type { SavedEncounter } from '../local-storage-service/local-storage-service';
 
 describe('BattleEncounterStorageService', () => {
@@ -58,6 +59,16 @@ describe('BattleEncounterStorageService', () => {
 
 		expect(loaded?.id).toBe(battle.id);
 		expect(service.getBattleEncounters()).toHaveSize(1);
+	});
+
+	it('persists turn snapshots so undo remains available after reload', () => {
+		const battle = service.createBattleFromEncounter(encounter);
+		const advanced = TestBed.inject(BattleEncounterService).advanceTurn(battle);
+		service.saveBattleEncounter(advanced);
+
+		const reloaded = service.getBattleEncounterById(battle.id);
+		expect(reloaded?.turnSnapshots).toHaveSize(1);
+		expect(reloaded && TestBed.inject(BattleEncounterService).undoTurn(reloaded).activeTurnIndex).toBe(0);
 	});
 
 	it('finds the active battle by encounter id', () => {
@@ -162,5 +173,6 @@ describe('BattleEncounterStorageService', () => {
 		expect(loaded?.combatants[0].spellSlots).toEqual([]);
 		expect(loaded?.lairActions).toEqual([]);
 		expect(loaded?.traps).toEqual([]);
+		expect(loaded?.turnSnapshots).toEqual([]);
 	});
 });

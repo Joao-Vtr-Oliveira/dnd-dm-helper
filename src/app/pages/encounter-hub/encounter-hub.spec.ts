@@ -53,4 +53,78 @@ describe('EncounterHub', () => {
 			false,
 		);
 	});
+
+	it('marks initiative ties without requiring DES and resolves them when DES values differ', () => {
+		const storage = TestBed.inject(LocalStorageService);
+		const saved = storage.createEncounter('Tie encounter', {
+			creatures: [
+				{
+					id: 1,
+					name: 'Thorn',
+					initiative: 17,
+					healthPoints: 10,
+					maxHealthPoints: 10,
+					armorClass: 12,
+					temporaryHealthPoints: 0,
+					alive: true,
+					conditions: [],
+					notes: [],
+					shared: true,
+					hitPointsShared: true,
+					totalSpellSlots: null,
+					usedSpellSlots: null,
+					spells: {},
+					specialAbilities: [],
+				},
+				{
+					id: 2,
+					name: 'Dodman',
+					initiative: 17,
+					healthPoints: 10,
+					maxHealthPoints: 10,
+					armorClass: 12,
+					temporaryHealthPoints: 0,
+					alive: true,
+					conditions: [],
+					notes: [],
+					shared: true,
+					hitPointsShared: true,
+					totalSpellSlots: null,
+					usedSpellSlots: null,
+					spells: {},
+					specialAbilities: [],
+				},
+			],
+			creatureIdCount: 2,
+			lairActions: [],
+			traps: [],
+			round: 0,
+			battleCreated: false,
+			shareEnabled: false,
+			battleTrackerVersion: '5.123.0',
+			sharedTimestamp: null,
+			loaded: true,
+		});
+
+		component.openBattleSetup(saved, 'start');
+		expect(component.battleSetupTieLabel(1)).toBe('Empate');
+		component.setBattleSetupInitiative(1, '0');
+		component.setBattleSetupInitiative(2, '0');
+		fixture.detectChanges();
+		expect(component.isBattleSetupInitiativeTied(1)).toBeFalse();
+		expect(fixture.nativeElement.textContent).not.toContain('DES (desempate)');
+
+		component.setBattleSetupInitiative(1, '17');
+		component.setBattleSetupInitiative(2, '17');
+		fixture.detectChanges();
+		expect(fixture.nativeElement.textContent).toContain('DES (desempate)');
+		component.setBattleSetupInitiativeTieBreaker(1, '16');
+		component.setBattleSetupInitiativeTieBreaker(2, '12');
+
+		expect(component.battleSetupTieLabel(1)).toBe('Empate resolvido por DES');
+		component.launchBattleFromSetup();
+		expect(TestBed.inject(BattleEncounterStorageService).getBattleEncounters()[0].combatants[0].name).toBe(
+			'Thorn',
+		);
+	});
 });

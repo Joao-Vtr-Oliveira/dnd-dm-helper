@@ -323,8 +323,18 @@ export class LocalStorageService {
 					previousName,
 					nextName,
 				);
+				const snapshotsChanged = this.renameBattleSnapshots(
+					battle.turnSnapshots,
+					sheetId,
+					previousName,
+					nextName,
+				);
 
-				if (combatantsChanged === battle.combatants && pendingChanged === battle.pendingCombatants) {
+				if (
+					combatantsChanged === battle.combatants &&
+					pendingChanged === battle.pendingCombatants &&
+					snapshotsChanged === battle.turnSnapshots
+				) {
 					return entry;
 				}
 
@@ -334,6 +344,7 @@ export class LocalStorageService {
 					updatedAt: new Date().toISOString(),
 					combatants: combatantsChanged,
 					pendingCombatants: pendingChanged,
+					turnSnapshots: snapshotsChanged,
 				};
 			});
 
@@ -367,6 +378,50 @@ export class LocalStorageService {
 		});
 
 		return changed ? renamed : combatants;
+	}
+
+	private renameBattleSnapshots(
+		snapshots: BattleEncounter['turnSnapshots'] | undefined,
+		sheetId: string,
+		previousName: string,
+		nextName: string,
+	) {
+		if (!Array.isArray(snapshots)) return snapshots;
+
+		let changed = false;
+		const renamed = snapshots.map((snapshot) => {
+			if (!snapshot?.state) return snapshot;
+			const combatants = this.renameBattleCombatants(
+				snapshot.state.combatants,
+				sheetId,
+				previousName,
+				nextName,
+			);
+			const pendingCombatants = this.renameBattleCombatants(
+				snapshot.state.pendingCombatants,
+				sheetId,
+				previousName,
+				nextName,
+			);
+			if (
+				combatants === snapshot.state.combatants &&
+				pendingCombatants === snapshot.state.pendingCombatants
+			) {
+				return snapshot;
+			}
+
+			changed = true;
+			return {
+				...snapshot,
+				state: {
+					...snapshot.state,
+					combatants,
+					pendingCombatants,
+				},
+			};
+		});
+
+		return changed ? renamed : snapshots;
 	}
 
 	private renameDefaultSheetName(currentName: string, previousName: string, nextName: string): string | null {

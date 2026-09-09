@@ -159,6 +159,7 @@ export class BattleTrackerPage {
 		return this.battleService.getCurrentTurnElapsedSeconds(battle, new Date(this.now()));
 	});
 	readonly turnHistory = computed(() => this.battle()?.turnHistory ?? []);
+	readonly undoTurnTarget = computed(() => this.battle()?.turnSnapshots?.at(-1) ?? null);
 	readonly upcomingEvents = computed<BattleUpcomingEvent[]>(() => {
 		const battle = this.battle();
 		if (!battle) return [];
@@ -268,8 +269,14 @@ export class BattleTrackerPage {
 		this.updateBattle((battle) => this.battleService.advanceTurn(battle));
 	}
 
-	previousTurn() {
-		this.updateBattle((battle) => this.battleService.rewindTurn(battle));
+	undoTurn() {
+		const target = this.undoTurnTarget();
+		if (!target) return;
+		this.updateBattle((battle) => this.battleService.undoTurn(battle));
+		this.showToast(
+			'success',
+			`Turno desfeito - voltou para ${target.combatantName || 'a iniciativa'}, Round ${target.round}.`,
+		);
 	}
 
 	setCombatantSide(combatantId: string, side: BattleCombatantSide) {
@@ -1013,12 +1020,34 @@ export class BattleTrackerPage {
 		}));
 	}
 
+	getInitiativeTieBreakerValue(combatant: BattleCombatant): string {
+		const value =
+			combatant.nextRoundInitiativeTieBreaker === undefined
+				? combatant.initiativeTieBreaker
+				: combatant.nextRoundInitiativeTieBreaker;
+		return value == null ? '' : String(value);
+	}
+
+	scheduleInitiativeTieBreaker(combatantId: string, value: string) {
+		this.updateBattle((battle) =>
+			this.battleService.scheduleCombatantInitiativeTieBreaker(
+				battle,
+				combatantId,
+				this.parseOptionalInitiativeTieBreaker(value),
+			),
+		);
+	}
+
 	isPendingCombatant(combatant: BattleCombatant): boolean {
 		return combatant.pendingAdd;
 	}
 
 	shouldShowPendingInitiative(combatant: BattleCombatant): boolean {
 		return combatant.nextRoundInitiative != null && combatant.nextRoundInitiative !== combatant.initiative;
+	}
+
+	shouldShowPendingInitiativeTieBreaker(combatant: BattleCombatant): boolean {
+		return combatant.nextRoundInitiativeTieBreaker !== undefined;
 	}
 
 	isInactiveUntilNextRound(combatant: BattleCombatant): boolean {
@@ -1203,6 +1232,12 @@ export class BattleTrackerPage {
 	private parseInitiativeInput(value: unknown): number {
 		const numeric = Number(value);
 		return Number.isFinite(numeric) ? Math.floor(numeric) : 0;
+	}
+
+	private parseOptionalInitiativeTieBreaker(value: unknown): number | undefined {
+		if (value == null || String(value).trim() === '') return undefined;
+		const numeric = Number(value);
+		return Number.isFinite(numeric) ? Math.floor(numeric) : undefined;
 	}
 
 	private parseArmorClassInput(value: unknown): number | undefined {

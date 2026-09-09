@@ -11,6 +11,8 @@ import type {
 	BattleSpellSlotLevel,
 	BattleTrap,
 	BattleTurnLogEntry,
+	BattleTurnSnapshot,
+	BattleTurnSnapshotState,
 	EncounterTemplate,
 } from '../../models/battle-encounter-model';
 import type {
@@ -36,12 +38,14 @@ import { BattleSpellSlotService } from '../battle-spell-slot-service/battle-spel
 
 const DEFAULT_SIDE: BattleCombatantSide = 'enemy';
 const DEFAULT_CREATURE_CATEGORY: CreatureCategory = 'monster';
+export const MAX_BATTLE_TURN_SNAPSHOTS = 30;
 
 type AddCombatantOverrides = {
 	name?: string;
 	displayName?: string;
 	side?: BattleCombatantSide;
 	initiative?: number;
+	initiativeTieBreaker?: number;
 	armorClass?: number;
 	maxHp?: number;
 	currentHp?: number;
@@ -134,6 +138,7 @@ export class BattleEncounterService {
 			traps: this.mapEncounterTraps(template.data.traps),
 			turnHistory: [],
 			dmNotes: '',
+			turnSnapshots: [],
 		};
 	}
 
@@ -187,6 +192,7 @@ export class BattleEncounterService {
 			traps,
 			turnHistory: this.normalizeTurnHistory(raw.turnHistory),
 			dmNotes: typeof raw.dmNotes === 'string' ? raw.dmNotes : '',
+			turnSnapshots: this.normalizeTurnSnapshots(raw.turnSnapshots),
 		};
 	}
 
@@ -237,6 +243,7 @@ export class BattleEncounterService {
 		if (!battle.combatants.length && !battle.pendingCombatants.length) {
 			return this.touchBattle(battle, now);
 		}
+		const turnSnapshot = this.createTurnSnapshot(battle, now);
 
 		if (!battle.combatants.length) {
 			const timestamp = this.toIso(now);
@@ -270,6 +277,7 @@ export class BattleEncounterService {
 						),
 					),
 				],
+				turnSnapshots: this.appendTurnSnapshot(battle, turnSnapshot),
 			};
 		}
 
@@ -364,28 +372,33 @@ export class BattleEncounterService {
 			lairActions: encounterEventAdvance.lairActions,
 			traps: encounterEventAdvance.traps,
 			turnHistory,
+			turnSnapshots: this.appendTurnSnapshot(battle, turnSnapshot),
 		};
 	}
 
-	rewindTurn(battle: BattleEncounter, now = new Date()): BattleEncounter {
-		if (!battle.turnHistory.length) return this.touchBattle(battle, now);
+	undoTurn(battle: BattleEncounter, now = new Date()): BattleEncounter {
+		const snapshot = battle.turnSnapshots?.at(-1);
+		if (!snapshot) return battle;
 
-		const lastTurn = battle.turnHistory[battle.turnHistory.length - 1];
+		const state = structuredClone(snapshot.state);
 		const timestamp = this.toIso(now);
-		const rewoundIndex = this.normalizeActiveTurnIndex(
-			battle.combatants,
-			lastTurn.turnIndex,
-			lastTurn.round,
-		);
 
 		return {
 			...battle,
-			round: lastTurn.round,
-			activeTurnIndex: rewoundIndex,
+			status: state.status,
+			round: state.round,
+			activeTurnIndex: state.activeTurnIndex,
 			updatedAt: timestamp,
-			turnStartedAt: battle.status === 'active' && rewoundIndex >= 0 ? timestamp : undefined,
+			completedAt: state.completedAt,
+			turnStartedAt: state.status === 'active' && state.activeTurnIndex >= 0 ? timestamp : undefined,
 			currentTurnElapsedSeconds: 0,
-			turnHistory: battle.turnHistory.slice(0, -1),
+			combatants: state.combatants,
+			pendingCombatants: state.pendingCombatants,
+			lairActions: state.lairActions,
+			traps: state.traps,
+			turnHistory: state.turnHistory,
+			dmNotes: state.dmNotes,
+			turnSnapshots: battle.turnSnapshots.slice(0, -1),
 		};
 	}
 
@@ -650,10 +663,35 @@ export class BattleEncounterService {
 		}));
 	}
 
+	scheduleCombatantInitiativeTieBreaker(
+		battle: BattleEncounter,
+		combatantId: string,
+		initiativeTieBreaker: number | undefined,
+	): BattleEncounter {
+		const pending = battle.pendingCombatants.some((combatant) => combatant.id === combatantId);
+		const normalizedTieBreaker =
+			initiativeTieBreaker == null ? undefined : this.toFiniteNumber(initiativeTieBreaker);
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			initiativeTieBreaker: pending ? normalizedTieBreaker : combatant.initiativeTieBreaker,
+			nextRoundInitiativeTieBreaker: pending ? undefined : (normalizedTieBreaker ?? null),
+		}));
+	}
+
 	clearScheduledCombatantInitiative(battle: BattleEncounter, combatantId: string): BattleEncounter {
 		return this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
 			nextRoundInitiative: undefined,
+		}));
+	}
+
+	clearScheduledCombatantInitiativeTieBreaker(
+		battle: BattleEncounter,
+		combatantId: string,
+	): BattleEncounter {
+		return this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			nextRoundInitiativeTieBreaker: undefined,
 		}));
 	}
 
@@ -1226,6 +1264,12 @@ export class BattleEncounterService {
 				raw.initiativeTieBreaker == null
 					? undefined
 					: this.toFiniteNumber(raw.initiativeTieBreaker),
+			nextRoundInitiativeTieBreaker:
+				raw.nextRoundInitiativeTieBreaker === undefined
+					? undefined
+					: raw.nextRoundInitiativeTieBreaker === null
+						? null
+						: this.toFiniteNumber(raw.nextRoundInitiativeTieBreaker),
 			turnOrder: this.toNonNegativeInt(raw.turnOrder),
 			armorClass: this.toArmorClass(raw.armorClass),
 			maxHp,
@@ -1361,6 +1405,8 @@ export class BattleEncounterService {
 			this.inferSideFromCategory(category, creature.category);
 		const autoDefeat = this.shouldAutoDefeatCombatant({ category, side });
 		const initiativeOverride = options?.initiativeOverrides?.[creature.id];
+		const initiativeTieBreaker =
+			overrides?.initiativeTieBreaker ?? options?.initiativeTieBreakerOverrides?.[creature.id];
 		const initiative =
 			overrides?.initiative ??
 			(initiativeOverride == null ? creature.initiative : initiativeOverride);
@@ -1375,6 +1421,9 @@ export class BattleEncounterService {
 			side,
 			initiative: this.toFiniteNumber(initiative),
 			nextRoundInitiative: undefined,
+			initiativeTieBreaker:
+				initiativeTieBreaker == null ? undefined : this.toFiniteNumber(initiativeTieBreaker),
+			nextRoundInitiativeTieBreaker: undefined,
 			turnOrder: sourceIndex,
 			armorClass: this.toArmorClass(overrides?.armorClass ?? creature.armorClass),
 			maxHp,
@@ -1453,6 +1502,108 @@ export class BattleEncounterService {
 				notes: typeof candidate.notes === 'string' ? candidate.notes : undefined,
 			};
 		});
+	}
+
+	private normalizeTurnSnapshots(raw: unknown): BattleTurnSnapshot[] {
+		if (!Array.isArray(raw)) return [];
+
+		return raw
+			.filter((snapshot) => snapshot && typeof snapshot === 'object')
+			.slice(-MAX_BATTLE_TURN_SNAPSHOTS)
+			.map((snapshot, index) => this.normalizeTurnSnapshot(snapshot, index));
+	}
+
+	private normalizeTurnSnapshot(raw: unknown, sourceIndex: number): BattleTurnSnapshot {
+		const candidate = raw as Partial<BattleTurnSnapshot>;
+		const state = this.normalizeTurnSnapshotState(candidate.state);
+		const currentCombatant = state.combatants[state.activeTurnIndex];
+
+		return {
+			id: typeof candidate.id === 'string' ? candidate.id : `turn-snapshot-${sourceIndex + 1}`,
+			createdAt: this.normalizeIso(candidate.createdAt),
+			round: state.round,
+			activeTurnIndex: state.activeTurnIndex,
+			combatantName:
+				typeof candidate.combatantName === 'string'
+					? candidate.combatantName
+					: currentCombatant?.displayName?.trim() || currentCombatant?.name,
+			state,
+		};
+	}
+
+	private normalizeTurnSnapshotState(raw: unknown): BattleTurnSnapshotState {
+		const candidate = raw && typeof raw === 'object' ? (raw as Partial<BattleTurnSnapshotState>) : {};
+		const round = Math.max(1, this.toNonNegativeInt(candidate.round) || 1);
+		const combatants = this.orderCombatants(
+			Array.isArray(candidate.combatants)
+				? candidate.combatants.map((combatant, index) => this.normalizeCombatant(combatant, index))
+				: [],
+		);
+		const pendingCombatants = Array.isArray(candidate.pendingCombatants)
+			? candidate.pendingCombatants.map((combatant, index) =>
+					this.normalizeCombatant(combatant, index, { pendingAdd: true }),
+				)
+			: [];
+
+		return {
+			status:
+				candidate.status === 'active' || candidate.status === 'paused' || candidate.status === 'completed'
+					? candidate.status
+					: 'active',
+			round,
+			activeTurnIndex: this.normalizeActiveTurnIndex(
+				combatants,
+				this.toNonNegativeInt(candidate.activeTurnIndex),
+				round,
+			),
+			completedAt: typeof candidate.completedAt === 'string' ? candidate.completedAt : undefined,
+			turnStartedAt: typeof candidate.turnStartedAt === 'string' ? candidate.turnStartedAt : undefined,
+			currentTurnElapsedSeconds: this.toNonNegativeInt(candidate.currentTurnElapsedSeconds),
+			combatants,
+			pendingCombatants,
+			lairActions: Array.isArray(candidate.lairActions)
+				? candidate.lairActions.map((action, index) => this.normalizeLairAction(action, index))
+				: [],
+			traps: Array.isArray(candidate.traps)
+				? candidate.traps.map((trap, index) => this.normalizeTrap(trap, index))
+				: [],
+			turnHistory: this.normalizeTurnHistory(candidate.turnHistory),
+			dmNotes: typeof candidate.dmNotes === 'string' ? candidate.dmNotes : '',
+		};
+	}
+
+	private createTurnSnapshot(battle: BattleEncounter, now: Date): BattleTurnSnapshot {
+		const currentCombatant = this.getCurrentCombatant(battle);
+		const state: BattleTurnSnapshotState = {
+			status: battle.status,
+			round: battle.round,
+			activeTurnIndex: battle.activeTurnIndex,
+			completedAt: battle.completedAt,
+			turnStartedAt: battle.turnStartedAt,
+			currentTurnElapsedSeconds: battle.currentTurnElapsedSeconds,
+			combatants: battle.combatants,
+			pendingCombatants: battle.pendingCombatants,
+			lairActions: battle.lairActions,
+			traps: battle.traps,
+			turnHistory: battle.turnHistory,
+			dmNotes: battle.dmNotes,
+		};
+
+		return structuredClone({
+			id: this.createId(),
+			createdAt: this.toIso(now),
+			round: battle.round,
+			activeTurnIndex: battle.activeTurnIndex,
+			combatantName: currentCombatant?.displayName?.trim() || currentCombatant?.name,
+			state,
+		});
+	}
+
+	private appendTurnSnapshot(
+		battle: BattleEncounter,
+		snapshot: BattleTurnSnapshot,
+	): BattleTurnSnapshot[] {
+		return [...(battle.turnSnapshots ?? []), snapshot].slice(-MAX_BATTLE_TURN_SNAPSHOTS);
 	}
 
 	private mapConditions(conditions: ConditionInterface[]): BattleCondition[] {
@@ -1744,6 +1895,9 @@ export class BattleEncounterService {
 		const updatedInitiatives = combatants
 			.filter((combatant) => combatant.nextRoundInitiative != null)
 			.map((combatant) => combatant.displayName?.trim() || combatant.name);
+		const updatedTieBreakers = combatants
+			.filter((combatant) => combatant.nextRoundInitiativeTieBreaker !== undefined)
+			.map((combatant) => combatant.displayName?.trim() || combatant.name);
 		const reactivatedCombatants = combatants
 			.filter(
 				(combatant) =>
@@ -1758,6 +1912,7 @@ export class BattleEncounterService {
 			pendingAdd: false,
 			joinsAtRound: undefined,
 			nextRoundInitiative: undefined,
+			nextRoundInitiativeTieBreaker: undefined,
 			inactiveUntilRound: undefined,
 		}));
 		const reorderedCombatants = this.orderCombatants([
@@ -1765,6 +1920,11 @@ export class BattleEncounterService {
 				...combatant,
 				initiative: combatant.nextRoundInitiative ?? combatant.initiative,
 				nextRoundInitiative: undefined,
+				initiativeTieBreaker:
+					combatant.nextRoundInitiativeTieBreaker === undefined
+						? combatant.initiativeTieBreaker
+						: (combatant.nextRoundInitiativeTieBreaker ?? undefined),
+				nextRoundInitiativeTieBreaker: undefined,
 				inactiveUntilRound:
 					combatant.inactiveUntilRound != null && combatant.inactiveUntilRound <= nextRound
 						? undefined
@@ -1778,6 +1938,10 @@ export class BattleEncounterService {
 			messages.push(
 				`Iniciativas atualizadas no início do round para ${updatedInitiatives.join(', ')}.`,
 			);
+		}
+
+		if (updatedTieBreakers.length) {
+			messages.push(`DES de desempate atualizado para ${updatedTieBreakers.join(', ')}.`);
 		}
 
 		if (joiningCombatants.length) {

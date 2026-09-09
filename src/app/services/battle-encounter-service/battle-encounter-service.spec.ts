@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { EncounterTemplate } from '../../models/battle-encounter-model';
-import { BattleEncounterService } from './battle-encounter-service';
+import { BattleEncounterService, MAX_BATTLE_TURN_SNAPSHOTS } from './battle-encounter-service';
 
 describe('BattleEncounterService', () => {
 	let service: BattleEncounterService;
@@ -112,6 +112,54 @@ describe('BattleEncounterService', () => {
 		expect(battle.combatants[1].initiative).toBe(7);
 	});
 
+	it('uses DES tie breakers only when initiatives are equal and keeps equal DES stable', () => {
+		const differentInitiatives = service.createBattleFromEncounter(template, {
+			initiativeOverrides: { 0: 20, 1: 18 },
+			initiativeTieBreakerOverrides: { 0: 0, 1: 99 },
+		});
+		const resolved = service.createBattleFromEncounter(template, {
+			initiativeOverrides: { 0: 17, 1: 17 },
+			initiativeTieBreakerOverrides: { 0: 12, 1: 16 },
+		});
+		const unresolved = service.createBattleFromEncounter(template, {
+			initiativeOverrides: { 0: 17, 1: 17 },
+			initiativeTieBreakerOverrides: { 0: 16, 1: 16 },
+		});
+
+		expect(resolved.combatants.map((combatant) => combatant.name)).toEqual([
+			'Goblin Minion',
+			'Goblin Boss',
+		]);
+		expect(differentInitiatives.combatants[0].name).toBe('Goblin Boss');
+		expect(unresolved.combatants.map((combatant) => combatant.name)).toEqual([
+			'Goblin Boss',
+			'Goblin Minion',
+		]);
+	});
+
+	it('orders every member of a three-way initiative tie by DES', () => {
+		const threeWayTemplate: EncounterTemplate = {
+			...template,
+			data: {
+				...template.data,
+				creatures: [
+					...template.data.creatures,
+					{ ...template.data.creatures[1], id: 2, name: 'Goblin Scout' },
+				],
+			},
+		};
+		const battle = service.createBattleFromEncounter(threeWayTemplate, {
+			initiativeOverrides: { 0: 18, 1: 18, 2: 18 },
+			initiativeTieBreakerOverrides: { 0: 16, 1: 14, 2: 18 },
+		});
+
+		expect(battle.combatants.map((combatant) => combatant.name)).toEqual([
+			'Goblin Scout',
+			'Goblin Boss',
+			'Goblin Minion',
+		]);
+	});
+
 	it('orders combatants by initiative', () => {
 		const battle = service.createBattleFromEncounter(template);
 
@@ -138,6 +186,111 @@ describe('BattleEncounterService', () => {
 		expect(afterSecondTurn.activeTurnIndex).toBe(0);
 		expect(afterSecondTurn.round).toBe(2);
 		expect(afterSecondTurn.turnHistory).toHaveSize(2);
+	});
+
+	it('captures a full pre-advance snapshot and restores it on undo', () => {
+		const initial = service.createBattleFromEncounter(
+			template,
+			undefined,
+			new Date('2026-01-01T10:00:00.000Z'),
+		);
+		const bossId = initial.combatants[0].id;
+		const minionId = initial.combatants[1].id;
+		let beforeAdvance = service.addCondition(initial, bossId, {
+			name: 'poisoned',
+			label: 'Poisoned',
+			durationType: 'turns',
+			durationTurns: 1,
+		});
+		beforeAdvance = service.addSpecialAbility(beforeAdvance, minionId, {
+			name: 'Fire Breath',
+			recoveryType: 'dice-recharge',
+			rechargeOn: [5, 6],
+		});
+		const abilityId = beforeAdvance.combatants[1].specialAbilities[0].id;
+		beforeAdvance = service.useSpecialAbility(beforeAdvance, minionId, abilityId);
+		beforeAdvance = service.enableSpellSlots(beforeAdvance, minionId);
+		beforeAdvance = service.setSpellSlotMax(beforeAdvance, minionId, 1, 2);
+		beforeAdvance = service.addLairAction(beforeAdvance, {
+			name: 'Cave Pulse',
+			frequency: 'cooldown-rounds',
+			cooldownRounds: 2,
+		});
+		beforeAdvance = service.addTrap(beforeAdvance, {
+			name: 'Falling Rocks',
+			triggerType: 'manual',
+			frequency: 'cooldown-rounds',
+			cooldownRounds: 2,
+		});
+		const expected = structuredClone(beforeAdvance);
+
+		let advanced = service.advanceTurn(beforeAdvance, new Date('2026-01-01T10:00:05.000Z'));
+		expect(advanced.turnSnapshots).toHaveSize(1);
+		expect(advanced.combatants[0].conditions).toEqual([]);
+		advanced = service.recordSpecialAbilityRecharge(advanced, minionId, abilityId, 3)!.battle;
+		advanced = service.applyDamage(advanced, minionId, 99);
+		advanced = service.updateCombatantHp(advanced, minionId, { maxHp: 30, temporaryHp: 6 });
+		advanced = service.useSpellSlot(advanced, minionId, 1);
+		advanced = service.triggerLairAction(advanced, advanced.lairActions[0].id);
+		advanced = service.triggerTrap(advanced, advanced.traps[0].id);
+		advanced = service.addCondition(advanced, minionId, {
+			name: 'stunned',
+			label: 'Stunned',
+			durationType: 'manual',
+		});
+
+		const restored = service.undoTurn(advanced, new Date('2026-01-01T10:01:00.000Z'));
+
+		expect(restored.round).toBe(expected.round);
+		expect(service.getCurrentCombatant(restored)?.id).toBe(bossId);
+		expect(restored.combatants).toEqual(expected.combatants);
+		expect(restored.lairActions).toEqual(expected.lairActions);
+		expect(restored.traps).toEqual(expected.traps);
+		expect(restored.turnHistory).toEqual(expected.turnHistory);
+		expect(restored.turnSnapshots).toEqual([]);
+		expect(restored.currentTurnElapsedSeconds).toBe(0);
+	});
+
+	it('supports multiple undos and leaves a battle unchanged without a snapshot', () => {
+		const initial = service.createBattleFromEncounter(template);
+		const afterFirst = service.advanceTurn(initial);
+		const afterSecond = service.advanceTurn(afterFirst);
+		const afterUndo = service.undoTurn(afterSecond);
+		const afterSecondUndo = service.undoTurn(afterUndo);
+
+		expect(afterSecond.turnSnapshots).toHaveSize(2);
+		expect(service.getCurrentCombatant(afterUndo)?.id).toBe(initial.combatants[1].id);
+		expect(service.getCurrentCombatant(afterSecondUndo)?.id).toBe(initial.combatants[0].id);
+		expect(service.undoTurn(initial)).toBe(initial);
+	});
+
+	it('keeps only the configured number of turn snapshots', () => {
+		let battle = service.createBattleFromEncounter(template);
+		for (let index = 0; index < MAX_BATTLE_TURN_SNAPSHOTS + 1; index += 1) {
+			battle = service.advanceTurn(battle);
+		}
+
+		expect(battle.turnSnapshots).toHaveSize(MAX_BATTLE_TURN_SNAPSHOTS);
+	});
+
+	it('restores pending combatants and the previous round when undoing a round transition', () => {
+		const initial = service.createBattleFromEncounter(template);
+		const withPending = service.addCombatantFromCreature(initial, {
+			...template.data.creatures[1],
+			id: 99,
+			name: 'Goblin Reinforcement',
+		});
+		const afterFirst = service.advanceTurn(withPending);
+		const afterRoundTransition = service.advanceTurn(afterFirst);
+
+		expect(afterRoundTransition.round).toBe(2);
+		expect(afterRoundTransition.pendingCombatants).toEqual([]);
+
+		const restored = service.undoTurn(afterRoundTransition);
+		expect(restored.round).toBe(1);
+		expect(restored.pendingCombatants.map((combatant) => combatant.name)).toEqual([
+			'Goblin Reinforcement',
+		]);
 	});
 
 	it('advances the round when a single combatant wraps back to the start of the order', () => {
@@ -734,6 +887,24 @@ describe('BattleEncounterService', () => {
 		expect(
 			afterSecondTurn.combatants.find((combatant) => combatant.id === firstCombatantId)?.initiative,
 		).toBe(18);
+	});
+
+	it('applies scheduled DES changes at the next round without changing the current turn', () => {
+		const battle = service.createBattleFromEncounter(template, {
+			initiativeOverrides: { 0: 17, 1: 17 },
+		});
+		const currentId = battle.combatants[0].id;
+		const secondId = battle.combatants[1].id;
+		const scheduled = service.scheduleCombatantInitiativeTieBreaker(battle, secondId, 16);
+
+		expect(service.getCurrentCombatant(scheduled)?.id).toBe(currentId);
+		expect(scheduled.combatants[1].nextRoundInitiativeTieBreaker).toBe(16);
+
+		const afterFirst = service.advanceTurn(scheduled);
+		const afterRound = service.advanceTurn(afterFirst);
+		expect(afterRound.round).toBe(2);
+		expect(afterRound.combatants[0].id).toBe(secondId);
+		expect(afterRound.combatants[0].initiativeTieBreaker).toBe(16);
 	});
 
 	it('skips defeated combatants in initiative order', () => {

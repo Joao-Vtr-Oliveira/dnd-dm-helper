@@ -79,10 +79,11 @@
 			@if (battle()!.status === 'active') {
 				<button
 					type="button"
-					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-					(click)="previousTurn()"
+					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-45"
+					[disabled]="!undoTurnTarget()"
+					(click)="undoTurn()"
 				>
-					Voltar Turno
+					Desfazer turno
 				</button>
 
 				<button
@@ -172,7 +173,11 @@
 							}
 						</div>
 
-						@if (pendingDiceRechargeAbilities().length > 0) {
+						<details open class="mt-4">
+							<summary class="cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50">
+								Retrair detalhes
+							</summary>
+							@if (pendingDiceRechargeAbilities().length > 0) {
 							<div class="mt-4 border-y border-amber-300/25 py-3" aria-live="polite">
 								<div class="text-sm font-semibold uppercase tracking-[0.16em] text-amber-100">Recarga pendente</div>
 								<p class="mt-1 text-sm text-amber-50/80">Role o dado fisicamente e registre o resultado.</p>
@@ -198,9 +203,9 @@
 									}
 								</div>
 							</div>
-						}
+							}
 
-						<div class="mt-4 flex flex-wrap gap-2">
+							<div class="mt-4 flex flex-wrap gap-2">
 							@for (condition of combatant.conditions; track condition.id) {
 								<button
 									type="button"
@@ -211,9 +216,9 @@
 									{{ condition.label }} x
 								</button>
 							}
-						</div>
+							</div>
 
-						<div class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(9rem,0.7fr)_auto]">
+							<div class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(9rem,0.7fr)_auto]">
 							<input
 								type="number"
 								min="0"
@@ -263,9 +268,9 @@
 							>
 								{{ combatant.defeated ? 'Reerguer' : 'Derrotar' }}
 							</button>
-						</div>
+							</div>
 
-						<div class="mt-3 flex flex-wrap gap-2">
+							<div class="mt-3 flex flex-wrap gap-2">
 							<select
 								class="h-10 min-w-44 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 text-sm"
 								[ngModel]="getConditionDraft(combatant.id).preset"
@@ -285,9 +290,9 @@
 							>
 								Adicionar condição
 							</button>
-						</div>
+							</div>
 
-						@if (visibleCockpitAbilities().length > 0) {
+							@if (visibleCockpitAbilities().length > 0) {
 							<div class="mt-4 border-t border-white/10 pt-3">
 								<div class="text-sm font-semibold">Habilidades</div>
 								<div class="mt-2 space-y-2">
@@ -345,9 +350,9 @@
 									</button>
 								}
 							</div>
-						}
+							}
 
-						<div class="mt-4 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-2">
+							<div class="mt-4 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-2">
 							<div>
 								<div class="text-xs font-semibold uppercase tracking-[0.14em] opacity-65">A seguir</div>
 								<div class="mt-1 space-y-1 text-sm">
@@ -364,7 +369,8 @@
 									<div class="mt-1 text-sm font-semibold">{{ event.label }}</div>
 								</div>
 							}
-						</div>
+							</div>
+						</details>
 					</section>
 				}
 
@@ -1142,37 +1148,58 @@
 											@if (shouldShowPendingInitiative(combatant)) {
 												<span> · Próximo round: {{ combatant.nextRoundInitiative }}</span>
 											}
+											<span> · DES: {{ combatant.initiativeTieBreaker ?? '-' }}</span>
+											@if (shouldShowPendingInitiativeTieBreaker(combatant)) {
+												<span>
+													· DES próximo round:
+													{{ combatant.nextRoundInitiativeTieBreaker ?? '-' }}
+												</span>
+											}
 											@if (combatant.pendingAdd) {
 												<span> · Entra no próximo round</span>
 											}
 										</div>
 									</div>
 
-									<div class="grid gap-2 sm:grid-cols-[minmax(0,9rem)_auto_auto]">
-										<input
-											type="number"
-											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="getInitiativeDraft(combatant)"
-											(ngModelChange)="setInitiativeDraft(combatant.id, $event)"
-										/>
-
-										<button
-											type="button"
-											class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-											(click)="applyInitiativeChange(combatant.id)"
-										>
-											Aplicar no próximo round
-										</button>
-
-										@if (combatant.nextRoundInitiative != null) {
+									<div class="grid gap-3 lg:grid-cols-2">
+										<div class="grid gap-2 sm:grid-cols-[minmax(0,9rem)_auto_auto]">
+											<input
+												type="number"
+												aria-label="Iniciativa"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="getInitiativeDraft(combatant)"
+												(ngModelChange)="setInitiativeDraft(combatant.id, $event)"
+											/>
 											<button
 												type="button"
-												class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-4 hover:bg-black/30"
-												(click)="clearInitiativeChange(combatant.id)"
+												class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+												(click)="applyInitiativeChange(combatant.id)"
 											>
-												Limpar
+												Aplicar iniciativa
 											</button>
-										}
+											@if (combatant.nextRoundInitiative != null) {
+												<button
+													type="button"
+													class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-4 hover:bg-black/30"
+													(click)="clearInitiativeChange(combatant.id)"
+												>
+													Limpar
+												</button>
+											}
+										</div>
+										<div class="flex flex-wrap items-center gap-2">
+											<input
+												type="number"
+												aria-label="DES de desempate"
+												placeholder="DES"
+												class="w-24 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="getInitiativeTieBreakerValue(combatant)"
+												(ngModelChange)="scheduleInitiativeTieBreaker(combatant.id, $event)"
+											/>
+											@if (shouldShowPendingInitiativeTieBreaker(combatant)) {
+												<span class="text-xs opacity-70">Aplicado no próximo round</span>
+											}
+										</div>
 									</div>
 								</div>
 							</div>
@@ -1641,6 +1668,7 @@
 						/>
 					</label>
 
+
 					<label class="text-sm">
 						<span class="mb-1 block opacity-70">HP máximo</span>
 						<input
@@ -1744,6 +1772,7 @@
 									(ngModelChange)="setAddCombatantDraft({ initiative: $event })"
 								/>
 							</label>
+
 						</div>
 					</div>
 				} @else {

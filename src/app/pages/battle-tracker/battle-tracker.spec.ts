@@ -196,6 +196,37 @@ describe('BattleTrackerPage', () => {
 		);
 	});
 
+	it('allows collapsing cockpit details while keeping the current turn header available', () => {
+		const cockpit = fixture.nativeElement.querySelector('[data-testid="current-turn-cockpit"]');
+		const details = cockpit.querySelector('details') as HTMLDetailsElement;
+		const summary = details.querySelector('summary') as HTMLElement;
+
+		expect(details.open).toBeTrue();
+		expect(cockpit.textContent).toContain('Hero');
+		expect(cockpit.textContent).toContain('Próximo turno');
+
+		summary.click();
+		fixture.detectChanges();
+		expect(details.open).toBeFalse();
+	});
+
+	it('restores the cockpit state through real turn undo and disables undo without a snapshot', () => {
+		const undoButton = Array.from(
+			fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
+		).find((button) => button.textContent?.includes('Desfazer turno'));
+		expect(undoButton?.disabled).toBeTrue();
+
+		component.nextTurn();
+		fixture.detectChanges();
+		expect(component.currentCombatant()?.name).toBe('Dodman');
+
+		component.undoTurn();
+		fixture.detectChanges();
+		expect(component.currentCombatant()?.name).toBe('Hero');
+		expect(component.battle()?.turnSnapshots).toEqual([]);
+		expect(undoButton?.disabled).toBeTrue();
+	});
+
 	it('applies cockpit damage and healing through the shared battle state', () => {
 		component.setDamageDraft('c1', '7');
 		fixture.detectChanges();
