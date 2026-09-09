@@ -6,6 +6,7 @@ import type {
 	BattleAbilityRecoveryType,
 	BattleCombatant,
 	BattleCombatantSide,
+	BattleConcentrationCheckPendingAction,
 	BattleCondition,
 	BattleConditionDurationType,
 	BattleConditionPreset,
@@ -145,7 +146,9 @@ export class BattleTrackerPage {
 		);
 	});
 
-	readonly conditionOptions: BattleConditionPreset[] = DEFAULT_BATTLE_CONDITIONS;
+	readonly conditionOptions: BattleConditionPreset[] = DEFAULT_BATTLE_CONDITIONS.filter(
+	(option) => option.name !== 'concentrating',
+);
 	readonly combatants = computed(() => [
 		...(this.battle()?.combatants ?? []),
 		...(this.battle()?.pendingCombatants ?? []),
@@ -200,6 +203,8 @@ export class BattleTrackerPage {
 		Math.max(0, this.cockpitAbilities().length - this.visibleCockpitAbilities().length),
 	);
 	readonly rechargeDieResults = [1, 2, 3, 4, 5, 6];
+	readonly deathSaveDieResults = Array.from({ length: 20 }, (_, index) => index + 1);
+	readonly deathSaveMarkers = [0, 1, 2];
 	readonly battleStatusLabel = computed(() => {
 		const status = this.battle()?.status;
 		if (status === 'paused') return 'Pausada';
@@ -463,6 +468,11 @@ export class BattleTrackerPage {
 		this.showToast('success', 'Concentração encerrada.');
 	}
 
+	setConcentration(combatantId: string, concentrating: boolean) {
+		if (concentrating) this.startConcentration(combatantId);
+		else this.stopConcentration(combatantId);
+	}
+
 	resolveConcentrationCheck(actionId: string, succeeded: boolean) {
 		const battle = this.battle();
 		if (!battle) return;
@@ -473,8 +483,68 @@ export class BattleTrackerPage {
 		this.showToast('success', result.succeeded ? 'Concentração mantida.' : 'Concentração perdida.');
 	}
 
+	startDeathSaves(combatantId: string) {
+		this.updateBattle((battle) => this.battleService.startDeathSaves(battle, combatantId));
+		this.showToast('success', 'Testes de morte iniciados. A primeira rolagem acontece no próximo turno.');
+	}
+
+	recordDeathSaveResult(actionId: string, roll: number) {
+		const battle = this.battle();
+		if (!battle) return;
+		const result = this.battleService.recordDeathSaveResult(battle, actionId, roll);
+		if (!result) return;
+
+		this.battle.set(result.battle);
+		const labels: Record<string, string> = {
+			success: 'sucesso',
+			failure: 'falha',
+			stable: 'estável',
+			dead: 'morreu',
+			'natural-20': 'recuperou-se com um 20 natural',
+		};
+		this.showToast(result.outcome === 'failure' || result.outcome === 'dead' ? 'error' : 'success', `${result.roll}: ${labels[result.outcome]}.`);
+	}
+
+	addDeathSaveFailure(combatantId: string) {
+		this.updateBattle((battle) => this.battleService.addDeathSaveFailures(battle, combatantId, 1));
+		this.showToast('error', 'Falha em teste de morte adicionada.');
+	}
+
+	addDeathSaveSuccess(combatantId: string) {
+		this.updateBattle((battle) => this.battleService.addDeathSaveSuccess(battle, combatantId));
+		this.showToast('success', 'Sucesso em teste de morte adicionado.');
+	}
+
+	recoverFromDeathSaves(combatantId: string) {
+		this.updateBattle((battle) => this.battleService.recoverFromDeathSaves(battle, combatantId));
+		this.showToast('success', 'Estado de testes de morte corrigido.');
+	}
+
+	canUseDeathSaves(combatant: BattleCombatant): boolean {
+		return this.battleService.canUseDeathSaves(combatant);
+	}
+
+	deathSaveStatusLabel(combatant: BattleCombatant): string | null {
+		const deathSaves = combatant.deathSaves;
+		if (!deathSaves) return null;
+		if (deathSaves.status === 'stable') return 'Estável';
+		if (deathSaves.status === 'dead') return 'Morto';
+		return null;
+	}
+
 	isConcentrating(combatant: BattleCombatant): boolean {
 		return combatant.conditions.some((condition) => condition.name === 'concentrating');
+	}
+
+	visibleConditions(combatant: BattleCombatant): BattleCondition[] {
+		return combatant.conditions.filter((condition) => condition.name !== 'concentrating');
+	}
+
+	pendingConcentrationChecks(combatant: BattleCombatant): BattleConcentrationCheckPendingAction[] {
+		return (this.battle()?.pendingActions ?? []).filter(
+			(action): action is BattleConcentrationCheckPendingAction =>
+				action.type === 'concentration-check' && action.combatantId === combatant.id,
+		);
 	}
 
 	pendingActionCombatant(action: BattlePendingAction): BattleCombatant | null {
@@ -799,16 +869,16 @@ export class BattleTrackerPage {
 		return 'Manual';
 	}
 
-	enableSpellSlots(combatantId: string) {
-		this.updateBattle((battle) => this.battleService.enableSpellSlots(battle, combatantId));
-	}
-
-	disableSpellSlots(combatantId: string) {
-		this.updateBattle((battle) => this.battleService.disableSpellSlots(battle, combatantId));
-	}
-
 	spellSlotsEnabled(combatant: BattleCombatant): boolean {
 		return combatant.spellSlots.length > 0;
+	}
+
+	hasSpells(combatant: BattleCombatant): boolean {
+		return this.spellEntries(combatant.spells).length > 0;
+	}
+
+	hasSheetFeatures(combatant: BattleCombatant): boolean {
+		return combatant.sheetFeatures.length > 0;
 	}
 
 	spellSlotsVisible(combatant: BattleCombatant): boolean {

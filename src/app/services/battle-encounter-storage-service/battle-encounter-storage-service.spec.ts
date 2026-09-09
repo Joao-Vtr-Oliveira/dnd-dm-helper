@@ -88,6 +88,21 @@ describe('BattleEncounterStorageService', () => {
 		expect(service.getBattleEncounterById(battle.id)?.pendingActions).toEqual([]);
 	});
 
+	it('persists active death saves and their pending physical roll', () => {
+		const battleService = TestBed.inject(BattleEncounterService);
+		const battle = service.createBattleFromEncounter(encounter);
+		const combatantId = battle.combatants[0].id;
+		const eligible = battleService.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
+		const started = battleService.startDeathSaves(eligible, combatantId);
+		const atOwnerTurn = battleService.advanceTurn(started);
+		service.saveBattleEncounter(atOwnerTurn);
+
+		const reloaded = service.getBattleEncounterById(battle.id)!;
+		expect(reloaded.combatants[0].deathSaves).toEqual({ status: 'active', successes: 0, failures: 0 });
+		expect(reloaded.pendingActions).toHaveSize(1);
+		expect(reloaded.pendingActions[0].type).toBe('death-save');
+	});
+
 	it('finds the active battle by encounter id', () => {
 		const battle = service.createBattleFromEncounter(encounter);
 

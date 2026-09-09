@@ -24,7 +24,8 @@ export type BattleAbilityRecoveryType =
 	| 'short-rest'
 	| 'long-rest'
 	| 'dice-recharge';
-export type BattlePendingActionType = 'dice-recharge' | 'concentration-check';
+export type BattlePendingActionType = 'dice-recharge' | 'concentration-check' | 'death-save';
+export type BattleDeathSaveStatus = 'active' | 'stable' | 'dead';
 export type BattleLairActionFrequency = 'every-round' | 'cooldown-rounds' | 'manual';
 export type BattleTrapTriggerType = 'initiative' | 'round-start' | 'round-end' | 'manual';
 export type BattleTrapFrequency = 'once' | 'every-round' | 'cooldown-rounds' | 'manual';
@@ -147,9 +148,20 @@ export interface BattleConcentrationCheckPendingAction extends BattlePendingActi
 	difficultyClass: number;
 }
 
+export interface BattleDeathSavePendingAction extends BattlePendingActionBase {
+	type: 'death-save';
+}
+
 export type BattlePendingAction =
 	| BattleDiceRechargePendingAction
-	| BattleConcentrationCheckPendingAction;
+	| BattleConcentrationCheckPendingAction
+	| BattleDeathSavePendingAction;
+
+export interface BattleDeathSaveState {
+	status: BattleDeathSaveStatus;
+	successes: number;
+	failures: number;
+}
 
 export interface BattleCombatant {
 	id: string;
@@ -176,6 +188,7 @@ export interface BattleCombatant {
 	pendingAdd: boolean;
 	joinsAtRound?: number;
 	conditions: BattleCondition[];
+	deathSaves?: BattleDeathSaveState;
 	specialAbilities: BattleSpecialAbility[];
 	spellSlots: BattleSpellSlotLevel[];
 	spells: SpellsByKey;

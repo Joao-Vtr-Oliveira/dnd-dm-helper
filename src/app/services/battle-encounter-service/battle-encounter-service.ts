@@ -5,6 +5,8 @@ import type {
 	BattleConcentrationCheckPendingAction,
 	BattleCondition,
 	BattleConditionPreset,
+	BattleDeathSavePendingAction,
+	BattleDeathSaveState,
 	BattleEncounter,
 	BattleEncounterCreateOptions,
 	BattleLairAction,
@@ -41,6 +43,8 @@ import { BattleSpellSlotService } from '../battle-spell-slot-service/battle-spel
 const DEFAULT_SIDE: BattleCombatantSide = 'enemy';
 const DEFAULT_CREATURE_CATEGORY: CreatureCategory = 'monster';
 export const MAX_BATTLE_TURN_SNAPSHOTS = 30;
+
+export type DeathSaveOutcome = 'success' | 'failure' | 'stable' | 'dead' | 'natural-20';
 
 type AddCombatantOverrides = {
 	name?: string;
@@ -166,6 +170,11 @@ export class BattleEncounterService {
 		const traps = Array.isArray(raw.traps)
 			? raw.traps.map((trap, index) => this.normalizeTrap(trap, index))
 			: [];
+		const pendingActions = this.reconcilePendingActionsForCombatants(
+			this.normalizePendingActions(raw.pendingActions),
+			combatants,
+			pendingCombatants,
+		);
 
 		return {
 			id: typeof raw.id === 'string' ? raw.id : this.createId(),
@@ -195,7 +204,7 @@ export class BattleEncounterService {
 			traps,
 			turnHistory: this.normalizeTurnHistory(raw.turnHistory),
 			dmNotes: typeof raw.dmNotes === 'string' ? raw.dmNotes : '',
-			pendingActions: this.normalizePendingActions(raw.pendingActions),
+			pendingActions,
 			turnSnapshots: this.normalizeTurnSnapshots(raw.turnSnapshots),
 		};
 	}
@@ -364,7 +373,7 @@ export class BattleEncounterService {
 			);
 		}
 
-		return {
+		return this.ensureDeathSavePendingAction({
 			...battle,
 			round: nextRound,
 			activeTurnIndex: nextTurnIndex,
@@ -382,7 +391,7 @@ export class BattleEncounterService {
 				nextPendingCombatants,
 			),
 			turnSnapshots: this.appendTurnSnapshot(battle, turnSnapshot),
-		};
+		});
 	}
 
 	undoTurn(battle: BattleEncounter, now = new Date()): BattleEncounter {
@@ -467,10 +476,10 @@ export class BattleEncounterService {
 		combatantId: string,
 		patch: Partial<BattleCombatant>,
 	): BattleEncounter {
-		return this.mapCombatant(battle, combatantId, (combatant) => ({
+		return this.reconcilePendingActions(this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
 			...patch,
-		}));
+		})));
 	}
 
 	updateCombatantHp(
@@ -500,9 +509,10 @@ export class BattleEncounterService {
 			};
 		});
 		const updatedCombatant = this.findCombatant(updatedBattle, combatantId);
-		return updatedCombatant?.defeated
+		const resolvedBattle = updatedCombatant?.defeated
 			? this.stopConcentration(updatedBattle, combatantId)
 			: updatedBattle;
+		return this.reconcilePendingActions(resolvedBattle);
 	}
 
 	addCombatantFromCreature(
@@ -549,6 +559,7 @@ export class BattleEncounterService {
 				temporaryHp: 0,
 				defeated: false,
 				collapsed: false,
+				deathSaves: undefined,
 				spellSlots: original.spellSlots.map((slot) => ({
 					level: slot.level,
 					max: slot.max,
@@ -861,6 +872,138 @@ export class BattleEncounterService {
 				(action) => action.type !== 'concentration-check' || action.combatantId !== combatantId,
 			),
 		};
+	}
+
+	canUseDeathSaves(combatant: Pick<BattleCombatant, 'category' | 'side'>): boolean {
+		return combatant.category === 'pc' || (combatant.category === 'npc' && combatant.side !== 'enemy');
+	}
+
+	startDeathSaves(battle: BattleEncounter, combatantId: string): BattleEncounter {
+		const combatant = this.findCombatant(battle, combatantId);
+		if (!combatant || !this.canUseDeathSaves(combatant) || combatant.deathSaves) return battle;
+
+		const startedBattle = this.mapCombatant(battle, combatantId, (target) => ({
+			...target,
+			defeated: false,
+			collapsed: true,
+			deathSaves: { status: 'active', successes: 0, failures: 0 },
+		}));
+		return this.stopConcentration(startedBattle, combatantId);
+	}
+
+	recordDeathSaveResult(
+		battle: BattleEncounter,
+		actionId: string,
+		roll: number,
+	): { battle: BattleEncounter; roll: number; outcome: DeathSaveOutcome } | null {
+		if (!Number.isInteger(roll) || roll < 1 || roll > 20) return null;
+		const action = battle.pendingActions.find(
+			(item): item is BattleDeathSavePendingAction => item.id === actionId && item.type === 'death-save',
+		);
+		if (!action) return null;
+
+		const combatant = this.findCombatant(battle, action.combatantId);
+		if (!combatant || !this.canUseDeathSaves(combatant) || combatant.deathSaves?.status !== 'active') {
+			return null;
+		}
+
+		const withoutAction = {
+			...battle,
+			pendingActions: battle.pendingActions.filter((item) => item.id !== actionId),
+		};
+		if (roll === 20) {
+			return {
+				battle: this.mapCombatant(withoutAction, action.combatantId, (target) => ({
+					...target,
+					defeated: false,
+					collapsed: false,
+					deathSaves: undefined,
+				})),
+				roll,
+				outcome: 'natural-20',
+			};
+		}
+
+		const failures = combatant.deathSaves.failures + (roll === 1 ? 2 : roll < 10 ? 1 : 0);
+		const successes = combatant.deathSaves.successes + (roll >= 10 ? 1 : 0);
+		const status = failures >= 3 ? 'dead' : successes >= 3 ? 'stable' : 'active';
+		const outcome: DeathSaveOutcome = status === 'dead' ? 'dead' : status === 'stable' ? 'stable' : roll >= 10 ? 'success' : 'failure';
+
+		return {
+			battle: this.mapCombatant(withoutAction, action.combatantId, (target) => ({
+				...target,
+				defeated: status === 'dead',
+				collapsed: status === 'dead' ? true : target.collapsed,
+				deathSaves: { status, successes: Math.min(3, successes), failures: Math.min(3, failures) },
+			})),
+			roll,
+			outcome,
+		};
+	}
+
+	addDeathSaveFailures(
+		battle: BattleEncounter,
+		combatantId: string,
+		amount: number,
+	): BattleEncounter {
+		const failuresToAdd = this.toNonNegativeInt(amount);
+		const combatant = this.findCombatant(battle, combatantId);
+		if (
+			!failuresToAdd ||
+			!combatant ||
+			!this.canUseDeathSaves(combatant) ||
+			(combatant.deathSaves?.status !== 'active' && combatant.deathSaves?.status !== 'stable')
+		) {
+			return battle;
+		}
+
+		const deathsSaves = combatant.deathSaves;
+		const failures = Math.min(3, deathsSaves.failures + failuresToAdd);
+		const status = failures >= 3 ? 'dead' : 'active';
+		const updatedBattle = this.mapCombatant(battle, combatantId, (target) => ({
+			...target,
+			defeated: status === 'dead',
+			collapsed: status === 'dead' ? true : target.collapsed,
+			deathSaves: {
+				status,
+				successes: deathsSaves.status === 'stable' ? 0 : deathsSaves.successes,
+				failures,
+			},
+		}));
+		return this.reconcilePendingActions(updatedBattle);
+	}
+
+	addDeathSaveSuccess(battle: BattleEncounter, combatantId: string): BattleEncounter {
+		const combatant = this.findCombatant(battle, combatantId);
+		if (
+			!combatant ||
+			!this.canUseDeathSaves(combatant) ||
+			combatant.deathSaves?.status !== 'active'
+		) {
+			return battle;
+		}
+
+		const successes = Math.min(3, combatant.deathSaves.successes + 1);
+		const status = successes >= 3 ? 'stable' : 'active';
+		const updatedBattle = this.mapCombatant(battle, combatantId, (target) => ({
+			...target,
+			deathSaves: { ...combatant.deathSaves!, status, successes },
+		}));
+		return this.reconcilePendingActions(updatedBattle);
+	}
+
+	recoverFromDeathSaves(battle: BattleEncounter, combatantId: string): BattleEncounter {
+		const combatant = this.findCombatant(battle, combatantId);
+		if (!combatant?.deathSaves) return battle;
+
+		const recoveredBattle = this.mapCombatant(battle, combatantId, (target) => ({
+			...target,
+			defeated: false,
+			collapsed: false,
+			inactiveUntilRound: target.defeated ? this.getNextRoundForReentry(battle) : target.inactiveUntilRound,
+			deathSaves: undefined,
+		}));
+		return this.reconcilePendingActions(recoveredBattle);
 	}
 
 	resolveConcentrationCheck(
@@ -1367,6 +1510,9 @@ export class BattleEncounterService {
 		const category = this.normalizeCreatureCategory(raw.category);
 		const side = this.normalizeSide(raw.side);
 		const autoDefeat = this.shouldAutoDefeatCombatant({ category, side });
+		const deathSaves = this.canUseDeathSaves({ category, side })
+			? this.normalizeDeathSaveState(raw.deathSaves)
+			: undefined;
 		return {
 			id: typeof raw.id === 'string' ? raw.id : this.createId(),
 			sourceCreatureId: typeof raw.sourceCreatureId === 'number' ? raw.sourceCreatureId : undefined,
@@ -1393,7 +1539,7 @@ export class BattleEncounterService {
 			maxHp,
 			currentHp,
 			temporaryHp: this.toNonNegativeInt(raw.temporaryHp),
-			defeated: raw.defeated === true || (autoDefeat && currentHp <= 0),
+			defeated: raw.defeated === true || deathSaves?.status === 'dead' || (autoDefeat && currentHp <= 0),
 			hidden: raw.hidden === true,
 			inactiveUntilRound:
 				raw.inactiveUntilRound == null
@@ -1409,6 +1555,7 @@ export class BattleEncounterService {
 			conditions: Array.isArray(raw.conditions)
 				? raw.conditions.map((condition) => this.conditionService.normalizeCondition(condition))
 				: [],
+			deathSaves,
 			specialAbilities: Array.isArray(raw.specialAbilities)
 				? raw.specialAbilities.map((ability) => this.abilityService.normalizeAbility(ability))
 				: [],
@@ -1624,33 +1771,51 @@ export class BattleEncounterService {
 
 	private normalizePendingActions(raw: unknown): BattlePendingAction[] {
 		if (!Array.isArray(raw)) return [];
-		return raw.flatMap((action, index) => {
+		const actions = raw.flatMap((action, index) => {
 			const normalized = this.normalizePendingAction(action, index);
 			return normalized ? [normalized] : [];
+		});
+		const deathSaveCombatants = new Set<string>();
+		return actions.filter((action) => {
+			if (action.type !== 'death-save') return true;
+			if (deathSaveCombatants.has(action.combatantId)) return false;
+			deathSaveCombatants.add(action.combatantId);
+			return true;
 		});
 	}
 
 	private normalizePendingAction(raw: unknown, sourceIndex: number): BattlePendingAction | null {
 		if (!raw || typeof raw !== 'object') return null;
 		const candidate = raw as Record<string, unknown>;
-		if (candidate['type'] !== 'concentration-check' || typeof candidate['combatantId'] !== 'string') {
-			return null;
+		if (typeof candidate['combatantId'] !== 'string') return null;
+		const id =
+			typeof candidate['id'] === 'string' ? candidate['id'] : `pending-action-${sourceIndex + 1}`;
+		const createdAtRound = Math.max(1, this.toNonNegativeInt(candidate['createdAtRound']) || 1);
+		const createdAtTurnIndex = Math.max(0, this.toNonNegativeInt(candidate['createdAtTurnIndex']));
+
+		if (candidate['type'] === 'death-save') {
+			return {
+				id,
+				type: 'death-save',
+				combatantId: candidate['combatantId'],
+				createdAtRound,
+				createdAtTurnIndex,
+				priority: 300,
+			};
 		}
+		if (candidate['type'] !== 'concentration-check') return null;
 
 		const damage = this.toNonNegativeInt(candidate['damage']);
 		if (!damage) return null;
 
 		return {
-			id:
-				typeof candidate['id'] === 'string'
-					? candidate['id']
-					: `concentration-check-${sourceIndex + 1}`,
+			id,
 			type: 'concentration-check',
 			combatantId: candidate['combatantId'],
 			damage,
 			difficultyClass: this.getConcentrationDifficultyClass(damage),
-			createdAtRound: Math.max(1, this.toNonNegativeInt(candidate['createdAtRound']) || 1),
-			createdAtTurnIndex: Math.max(0, this.toNonNegativeInt(candidate['createdAtTurnIndex'])),
+			createdAtRound,
+			createdAtTurnIndex,
 			priority: 200,
 		};
 	}
@@ -1669,6 +1834,24 @@ export class BattleEncounterService {
 			createdAtRound: battle.round,
 			createdAtTurnIndex: Math.max(0, battle.activeTurnIndex),
 			priority: 200,
+		};
+	}
+
+	private normalizeDeathSaveState(raw: unknown): BattleDeathSaveState | undefined {
+		if (!raw || typeof raw !== 'object') return undefined;
+		const candidate = raw as Partial<BattleDeathSaveState>;
+		if (
+			candidate.status !== 'active' &&
+			candidate.status !== 'stable' &&
+			candidate.status !== 'dead'
+		) {
+			return undefined;
+		}
+
+		return {
+			status: candidate.status,
+			successes: Math.min(3, this.toNonNegativeInt(candidate.successes)),
+			failures: Math.min(3, this.toNonNegativeInt(candidate.failures)),
 		};
 	}
 
@@ -1698,10 +1881,49 @@ export class BattleEncounterService {
 	): BattlePendingAction[] {
 		const allCombatants = [...combatants, ...pendingCombatants];
 		return pendingActions.filter((action) => {
-			if (action.type !== 'concentration-check') return true;
 			const combatant = allCombatants.find((item) => item.id === action.combatantId);
-			return combatant != null && !combatant.defeated && this.isConcentrating(combatant);
+			if (action.type === 'concentration-check') {
+				return combatant != null && !combatant.defeated && this.isConcentrating(combatant);
+			}
+			if (action.type === 'death-save') {
+				return (
+					combatant != null &&
+					!combatant.defeated &&
+					this.canUseDeathSaves(combatant) &&
+					combatant.deathSaves?.status === 'active'
+				);
+			}
+			return true;
 		});
+	}
+
+	private ensureDeathSavePendingAction(battle: BattleEncounter): BattleEncounter {
+		if (battle.status !== 'active') return battle;
+		const combatant = this.getCurrentCombatant(battle);
+		if (
+			!combatant ||
+			combatant.deathSaves?.status !== 'active' ||
+			battle.pendingActions.some(
+				(action) => action.type === 'death-save' && action.combatantId === combatant.id,
+			)
+		) {
+			return battle;
+		}
+
+		return {
+			...battle,
+			pendingActions: [
+				...battle.pendingActions,
+				{
+					id: this.createId(),
+					type: 'death-save',
+					combatantId: combatant.id,
+					createdAtRound: battle.round,
+					createdAtTurnIndex: Math.max(0, battle.activeTurnIndex),
+					priority: 300,
+				},
+			],
+		};
 	}
 
 	private normalizeTurnSnapshots(raw: unknown): BattleTurnSnapshot[] {
@@ -1744,6 +1966,11 @@ export class BattleEncounterService {
 					this.normalizeCombatant(combatant, index, { pendingAdd: true }),
 				)
 			: [];
+		const pendingActions = this.reconcilePendingActionsForCombatants(
+			this.normalizePendingActions(candidate.pendingActions),
+			combatants,
+			pendingCombatants,
+		);
 
 		return {
 			status:
@@ -1769,7 +1996,7 @@ export class BattleEncounterService {
 				: [],
 			turnHistory: this.normalizeTurnHistory(candidate.turnHistory),
 			dmNotes: typeof candidate.dmNotes === 'string' ? candidate.dmNotes : '',
-			pendingActions: this.normalizePendingActions(candidate.pendingActions),
+			pendingActions,
 		};
 	}
 
@@ -2028,7 +2255,7 @@ export class BattleEncounterService {
 	private shouldAutoDefeatCombatant(
 		combatant: Pick<BattleCombatant, 'category' | 'side'>,
 	): boolean {
-		return combatant.category !== 'pc' && combatant.side !== 'player';
+		return !this.canUseDeathSaves(combatant) && combatant.side !== 'player';
 	}
 
 	private mapSheetFeatures(features: unknown): CreatureFeature[] {

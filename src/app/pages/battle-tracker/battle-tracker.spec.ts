@@ -50,6 +50,7 @@ describe('BattleTrackerPage', () => {
 						{
 							id: 'c1',
 							name: 'Hero',
+							category: 'pc',
 							side: 'player',
 							initiative: 15,
 							turnOrder: 0,
@@ -287,6 +288,76 @@ describe('BattleTrackerPage', () => {
 		fixture.detectChanges();
 		expect(component.battle()?.pendingActions).toEqual([]);
 		expect(component.battle()?.combatants[2].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
+	});
+
+	it('resolves a non-current combatant concentration check from that combatant card', () => {
+		component.startConcentration('c3');
+		component.setDamageDraft('c3', '28');
+		component.applyDamage('c3');
+		fixture.detectChanges();
+
+		const check = fixture.nativeElement.querySelector(
+			'[data-testid="combatant-concentration-check"]',
+		) as HTMLElement;
+		expect(check?.textContent).toContain('CD 14');
+		expect(check?.textContent).toContain('Teste de concentração pendente');
+
+		Array.from(check.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+			.find((button) => button.textContent?.trim() === 'Falha')
+			?.click();
+		fixture.detectChanges();
+
+		expect(component.battle()?.pendingActions).toEqual([]);
+		expect(component.battle()?.combatants[2].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
+	});
+
+	it('uses compact accessible concentration switches without showing it as a removable generic condition', () => {
+		const cardSwitch = Array.from(
+			fixture.nativeElement.querySelectorAll('[data-testid="combatant-concentration-toggle"]') as NodeListOf<HTMLButtonElement>,
+		).find((element) => element.getAttribute('aria-label') === 'Concentração de Hero');
+
+		expect(cardSwitch?.getAttribute('role')).toBe('switch');
+		expect(cardSwitch?.getAttribute('aria-checked')).toBe('false');
+		cardSwitch?.click();
+		fixture.detectChanges();
+
+		expect(cardSwitch?.getAttribute('aria-checked')).toBe('true');
+		expect(component.battle()?.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
+		expect(component.conditionOptions.some((condition) => condition.name === 'concentrating')).toBeFalse();
+	});
+
+	it('starts death saves from a PC card and records the physical d20 in the cockpit', () => {
+		expect(fixture.nativeElement.querySelector('[data-testid="start-death-saves"]')).toBeNull();
+		component.toggleCombatantCollapsed('c1', false);
+		fixture.detectChanges();
+		fixture.nativeElement.querySelector('[data-testid="start-death-saves"]')?.click();
+		fixture.detectChanges();
+		expect(component.battle()?.combatants[0].deathSaves).toEqual({ status: 'active', successes: 0, failures: 0 });
+		expect(component.battle()?.pendingActions).toEqual([]);
+
+		component.nextTurn();
+		component.nextTurn();
+		component.nextTurn();
+		fixture.detectChanges();
+		const results = fixture.nativeElement.querySelectorAll(
+			'[data-testid="death-save-result"]',
+		) as NodeListOf<HTMLButtonElement>;
+
+		expect(results).toHaveSize(20);
+		Array.from(results).find((button) => button.textContent?.trim() === '20')?.click();
+		fixture.detectChanges();
+		expect(component.battle()?.combatants[0].deathSaves).toBeUndefined();
+	});
+
+	it('hides empty spell slots, spells, and sheet data from expanded cards', () => {
+		component.toggleCombatantCollapsed('c1', false);
+		fixture.detectChanges();
+
+		const text = fixture.nativeElement.textContent as string;
+		expect(text).not.toContain('Espaços de magia');
+		expect(text).not.toContain('Magias conhecidas');
+		expect(text).not.toContain('Dados da ficha');
+		expect(text).not.toContain('Ativar slots');
 	});
 
 	it('shows upcoming turns and the next environment event in the cockpit', () => {

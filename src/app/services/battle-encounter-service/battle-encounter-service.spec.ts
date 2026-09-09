@@ -468,6 +468,126 @@ describe('BattleEncounterService', () => {
 		expect(restored.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
 	});
 
+	it('only enables death saves for PCs and non-enemy NPCs', () => {
+		const battle = service.createBattleFromEncounter(template);
+		const [first, second] = battle.combatants;
+
+		expect(service.canUseDeathSaves({ ...first, category: 'pc', side: 'enemy' })).toBeTrue();
+		expect(service.canUseDeathSaves({ ...first, category: 'npc', side: 'ally' })).toBeTrue();
+		expect(service.canUseDeathSaves({ ...first, category: 'npc', side: 'enemy' })).toBeFalse();
+		expect(service.canUseDeathSaves({ ...second, category: 'monster', side: 'player' })).toBeFalse();
+	});
+
+	it('starts death saves manually without deriving them from hit points or creating an immediate roll', () => {
+		let battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[0].id;
+		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
+		battle = service.updateCombatantHp(battle, combatantId, { currentHp: 0 });
+		battle = service.startConcentration(battle, combatantId);
+		const started = service.startDeathSaves(battle, combatantId);
+
+		expect(started.combatants[0].defeated).toBeFalse();
+		expect(started.combatants[0].deathSaves).toEqual({ status: 'active', successes: 0, failures: 0 });
+		expect(started.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
+		expect(started.pendingActions).toEqual([]);
+	});
+
+	it('creates one death save only on the combatant next turn and restores it through undo', () => {
+		let battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[1].id;
+		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
+		battle = service.startDeathSaves(battle, combatantId);
+		const atOwnerTurn = service.advanceTurn(battle);
+
+		expect(service.getCurrentCombatant(atOwnerTurn)?.id).toBe(combatantId);
+		expect(atOwnerTurn.pendingActions.filter((action) => action.type === 'death-save')).toHaveSize(1);
+		expect(service.getPendingActions(atOwnerTurn)[0].type).toBe('death-save');
+
+		const restored = service.undoTurn(atOwnerTurn);
+		expect(restored.pendingActions).toEqual([]);
+		expect(restored.combatants[1].deathSaves?.status).toBe('active');
+	});
+
+	it('records natural 1 failures and lets a natural 20 recover', () => {
+		let battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[1].id;
+		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
+		battle = service.startDeathSaves(battle, combatantId);
+		battle = service.advanceTurn(battle);
+		const firstAction = battle.pendingActions[0];
+		const failed = service.recordDeathSaveResult(battle, firstAction.id, 1)!;
+
+		expect(failed.outcome).toBe('failure');
+		expect(failed.battle.combatants[1].deathSaves?.failures).toBe(2);
+
+		const recovered = service.recoverFromDeathSaves(failed.battle, combatantId);
+		const restarted = service.startDeathSaves(recovered, combatantId);
+		const atOwnerTurn = service.advanceTurn(service.advanceTurn(restarted));
+		const naturalTwenty = service.recordDeathSaveResult(atOwnerTurn, atOwnerTurn.pendingActions[0].id, 20)!;
+
+		expect(naturalTwenty.outcome).toBe('natural-20');
+		expect(naturalTwenty.battle.combatants[1].deathSaves).toBeUndefined();
+		expect(naturalTwenty.battle.combatants[1].defeated).toBeFalse();
+	});
+
+	it('stabilizes after three successful death saves', () => {
+		let battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[1].id;
+		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
+		battle = service.startDeathSaves(battle, combatantId);
+
+		for (let index = 0; index < 3; index += 1) {
+			battle = service.advanceTurn(battle);
+			if (service.getCurrentCombatant(battle)?.id !== combatantId) {
+				battle = service.advanceTurn(battle);
+			}
+			battle = service.recordDeathSaveResult(battle, battle.pendingActions[0].id, 10)!.battle;
+		}
+
+		expect(battle.combatants[1].deathSaves).toEqual({ status: 'stable', successes: 3, failures: 0 });
+		expect(battle.pendingActions).toEqual([]);
+	});
+
+	it('allows manually correcting an active death save with a success', () => {
+		let battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[1].id;
+		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
+		battle = service.startDeathSaves(battle, combatantId);
+		const corrected = service.addDeathSaveSuccess(battle, combatantId);
+
+		expect(corrected.combatants[1].deathSaves).toEqual({ status: 'active', successes: 1, failures: 0 });
+	});
+
+	it('marks a death-save combatant dead after three failures and removes its pending action', () => {
+		let battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[1].id;
+		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
+		battle = service.startDeathSaves(battle, combatantId);
+		const dead = service.addDeathSaveFailures(battle, combatantId, 3);
+
+		expect(dead.combatants[1].deathSaves?.status).toBe('dead');
+		expect(dead.combatants[1].defeated).toBeTrue();
+		expect(dead.pendingActions).toEqual([]);
+	});
+
+	it('normalizes persisted death saves and deduplicates their pending action', () => {
+		const battle = service.createBattleFromEncounter(template);
+		const combatant = { ...battle.combatants[0], category: 'pc' as const, side: 'player' as const,
+			deathSaves: { status: 'active' as const, successes: 9, failures: 1 } };
+		const normalized = service.normalizeBattleEncounter({
+			...battle,
+			combatants: [combatant],
+			pendingActions: [
+				{ id: 'first', type: 'death-save', combatantId: combatant.id, createdAtRound: 1, createdAtTurnIndex: 0, priority: 1 },
+				{ id: 'duplicate', type: 'death-save', combatantId: combatant.id, createdAtRound: 1, createdAtTurnIndex: 0, priority: 1 },
+			],
+		});
+
+		expect(normalized.combatants[0].deathSaves).toEqual({ status: 'active', successes: 3, failures: 1 });
+		expect(normalized.pendingActions).toHaveSize(1);
+		expect(normalized.pendingActions[0].priority).toBe(300);
+	});
+
 	it('applies healing without exceeding max hp and removes defeated when healing above zero', () => {
 		const battle = service.createBattleFromEncounter(template);
 		const combatantId = battle.combatants[1].id;
