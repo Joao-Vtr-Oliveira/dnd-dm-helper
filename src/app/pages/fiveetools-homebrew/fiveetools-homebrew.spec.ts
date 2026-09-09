@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
@@ -24,7 +25,7 @@ describe('FiveEToolsHomebrewPage', () => {
 
 		await TestBed.configureTestingModule({
 			imports: [FiveEToolsHomebrewPage],
-			providers: [provideRouter([]), provideHttpClient()],
+			providers: [provideZonelessChangeDetection(), provideRouter([]), provideHttpClient()],
 		}).compileComponents();
 
 		fixture = TestBed.createComponent(FiveEToolsHomebrewPage);

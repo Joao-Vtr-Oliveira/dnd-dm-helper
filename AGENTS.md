@@ -4,6 +4,7 @@
 - `npm run dev` and `npm start` both run `ng serve`.
 - `npm run build` runs the production Angular build. There is no separate `lint` or `typecheck` script; this is the closest full compile check.
 - `npm test` runs Karma/Jasmine in watch mode.
+- One-shot full suite: `npm test -- --watch=false --browsers=ChromeHeadless`.
 - Focused test run: `npm test -- --watch=false --browsers=ChromeHeadless --include=src/app/path/to/file.spec.ts`
 
 ## App Shape
@@ -12,6 +13,7 @@
 - `src/app/pages/*` holds standalone page components. Most state and business logic lives in `src/app/services/*`.
 - Campaign data is local-first. `src/app/constants/app-storage-keys.ts` is the source of truth for project `localStorage` and `sessionStorage` keys.
 - Global backup/sync flow is centered in `src/app/services/app-backup-service/app-backup-service.ts`.
+- Battle Tracker: `src/app/pages/battle-tracker/` owns the current-turn cockpit; encounter and ability rules stay in `src/app/services/battle-encounter-service/` and `src/app/services/battle-ability-service/`. Dice recharge is physical/manual: prompt the owner on their next turn, accept one result per round, and never auto-roll from the UI.
 - 5etools work is centered in `src/app/pages/fiveetools-homebrew/`, `src/app/services/fiveetools-homebrew-service/`, and `src/app/services/fiveetools-reference-data-service/`.
 - Path quirk: `src/app/services/WorldClockService/` uses a capitalized directory name.
 
@@ -33,4 +35,5 @@
 - Tailwind CSS v4 is loaded through `@import 'tailwindcss'` in `src/styles.css`; the global theme tokens also live there.
 
 ## Current Verification Baseline
-- `npm run build` currently succeeds but emits an initial bundle budget warning (`500 kB` budget vs about `908 kB`) and two selector warnings. Treat that as the current baseline unless your change makes it worse.
+- `npm test -- --watch=false --browsers=ChromeHeadless` passes all 115 specs.
+- `npm run build` currently succeeds but emits an initial bundle budget warning (`500 kB` budget vs `989.92 kB`) and two selector warnings. Treat those as the current baseline unless your change makes them worse.

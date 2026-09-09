@@ -6,7 +6,10 @@ Ferramenta para mesa de D&D com foco em uso local durante a sessão.
 
 - Encontros salvos e editáveis
 - Encounter Hub com batalhas locais
-- Battle Tracker com persistência local
+- Battle Tracker com persistência local e cockpit do turno atual
+  - próximo turno, HP/HP temporário, dano, cura, condições e estado de derrotado
+  - habilidades relevantes, espaços de magia resumidos, próximos três turnos e próximo evento ambiental
+  - recargas `d6` manuais: o mestre rola o dado físico e registra o resultado; cada habilidade recebe uma tentativa no próximo turno do dono
 - Fichas homebrew salvas
 - Calendário / world clock
 - Backup completo em JSON do projeto

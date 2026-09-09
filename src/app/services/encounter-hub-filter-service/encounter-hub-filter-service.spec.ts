@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { EncounterHubFilterService } from './encounter-hub-filter-service';
 
@@ -5,7 +6,9 @@ describe('EncounterHubFilterService', () => {
 	let service: EncounterHubFilterService;
 
 	beforeEach(() => {
-		TestBed.configureTestingModule({});
+		TestBed.configureTestingModule({
+			providers: [provideZonelessChangeDetection()],
+		});
 		service = TestBed.inject(EncounterHubFilterService);
 	});
 

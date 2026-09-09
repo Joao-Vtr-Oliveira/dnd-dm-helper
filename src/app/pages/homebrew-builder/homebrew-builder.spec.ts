@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 
@@ -10,8 +11,9 @@ describe('HomebrewBuilder', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HomebrewBuilder],
-      providers: [
-        provideRouter([]),
+		providers: [
+			provideZonelessChangeDetection(),
+			provideRouter([]),
         {
           provide: ActivatedRoute,
           useValue: {

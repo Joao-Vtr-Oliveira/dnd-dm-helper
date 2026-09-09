@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 
@@ -8,7 +9,7 @@ describe('Dnd5eApiService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient()],
+		providers: [provideZonelessChangeDetection(), provideHttpClient()],
     });
     service = TestBed.inject(Dnd5eApiService);
   });
