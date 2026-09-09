@@ -377,6 +377,97 @@ describe('BattleEncounterService', () => {
 		expect(updated.combatants[0].defeated).toBeFalse();
 	});
 
+	it('creates concentration checks from the incoming damage, including damage absorbed by temporary hp', () => {
+		for (const [damage, difficultyClass] of [
+			[5, 10],
+			[18, 10],
+			[22, 11],
+			[40, 20],
+		]) {
+			let battle = service.createBattleFromEncounter(template);
+			const combatantId = battle.combatants[0].id;
+			battle = service.updateCombatant(battle, combatantId, { side: 'player' });
+			battle = service.startConcentration(battle, combatantId);
+			const damaged = service.applyDamage(battle, combatantId, damage);
+			const check = damaged.pendingActions.find((action) => action.type === 'concentration-check');
+
+			expect(check?.damage).toBe(damage);
+			expect(check?.difficultyClass).toBe(difficultyClass);
+		}
+	});
+
+	it('does not create a concentration check when the damaged combatant is not concentrating', () => {
+		const battle = service.createBattleFromEncounter(template);
+		const damaged = service.applyDamage(battle, battle.combatants[0].id, 10);
+
+		expect(damaged.pendingActions).toEqual([]);
+	});
+
+	it('keeps concentration checks on the battle and resolves each damage instance independently', () => {
+		let battle = service.createBattleFromEncounter(template);
+		const targetId = battle.combatants[1].id;
+		battle = service.updateCombatant(battle, targetId, { side: 'player' });
+		battle = service.startConcentration(battle, targetId);
+		battle = service.applyDamage(battle, targetId, 12);
+		battle = service.applyDamage(battle, targetId, 30);
+
+		expect(service.getCurrentCombatant(battle)?.id).not.toBe(targetId);
+		expect(battle.pendingActions.map((action) => action.combatantId)).toEqual([targetId, targetId]);
+		expect(battle.pendingActions.map((action) => action.type === 'concentration-check' && action.difficultyClass)).toEqual([
+			10,
+			15,
+		]);
+
+		const succeeded = service.resolveConcentrationCheck(battle, battle.pendingActions[0].id, true)!;
+		expect(succeeded.battle.pendingActions).toHaveSize(1);
+		expect(succeeded.battle.combatants[1].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
+
+		const failed = service.resolveConcentrationCheck(succeeded.battle, succeeded.battle.pendingActions[0].id, false)!;
+		expect(failed.battle.pendingActions).toEqual([]);
+		expect(failed.battle.combatants[1].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
+	});
+
+	it('starts and stops concentration through the condition source of truth for every side', () => {
+		for (const side of ['player', 'ally', 'enemy', 'neutral'] as const) {
+			let battle = service.createBattleFromEncounter(template);
+			const combatantId = battle.combatants[0].id;
+			battle = service.updateCombatant(battle, combatantId, { side });
+			battle = service.startConcentration(battle, combatantId);
+			expect(battle.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
+			battle = service.applyDamage(battle, combatantId, 5);
+			expect(battle.pendingActions).toHaveSize(1);
+
+			battle = service.stopConcentration(battle, combatantId);
+			expect(battle.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
+			expect(battle.pendingActions).toEqual([]);
+		}
+	});
+
+	it('does not create concentration checks for healing or administrative hp changes', () => {
+		let battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[0].id;
+		battle = service.startConcentration(battle, combatantId);
+		battle = service.applyHealing(battle, combatantId, 5);
+		battle = service.updateCombatantHp(battle, combatantId, { temporaryHp: 12 });
+		battle = service.updateCombatantHp(battle, combatantId, { currentHp: 20, maxHp: 40 });
+
+		expect(battle.pendingActions).toEqual([]);
+	});
+
+	it('restores concentration and a pending check when undoing the following turn', () => {
+		let battle = service.createBattleFromEncounter(template);
+		const combatantId = battle.combatants[0].id;
+		battle = service.startConcentration(battle, combatantId);
+		battle = service.applyDamage(battle, combatantId, 28);
+		const actionId = battle.pendingActions[0].id;
+		const advanced = service.advanceTurn(battle);
+		const failed = service.resolveConcentrationCheck(advanced, actionId, false)!.battle;
+		const restored = service.undoTurn(failed);
+
+		expect(restored.pendingActions.map((action) => action.id)).toEqual([actionId]);
+		expect(restored.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
+	});
+
 	it('applies healing without exceeding max hp and removes defeated when healing above zero', () => {
 		const battle = service.createBattleFromEncounter(template);
 		const combatantId = battle.combatants[1].id;
@@ -454,6 +545,9 @@ describe('BattleEncounterService', () => {
 		const ownerNextTurn = service.advanceTurn(afterOtherCombatant);
 		expect(service.getPendingDiceRechargeAbilities(ownerNextTurn).map((ability) => ability.id)).toEqual([
 			abilityId,
+		]);
+		expect(service.getPendingActions(ownerNextTurn).map((action) => action.type)).toEqual([
+			'dice-recharge',
 		]);
 	});
 

@@ -71,6 +71,23 @@ describe('BattleEncounterStorageService', () => {
 		expect(reloaded && TestBed.inject(BattleEncounterService).undoTurn(reloaded).activeTurnIndex).toBe(0);
 	});
 
+	it('persists unresolved concentration checks and removes them after resolution', () => {
+		const battleService = TestBed.inject(BattleEncounterService);
+		const battle = service.createBattleFromEncounter(encounter);
+		const combatantId = battle.combatants[0].id;
+		const concentrating = battleService.startConcentration(battle, combatantId);
+		const damaged = battleService.applyDamage(concentrating, combatantId, 28);
+		service.saveBattleEncounter(damaged);
+
+		const reloaded = service.getBattleEncounterById(battle.id)!;
+		expect(reloaded.pendingActions).toHaveSize(1);
+		expect(reloaded.pendingActions[0].type).toBe('concentration-check');
+
+		const resolved = battleService.resolveConcentrationCheck(reloaded, reloaded.pendingActions[0].id, true)!;
+		service.saveBattleEncounter(resolved.battle);
+		expect(service.getBattleEncounterById(battle.id)?.pendingActions).toEqual([]);
+	});
+
 	it('finds the active battle by encounter id', () => {
 		const battle = service.createBattleFromEncounter(encounter);
 
@@ -174,5 +191,6 @@ describe('BattleEncounterStorageService', () => {
 		expect(loaded?.lairActions).toEqual([]);
 		expect(loaded?.traps).toEqual([]);
 		expect(loaded?.turnSnapshots).toEqual([]);
+		expect(loaded?.pendingActions).toEqual([]);
 	});
 });

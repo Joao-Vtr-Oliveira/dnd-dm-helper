@@ -24,6 +24,7 @@ export type BattleAbilityRecoveryType =
 	| 'short-rest'
 	| 'long-rest'
 	| 'dice-recharge';
+export type BattlePendingActionType = 'dice-recharge' | 'concentration-check';
 export type BattleLairActionFrequency = 'every-round' | 'cooldown-rounds' | 'manual';
 export type BattleTrapTriggerType = 'initiative' | 'round-start' | 'round-end' | 'manual';
 export type BattleTrapFrequency = 'once' | 'every-round' | 'cooldown-rounds' | 'manual';
@@ -124,6 +125,32 @@ export interface BattleSpellSlotLevel {
 	used: number;
 }
 
+interface BattlePendingActionBase {
+	id: string;
+	type: BattlePendingActionType;
+	combatantId: string;
+	createdAtRound: number;
+	createdAtTurnIndex: number;
+	priority: number;
+}
+
+export interface BattleDiceRechargePendingAction extends BattlePendingActionBase {
+	type: 'dice-recharge';
+	abilityId: string;
+	abilityName: string;
+	rechargeOn: number[];
+}
+
+export interface BattleConcentrationCheckPendingAction extends BattlePendingActionBase {
+	type: 'concentration-check';
+	damage: number;
+	difficultyClass: number;
+}
+
+export type BattlePendingAction =
+	| BattleDiceRechargePendingAction
+	| BattleConcentrationCheckPendingAction;
+
 export interface BattleCombatant {
 	id: string;
 	sourceCreatureId?: number;
@@ -181,6 +208,7 @@ export interface BattleTurnSnapshotState {
 	traps: BattleTrap[];
 	turnHistory: BattleTurnLogEntry[];
 	dmNotes?: string;
+	pendingActions: BattlePendingAction[];
 }
 
 export interface BattleTurnSnapshot {
@@ -212,6 +240,7 @@ export interface BattleEncounter {
 	traps: BattleTrap[];
 	turnHistory: BattleTurnLogEntry[];
 	dmNotes?: string;
+	pendingActions: BattlePendingAction[];
 	turnSnapshots: BattleTurnSnapshot[];
 }
 

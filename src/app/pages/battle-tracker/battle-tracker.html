@@ -177,32 +177,43 @@
 							<summary class="cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50">
 								Retrair detalhes
 							</summary>
-							@if (pendingDiceRechargeAbilities().length > 0) {
-							<div class="mt-4 border-y border-amber-300/25 py-3" aria-live="polite">
-								<div class="text-sm font-semibold uppercase tracking-[0.16em] text-amber-100">Recarga pendente</div>
-								<p class="mt-1 text-sm text-amber-50/80">Role o dado fisicamente e registre o resultado.</p>
-								<div class="mt-3 space-y-3">
-									@for (ability of pendingDiceRechargeAbilities(); track ability.id) {
-										<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-											<div>
-												<div class="font-semibold">{{ ability.name }}</div>
-												<div class="text-sm opacity-80">{{ abilityRecoveryLabel(ability) }}</div>
-											</div>
-											<div class="grid grid-cols-6 gap-1.5" [attr.aria-label]="'Resultado do d6 para ' + ability.name">
-												@for (result of rechargeDieResults; track result) {
-													<button
-														type="button"
-														class="flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-xl border border-amber-300/35 bg-amber-500/15 font-semibold hover:bg-amber-500/30"
-														(click)="recordAbilityRecharge(combatant.id, ability.id, result)"
-													>
-														{{ result }}
-													</button>
+							@if (pendingActions().length > 0) {
+								<div data-testid="pending-actions" class="mt-4 border-y border-amber-300/25 py-3" aria-live="polite">
+									<div class="text-sm font-semibold uppercase tracking-[0.16em] text-amber-100">
+										Pendências ({{ pendingActions().length }})
+									</div>
+									<div class="mt-3 space-y-2">
+										@for (action of pendingActions(); track action.id) {
+											<div class="flex flex-col gap-2 rounded-2xl border border-amber-300/20 bg-amber-500/10 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+												<div class="min-w-0">
+													<div class="font-semibold">
+														{{ pendingActionCombatantName(action) }}
+														@if (action.type === 'concentration-check') { · Teste de concentração } @else { · {{ action.abilityName }} }
+													</div>
+													@if (action.type === 'concentration-check') {
+														<div class="mt-1 text-sm text-amber-50/80">
+															{{ action.damage }} de dano · CD {{ action.difficultyClass }} · Role CON fisicamente.
+														</div>
+													} @else {
+														<div class="mt-1 text-sm text-amber-50/80">d6 · recupera em {{ action.rechargeOn.join('–') }}</div>
+													}
+												</div>
+												@if (action.type === 'concentration-check') {
+													<div class="flex gap-2">
+														<button type="button" data-testid="concentration-success" class="h-9 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-3 text-sm hover:bg-emerald-500/25" (click)="resolveConcentrationCheck(action.id, true)">Sucesso</button>
+														<button type="button" data-testid="concentration-failure" class="h-9 cursor-pointer rounded-2xl border border-red-300/30 bg-red-500/15 px-3 text-sm hover:bg-red-500/25" (click)="resolveConcentrationCheck(action.id, false)">Falha</button>
+													</div>
+												} @else {
+													<div class="grid grid-cols-6 gap-1.5" [attr.aria-label]="'Resultado do d6 para ' + action.abilityName">
+														@for (result of rechargeDieResults; track result) {
+															<button type="button" class="flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-xl border border-amber-300/35 bg-amber-500/15 font-semibold hover:bg-amber-500/30" (click)="recordAbilityRecharge(action.combatantId, action.abilityId, result)">{{ result }}</button>
+														}
+													</div>
 												}
 											</div>
-										</div>
-									}
+										}
+									</div>
 								</div>
-							</div>
 							}
 
 							<div class="mt-4 flex flex-wrap gap-2">
@@ -217,6 +228,16 @@
 								</button>
 							}
 							</div>
+
+							<button
+								type="button"
+								data-testid="cockpit-concentration-toggle"
+								class="mt-3 h-9 cursor-pointer rounded-2xl border px-3 text-sm"
+								[class]="isConcentrating(combatant) ? 'border-violet-300/35 bg-violet-500/15 text-violet-100 hover:bg-violet-500/25' : 'border-white/10 bg-white/10 hover:bg-white/15'"
+								(click)="isConcentrating(combatant) ? stopConcentration(combatant.id) : startConcentration(combatant.id)"
+							>
+								{{ isConcentrating(combatant) ? 'Concentrando · Encerrar' : 'Iniciar concentração' }}
+							</button>
 
 							<div class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(9rem,0.7fr)_auto]">
 							<input
@@ -409,6 +430,12 @@
 											@if (combatant.defeated) {
 												<span class="rounded-full border border-red-400/30 bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-100">
 													Derrotado
+												</span>
+											}
+
+											@if (isConcentrating(combatant)) {
+												<span class="rounded-full border border-violet-300/35 bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-100">
+													Concentrando
 												</span>
 											}
 
@@ -606,11 +633,21 @@
 
 								<div class="mt-4 grid gap-4 xl:grid-cols-2">
 									<div class="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
-										<div>
-											<h4 class="font-semibold">Condições ativas</h4>
-											<p class="text-sm opacity-70">
-												Expiram automaticamente quando a duração termina.
-											</p>
+										<div class="flex flex-wrap items-start justify-between gap-2">
+											<div>
+												<h4 class="font-semibold">Condições ativas</h4>
+												<p class="text-sm opacity-70">
+													Expiram automaticamente quando a duração termina.
+												</p>
+											</div>
+											<button
+												type="button"
+												class="h-9 cursor-pointer rounded-2xl border px-3 text-sm"
+												[class]="isConcentrating(combatant) ? 'border-violet-300/35 bg-violet-500/15 text-violet-100 hover:bg-violet-500/25' : 'border-white/10 bg-white/10 hover:bg-white/15'"
+												(click)="isConcentrating(combatant) ? stopConcentration(combatant.id) : startConcentration(combatant.id)"
+											>
+												{{ isConcentrating(combatant) ? 'Encerrar concentração' : 'Iniciar concentração' }}
+											</button>
 										</div>
 
 										<div class="space-y-2">
@@ -741,11 +778,6 @@
 													>
 														{{ abilityStatusLabel(ability) }}
 													</span>
-													@if (canAttemptAbilityRecharge(combatant, ability)) {
-														<span class="rounded-full border border-amber-300/40 bg-amber-500/20 px-2 py-0.5 text-[11px] font-semibold text-amber-100">
-															Recarga pendente
-														</span>
-													}
 															@if (abilityRuleLabel(ability); as rule) {
 																<span class="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[11px] opacity-80">
 																	{{ rule }}
@@ -779,20 +811,6 @@
 														>
 															{{ abilityUseLabel(ability) }}
 														</button>
-
-													@if (canAttemptAbilityRecharge(combatant, ability)) {
-														<div class="flex items-center gap-1" [attr.aria-label]="'Resultado do d6 para ' + ability.name">
-															@for (result of rechargeDieResults; track result) {
-																<button
-																	type="button"
-																	class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-sky-300/30 bg-sky-500/15 text-sm font-semibold hover:bg-sky-500/25"
-																	(click)="recordAbilityRecharge(combatant.id, ability.id, result)"
-																>
-																	{{ result }}
-																</button>
-															}
-														</div>
-													}
 
 														<button
 															type="button"

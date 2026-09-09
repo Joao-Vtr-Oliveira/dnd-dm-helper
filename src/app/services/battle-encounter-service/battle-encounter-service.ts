@@ -2,11 +2,13 @@ import { inject, Injectable } from '@angular/core';
 import type {
 	BattleCombatant,
 	BattleCombatantSide,
+	BattleConcentrationCheckPendingAction,
 	BattleCondition,
 	BattleConditionPreset,
 	BattleEncounter,
 	BattleEncounterCreateOptions,
 	BattleLairAction,
+	BattlePendingAction,
 	BattleSpecialAbility,
 	BattleSpellSlotLevel,
 	BattleTrap,
@@ -138,6 +140,7 @@ export class BattleEncounterService {
 			traps: this.mapEncounterTraps(template.data.traps),
 			turnHistory: [],
 			dmNotes: '',
+			pendingActions: [],
 			turnSnapshots: [],
 		};
 	}
@@ -192,6 +195,7 @@ export class BattleEncounterService {
 			traps,
 			turnHistory: this.normalizeTurnHistory(raw.turnHistory),
 			dmNotes: typeof raw.dmNotes === 'string' ? raw.dmNotes : '',
+			pendingActions: this.normalizePendingActions(raw.pendingActions),
 			turnSnapshots: this.normalizeTurnSnapshots(raw.turnSnapshots),
 		};
 	}
@@ -372,6 +376,11 @@ export class BattleEncounterService {
 			lairActions: encounterEventAdvance.lairActions,
 			traps: encounterEventAdvance.traps,
 			turnHistory,
+			pendingActions: this.reconcilePendingActionsForCombatants(
+				battle.pendingActions,
+				cooldownAdvance.combatants,
+				nextPendingCombatants,
+			),
 			turnSnapshots: this.appendTurnSnapshot(battle, turnSnapshot),
 		};
 	}
@@ -398,6 +407,7 @@ export class BattleEncounterService {
 			traps: state.traps,
 			turnHistory: state.turnHistory,
 			dmNotes: state.dmNotes,
+			pendingActions: state.pendingActions,
 			turnSnapshots: battle.turnSnapshots.slice(0, -1),
 		};
 	}
@@ -468,7 +478,7 @@ export class BattleEncounterService {
 		combatantId: string,
 		patch: Partial<Pick<BattleCombatant, 'currentHp' | 'maxHp' | 'temporaryHp'>>,
 	): BattleEncounter {
-		return this.mapCombatant(battle, combatantId, (combatant) => {
+		const updatedBattle = this.mapCombatant(battle, combatantId, (combatant) => {
 			const maxHp = patch.maxHp == null ? combatant.maxHp : this.toNonNegativeInt(patch.maxHp);
 			const currentHpRaw =
 				patch.currentHp == null ? combatant.currentHp : this.toNonNegativeInt(patch.currentHp);
@@ -489,6 +499,10 @@ export class BattleEncounterService {
 				inactiveUntilRound: defeatedState.inactiveUntilRound,
 			};
 		});
+		const updatedCombatant = this.findCombatant(updatedBattle, combatantId);
+		return updatedCombatant?.defeated
+			? this.stopConcentration(updatedBattle, combatantId)
+			: updatedBattle;
 	}
 
 	addCombatantFromCreature(
@@ -582,6 +596,9 @@ export class BattleEncounterService {
 				pendingCombatants: battle.pendingCombatants.filter(
 					(combatant) => combatant.id !== combatantId,
 				),
+				pendingActions: battle.pendingActions.filter(
+					(action) => action.combatantId !== combatantId,
+				),
 			};
 		}
 
@@ -597,6 +614,9 @@ export class BattleEncounterService {
 				activeTurnIndex: -1,
 				turnStartedAt: undefined,
 				currentTurnElapsedSeconds: 0,
+				pendingActions: battle.pendingActions.filter(
+					(action) => action.combatantId !== combatantId,
+				),
 			};
 		}
 
@@ -646,6 +666,11 @@ export class BattleEncounterService {
 			combatants,
 			pendingCombatants,
 			turnHistory,
+			pendingActions: this.reconcilePendingActionsForCombatants(
+				battle.pendingActions.filter((action) => action.combatantId !== combatantId),
+				combatants,
+				pendingCombatants,
+			),
 		};
 	}
 
@@ -698,20 +723,34 @@ export class BattleEncounterService {
 	applyDamage(battle: BattleEncounter, combatantId: string, amount: number): BattleEncounter {
 		const damage = this.toNonNegativeInt(amount);
 		if (!damage) return battle;
+		const combatant = this.findCombatant(battle, combatantId);
+		if (!combatant) return battle;
 
-		return this.mapCombatant(battle, combatantId, (combatant) => {
-			const absorbed = Math.min(combatant.temporaryHp, damage);
+		const damagedBattle = this.mapCombatant(battle, combatantId, (target) => {
+			const absorbed = Math.min(target.temporaryHp, damage);
 			const remainingDamage = damage - absorbed;
-			const temporaryHp = combatant.temporaryHp - absorbed;
-			const currentHp = Math.max(0, combatant.currentHp - remainingDamage);
+			const temporaryHp = target.temporaryHp - absorbed;
+			const currentHp = Math.max(0, target.currentHp - remainingDamage);
 
 			return {
-				...combatant,
+				...target,
 				currentHp,
 				temporaryHp,
-				...this.resolveDefeatedState(battle, combatant, currentHp),
+				...this.resolveDefeatedState(battle, target, currentHp),
 			};
 		});
+		const updatedCombatant = this.findCombatant(damagedBattle, combatantId);
+		if (!updatedCombatant) return damagedBattle;
+		if (updatedCombatant.defeated) return this.stopConcentration(damagedBattle, combatantId);
+		if (!this.isConcentrating(combatant)) return damagedBattle;
+
+		return {
+			...damagedBattle,
+			pendingActions: [
+				...damagedBattle.pendingActions,
+				this.createConcentrationCheck(combatantId, damage, damagedBattle),
+			],
+		};
 	}
 
 	applyHealing(battle: BattleEncounter, combatantId: string, amount: number): BattleEncounter {
@@ -736,7 +775,7 @@ export class BattleEncounterService {
 		combatantId: string,
 		defeated: boolean,
 	): BattleEncounter {
-		return this.mapCombatant(battle, combatantId, (combatant) => {
+		const updatedBattle = this.mapCombatant(battle, combatantId, (combatant) => {
 			const autoDefeat = this.shouldAutoDefeatCombatant(combatant);
 			const enforcedDefeated = autoDefeat && combatant.currentHp <= 0 ? true : defeated;
 			const inactiveUntilRound =
@@ -752,6 +791,10 @@ export class BattleEncounterService {
 				inactiveUntilRound,
 			};
 		});
+		const updatedCombatant = this.findCombatant(updatedBattle, combatantId);
+		return updatedCombatant?.defeated
+			? this.stopConcentration(updatedBattle, combatantId)
+			: updatedBattle;
 	}
 
 	updateCombatantNotes(
@@ -787,10 +830,60 @@ export class BattleEncounterService {
 		combatantId: string,
 		conditionId: string,
 	): BattleEncounter {
-		return this.mapCombatant(battle, combatantId, (combatant) => ({
+		const updatedBattle = this.mapCombatant(battle, combatantId, (combatant) => ({
 			...combatant,
 			conditions: combatant.conditions.filter((condition) => condition.id !== conditionId),
 		}));
+		return this.reconcilePendingActions(updatedBattle);
+	}
+
+	startConcentration(battle: BattleEncounter, combatantId: string): BattleEncounter {
+		const combatant = this.findCombatant(battle, combatantId);
+		if (!combatant || combatant.defeated || this.isConcentrating(combatant)) return battle;
+
+		return this.addCondition(battle, combatantId, {
+			name: 'concentrating',
+			label: 'Concentrando / Concentrating',
+			durationType: 'manual',
+		});
+	}
+
+	stopConcentration(battle: BattleEncounter, combatantId: string): BattleEncounter {
+		const withoutCondition = this.mapCombatant(battle, combatantId, (combatant) => ({
+			...combatant,
+			conditions: combatant.conditions.filter((condition) => condition.name !== 'concentrating'),
+		}));
+		if (withoutCondition === battle) return battle;
+
+		return {
+			...withoutCondition,
+			pendingActions: withoutCondition.pendingActions.filter(
+				(action) => action.type !== 'concentration-check' || action.combatantId !== combatantId,
+			),
+		};
+	}
+
+	resolveConcentrationCheck(
+		battle: BattleEncounter,
+		actionId: string,
+		succeeded: boolean,
+	): { battle: BattleEncounter; succeeded: boolean } | null {
+		const action = battle.pendingActions.find(
+			(item): item is BattleConcentrationCheckPendingAction =>
+				item.id === actionId && item.type === 'concentration-check',
+		);
+		if (!action) return null;
+
+		const withoutAction = {
+			...battle,
+			pendingActions: battle.pendingActions.filter((item) => item.id !== actionId),
+		};
+		return {
+			battle: succeeded
+				? withoutAction
+				: this.stopConcentration(withoutAction, action.combatantId),
+			succeeded,
+		};
 	}
 
 	describeConditionDuration(condition: BattleCondition, battle: BattleEncounter): string {
@@ -926,6 +1019,31 @@ export class BattleEncounterService {
 		if (!currentCombatant) return [];
 		return currentCombatant.specialAbilities.filter((ability) =>
 			this.canAttemptSpecialAbilityRecharge(battle, currentCombatant.id, ability.id),
+		);
+	}
+
+	getPendingActions(battle: BattleEncounter): BattlePendingAction[] {
+		const currentCombatant = this.getCurrentCombatant(battle);
+		const diceRechargeActions =
+			battle.status === 'active' && currentCombatant
+				? this.getPendingDiceRechargeAbilities(battle).map((ability) => ({
+						id: `dice-recharge-${currentCombatant.id}-${ability.id}`,
+						type: 'dice-recharge' as const,
+						combatantId: currentCombatant.id,
+						abilityId: ability.id,
+						abilityName: ability.name,
+						rechargeOn: ability.rechargeOn ?? [5, 6],
+						createdAtRound: ability.lastUsedAtRound ?? battle.round,
+						createdAtTurnIndex: ability.lastUsedAtTurnIndex ?? battle.activeTurnIndex,
+						priority: 100,
+					}))
+				: [];
+
+		return [...battle.pendingActions, ...diceRechargeActions].sort(
+			(left, right) =>
+				right.priority - left.priority ||
+				left.createdAtRound - right.createdAtRound ||
+				left.createdAtTurnIndex - right.createdAtTurnIndex,
 		);
 	}
 
@@ -1504,6 +1622,88 @@ export class BattleEncounterService {
 		});
 	}
 
+	private normalizePendingActions(raw: unknown): BattlePendingAction[] {
+		if (!Array.isArray(raw)) return [];
+		return raw.flatMap((action, index) => {
+			const normalized = this.normalizePendingAction(action, index);
+			return normalized ? [normalized] : [];
+		});
+	}
+
+	private normalizePendingAction(raw: unknown, sourceIndex: number): BattlePendingAction | null {
+		if (!raw || typeof raw !== 'object') return null;
+		const candidate = raw as Record<string, unknown>;
+		if (candidate['type'] !== 'concentration-check' || typeof candidate['combatantId'] !== 'string') {
+			return null;
+		}
+
+		const damage = this.toNonNegativeInt(candidate['damage']);
+		if (!damage) return null;
+
+		return {
+			id:
+				typeof candidate['id'] === 'string'
+					? candidate['id']
+					: `concentration-check-${sourceIndex + 1}`,
+			type: 'concentration-check',
+			combatantId: candidate['combatantId'],
+			damage,
+			difficultyClass: this.getConcentrationDifficultyClass(damage),
+			createdAtRound: Math.max(1, this.toNonNegativeInt(candidate['createdAtRound']) || 1),
+			createdAtTurnIndex: Math.max(0, this.toNonNegativeInt(candidate['createdAtTurnIndex'])),
+			priority: 200,
+		};
+	}
+
+	private createConcentrationCheck(
+		combatantId: string,
+		damage: number,
+		battle: BattleEncounter,
+	): BattleConcentrationCheckPendingAction {
+		return {
+			id: this.createId(),
+			type: 'concentration-check',
+			combatantId,
+			damage,
+			difficultyClass: this.getConcentrationDifficultyClass(damage),
+			createdAtRound: battle.round,
+			createdAtTurnIndex: Math.max(0, battle.activeTurnIndex),
+			priority: 200,
+		};
+	}
+
+	private getConcentrationDifficultyClass(damage: number): number {
+		return Math.max(10, Math.floor(damage / 2));
+	}
+
+	private isConcentrating(combatant: BattleCombatant): boolean {
+		return combatant.conditions.some((condition) => condition.name === 'concentrating');
+	}
+
+	private reconcilePendingActions(battle: BattleEncounter): BattleEncounter {
+		const pendingActions = this.reconcilePendingActionsForCombatants(
+			battle.pendingActions,
+			battle.combatants,
+			battle.pendingCombatants,
+		);
+		return pendingActions.length === battle.pendingActions.length
+			? battle
+			: { ...battle, pendingActions };
+	}
+
+	private reconcilePendingActionsForCombatants(
+		pendingActions: BattlePendingAction[],
+		combatants: BattleCombatant[],
+		pendingCombatants: BattleCombatant[],
+	): BattlePendingAction[] {
+		const allCombatants = [...combatants, ...pendingCombatants];
+		return pendingActions.filter((action) => {
+			if (action.type !== 'concentration-check') return true;
+			const combatant = allCombatants.find((item) => item.id === action.combatantId);
+			return combatant != null && !combatant.defeated && this.isConcentrating(combatant);
+		});
+	}
+
 	private normalizeTurnSnapshots(raw: unknown): BattleTurnSnapshot[] {
 		if (!Array.isArray(raw)) return [];
 
@@ -1569,6 +1769,7 @@ export class BattleEncounterService {
 				: [],
 			turnHistory: this.normalizeTurnHistory(candidate.turnHistory),
 			dmNotes: typeof candidate.dmNotes === 'string' ? candidate.dmNotes : '',
+			pendingActions: this.normalizePendingActions(candidate.pendingActions),
 		};
 	}
 
@@ -1587,6 +1788,7 @@ export class BattleEncounterService {
 			traps: battle.traps,
 			turnHistory: battle.turnHistory,
 			dmNotes: battle.dmNotes,
+			pendingActions: battle.pendingActions,
 		};
 
 		return structuredClone({

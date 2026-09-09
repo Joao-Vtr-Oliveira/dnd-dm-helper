@@ -11,6 +11,7 @@ import type {
 	BattleConditionPreset,
 	BattleEncounter,
 	BattleLairAction,
+	BattlePendingAction,
 	BattleSpecialAbility,
 	BattleSpellSlotLevel,
 	BattleTrap,
@@ -179,6 +180,10 @@ export class BattleTrackerPage {
 		const battle = this.battle();
 		if (!battle || battle.status !== 'active') return [];
 		return this.battleService.getPendingDiceRechargeAbilities(battle);
+	});
+	readonly pendingActions = computed<BattlePendingAction[]>(() => {
+		const battle = this.battle();
+		return battle ? this.battleService.getPendingActions(battle) : [];
 	});
 	readonly cockpitAbilities = computed<BattleSpecialAbility[]>(() => {
 		const combatant = this.currentCombatant();
@@ -448,6 +453,39 @@ export class BattleTrackerPage {
 		);
 	}
 
+	startConcentration(combatantId: string) {
+		this.updateBattle((battle) => this.battleService.startConcentration(battle, combatantId));
+		this.showToast('success', 'Concentração iniciada.');
+	}
+
+	stopConcentration(combatantId: string) {
+		this.updateBattle((battle) => this.battleService.stopConcentration(battle, combatantId));
+		this.showToast('success', 'Concentração encerrada.');
+	}
+
+	resolveConcentrationCheck(actionId: string, succeeded: boolean) {
+		const battle = this.battle();
+		if (!battle) return;
+		const result = this.battleService.resolveConcentrationCheck(battle, actionId, succeeded);
+		if (!result) return;
+
+		this.battle.set(result.battle);
+		this.showToast('success', result.succeeded ? 'Concentração mantida.' : 'Concentração perdida.');
+	}
+
+	isConcentrating(combatant: BattleCombatant): boolean {
+		return combatant.conditions.some((condition) => condition.name === 'concentrating');
+	}
+
+	pendingActionCombatant(action: BattlePendingAction): BattleCombatant | null {
+		return this.combatants().find((combatant) => combatant.id === action.combatantId) ?? null;
+	}
+
+	pendingActionCombatantName(action: BattlePendingAction): string {
+		const combatant = this.pendingActionCombatant(action);
+		return combatant?.displayName || combatant?.name || 'Combatente removido';
+	}
+
 	conditionDurationLabel(condition: BattleCondition): string {
 		const battle = this.battle();
 		if (!battle) return 'Sem duração';
@@ -574,11 +612,6 @@ export class BattleTrackerPage {
 				? `${result.roll} - ${ability?.name ?? 'Habilidade'} recarregou.`
 				: `${result.roll} - ${ability?.name ?? 'Habilidade'} continua em recarga.`,
 		);
-	}
-
-	canAttemptAbilityRecharge(combatant: BattleCombatant, ability: BattleSpecialAbility): boolean {
-		const battle = this.battle();
-		return battle != null && this.battleService.canAttemptSpecialAbilityRecharge(battle, combatant.id, ability.id);
 	}
 
 	diceRechargeAttemptLabel(ability: BattleSpecialAbility): string | null {

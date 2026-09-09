@@ -259,6 +259,36 @@ describe('BattleTrackerPage', () => {
 		expect(component.battle()?.combatants[0].conditions.some((condition) => condition.id === addedCondition?.id)).toBeFalse();
 	});
 
+	it('controls concentration from the cockpit and creates a check through quick damage', () => {
+		fixture.nativeElement.querySelector('[data-testid="cockpit-concentration-toggle"]')?.click();
+		component.setDamageDraft('c1', '24');
+		fixture.detectChanges();
+		fixture.nativeElement.querySelector('[data-testid="cockpit-apply-damage"]')?.click();
+		fixture.detectChanges();
+
+		const action = component.battle()?.pendingActions[0];
+		expect(component.battle()?.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
+		expect(action?.type === 'concentration-check' && action.difficultyClass).toBe(12);
+		expect(fixture.nativeElement.querySelector('[data-testid="pending-actions"]')?.textContent).toContain('Hero');
+	});
+
+	it('shows and resolves a concentration check for a combatant outside the current turn', () => {
+		component.startConcentration('c3');
+		component.setDamageDraft('c3', '28');
+		component.applyDamage('c3');
+		fixture.detectChanges();
+
+		const cockpit = fixture.nativeElement.querySelector('[data-testid="current-turn-cockpit"]');
+		expect(component.currentCombatant()?.id).toBe('c1');
+		expect(cockpit.textContent).toContain('Rosa');
+		expect(cockpit.textContent).toContain('CD 14');
+
+		fixture.nativeElement.querySelector('[data-testid="concentration-failure"]')?.click();
+		fixture.detectChanges();
+		expect(component.battle()?.pendingActions).toEqual([]);
+		expect(component.battle()?.combatants[2].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
+	});
+
 	it('shows upcoming turns and the next environment event in the cockpit', () => {
 		expect(component.upcomingTurns().map((event) => event.combatantId)).toEqual(['c2', 'c3', 'c1']);
 		expect(component.nextEnvironmentEvent()?.label).toContain('Ritual Pulse');
