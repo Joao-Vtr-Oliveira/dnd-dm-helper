@@ -2,7 +2,7 @@
 
 ## Status
 
-Fases 0, 1 e 2 concluidas. Apos cada fase, revisar e aprovar explicitamente antes de iniciar a proxima.
+Fases 0, 1 e 2 concluidas e aprovadas. A Fase 3 esta concluida e aguarda revisao visual.
 
 Padrao aprovado: interface dark operacional, violeta intencional, densidade sem excesso de cards,
 acoes hierarquizadas, responsividade real e preservacao rigorosa da logica.
@@ -225,7 +225,7 @@ Testes:
 
 ### Fase 2 - Dashboard / Encounter Hub
 
-Status: concluida, aguardando aprovacao visual.
+Status: concluida e aprovada.
 
 Objetivo: reduzir nested cards e definir hierarquia entre continuar/iniciar batalha, acoes secundarias e acoes destrutivas.
 
@@ -234,6 +234,8 @@ Preservar: busca, filtros, sort, grupos, batalhas preparadas/ativas/pausadas/con
 Risco e testes: manter setup de batalha e relacoes encounter/batalha; atualizar e executar `encounter-hub.spec.ts`, suite completa e build.
 
 ### Fase 3 - Biblioteca de Fichas
+
+Status: concluida, aguardando aprovacao visual.
 
 Objetivo: transformar a area em biblioteca escaneavel, com acoes de ficha hierarquizadas e metadata mais densa.
 

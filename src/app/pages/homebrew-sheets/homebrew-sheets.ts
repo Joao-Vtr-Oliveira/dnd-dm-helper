@@ -1,7 +1,14 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import {
+	LucideCircleAlert,
+	LucideCircleCheck,
+	LucideEllipsis,
+	LucideTriangleAlert,
+	LucideX,
+} from '@lucide/angular';
 
 import {
 	LocalStorageService,
@@ -18,10 +25,26 @@ import {
 
 type FilterAll<T extends string> = 'all' | T;
 
+type ConfirmModalState = {
+	action: 'delete-sheet' | 'add-to-fiveetools';
+	sheetId: string;
+	title: string;
+	description: string;
+	confirmLabel: string;
+};
+
 @Component({
 	selector: 'app-homebrew-sheets',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [
+		CommonModule,
+		FormsModule,
+		LucideCircleAlert,
+		LucideCircleCheck,
+		LucideEllipsis,
+		LucideTriangleAlert,
+		LucideX,
+	],
 	templateUrl: './homebrew-sheets.html',
 })
 export class HomebrewSheets {
@@ -44,6 +67,9 @@ export class HomebrewSheets {
 	importPreview = signal<HomebrewSheetImportPreview | null>(null);
 	importResolutions = signal<Record<number, HomebrewSheetConflictResolution>>({});
 	importResult = signal<HomebrewSheetImportResult | null>(null);
+	confirmModal = signal<ConfirmModalState | null>(null);
+	actionMenuSheetId = signal<string | null>(null);
+	fiveEToolsLoading = signal<string | null>(null);
 	private importFileInput: HTMLInputElement | null = null;
 	private toastTimer: number | null = null;
 
@@ -55,6 +81,35 @@ export class HomebrewSheets {
 
 	private refresh() {
 		this.sheets.set(this.ls.listSheets());
+	}
+
+	readonly filtersActive = computed(
+		() =>
+			!!this.q().trim() ||
+			this.categoryFilter() !== 'all' ||
+			this.tagFilter() !== 'all' ||
+			this.sourceFilter() !== 'all',
+	);
+
+	@HostListener('document:keydown.escape')
+	onEscape() {
+		if (this.importOpen()) {
+			this.closeImport();
+			return;
+		}
+		if (this.confirmModal()) {
+			this.closeConfirmModal();
+			return;
+		}
+		this.closeActionMenu();
+	}
+
+	toggleActionMenu(sheetId: string) {
+		this.actionMenuSheetId.update((openId) => (openId === sheetId ? null : sheetId));
+	}
+
+	closeActionMenu() {
+		this.actionMenuSheetId.set(null);
 	}
 
 	newSheet() {
@@ -142,9 +197,16 @@ export class HomebrewSheets {
 	}
 
 	remove(id: string) {
-		this.ls.deleteSheet(id);
-		this.refresh();
-		this.showToast({ type: 'success', text: 'Ficha removida.' });
+		const sheet = this.sheets().find((item) => item.id === id);
+		if (!sheet) return;
+		this.confirmModal.set({
+			action: 'delete-sheet',
+			sheetId: id,
+			title: 'Deletar ficha?',
+			description:
+				'Esta ficha será removida da biblioteca. Encounters e batalhas que já usam uma cópia dela serão preservados.',
+			confirmLabel: 'Deletar ficha',
+		});
 	}
 
 	async addToFiveETools(id: string) {
@@ -152,17 +214,69 @@ export class HomebrewSheets {
 		if (!sheet) return;
 
 		try {
+			this.fiveEToolsLoading.set(id);
+			const file = await this.fiveEToolsService.loadLocalHomebrewJson();
+			const monster = this.fiveEToolsService.convertSheetToMonster(sheet, this.fiveEToolsService.buildSummary(file).primarySource);
+			const exists = (file.monster ?? []).some(
+				(item) => item.name === monster.name && item.source === monster.source,
+			);
+			this.confirmModal.set({
+				action: 'add-to-fiveetools',
+				sheetId: id,
+				title: exists ? 'Substituir monstro no 5etools?' : 'Adicionar monstro ao 5etools?',
+				description: exists
+					? `Já existe um monstro chamado ${monster.name} na origem ${monster.source}. Ele será substituído.`
+					: `Um novo monstro chamado ${monster.name} será criado na origem ${monster.source}.`,
+				confirmLabel: exists ? 'Substituir no 5etools' : 'Adicionar ao 5etools',
+			});
+		} catch (error) {
+			this.showToast({
+				type: 'error',
+				text: error instanceof Error ? error.message : 'Erro ao adicionar ficha ao arquivo 5etools.',
+			});
+		} finally {
+			this.fiveEToolsLoading.set(null);
+		}
+	}
+
+	closeConfirmModal() {
+		this.confirmModal.set(null);
+	}
+
+	confirmAction() {
+		const modal = this.confirmModal();
+		if (!modal) return;
+		if (modal.action === 'delete-sheet') {
+			this.ls.deleteSheet(modal.sheetId);
+			this.closeConfirmModal();
+			this.refresh();
+			this.showToast({ type: 'success', text: 'Ficha removida.' });
+			return;
+		}
+		this.closeConfirmModal();
+		this.saveToFiveETools(modal.sheetId);
+	}
+
+	private async saveToFiveETools(id: string) {
+		const sheet = this.sheets().find((item) => item.id === id);
+		if (!sheet) return;
+		try {
+			this.fiveEToolsLoading.set(id);
 			const file = await this.fiveEToolsService.loadLocalHomebrewJson();
 			this.fiveEToolsService.createBackup(file, `Antes de adicionar ficha interna: ${sheet.title}`);
-			const monster = this.fiveEToolsService.convertSheetToMonster(sheet, this.fiveEToolsService.buildSummary(file).primarySource);
-			const next = this.fiveEToolsService.upsertMonster(file, monster);
-			this.fiveEToolsService.saveHomebrewFile(next);
+			const monster = this.fiveEToolsService.convertSheetToMonster(
+				sheet,
+				this.fiveEToolsService.buildSummary(file).primarySource,
+			);
+			this.fiveEToolsService.saveHomebrewFile(this.fiveEToolsService.upsertMonster(file, monster));
 			this.showToast({ type: 'success', text: 'Ficha adicionada ao arquivo 5etools.' });
 		} catch (error) {
 			this.showToast({
 				type: 'error',
 				text: error instanceof Error ? error.message : 'Erro ao adicionar ficha ao arquivo 5etools.',
 			});
+		} finally {
+			this.fiveEToolsLoading.set(null);
 		}
 	}
 
