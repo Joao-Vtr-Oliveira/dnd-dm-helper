@@ -19,6 +19,11 @@ import {
 	type SavedSheetInterface,
 } from '../local-storage-service/local-storage-service';
 import { WorldClockService } from '../WorldClockService/world-clock-service';
+import {
+	normalizeCampaignContext,
+	type CampaignContextState,
+} from '../../models/campaign-context-model';
+import { CampaignContextService } from '../campaign-context-service/campaign-context-service';
 
 export interface AppBackup {
 	app: 'dnd-dm-helper';
@@ -30,6 +35,7 @@ export interface AppBackup {
 		battleEncounters: BattleEncounter[];
 		homebrewSheets: SavedSheetInterface[];
 		calendar: WorldDate | null;
+		campaignContext?: CampaignContextState | null;
 		settings: {
 			encounterHubFilters?: EncounterHubFilters | null;
 		};
@@ -59,6 +65,7 @@ export class AppBackupService {
 	private readonly battleStorage = inject(BattleEncounterStorageService);
 	private readonly worldClock = inject(WorldClockService);
 	private readonly encounterHubFilterService = inject(EncounterHubFilterService);
+	private readonly campaignContext = inject(CampaignContextService);
 
 	exportAll(): AppBackup {
 		return {
@@ -71,6 +78,7 @@ export class AppBackupService {
 				battleEncounters: this.battleStorage.getBattleEncounters(),
 				homebrewSheets: this.localStorageService.listSheets(),
 				calendar: this.readStoredCalendar(),
+				campaignContext: this.campaignContext.getState(),
 				settings: {
 					encounterHubFilters: this.encounterHubFilterService.loadFilters(),
 				},
@@ -150,6 +158,13 @@ export class AppBackupService {
 			return invalid('JSON inválido ou incompatível.');
 		}
 		if (
+			Object.prototype.hasOwnProperty.call(data, 'campaignContext') &&
+			data.campaignContext !== null &&
+			!normalizeCampaignContext(data.campaignContext)
+		) {
+			return invalid('JSON inválido ou incompatível.');
+		}
+		if (
 			!data.rawLocalStorage ||
 			typeof data.rawLocalStorage !== 'object' ||
 			Array.isArray(data.rawLocalStorage)
@@ -167,6 +182,7 @@ export class AppBackupService {
 				battleEncounters: data.battleEncounters,
 				homebrewSheets: data.homebrewSheets,
 				calendar: this.resolveCalendarFromBackupData(data),
+				campaignContext: this.resolveCampaignContextFromBackupData(data),
 				settings: {
 					encounterHubFilters:
 						data.settings && typeof data.settings === 'object'
@@ -219,6 +235,8 @@ export class AppBackupService {
 			);
 			this.worldClock.setDate(normalizedBackup.data.calendar);
 		}
+
+		this.campaignContext.restore(normalizedBackup.data.campaignContext ?? null);
 
 		if (normalizedBackup.data.settings.encounterHubFilters) {
 			localStorage.setItem(
@@ -301,6 +319,20 @@ export class AppBackupService {
 				: undefined;
 
 		return this.normalizeCalendar(rawStorageValue);
+	}
+
+	private resolveCampaignContextFromBackupData(
+		data: Partial<AppBackup['data']> | undefined,
+	): CampaignContextState | null {
+		if (data && Object.prototype.hasOwnProperty.call(data, 'campaignContext')) {
+			return data.campaignContext === null ? null : normalizeCampaignContext(data.campaignContext);
+		}
+
+		const rawStorageValue =
+			data?.rawLocalStorage && typeof data.rawLocalStorage === 'object'
+				? (data.rawLocalStorage as Record<string, unknown>)[APP_STORAGE_KEYS.campaignContext]
+				: undefined;
+		return normalizeCampaignContext(rawStorageValue);
 	}
 
 	private normalizeCalendar(raw: unknown): WorldDate | null {

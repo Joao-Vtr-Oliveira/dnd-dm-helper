@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 1,
+  "empires": [
+    { "id": "mornk", "name": "Mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/Mornk.md" },
+    { "id": "komic", "name": "Komic", "aliases": [], "sourcePath": "Mundo/Impérios/Komic/Komic.md" },
+    { "id": "pryat", "name": "Pryat", "aliases": [], "sourcePath": "Mundo/Impérios/Pryat/Pryat.md" },
+    { "id": "bulgues", "name": "Bulgues", "aliases": [], "sourcePath": "Mundo/Impérios/Bulgues/Bulgues.md" },
+    { "id": "belem", "name": "Belém", "aliases": [], "sourcePath": "Mundo/Impérios/Belém/Belém.md" }
+  ],
+  "states": [
+    { "id": "yotus", "name": "Yotus", "empireId": "mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/1-Yotus/1-Yotus.md" },
+    { "id": "nagazav", "name": "Nagazav", "empireId": "mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/2-Nagazav.md" },
+    { "id": "nirvak", "name": "Nirvak", "empireId": "mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/3-Nirvak.md" },
+    { "id": "drek", "name": "Drek", "empireId": "mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/4-Drek/4-Drek.md" },
+    { "id": "meeluc", "name": "Meeluc", "empireId": "mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/5-Meeluc/5-Meeluc.md" },
+    { "id": "plomos", "name": "Plomos", "empireId": "mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/6-Plomos.md" },
+    { "id": "feng", "name": "Feng", "empireId": "mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/7-Feng/7-Feng.md" },
+    { "id": "dortx", "name": "Dortx", "empireId": "mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/8-Dortx.md" },
+    { "id": "treuz", "name": "Treuz", "empireId": "mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/9-Treuz.md" },
+    { "id": "khaer-morn", "name": "Khaer Morn", "empireId": "mornk", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/10-Khaer Morn.md" }
+  ],
+  "settlements": [
+    { "id": "yotus-city", "name": "Yotus", "stateId": "yotus", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/1-Yotus/Yotus.md" },
+    { "id": "nagazav-city", "name": "Nagazav", "stateId": "nagazav", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Nagazav.md" },
+    { "id": "nirvak-city", "name": "Nirvak", "stateId": "nirvak", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Nirvak.md" },
+    { "id": "drek-city", "name": "Drek", "stateId": "drek", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/4-Drek/Drek.md" },
+    { "id": "meeluc-city", "name": "Meeluc", "stateId": "meeluc", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/5-Meeluc/Meeluc.md" },
+    { "id": "plomos-city", "name": "Plomos", "stateId": "plomos", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Plomos.md" },
+    { "id": "feng-city", "name": "Feng", "stateId": "feng", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/7-Feng/Feng.md" },
+    { "id": "dortx-city", "name": "Dortx", "stateId": "dortx", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Dortx.md" },
+    { "id": "treuz-city", "name": "Treuz", "stateId": "treuz", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Treuz.md" },
+    { "id": "khaer-morn-capital", "name": "Khaer Morn", "stateId": "khaer-morn", "settlementType": "capital", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Khaer Morn.md" },
+    { "id": "ilha-yotus", "name": "Ilha Yotus", "stateId": "yotus", "settlementType": "other", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/1-Yotus/Vilas/Ilha Yotus/Ilha Yotus.md" },
+    { "id": "yotes", "name": "Yotes", "stateId": "yotus", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/1-Yotus/Vilas/Yotes/Yotes.md" },
+    { "id": "nagawoods", "name": "Nagawoods", "stateId": "nagazav", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Vilas/Nagawoods/Nagawoods.md" },
+    { "id": "jukes", "name": "Jukes", "stateId": "nirvak", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Vilas/Jukes/Jukes.md" },
+    { "id": "pijas", "name": "Pijas", "stateId": "nirvak", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Vilas/Pijas/Pijas.md" },
+    { "id": "pricarx", "name": "Pricarx", "stateId": "drek", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/4-Drek/Vilas/Pricarx/Pricarx.md" },
+    { "id": "leemuc", "name": "Leemuc", "stateId": "meeluc", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/5-Meeluc/Vilas/Leemuc/Leemuc.md" },
+    { "id": "fihero", "name": "Fihero", "stateId": "plomos", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Fihero/Fihero.md" },
+    { "id": "vila-das-comportas", "name": "Vila das Comportas", "stateId": "plomos", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Vila das Comportas/Vila das Comportas.md" },
+    { "id": "porto-da-baixa-mar", "name": "Porto da Baixa-mar", "stateId": "plomos", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Porto da Baixa-mar/Porto da Baixa-mar.md" },
+    { "id": "pouso-da-ponte-leste", "name": "Pouso da Ponte Leste", "stateId": "plomos", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Pouso da Ponte Leste/Pouso da Ponte Leste.md" },
+    { "id": "hotead", "name": "Hotead", "stateId": "feng", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/7-Feng/Vilas/Hotead/Hotead.md" },
+    { "id": "forint", "name": "Forint", "stateId": "dortx", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Vilas/Forint/Forint.md" },
+    { "id": "treuz-forgs", "name": "Treuz Forgs", "stateId": "treuz", "settlementType": "village", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Vilas/Treuz Forgs/Treuz Forgs.md" },
+    { "id": "coundham", "name": "Coundham", "stateId": "khaer-morn", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Vilas/Coundham/Coundham.md" },
+    { "id": "greenfalls", "name": "Greenfalls", "stateId": "khaer-morn", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Vilas/Greenfalls/Greenfalls.md" },
+    { "id": "waterrow", "name": "Waterrow", "stateId": "khaer-morn", "settlementType": "city", "aliases": [], "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Vilas/Waterrow/Waterrow.md" }
+  ],
+  "organizations": [
+    {
+      "id": "winterhold",
+      "name": "Winterhold",
+      "organizationType": "guild",
+      "aliases": [],
+      "sourcePath": "Guildas & Grupos/Winterhold.md",
+      "presence": [
+        { "scopeType": "global", "presenceType": "global-network" },
+        { "scopeType": "settlement", "scopeId": "khaer-morn-capital", "presenceType": "major-post" },
+        { "scopeType": "settlement", "scopeId": "plomos-city", "presenceType": "major-post" }
+      ]
+    },
+    {
+      "id": "ladroes",
+      "name": "Ladrões",
+      "organizationType": "group",
+      "aliases": ["Grupo dos Ladrões"],
+      "sourcePath": "Guildas & Grupos/Ladrões.md",
+      "presence": [
+        { "scopeType": "global", "presenceType": "decentralized-network" }
+      ]
+    },
+    {
+      "id": "asl",
+      "name": "Adaga Sob Luar",
+      "organizationType": "group",
+      "parentOrganizationId": "ladroes",
+      "aliases": ["ASL"],
+      "sourcePath": "Guildas & Grupos/Ladrões.md",
+      "presence": [
+        { "scopeType": "state", "scopeId": "khaer-morn", "presenceType": "territorial-influence" },
+        { "scopeType": "state", "scopeId": "yotus", "presenceType": "territorial-influence" },
+        { "scopeType": "state", "scopeId": "dortx", "presenceType": "territorial-influence" },
+        { "scopeType": "state", "scopeId": "plomos", "presenceType": "territorial-influence" },
+        { "scopeType": "settlement", "scopeId": "plomos-city", "presenceType": "territorial-network" }
+      ]
+    },
+    {
+      "id": "odl",
+      "name": "Olhos De Luna",
+      "organizationType": "guild",
+      "aliases": ["ODL"],
+      "sourcePath": "Guildas & Grupos/Olhos De Luna (ODL).md",
+      "presence": [
+        { "scopeType": "global", "presenceType": "global-network" },
+        { "scopeType": "settlement", "scopeId": "khaer-morn-capital", "presenceType": "headquarters" },
+        { "scopeType": "state", "scopeId": "nagazav", "presenceType": "agent" }
+      ]
+    },
+    {
+      "id": "mda",
+      "name": "Mãos De Atronos",
+      "organizationType": "guild",
+      "aliases": ["MDA"],
+      "sourcePath": "Guildas & Grupos/Mãos De Atronos (MDA).md",
+      "presence": [
+        { "scopeType": "global", "presenceType": "global-network" },
+        { "scopeType": "settlement", "scopeId": "khaer-morn-capital", "presenceType": "headquarters" },
+        { "scopeType": "settlement", "scopeId": "nagazav-city", "presenceType": "affiliate" },
+        { "scopeType": "settlement", "scopeId": "nagawoods", "presenceType": "individual-member" },
+        { "scopeType": "settlement", "scopeId": "nirvak-city", "presenceType": "certification" },
+        { "scopeType": "settlement", "scopeId": "jukes", "presenceType": "affiliate" },
+        { "scopeType": "settlement", "scopeId": "plomos-city", "presenceType": "certified-network" },
+        { "scopeType": "settlement", "scopeId": "fihero", "presenceType": "technical-guidance" },
+        { "scopeType": "settlement", "scopeId": "feng-city", "presenceType": "individual-member" }
+      ]
+    },
+    {
+      "id": "pdb",
+      "name": "Profusos De Batalha",
+      "organizationType": "guild",
+      "aliases": ["PDB"],
+      "sourcePath": "Guildas & Grupos/Profusos De Batalha (PDB).md",
+      "presence": [
+        { "scopeType": "global", "presenceType": "global-network" },
+        { "scopeType": "state", "scopeId": "nagazav", "presenceType": "outpost" },
+        { "scopeType": "state", "scopeId": "nirvak", "presenceType": "school" },
+        { "scopeType": "settlement", "scopeId": "plomos-city", "presenceType": "dojo-network" }
+      ]
+    },
+    {
+      "id": "sda",
+      "name": "Sindicado Dos Aventureiros",
+      "organizationType": "guild",
+      "aliases": ["SDA"],
+      "sourcePath": "Guildas & Grupos/Sindicado Dos Aventureiros (SDA).md",
+      "presence": [
+        { "scopeType": "settlement", "scopeId": "plomos-city", "presenceType": "state-headquarters" },
+        { "scopeType": "settlement", "scopeId": "nagazav-city", "presenceType": "remote-contact" },
+        { "scopeType": "settlement", "scopeId": "pijas", "presenceType": "remote-contact" }
+      ]
+    },
+    {
+      "id": "idealistas",
+      "name": "Idealistas",
+      "organizationType": "guild",
+      "aliases": [],
+      "sourcePath": "Guildas & Grupos/Idealistas.md",
+      "presence": [
+        { "scopeType": "settlement", "scopeId": "plomos-city", "presenceType": "temple" },
+        { "scopeType": "state", "scopeId": "nagazav", "presenceType": "informal-link" }
+      ]
+    },
+    {
+      "id": "red-vortex",
+      "name": "Red Vortex",
+      "organizationType": "cult",
+      "aliases": ["RV"],
+      "sourcePath": "Guildas & Grupos/Red Vortex (RV).md",
+      "presence": [
+        { "scopeType": "global", "presenceType": "global-network" }
+      ]
+    },
+    {
+      "id": "blue-pen",
+      "name": "Blue Pen",
+      "organizationType": "group",
+      "aliases": [],
+      "sourcePath": "Guildas & Grupos/Blue Pen.md",
+      "presence": [
+        { "scopeType": "global", "presenceType": "travelling-group" },
+        { "scopeType": "empire", "scopeId": "mornk", "presenceType": "primary-focus" }
+      ]
+    },
+    {
+      "id": "carai-borracha",
+      "name": "Carai Borracha",
+      "organizationType": "group",
+      "aliases": [],
+      "sourcePath": "Guildas & Grupos/Carai Borracha.md",
+      "presence": [
+        { "scopeType": "global", "presenceType": "travelling-group" }
+      ]
+    },
+    {
+      "id": "daniels",
+      "name": "Daniels",
+      "organizationType": "family",
+      "aliases": [],
+      "sourcePath": "Guildas & Grupos/Daniels.md",
+      "presence": [
+        { "scopeType": "empire", "scopeId": "belem", "presenceType": "home" }
+      ]
+    },
+    {
+      "id": "genya",
+      "name": "Genya",
+      "organizationType": "family",
+      "aliases": [],
+      "sourcePath": "Guildas & Grupos/Genya.md",
+      "presence": [
+        { "scopeType": "empire", "scopeId": "komic", "presenceType": "home" }
+      ]
+    },
+    {
+      "id": "conselho-do-corte-de-nagawoods",
+      "name": "Conselho do Corte de Nagawoods",
+      "organizationType": "group",
+      "aliases": [],
+      "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Guildas.md",
+      "presence": [
+        { "scopeType": "settlement", "scopeId": "nagawoods", "presenceType": "local-organization" }
+      ]
+    },
+    {
+      "id": "comunidade-dos-lotes-de-nirvak",
+      "name": "Comunidade dos Lotes de Nirvak",
+      "organizationType": "group",
+      "aliases": [],
+      "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Guildas.md",
+      "presence": [
+        { "scopeType": "settlement", "scopeId": "nirvak-city", "presenceType": "local-organization" }
+      ]
+    },
+    {
+      "id": "conselho-dos-fornos-de-jukes",
+      "name": "Conselho dos Fornos de Jukes",
+      "organizationType": "group",
+      "aliases": [],
+      "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Guildas.md",
+      "presence": [
+        { "scopeType": "settlement", "scopeId": "jukes", "presenceType": "local-organization" }
+      ]
+    },
+    {
+      "id": "mesa-dos-patios-de-pijas",
+      "name": "Mesa dos Pátios de Pijas",
+      "organizationType": "group",
+      "aliases": [],
+      "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Guildas.md",
+      "presence": [
+        { "scopeType": "settlement", "scopeId": "pijas", "presenceType": "local-organization" }
+      ]
+    },
+    {
+      "id": "trabalhadores-dos-silos",
+      "name": "Trabalhadores dos Silos",
+      "organizationType": "group",
+      "aliases": [],
+      "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Guildas.md",
+      "presence": [
+        { "scopeType": "settlement", "scopeId": "plomos-city", "presenceType": "local-organization" }
+      ]
+    },
+    {
+      "id": "companhia-do-braco-sul",
+      "name": "Companhia do Braço Sul",
+      "organizationType": "group",
+      "aliases": [],
+      "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Guildas.md",
+      "presence": [
+        { "scopeType": "settlement", "scopeId": "plomos-city", "presenceType": "local-organization" }
+      ]
+    },
+    {
+      "id": "conselho-da-varzea",
+      "name": "Conselho da Várzea",
+      "organizationType": "group",
+      "aliases": [],
+      "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Guildas.md",
+      "presence": [
+        { "scopeType": "settlement", "scopeId": "vila-das-comportas", "presenceType": "local-organization" }
+      ]
+    }
+  ]
+}

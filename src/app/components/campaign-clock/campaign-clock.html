@@ -1,11 +1,11 @@
 @if (!isCalendarPage()) {
 	<button
 	type="button"
-	class="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))] z-30 inline-flex h-12 cursor-pointer items-center gap-2 rounded-2xl border border-fuchsia-400/30 bg-[#211733]/95 px-3 text-sm font-semibold text-white shadow-[0_12px_32px_rgba(0,0,0,0.38)] backdrop-blur transition hover:bg-violet-500/25 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/70 sm:h-11 sm:px-4"
+		class="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))] z-30 inline-flex h-12 max-w-[calc(100vw-2rem)] cursor-pointer items-center gap-2 rounded-2xl border border-fuchsia-400/30 bg-[#211733]/95 px-3 text-sm font-semibold text-white shadow-[0_12px_32px_rgba(0,0,0,0.38)] backdrop-blur transition hover:bg-violet-500/25 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/70 sm:h-11 sm:px-4"
 	attr.aria-expanded="{{ isOpen() }}"
 	aria-controls="campaign-clock-panel"
-	aria-label="Abrir relógio da campanha"
-	title="Relógio da campanha"
+		aria-label="Abrir contexto da campanha"
+		title="{{ locationBreadcrumbLabel() }}"
 	(click)="open()"
 	>
 	<svg
@@ -21,7 +21,8 @@
 		<circle cx="12" cy="12" r="8"></circle>
 		<path d="M12 8v4l3 2"></path>
 	</svg>
-	<span class="hidden tabular-nums sm:inline">Dia {{ current().day }} · {{ timeLabel() }}</span>
+	<span class="hidden min-w-0 truncate sm:inline">{{ locationLabel() }}</span>
+	<span class="hidden shrink-0 tabular-nums sm:inline">· Dia {{ current().day }} · {{ timeLabel() }}</span>
 	<span class="tabular-nums sm:hidden">{{ timeLabel() }}</span>
 </button>
 
@@ -40,7 +41,7 @@
 		>
 			<div class="flex items-start justify-between gap-3">
 				<div>
-					<div class="text-xs uppercase tracking-[0.2em] text-white/45">Tempo da campanha</div>
+					<div class="text-xs uppercase tracking-[0.2em] text-white/45">Contexto da campanha</div>
 					<h2 id="campaign-clock-title" class="mt-1 text-xl font-semibold">
 						Dia {{ current().day }} de {{ seasonLabel() }}
 					</h2>
@@ -51,14 +52,68 @@
 				<button
 					type="button"
 					class="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-lg hover:bg-white/10"
-					aria-label="Fechar relógio da campanha"
+					aria-label="Fechar contexto da campanha"
 					(click)="close()"
 				>
 					x
 				</button>
 			</div>
 
-			<div class="mt-4 flex items-center justify-between rounded-2xl border border-fuchsia-400/20 bg-violet-500/[0.1] px-4 py-3">
+			<div class="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+				<div class="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">Posição</div>
+				@if (worldStatus() === 'loading') {
+					<div class="mt-2 text-sm text-white/65">Carregando catálogo da campanha...</div>
+				} @else if (worldStatus() === 'error') {
+					<div class="mt-2 text-sm text-amber-100/85">{{ worldError() }}</div>
+				} @else if (isEditingLocation()) {
+					<div class="mt-3 grid gap-3">
+						<label class="text-xs text-white/65">
+							<span>Império</span>
+							<select class="mt-1 h-10 w-full rounded-xl border px-3 text-sm" [ngModel]="selectedEmpireId()" (ngModelChange)="selectEmpire($event)" name="campaign-empire">
+								<option value="">Selecione um império</option>
+								@for (empire of campaignWorld.world()?.empires ?? []; track empire.id) {
+									<option [value]="empire.id">{{ empire.name }}</option>
+								}
+							</select>
+						</label>
+						<label class="text-xs text-white/65">
+							<span>Estado</span>
+							<select class="mt-1 h-10 w-full rounded-xl border px-3 text-sm" [disabled]="!selectedEmpireId() || !availableStates().length" [ngModel]="selectedStateId()" (ngModelChange)="selectState($event)" name="campaign-state">
+								<option value="">Todo o império / nenhum específico</option>
+								@for (state of availableStates(); track state.id) {
+									<option [value]="state.id">{{ state.name }}</option>
+								}
+							</select>
+						</label>
+						<label class="text-xs text-white/65">
+							<span>Localidade</span>
+							<select class="mt-1 h-10 w-full rounded-xl border px-3 text-sm" [disabled]="!selectedStateId() || !availableSettlements().length" [ngModel]="selectedSettlementId()" (ngModelChange)="selectSettlement($event)" name="campaign-settlement">
+								<option value="">Fora de uma localidade específica</option>
+								@for (settlement of availableSettlements(); track settlement.id) {
+									<option [value]="settlement.id">{{ settlement.name }}</option>
+								}
+							</select>
+						</label>
+						<div class="app-action-group">
+							<button type="button" class="app-action-button rounded-xl border border-fuchsia-400/30 bg-violet-500/15 text-sm font-semibold hover:bg-violet-500/25" [disabled]="!selectedEmpireId()" (click)="applyLocation()">Aplicar posição</button>
+							<button type="button" class="app-action-button rounded-xl border border-white/10 bg-white/5 text-sm hover:bg-white/10" (click)="cancelLocationEdit()">Cancelar</button>
+						</div>
+					</div>
+				} @else {
+					<div class="mt-2 min-w-0 truncate text-sm font-semibold text-white" [title]="locationBreadcrumbLabel()">{{ locationBreadcrumbLabel() }}</div>
+					@if (locationError(); as error) {
+						<div class="mt-2 text-sm text-amber-100/85">{{ error }}</div>
+					}
+					<div class="mt-3 app-action-group">
+						<button type="button" class="app-action-button rounded-xl border border-white/10 bg-white/5 text-sm hover:bg-white/10" (click)="beginLocationEdit()">Alterar posição</button>
+						@if (currentLocation() || locationError()) {
+							<button type="button" class="app-action-button rounded-xl border border-white/10 bg-white/5 text-sm hover:bg-white/10" (click)="clearLocation()">Limpar posição</button>
+						}
+					</div>
+				}
+			</div>
+
+			<div class="mt-3 flex items-center justify-between rounded-2xl border border-fuchsia-400/20 bg-violet-500/[0.1] px-4 py-3">
 				<span class="text-sm text-white/70">Hora atual</span>
 				<span class="text-3xl font-semibold tabular-nums text-white">{{ timeLabel() }}</span>
 			</div>

@@ -1,0 +1,97 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import type { CampaignWorld } from '../../models/campaign-world-model';
+import { CampaignWorldService } from './campaign-world-service';
+
+const VALID_WORLD: CampaignWorld = {
+	schemaVersion: 1,
+	empires: [{ id: 'mornk', name: 'Mornk', aliases: [], sourcePath: 'Mornk.md' }],
+	states: [{ id: 'nagazav', name: 'Nagazav', empireId: 'mornk', aliases: [], sourcePath: 'Nagazav.md' }],
+	settlements: [{ id: 'nagawoods', name: 'Nagawoods', stateId: 'nagazav', settlementType: 'village', aliases: [], sourcePath: 'Nagawoods.md' }],
+	organizations: [{ id: 'guild', name: 'Guild', organizationType: 'guild', aliases: [], sourcePath: 'Guild.md', presence: [{ scopeType: 'global', presenceType: 'network' }, { scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'agent' }] }],
+};
+
+describe('CampaignWorldService', () => {
+	let service: CampaignWorldService;
+	let http: HttpTestingController;
+
+	beforeEach(() => {
+		TestBed.configureTestingModule({
+			providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()],
+		});
+		service = TestBed.inject(CampaignWorldService);
+		http = TestBed.inject(HttpTestingController);
+	});
+
+	afterEach(() => http.verify());
+
+	function load(world: unknown = VALID_WORLD) {
+		http.expectOne('/rpg_files/campaign-world.json').flush(world as object);
+	}
+
+	it('starts loading and exposes the validated world when ready', () => {
+		expect(service.status()).toBe('loading');
+		load();
+		expect(service.status()).toBe('ready');
+		expect(service.world()).toEqual(VALID_WORLD);
+	});
+
+	it('handles HTTP and invalid catalog errors safely', () => {
+		const request = http.expectOne('/rpg_files/campaign-world.json');
+		request.flush('not found', { status: 404, statusText: 'Not found' });
+		expect(service.status()).toBe('error');
+		expect(service.error()).toContain('Não foi possível carregar');
+
+		service.load();
+		http.expectOne('/rpg_files/campaign-world.json').flush({ schemaVersion: 2 });
+		expect(service.status()).toBe('error');
+		expect(service.error()).toContain('incompatível');
+	});
+
+	it('rejects duplicate IDs and broken geographic references', () => {
+		load({ ...VALID_WORLD, empires: [...VALID_WORLD.empires, VALID_WORLD.empires[0]] });
+		expect(service.status()).toBe('error');
+		expect(service.error()).toContain('duplicado');
+
+		service.load();
+		http.expectOne('/rpg_files/campaign-world.json').flush({
+			...VALID_WORLD,
+			states: [{ ...VALID_WORLD.states[0], empireId: 'missing' }],
+		});
+		expect(service.status()).toBe('error');
+		expect(service.error()).toContain('inexistente');
+	});
+
+	it('rejects invalid organization parent and presence scopes', () => {
+		load({ ...VALID_WORLD, organizations: [{ ...VALID_WORLD.organizations[0], parentOrganizationId: 'missing' }] });
+		expect(service.status()).toBe('error');
+
+		service.load();
+		http.expectOne('/rpg_files/campaign-world.json').flush({
+			...VALID_WORLD,
+			organizations: [{ ...VALID_WORLD.organizations[0], presence: [{ scopeType: 'state', presenceType: 'agent' }] }],
+		});
+		expect(service.status()).toBe('error');
+	});
+
+	it('indexes geographic entities and organizations by scope', () => {
+		load();
+		expect(service.getEmpire('mornk')?.name).toBe('Mornk');
+		expect(service.getState('nagazav')?.name).toBe('Nagazav');
+		expect(service.getSettlement('nagawoods')?.name).toBe('Nagawoods');
+		expect(service.getOrganization('guild')?.name).toBe('Guild');
+		expect(service.getStatesByEmpire('mornk')).toHaveSize(1);
+		expect(service.getSettlementsByState('nagazav')).toHaveSize(1);
+		expect(service.getOrganizationsByScope({ scopeType: 'settlement', scopeId: 'nagawoods' })).toHaveSize(1);
+	});
+
+	it('resolves every supported location level and unknown IDs safely', () => {
+		load();
+		expect(service.resolveLocation({ scopeType: 'settlement', scopeId: 'nagawoods' })?.breadcrumb).toEqual(['Mornk', 'Nagazav', 'Nagawoods']);
+		expect(service.resolveLocation({ scopeType: 'state', scopeId: 'nagazav' })?.breadcrumb).toEqual(['Mornk', 'Nagazav']);
+		expect(service.resolveLocation({ scopeType: 'empire', scopeId: 'mornk' })?.breadcrumb).toEqual(['Mornk']);
+		expect(service.resolveLocation({ scopeType: 'settlement', scopeId: 'missing' })).toBeNull();
+	});
+});

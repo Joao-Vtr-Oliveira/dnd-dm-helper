@@ -4,6 +4,7 @@ export const APP_STORAGE_KEYS = {
 	battleEncounters: 'dnd-dm-helper.battle-encounters.v1',
 	worldDate: 'dmh-world-date-v1',
 	encounterHubFilters: 'dnd-dm-helper.encounter-hub.filters.v1',
+	campaignContext: 'dnd-dm-helper.campaign-context.v1',
 	safetyBackupBeforeSync: 'dnd-dm-helper.last-local-backup-before-sync.v1',
 	fiveEToolsHomebrew: 'dnd-dm-helper.5etools-homebrew.v1',
 	fiveEToolsHomebrewBackups: 'dnd-dm-helper.5etools-homebrew.backups.v1',
@@ -18,6 +19,7 @@ export const APP_PRIMARY_STORAGE_KEYS = [
 	APP_STORAGE_KEYS.battleEncounters,
 	APP_STORAGE_KEYS.worldDate,
 	APP_STORAGE_KEYS.encounterHubFilters,
+	APP_STORAGE_KEYS.campaignContext,
 	APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages,
 ] as const;
 

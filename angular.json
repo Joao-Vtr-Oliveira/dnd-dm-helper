@@ -19,6 +19,11 @@
 							{
 								"glob": "**/*",
 								"input": "public"
+							},
+							{
+								"glob": "campaign-world.json",
+								"input": "rpg_files",
+								"output": "rpg_files"
 							}
 						],
 						"styles": ["src/styles.css"]
@@ -76,6 +81,11 @@
 							{
 								"glob": "**/*",
 								"input": "public"
+							},
+							{
+								"glob": "campaign-world.json",
+								"input": "rpg_files",
+								"output": "rpg_files"
 							}
 						],
 						"styles": ["src/styles.css"]
