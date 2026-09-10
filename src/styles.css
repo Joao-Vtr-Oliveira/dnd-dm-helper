@@ -6,15 +6,44 @@
 	font-display: swap;
 }
 
+@theme {
+	--color-app-canvas: #0d0e15;
+	--color-app-surface: #171721;
+	--color-app-surface-raised: #211f2d;
+	--color-app-inset: #101019;
+	--color-app-text: #f5f2f8;
+	--color-app-muted: #b6afbd;
+	--color-app-subtle: #817b89;
+	--color-app-border: rgb(255 255 255 / 0.1);
+	--color-app-divider: rgb(255 255 255 / 0.08);
+	--color-app-primary: #8b5cf6;
+	--color-app-primary-hover: #a78bfa;
+	--color-app-campaign-surface: #211733;
+	--color-app-campaign-surface-hover: #2b2045;
+	--color-app-accent: #34d399;
+	--color-app-accent-hover: #6ee7b7;
+	--color-app-success: #34d399;
+	--color-app-warning: #fbbf24;
+	--color-app-danger: #fb7185;
+	--color-app-info: #7dd3fc;
+	--radius-app-control: 0.75rem;
+	--radius-app-panel: 1rem;
+	--radius-app-shell: 1.5rem;
+	--shadow-app-panel: 0 16px 36px rgb(0 0 0 / 0.2);
+	--shadow-app-modal: 0 28px 60px rgb(0 0 0 / 0.42);
+}
+
 :root {
-	--app-bg: radial-gradient(circle at top left, rgba(167, 139, 250, 0.22), rgba(14, 8, 28, 0.96));
-	--app-surface: rgba(24, 16, 40, 0.84);
-	--app-border: rgba(192, 132, 252, 0.26);
-	--app-accent: #8b5cf6;
-	--app-accent-strong: #7c3aed;
-	--app-accent-soft: rgba(139, 92, 246, 0.16);
-	--app-text: #f7ecff;
-	--app-muted: #c7b4dd;
+	--app-bg:
+		radial-gradient(circle at top left, rgb(139 92 246 / 0.1), transparent 34%),
+		linear-gradient(180deg, #12121b, var(--color-app-canvas));
+	--app-surface: var(--color-app-surface);
+	--app-border: var(--color-app-border);
+	--app-accent: var(--color-app-primary);
+	--app-accent-strong: var(--color-app-primary-hover);
+	--app-accent-soft: rgb(139 92 246 / 0.14);
+	--app-text: var(--color-app-text);
+	--app-muted: var(--color-app-muted);
 }
 
 * {
@@ -30,6 +59,7 @@ html,
 body {
 	height: 100%;
 }
+
 body {
 	margin: 0;
 	padding: 0;
@@ -53,42 +83,212 @@ a[aria-disabled='true'] {
 	cursor: not-allowed;
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+	outline: 2px solid rgb(167 139 250 / 0.8);
+	outline-offset: 2px;
+}
+
 select {
 	color-scheme: dark;
-	background-color: rgba(12, 10, 24, 0.88);
-	color: #f4ecff;
-	border-color: rgba(255, 255, 255, 0.14);
+	background-color: var(--color-app-inset);
+	color: var(--color-app-text);
+	border-color: var(--color-app-border);
 }
 
 select:hover {
-	border-color: rgba(255, 255, 255, 0.24);
+	border-color: rgb(255 255 255 / 0.2);
 }
 
 select:focus {
 	outline: none;
-	border-color: rgba(192, 132, 252, 0.45);
-	box-shadow: 0 0 0 1px rgba(192, 132, 252, 0.3);
+	border-color: rgb(167 139 250 / 0.7);
+	box-shadow: 0 0 0 1px rgb(167 139 250 / 0.32);
 }
 
 select option,
 select optgroup {
-	background-color: #120d1f;
-	color: #f8f5ff;
+	background-color: var(--color-app-inset);
+	color: var(--color-app-text);
 }
 
+.app-button,
 .app-action-button {
-	display: flex;
+	display: inline-flex;
 	min-width: 0;
 	min-height: 2.5rem;
-	height: auto;
 	max-width: 100%;
 	align-items: center;
 	justify-content: center;
+	gap: 0.5rem;
+	border: 1px solid var(--color-app-border);
+	border-radius: var(--radius-app-control);
 	padding: 0.5rem 1rem;
 	text-align: center;
 	line-height: 1.2;
 	white-space: normal;
 	overflow-wrap: anywhere;
+	transition:
+		background-color 150ms ease,
+		border-color 150ms ease,
+		color 150ms ease;
+}
+
+.app-button-primary {
+	border-color: rgb(167 139 250 / 0.42);
+	background: rgb(139 92 246 / 0.2);
+	color: var(--color-app-text);
+}
+
+.app-button-primary:hover {
+	border-color: rgb(196 181 253 / 0.55);
+	background: rgb(139 92 246 / 0.3);
+}
+
+.app-button-secondary {
+	background: rgb(255 255 255 / 0.05);
+	color: var(--color-app-text);
+}
+
+.app-button-secondary:hover,
+.app-button-ghost:hover {
+	border-color: rgb(255 255 255 / 0.2);
+	background: rgb(255 255 255 / 0.09);
+}
+
+.app-button-ghost {
+	border-color: transparent;
+	background: transparent;
+	color: var(--color-app-muted);
+}
+
+.app-button-accent {
+	border-color: rgb(52 211 153 / 0.4);
+	background: rgb(16 185 129 / 0.14);
+	color: #d1fae5;
+}
+
+.app-button-accent:hover {
+	border-color: rgb(110 231 183 / 0.55);
+	background: rgb(16 185 129 / 0.22);
+}
+
+.app-button-danger {
+	border-color: rgb(251 113 133 / 0.36);
+	background: rgb(244 63 94 / 0.12);
+	color: #ffe4e6;
+}
+
+.app-button-danger:hover {
+	background: rgb(244 63 94 / 0.2);
+}
+
+.app-field {
+	min-height: 2.75rem;
+	border: 1px solid var(--color-app-border);
+	border-radius: var(--radius-app-control);
+	background: var(--color-app-inset);
+	color: var(--color-app-text);
+}
+
+.app-field::placeholder {
+	color: var(--color-app-subtle);
+}
+
+.app-field:hover {
+	border-color: rgb(255 255 255 / 0.2);
+}
+
+.app-field:focus {
+	border-color: rgb(167 139 250 / 0.7);
+	outline: none;
+	box-shadow: 0 0 0 1px rgb(167 139 250 / 0.32);
+}
+
+.app-panel {
+	border: 1px solid var(--color-app-border);
+	border-radius: var(--radius-app-panel);
+	background: var(--color-app-surface);
+}
+
+.app-inset {
+	border: 1px solid var(--color-app-divider);
+	border-radius: var(--radius-app-control);
+	background: var(--color-app-inset);
+}
+
+.app-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	border-radius: 9999px;
+	padding: 0.25rem 0.625rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+}
+
+.app-nav-link {
+	display: flex;
+	min-height: 2.625rem;
+	align-items: center;
+	gap: 0.625rem;
+	border: 1px solid transparent;
+	border-radius: var(--radius-app-control);
+	padding: 0.625rem 0.75rem;
+	color: var(--color-app-muted);
+	font-size: 0.875rem;
+	font-weight: 500;
+	transition:
+		background-color 150ms ease,
+		border-color 150ms ease,
+		color 150ms ease;
+}
+
+.app-nav-link:hover {
+	border-color: var(--color-app-divider);
+	background: rgb(255 255 255 / 0.05);
+	color: var(--color-app-text);
+}
+
+.app-nav-link-active {
+	border-color: rgb(167 139 250 / 0.2);
+	background: rgb(139 92 246 / 0.15);
+	box-shadow: inset 3px 0 var(--color-app-primary);
+	color: var(--color-app-text);
+}
+
+.app-campaign-clock {
+	border-color: rgb(196 181 253 / 0.38);
+	background: linear-gradient(
+		135deg,
+		var(--color-app-campaign-surface-hover),
+		var(--color-app-campaign-surface)
+	);
+	box-shadow: 0 12px 32px rgb(0 0 0 / 0.38);
+	backdrop-filter: blur(8px);
+}
+
+.app-campaign-clock:hover {
+	border-color: rgb(221 214 254 / 0.52);
+	background: linear-gradient(
+		135deg,
+		#332452,
+		var(--color-app-campaign-surface-hover)
+	);
+}
+
+.app-campaign-time {
+	border: 1px solid rgb(196 181 253 / 0.24);
+	border-radius: var(--radius-app-control);
+	background: var(--app-accent-soft);
+}
+
+.app-divider {
+	border-color: var(--color-app-divider);
 }
 
 .app-action-group {

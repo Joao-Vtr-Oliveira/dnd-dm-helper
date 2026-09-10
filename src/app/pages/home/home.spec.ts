@@ -8,45 +8,62 @@ import { Home } from './home';
 import { AppBackupService } from '../../services/app-backup-service/app-backup-service';
 
 describe('Home', () => {
-  let component: Home;
-  let fixture: ComponentFixture<Home>;
-  let appBackupService: jasmine.SpyObj<AppBackupService>;
+	let component: Home;
+	let fixture: ComponentFixture<Home>;
+	let appBackupService: jasmine.SpyObj<AppBackupService>;
 
-  beforeEach(async () => {
-    appBackupService = jasmine.createSpyObj<AppBackupService>('AppBackupService', [
-	  'consumePostSyncToast',
-	  'createSafetyBackupBeforeSync',
-	  'applyBackup',
-	  'storePostSyncToast',
-	  'fetchRemoteBackup',
-	  'buildSummary',
-	]);
-    appBackupService.consumePostSyncToast.and.returnValue(null);
+	beforeEach(async () => {
+		appBackupService = jasmine.createSpyObj<AppBackupService>('AppBackupService', [
+			'consumePostSyncToast',
+			'createSafetyBackupBeforeSync',
+			'applyBackup',
+			'storePostSyncToast',
+			'fetchRemoteBackup',
+			'buildSummary',
+		]);
+		appBackupService.consumePostSyncToast.and.returnValue(null);
 
-    await TestBed.configureTestingModule({
-      imports: [Home],
-      providers: [
-			provideZonelessChangeDetection(),
-			provideHttpClient(),
-			provideHttpClientTesting(),
-			provideRouter([]),
-			{ provide: AppBackupService, useValue: appBackupService },
-		],
-    })
-    .compileComponents();
+		await TestBed.configureTestingModule({
+			imports: [Home],
+			providers: [
+				provideZonelessChangeDetection(),
+				provideHttpClient(),
+				provideHttpClientTesting(),
+				provideRouter([]),
+				{ provide: AppBackupService, useValue: appBackupService },
+			],
+		}).compileComponents();
 
-    fixture = TestBed.createComponent(Home);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+		fixture = TestBed.createComponent(Home);
+		component = fixture.componentInstance;
+		fixture.detectChanges();
+	});
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+	it('should create', () => {
+		expect(component).toBeTruthy();
+	});
 
 	it('includes Mundo in the Campanha navigation group', () => {
 		const campaign = component.navGroups.find((group) => group.label === 'Campanha');
-		expect(campaign?.links?.map((link) => link.label)).toEqual(['Dashboard', 'Mundo', 'Calendário']);
+		expect(campaign?.links?.map((link) => link.label)).toEqual([
+			'Dashboard',
+			'Mundo',
+			'Calendário',
+		]);
+	});
+
+	it('opens and closes the compact mobile navigation', () => {
+		expect(component.mobileNavigationOpen()).toBeFalse();
+		component.toggleMobileNavigation();
+		expect(component.mobileNavigationOpen()).toBeTrue();
+		component.closeMobileNavigation();
+		expect(component.mobileNavigationOpen()).toBeFalse();
+	});
+
+	it('closes the mobile navigation with Escape', () => {
+		component.toggleMobileNavigation();
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+		expect(component.mobileNavigationOpen()).toBeFalse();
 	});
 
 	it('reloads the app after applying a confirmed sync', async () => {

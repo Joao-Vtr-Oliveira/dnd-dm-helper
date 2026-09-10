@@ -1,288 +1,189 @@
 <div
-	class="min-h-screen w-full bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.16),_transparent_36%),linear-gradient(180deg,_rgba(16,11,31,0.96),_rgba(8,6,16,1))]"
+	class="min-h-screen w-full bg-[radial-gradient(circle_at_top_left,_rgb(139_92_246_/_0.1),_transparent_34%),linear-gradient(180deg,_#12121b,_#0d0e15)] text-app-text"
 >
-	<header class="w-full px-4 py-5">
+	<header class="sticky top-0 z-50 border-b border-app-divider bg-app-canvas/95 backdrop-blur">
 		<div
-			class="mx-auto flex w-full max-w-[1820px] items-center justify-between gap-4 rounded-[28px] border border-fuchsia-400/20 bg-[rgba(24,16,40,0.84)] px-5 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-sm"
+			class="mx-auto flex w-full max-w-[1680px] items-center justify-between gap-4 px-4 py-3 sm:px-6"
 		>
 			<button
 				type="button"
-				class="inline-flex cursor-pointer items-center gap-3 text-left"
+				class="inline-flex min-w-0 items-center gap-3 text-left"
 				(click)="onClickTitle()"
 			>
 				<div
-					class="flex h-11 w-11 items-center justify-center rounded-2xl border border-fuchsia-400/20 bg-violet-500/15 text-violet-100"
+					class="flex h-9 w-9 shrink-0 items-center justify-center rounded-app-control border border-violet-300/25 bg-violet-500/15 text-violet-100"
 				>
-					<svg
-						viewBox="0 0 24 24"
-						class="h-5 w-5"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.8"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M7 4h10l3 4-3 12H7L4 8l3-4z"></path>
-						<path d="M9 9h6M9 13h6"></path>
-					</svg>
+					<svg lucideDices [size]="18" [strokeWidth]="2" aria-hidden="true"></svg>
 				</div>
-				<div>
-					<h1 class="font-[dndFont] text-2xl leading-none text-white sm:text-4xl">
+				<div class="min-w-0">
+					<h1 class="truncate font-[dndFont] text-xl leading-none text-app-text sm:text-2xl">
 						DnD Dungeon Master Helper
 					</h1>
-					<p class="mt-1 text-sm text-white/70">
-						Mesa, calendário, fichas e backup em um fluxo único.
+					<p class="mt-1 hidden text-xs text-app-muted sm:block">
+						Ferramentas operacionais para a mesa.
 					</p>
 				</div>
 			</button>
 
-			<div class="hidden items-center gap-2 lg:flex">
-				<button
-					type="button"
-					class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl border border-fuchsia-400/25 bg-violet-500/15 px-4 text-sm font-semibold text-violet-50 transition hover:bg-violet-500/20"
-					[disabled]="syncLoading()"
-					[class.opacity-60]="syncLoading()"
-					(click)="runAction('sync')"
-				>
-					<svg
-						viewBox="0 0 24 24"
-						class="h-4 w-4"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.8"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						@for (path of iconPaths('refresh'); track path) {
-							<path [attr.d]="path"></path>
-						}
-					</svg>
-					@if (syncLoading()) {
-						Sincronizando...
-					} @else {
-						Sincronizar
-					}
-				</button>
-
-				<button
-					type="button"
-					class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
-					[disabled]="exportLoading()"
-					[class.opacity-60]="exportLoading()"
-					(click)="runAction('export-all')"
-				>
-					<svg
-						viewBox="0 0 24 24"
-						class="h-4 w-4"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.8"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						@for (path of iconPaths('download'); track path) {
-							<path [attr.d]="path"></path>
-						}
-					</svg>
-					Exportar tudo
-				</button>
+			<div class="hidden text-sm text-app-muted lg:block">
+				Campanha, encontros e fichas no mesmo fluxo.
 			</div>
+
+			<button
+				type="button"
+				class="app-button app-button-ghost h-10 w-10 shrink-0 p-0 lg:hidden"
+				[attr.aria-expanded]="mobileNavigationOpen()"
+				aria-controls="mobile-primary-navigation"
+				aria-label="Abrir navegação"
+				(click)="toggleMobileNavigation()"
+			>
+				<svg lucideMenu [size]="20" [strokeWidth]="2" aria-hidden="true"></svg>
+			</button>
 		</div>
 	</header>
 
-	<main class="px-4 pb-6">
-		<div class="mx-auto flex w-full max-w-[1820px] flex-col gap-4 lg:flex-row">
-			<div class="space-y-4 lg:hidden">
-				@for (group of navGroups; track group.label) {
-					<section
-						class="rounded-[26px] border border-white/10 bg-white/[0.06] p-4 backdrop-blur-sm"
+	@if (mobileNavigationOpen()) {
+		<div class="fixed inset-0 z-40 bg-black/60 lg:hidden" (click)="closeMobileNavigation()">
+			<nav
+				id="mobile-primary-navigation"
+				class="absolute inset-x-3 top-[4.5rem] max-h-[calc(100vh-5.25rem)] overflow-y-auto rounded-app-shell border border-app-border bg-app-surface-raised p-4 shadow-app-modal"
+				aria-label="Navegação principal"
+				(keydown.escape)="closeMobileNavigation()"
+				(click)="$event.stopPropagation()"
+			>
+				<div class="mb-3 flex items-center justify-between">
+					<div class="text-sm font-semibold text-app-text">Navegação</div>
+					<button
+						type="button"
+						class="app-button app-button-ghost h-9 w-9 p-0"
+						aria-label="Fechar navegação"
+						(click)="closeMobileNavigation()"
 					>
-						<div class="mb-3">
-							<div class="text-xs uppercase tracking-[0.22em] text-white/45">{{ group.label }}</div>
-							<div class="mt-1 text-sm text-white/70">{{ group.hint }}</div>
+						<svg lucideX [size]="18" [strokeWidth]="2" aria-hidden="true"></svg>
+					</button>
+				</div>
+				@for (group of navGroups; track group.label; let first = $first) {
+					@if (!first) {
+						<div class="my-4 border-t border-app-divider"></div>
+					}
+					<section>
+						<div class="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
+							{{ group.label }}
 						</div>
-
-						<div class="grid gap-2">
+						<div class="space-y-1">
 							@for (link of group.links ?? []; track link.path) {
 								@if (!link.requiresDmCalendar || dmCalendarEnabled) {
 									<a
 										[routerLink]="link.path"
-										routerLinkActive="border-fuchsia-400/35 bg-violet-500/20 text-white shadow-[0_0_0_1px_rgba(192,132,252,0.2)]"
+										routerLinkActive="app-nav-link-active"
 										[routerLinkActiveOptions]="{ exact: link.exact ?? false }"
-										class="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white/85 transition hover:border-white/20 hover:bg-white/10"
+										class="app-nav-link"
+										(click)="closeMobileNavigation()"
 									>
-										<div
-											class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5"
-										>
-											<svg
-												viewBox="0 0 24 24"
-												class="h-4 w-4"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="1.8"
-												stroke-linecap="round"
-												stroke-linejoin="round"
-											>
-												@for (path of iconPaths(link.icon); track path) {
-													<path [attr.d]="path"></path>
-												}
-											</svg>
-										</div>
-										<div class="min-w-0">
-											<div class="font-semibold">{{ link.label }}</div>
-											<div class="text-sm text-white/60">{{ link.description }}</div>
-										</div>
+										<svg [lucideIcon]="link.icon" [size]="18" [strokeWidth]="2" class="shrink-0" aria-hidden="true"></svg>
+										<span>{{ link.label }}</span>
 									</a>
 								}
 							}
-
 							@for (action of group.actions ?? []; track action.action) {
 								<button
 									type="button"
-									class="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-left text-white/85 transition hover:border-white/20 hover:bg-white/10"
+									class="app-nav-link w-full text-left"
 									[disabled]="
 										(action.action === 'sync' && syncLoading()) ||
 										(action.action === 'export-all' && exportLoading())
 									"
-									[class.opacity-60]="
+									[class.opacity-55]="
 										(action.action === 'sync' && syncLoading()) ||
 										(action.action === 'export-all' && exportLoading())
 									"
 									(click)="runAction(action.action)"
 								>
-									<div
-										class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5"
-									>
-										<svg
-											viewBox="0 0 24 24"
-											class="h-4 w-4"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="1.8"
-											stroke-linecap="round"
-											stroke-linejoin="round"
-										>
-											@for (path of iconPaths(action.icon); track path) {
-												<path [attr.d]="path"></path>
-											}
-										</svg>
-									</div>
-									<div class="min-w-0">
-										<div class="font-semibold">
-											@if (action.action === 'sync' && syncLoading()) {
-												<span>Sincronizando...</span>
-											} @else {
-												<span>{{ action.label }}</span>
-											}
-										</div>
-										<div class="text-sm text-white/60">{{ action.description }}</div>
-									</div>
+									<svg [lucideIcon]="action.icon" [size]="18" [strokeWidth]="2" class="shrink-0" aria-hidden="true"></svg>
+									<span>
+										@if (action.action === 'sync' && syncLoading()) {
+											Sincronizando...
+										} @else if (action.action === 'export-all' && exportLoading()) {
+											Exportando...
+										} @else {
+											{{ action.label }}
+										}
+									</span>
 								</button>
 							}
 						</div>
 					</section>
 				}
-			</div>
+			</nav>
+		</div>
+	}
 
-			<aside class="hidden w-80 shrink-0 lg:block xl:w-[22rem]">
-				<div class="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto overscroll-contain space-y-4">
-					@for (group of navGroups; track group.label) {
-						<section
-							class="rounded-[28px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm"
-						>
-							<div class="mb-3">
-								<div class="text-xs uppercase tracking-[0.22em] text-white/45">
-									{{ group.label }}
-								</div>
-								<div class="mt-1 text-sm text-white/70">{{ group.hint }}</div>
+	<main class="px-4 py-6 sm:px-6">
+		<div class="mx-auto flex w-full max-w-[1680px] flex-col lg:flex-row">
+			<aside class="hidden w-64 shrink-0 border-r border-app-divider pr-5 lg:block xl:w-72">
+				<nav
+					class="sticky top-[5.5rem] max-h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain pr-2"
+					aria-label="Navegação principal"
+				>
+					@for (group of navGroups; track group.label; let first = $first) {
+						@if (!first) {
+							<div class="my-5 border-t border-app-divider"></div>
+						}
+						<section>
+							<div
+								class="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle"
+							>
+								{{ group.label }}
 							</div>
-
-							<div class="space-y-2">
+							<div class="space-y-1">
 								@for (link of group.links ?? []; track link.path) {
 									@if (!link.requiresDmCalendar || dmCalendarEnabled) {
 										<a
 											[routerLink]="link.path"
-											routerLinkActive="border-fuchsia-400/35 bg-violet-500/20 text-white shadow-[0_0_0_1px_rgba(192,132,252,0.2)]"
+											routerLinkActive="app-nav-link-active"
 											[routerLinkActiveOptions]="{ exact: link.exact ?? false }"
-											class="flex items-start gap-3 rounded-2xl border border-transparent px-3 py-3 text-white/80 transition hover:border-white/10 hover:bg-white/5"
+											class="app-nav-link"
+											[attr.title]="link.description"
 										>
-											<div
-												class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20"
-											>
-												<svg
-													viewBox="0 0 24 24"
-													class="h-4 w-4"
-													fill="none"
-													stroke="currentColor"
-													stroke-width="1.8"
-													stroke-linecap="round"
-													stroke-linejoin="round"
-												>
-													@for (path of iconPaths(link.icon); track path) {
-														<path [attr.d]="path"></path>
-													}
-												</svg>
-											</div>
-											<div class="min-w-0">
-												<div class="font-semibold">{{ link.label }}</div>
-												<div class="text-sm text-white/60">{{ link.description }}</div>
-											</div>
+											<svg [lucideIcon]="link.icon" [size]="18" [strokeWidth]="2" class="shrink-0" aria-hidden="true"></svg>
+											<span>{{ link.label }}</span>
 										</a>
 									}
 								}
-
 								@for (action of group.actions ?? []; track action.action) {
 									<button
 										type="button"
-										class="flex w-full items-start gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-left text-white/85 transition hover:border-white/20 hover:bg-white/5"
+										class="app-nav-link w-full text-left"
+										[attr.title]="action.description"
 										[disabled]="
 											(action.action === 'sync' && syncLoading()) ||
 											(action.action === 'export-all' && exportLoading())
 										"
-										[class.opacity-60]="
+										[class.opacity-55]="
 											(action.action === 'sync' && syncLoading()) ||
 											(action.action === 'export-all' && exportLoading())
 										"
 										(click)="runAction(action.action)"
 									>
-										<div
-											class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5"
-										>
-											<svg
-												viewBox="0 0 24 24"
-												class="h-4 w-4"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="1.8"
-												stroke-linecap="round"
-												stroke-linejoin="round"
-											>
-												@for (path of iconPaths(action.icon); track path) {
-													<path [attr.d]="path"></path>
-												}
-											</svg>
-										</div>
-										<div class="min-w-0">
-											<div class="font-semibold">
-												@if (action.action === 'sync' && syncLoading()) {
-													<span>Sincronizando...</span>
-												} @else if (action.action === 'export-all' && exportLoading()) {
-													<span>Exportando...</span>
-												} @else {
-													<span>{{ action.label }}</span>
-												}
-											</div>
-											<div class="text-sm text-white/60">{{ action.description }}</div>
-										</div>
+										<svg [lucideIcon]="action.icon" [size]="18" [strokeWidth]="2" class="shrink-0" aria-hidden="true"></svg>
+										<span>
+											@if (action.action === 'sync' && syncLoading()) {
+												Sincronizando...
+											} @else if (action.action === 'export-all' && exportLoading()) {
+												Exportando...
+											} @else {
+												{{ action.label }}
+											}
+										</span>
 									</button>
 								}
 							</div>
 						</section>
 					}
-				</div>
+				</nav>
 			</aside>
 
-			<section class="min-w-0 flex-1">
+			<section class="min-w-0 flex-1 lg:pl-8">
 				<router-outlet />
 			</section>
 		</div>
@@ -292,49 +193,57 @@
 
 @if (syncPreview(); as preview) {
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm"
+		class="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
 	>
-		<div class="w-full max-w-2xl rounded-[32px] border border-white/10 bg-[#161b2a] p-6 shadow-2xl">
+		<section
+			class="w-full max-w-2xl rounded-app-shell border border-app-border bg-app-surface-raised p-5 shadow-app-modal sm:p-6"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="sync-preview-title"
+		>
 			<div class="flex items-start justify-between gap-3">
 				<div>
-					<h3 class="text-2xl font-semibold">Sincronizar backup remoto?</h3>
-					<p class="mt-2 text-sm text-white/75">
+					<h2 id="sync-preview-title" class="text-xl font-semibold text-app-text sm:text-2xl">
+						Sincronizar backup remoto?
+					</h2>
+					<p class="mt-2 text-sm leading-6 text-app-muted">
 						O app vai validar o JSON, salvar um backup local de segurança e restaurar os dados
 						completos do projeto.
 					</p>
 				</div>
-
 				<button
 					type="button"
-					class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10"
+					class="app-button app-button-ghost h-10 w-10 shrink-0 p-0"
+					aria-label="Fechar sincronização"
 					(click)="closeSyncPreview()"
 				>
-					x
+					<svg lucideX [size]="18" [strokeWidth]="2" aria-hidden="true"></svg>
 				</button>
 			</div>
 
-			<div class="mt-5 rounded-3xl border border-fuchsia-400/20 bg-violet-500/[0.08] p-4">
-				<div class="text-sm font-semibold">Backup encontrado</div>
-				<div class="mt-3 grid gap-3 sm:grid-cols-2">
-					<div class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
-						<div class="opacity-60">Encontros</div>
-						<div class="mt-1 text-lg font-semibold">{{ preview.summary.encounters ?? '-' }}</div>
+			<section class="mt-5 border-y border-app-divider py-4" aria-label="Resumo do backup">
+				<div class="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+					<div>
+						<div class="text-xs text-app-subtle">Encontros</div>
+						<div class="mt-1 text-lg font-semibold text-app-text">
+							{{ preview.summary.encounters ?? '-' }}
+						</div>
 					</div>
-					<div class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
-						<div class="opacity-60">Batalhas</div>
-						<div class="mt-1 text-lg font-semibold">
+					<div>
+						<div class="text-xs text-app-subtle">Batalhas</div>
+						<div class="mt-1 text-lg font-semibold text-app-text">
 							{{ preview.summary.battleEncounters ?? '-' }}
 						</div>
 					</div>
-					<div class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
-						<div class="opacity-60">Fichas</div>
-						<div class="mt-1 text-lg font-semibold">
+					<div>
+						<div class="text-xs text-app-subtle">Fichas</div>
+						<div class="mt-1 text-lg font-semibold text-app-text">
 							{{ preview.summary.homebrewSheets ?? '-' }}
 						</div>
 					</div>
-					<div class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
-						<div class="opacity-60">Calendário</div>
-						<div class="mt-1 text-sm font-semibold">
+					<div>
+						<div class="text-xs text-app-subtle">Calendário</div>
+						<div class="mt-1 text-sm font-semibold text-app-text">
 							@if (preview.summary.hasCalendar && preview.summary.calendarLabel) {
 								{{ preview.summary.calendarLabel }}
 							} @else {
@@ -347,28 +256,23 @@
 						</div>
 					</div>
 				</div>
-				<div class="mt-3 text-sm text-white/70">
+				<div class="mt-4 text-sm text-app-muted">
 					Exportado em:
-					<span class="font-semibold text-white">{{
+					<span class="font-semibold text-app-text">{{
 						formatSummaryDate(preview.summary.exportedAt)
 					}}</span>
 				</div>
-			</div>
+			</section>
 
 			<div class="mt-5 flex flex-wrap justify-end gap-2">
-				<button
-					type="button"
-					class="h-11 cursor-pointer rounded-2xl border border-white/10 bg-white/5 px-4 hover:bg-white/10"
-					(click)="closeSyncPreview()"
-				>
+				<button type="button" class="app-button app-button-secondary" (click)="closeSyncPreview()">
 					Cancelar
 				</button>
-
 				<button
 					type="button"
-					class="h-11 cursor-pointer rounded-2xl border border-fuchsia-400/30 bg-violet-500/15 px-4 font-semibold hover:bg-violet-500/20"
+					class="app-button app-button-primary"
 					[disabled]="syncLoading()"
-					[class.opacity-60]="syncLoading()"
+					[class.opacity-55]="syncLoading()"
 					(click)="confirmSync()"
 				>
 					@if (syncLoading()) {
@@ -378,18 +282,18 @@
 					}
 				</button>
 			</div>
-		</div>
+		</section>
 	</div>
 }
 
 @if (toast(); as toastMessage) {
-	<div class="fixed right-4 top-4 z-50">
+	<div class="fixed right-4 top-20 z-[70]">
 		<div
-			class="max-w-sm rounded-2xl border px-4 py-3 shadow-lg backdrop-blur"
-			[class.border-emerald-400/30]="toastMessage.type === 'success'"
-			[class.bg-emerald-500/10]="toastMessage.type === 'success'"
-			[class.border-red-400/30]="toastMessage.type === 'error'"
-			[class.bg-red-500/10]="toastMessage.type === 'error'"
+			class="app-panel max-w-sm px-4 py-3 shadow-app-panel"
+			[class.border-emerald-400/35]="toastMessage.type === 'success'"
+			[class.text-emerald-50]="toastMessage.type === 'success'"
+			[class.border-rose-400/35]="toastMessage.type === 'error'"
+			[class.text-rose-50]="toastMessage.type === 'error'"
 		>
 			<div class="text-sm">{{ toastMessage.text }}</div>
 		</div>
