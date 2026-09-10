@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { LucideCircleAlert, LucideCircleCheck, LucideEllipsis, LucideTriangleAlert, LucideX } from '@lucide/angular';
 import type {
 	BattleCombatantSide,
 	BattleEncounter,
@@ -27,7 +28,7 @@ type ConfirmModalState = {
 	description: string;
 	confirmLabel: string;
 	encounterId: string;
-	action: 'new-battle' | 'delete-encounter-and-battles';
+	action: 'new-battle' | 'delete-encounter' | 'delete-encounter-and-battles';
 };
 
 type BattleSetupModalState = {
@@ -42,7 +43,15 @@ type BattleSetupModalState = {
 @Component({
 	selector: 'app-encounter-hub',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [
+		CommonModule,
+		FormsModule,
+		LucideCircleAlert,
+		LucideCircleCheck,
+		LucideEllipsis,
+		LucideTriangleAlert,
+		LucideX,
+	],
 	templateUrl: './encounter-hub.html',
 })
 export class EncounterHub {
@@ -64,6 +73,7 @@ export class EncounterHub {
 	readonly toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
 	readonly confirmModal = signal<ConfirmModalState | null>(null);
 	readonly battleSetupModal = signal<BattleSetupModalState | null>(null);
+	readonly actionMenuEncounterId = signal<string | null>(null);
 
 	private toastTimer: number | null = null;
 
@@ -88,6 +98,27 @@ export class EncounterHub {
 		effect(() => {
 			this.hubFilterService.saveFilters(this.filters());
 		});
+	}
+
+	@HostListener('document:keydown.escape')
+	onEscape() {
+		if (this.battleSetupModal()) {
+			this.closeBattleSetupModal();
+			return;
+		}
+		if (this.confirmModal()) {
+			this.closeConfirmModal();
+			return;
+		}
+		this.closeActionMenu();
+	}
+
+	toggleActionMenu(encounterId: string) {
+		this.actionMenuEncounterId.update((openId) => (openId === encounterId ? null : encounterId));
+	}
+
+	closeActionMenu() {
+		this.actionMenuEncounterId.set(null);
 	}
 
 	newEncounter() {
@@ -129,9 +160,13 @@ export class EncounterHub {
 			return;
 		}
 
-		this.ls.deleteEncounter(id);
-		this.refresh();
-		this.showToast({ type: 'success', text: 'Encounter removido.' });
+		this.confirmModal.set({
+			title: 'Deletar encounter?',
+			description: 'Essa ação removerá o encounter permanentemente.',
+			confirmLabel: 'Deletar encounter',
+			encounterId: id,
+			action: 'delete-encounter',
+		});
 	}
 
 	startBattle(encounterId: string) {
@@ -304,6 +339,13 @@ export class EncounterHub {
 			this.showToast({ type: 'success', text: 'Encontro e batalhas associadas removidos.' });
 			return;
 		}
+		if (modal.action === 'delete-encounter') {
+			this.ls.deleteEncounter(modal.encounterId);
+			this.closeConfirmModal();
+			this.refresh();
+			this.showToast({ type: 'success', text: 'Encounter removido.' });
+			return;
+		}
 
 		const encounter = this.ls.getEncounter(modal.encounterId);
 		if (!encounter) {
@@ -335,9 +377,9 @@ export class EncounterHub {
 	}
 
 	itemStatusClasses(item: EncounterHubItem): string {
-		if (item.status === 'active') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
+		if (item.status === 'active') return 'border-amber-400/30 bg-amber-500/15 text-amber-100';
 		if (item.status === 'paused') return 'border-amber-400/30 bg-amber-500/15 text-amber-100';
-		if (item.status === 'completed') return 'border-slate-300/20 bg-slate-500/10 text-slate-100';
+		if (item.status === 'completed') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
 		return 'border-sky-400/30 bg-sky-500/15 text-sky-100';
 	}
 
@@ -417,16 +459,16 @@ export class EncounterHub {
 	}
 
 	battleSetupRowClasses(creatureId: number): string {
-		const base = 'grid gap-3 rounded-2xl border bg-white/5 p-3 md:grid-cols-4 md:items-end';
-		if (!this.isBattleSetupInitiativeTied(creatureId)) return `${base} border-white/10`;
+		const base = 'app-inset grid gap-3 p-3 md:grid-cols-4 md:items-end';
+		if (!this.isBattleSetupInitiativeTied(creatureId)) return base;
 		return this.isBattleSetupTieResolved(creatureId)
 			? `${base} border-amber-300/25 bg-amber-500/5`
 			: `${base} border-rose-400/35 bg-rose-500/10`;
 	}
 
 	battleSetupTieBreakerInputClasses(creatureId: number): string {
-		const base = 'w-full rounded-2xl border bg-black/20 px-3 py-2';
-		if (!this.isBattleSetupInitiativeTied(creatureId)) return `${base} border-white/10`;
+		const base = 'app-field w-full px-3 py-2';
+		if (!this.isBattleSetupInitiativeTied(creatureId)) return base;
 		return this.isBattleSetupTieResolved(creatureId)
 			? `${base} border-amber-300/30`
 			: `${base} border-rose-400/45`;

@@ -1,87 +1,84 @@
-<div class="mx-auto w-full max-w-[1580px] space-y-6 px-4 py-6">
-	<div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+<div class="mx-auto w-full max-w-[1580px] space-y-6 py-1 sm:py-2" (click)="closeActionMenu()">
+	<header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 		<div>
-			<h2 class="text-3xl font-semibold">Encontros</h2>
-			<p class="mt-1 text-sm opacity-70">
+			<h2 class="text-3xl font-semibold text-app-text">Encontros</h2>
+			<p class="mt-1 text-sm text-app-muted">
 				Encontros preparados, batalhas locais e atalhos rápidos para continuar a mesa.
 			</p>
 		</div>
 
-		<div class="flex flex-wrap gap-2">
-			<button
-				class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-				(click)="newEncounter()"
-			>
-				+ Novo encounter
+		<div class="app-action-group">
+			<button type="button" class="app-button app-button-primary" (click)="newEncounter()">
+				Novo encounter
 			</button>
-
 			<button
-				class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-4 text-sm opacity-85 hover:bg-black/30 hover:opacity-100"
+				type="button"
+				class="app-button app-button-ghost"
 				(click)="importOpen.set(!importOpen())"
 			>
 				@if (importOpen()) { Fechar importação legada } @else { Importar encounter legado }
 			</button>
 		</div>
-	</div>
+	</header>
 
 	@if (ongoingBattles().length > 0) {
-		<div class="rounded-3xl border border-emerald-400/15 bg-emerald-500/5 p-5">
-			<div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+		<section class="app-panel border-amber-400/20 bg-amber-500/[0.06] p-4 sm:p-5" aria-labelledby="ongoing-battles-title">
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h3 class="text-xl font-semibold">Batalhas em andamento</h3>
-					<p class="text-sm opacity-75">
-						As sessões ativas e pausadas ficam no topo para acelerar a mesa.
-					</p>
+					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100/70">
+						Prioridade de mesa
+					</div>
+					<h3 id="ongoing-battles-title" class="mt-1 text-xl font-semibold text-app-text">
+						Batalhas em andamento
+					</h3>
 				</div>
-				<span class="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-100">
+				<span class="app-status border border-amber-400/25 bg-amber-500/10 text-amber-100">
 					{{ ongoingBattles().length }} em andamento
 				</span>
 			</div>
 
-			<div class="mt-4 grid gap-3 lg:grid-cols-2">
+			<div class="mt-4 divide-y divide-amber-200/10">
 				@for (battle of ongoingBattles(); track battle.id) {
-					<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-						<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-							<div class="space-y-1">
-								<div class="text-lg font-semibold">{{ battle.name }}</div>
-								<div class="text-sm opacity-75">
-									{{ battleStatusLabel(battle) }} · Round {{ battle.round }} ·
-									{{ currentCombatantName(battle) }}
-								</div>
-								<div class="text-xs opacity-60">
-									Atualizada em {{ battle.updatedAt | date:'short' }}
-								</div>
+					<div class="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 md:flex-row md:items-center md:justify-between">
+						<div class="min-w-0">
+							<div class="truncate font-semibold text-app-text">{{ battle.name }}</div>
+							<div class="mt-1 text-sm text-app-muted">
+								{{ battleStatusLabel(battle) }} · Round {{ battle.round }} ·
+								{{ currentCombatantName(battle) }}
 							</div>
-
-							<button
-								class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
-								(click)="openBattle(battle.id)"
-							>
-								Abrir batalha
-							</button>
+							<div class="mt-1 text-xs text-app-subtle">
+								Atualizada em {{ battle.updatedAt | date:'short' }}
+							</div>
 						</div>
+						<button
+							type="button"
+							class="app-button w-full border-amber-300/35 bg-amber-500/15 font-semibold text-amber-50 hover:border-amber-200/55 hover:bg-amber-500/25 md:w-auto"
+							(click)="openBattle(battle.id)"
+						>
+							Abrir batalha
+						</button>
 					</div>
 				}
 			</div>
-		</div>
+		</section>
 	}
 
-	<div class="rounded-3xl border border-white/10 bg-white/5 p-4">
+	<section class="app-panel p-4" aria-label="Buscar e filtrar encounters">
 		<div class="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
-			<label class="text-sm">
-				<span class="mb-1 block opacity-70">Buscar</span>
+			<label class="text-sm text-app-muted">
+				<span class="mb-1 block">Buscar</span>
 				<input
-					class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+					class="app-field w-full px-4 py-3"
 					placeholder="Nome, criaturas, descrição, tags..."
 					[ngModel]="filters().query"
 					(ngModelChange)="updateQuery($event)"
 				/>
 			</label>
 
-			<label class="text-sm">
-				<span class="mb-1 block opacity-70">Filtrar por status</span>
+			<label class="text-sm text-app-muted">
+				<span class="mb-1 block">Filtrar por status</span>
 				<select
-					class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+					class="app-field w-full cursor-pointer px-4 py-3"
 					[ngModel]="filters().status"
 					(ngModelChange)="updateStatus($event)"
 				>
@@ -93,10 +90,10 @@
 				</select>
 			</label>
 
-			<label class="text-sm">
-				<span class="mb-1 block opacity-70">Ordenar por</span>
+			<label class="text-sm text-app-muted">
+				<span class="mb-1 block">Ordenar por</span>
 				<select
-					class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+					class="app-field w-full cursor-pointer px-4 py-3"
 					[ngModel]="filters().sort"
 					(ngModelChange)="updateSort($event)"
 				>
@@ -109,220 +106,163 @@
 			</label>
 		</div>
 
-		<div class="mt-3 flex flex-wrap gap-2 text-xs opacity-75">
-			<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1">
-				{{ filterLabel(filters().status) }}
-			</span>
-			<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1">
-				{{ sortLabel(filters().sort) }}
-			</span>
-			<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1">
-				{{ filteredItems().length }} resultados
-			</span>
+		<div class="mt-3 flex flex-wrap gap-2 text-xs text-app-muted">
+			<span class="app-status border border-app-divider bg-app-inset">{{ filterLabel(filters().status) }}</span>
+			<span class="app-status border border-app-divider bg-app-inset">{{ sortLabel(filters().sort) }}</span>
+			<span class="app-status border border-app-divider bg-app-inset">{{ filteredItems().length }} resultados</span>
 		</div>
-	</div>
+	</section>
 
 	@if (importOpen()) {
-		<div class="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4">
-			<div class="rounded-2xl border border-amber-300/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-50/90">
+		<section class="app-panel space-y-4 p-4" aria-label="Importar encounter legado">
+			<div class="app-inset border-amber-300/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-50/90">
 				Fluxo legado para importar um encounter isolado. Para backup completo do projeto, use
-				<code>Sincronizar</code> na sidebar.
+				<code>Sincronizar</code> na navegação.
 			</div>
 
 			<input
 				type="file"
 				accept="application/json,.json"
-				class="block w-full text-sm opacity-90 file:mr-3 file:h-10 file:cursor-pointer file:rounded-2xl file:border file:border-white/10 file:bg-white/10 file:px-4 file:text-sm file:hover:bg-white/15"
+				class="app-field app-file-input block w-full text-sm text-app-muted"
 				(change)="onFileSelected($event)"
 			/>
 
 			<textarea
-				class="h-40 w-full rounded-2xl border border-white/10 bg-black/20 p-3 font-mono text-xs"
+				class="app-field h-40 w-full p-3 font-mono text-xs"
 				placeholder="Cole o JSON do encounter..."
 				[ngModel]="importText()"
 				(ngModelChange)="importText.set($event)"
 			></textarea>
 
-			<button
-								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-				(click)="importAndSave()"
-			>
+			<button type="button" class="app-button app-button-secondary" (click)="importAndSave()">
 				Importar encounter legado
 			</button>
 
 			@if (msg()) {
 				<div
-					class="rounded-2xl border p-3 text-sm"
+					class="app-inset p-3 text-sm"
 					[class.border-red-400/30]="msg()!.type === 'error'"
 					[class.bg-red-500/10]="msg()!.type === 'error'"
-					[class.border-yellow-400/30]="msg()!.type === 'warn'"
-					[class.bg-yellow-500/10]="msg()!.type === 'warn'"
+					[class.border-amber-400/30]="msg()!.type === 'warn'"
+					[class.bg-amber-500/10]="msg()!.type === 'warn'"
 					[class.border-emerald-400/30]="msg()!.type === 'success'"
 					[class.bg-emerald-500/10]="msg()!.type === 'success'"
 				>
 					{{ msg()!.text }}
 				</div>
 			}
-		</div>
+		</section>
 	}
 
 	@if (groupedItems().length === 0) {
-		<div class="rounded-3xl border border-white/10 bg-white/5 p-5 opacity-80">
-			Nenhum encounter encontrado para os filtros atuais.
-		</div>
+		<div class="app-panel p-5 text-sm text-app-muted">Nenhum encounter encontrado para os filtros atuais.</div>
 	} @else {
 		<div class="space-y-6">
 			@for (group of groupedItems(); track group.label) {
-				<section class="space-y-3">
+				<section class="space-y-3" [attr.aria-label]="group.label">
 					<div class="flex items-center gap-3">
-						<h3 class="text-lg font-semibold">{{ group.label }}</h3>
-						<div class="h-px flex-1 bg-white/10"></div>
+						<h3 class="text-lg font-semibold text-app-text">{{ group.label }}</h3>
+						<div class="h-px flex-1 bg-app-divider"></div>
 					</div>
 
 					<div class="space-y-3">
 						@for (item of group.items; track item.encounter.id) {
-							<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
-								<div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-									<div class="min-w-0 space-y-3 xl:flex-1">
+							<article class="app-panel p-4 sm:p-5">
+								<div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+									<div class="min-w-0 xl:flex-1">
 										<div class="flex flex-wrap items-center gap-2">
-											<h4 class="min-w-0 break-words text-xl font-semibold">
+											<h4 class="min-w-0 break-words text-xl font-semibold text-app-text">
 												{{ item.encounter.title }}
 											</h4>
-											<span
-												class="rounded-full border px-2.5 py-1 text-xs font-semibold"
-												[class]="itemStatusClasses(item)"
-											>
+											<span class="app-status border" [class]="itemStatusClasses(item)">
 												{{ itemStatusLabel(item) }}
 											</span>
 										</div>
 
-										<div class="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
-											<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-												<div class="text-[11px] uppercase tracking-[0.16em] leading-4 opacity-60">
-													Criado em
-												</div>
-												<div class="mt-1 overflow-hidden break-words text-sm font-semibold">
-													{{ item.encounter.createdAt | date:'short' }}
-												</div>
-											</div>
-
-											<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-												<div class="text-[11px] uppercase tracking-[0.16em] leading-4 opacity-60">
-													Atualizado em
-												</div>
-												<div class="mt-1 overflow-hidden break-words text-sm font-semibold">
-													{{ item.referenceTimestamp | date:'short' }}
-												</div>
-											</div>
-
-											<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-												<div class="text-[11px] uppercase tracking-[0.16em] leading-4 opacity-60">
-													Combatentes
-												</div>
-												<div class="mt-1 overflow-hidden break-words text-sm font-semibold">
-													{{ item.combatantCount }}
-												</div>
-											</div>
-
-											<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-												<div class="text-[11px] uppercase tracking-[0.16em] leading-4 opacity-60">
-													Turno atual
-												</div>
-												<div class="mt-1 overflow-hidden break-words text-sm font-semibold">
-													{{ currentCombatantName(latestBattle(item)) }}
-												</div>
-											</div>
+										<div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-app-muted">
+											<span>{{ item.combatantCount }} combatentes</span>
+											<span aria-hidden="true">·</span>
+											<span>Atualizado em {{ item.referenceTimestamp | date:'short' }}</span>
+											<span aria-hidden="true">·</span>
+											<span>Criado em {{ item.encounter.createdAt | date:'short' }}</span>
 										</div>
 
 										@if (latestBattle(item); as battle) {
-											<div class="flex flex-wrap gap-2 text-sm opacity-75">
+											<div class="mt-2 text-sm text-app-subtle">
 												@if (battle.status === 'active' || battle.status === 'paused') {
-													<span>Round {{ battle.round }}</span>
-													<span>•</span>
+													Round {{ battle.round }} · {{ currentCombatantName(battle) }} ·
 												}
-												<span>{{ battle.combatants.length }} participantes</span>
-												<span>•</span>
-												<span>{{ battleStatusLabel(battle) }}</span>
+												{{ battle.combatants.length }} participantes
 											</div>
 										} @else {
-											<div class="text-sm opacity-70">
-												Pronto para iniciar uma nova batalha local.
-											</div>
+											<div class="mt-2 text-sm text-app-subtle">Pronto para iniciar uma nova batalha local.</div>
 										}
 									</div>
 
-					<div class="grid w-full min-w-0 gap-2 sm:grid-cols-2 xl:max-w-[23rem] xl:flex-none">
-					@if (item.activeBattle) {
-						<button
-							class="app-action-button cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 font-semibold hover:bg-amber-500/20"
-							(click)="continueBattle(item.encounter.id)"
-						>
-							Continuar Batalha
-						</button>
+									<div class="app-action-group shrink-0 xl:justify-end">
+										@if (item.activeBattle) {
+											<button
+												type="button"
+												class="app-button w-full border-amber-300/35 bg-amber-500/15 font-semibold text-amber-50 hover:border-amber-200/55 hover:bg-amber-500/25 sm:w-auto"
+												(click)="continueBattle(item.encounter.id)"
+											>
+												Continuar batalha
+											</button>
+											<button type="button" class="app-button app-button-secondary" (click)="newBattle(item.encounter.id)">
+												Nova batalha
+											</button>
+											<button type="button" class="app-button app-button-accent" (click)="completeBattle(item.encounter.id)">
+												Concluir batalha
+											</button>
+										} @else if (item.latestBattle) {
+											<button type="button" class="app-button app-button-primary w-full sm:w-auto" (click)="newBattle(item.encounter.id)">
+												Nova batalha
+											</button>
+										} @else {
+											<button type="button" class="app-button app-button-primary w-full sm:w-auto" (click)="startBattle(item.encounter.id)">
+												Iniciar batalha
+											</button>
+										}
 
-						<button
-							class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15"
-							(click)="newBattle(item.encounter.id)"
-						>
-							Nova Batalha
-						</button>
+										<div class="relative">
+											<button
+												type="button"
+												class="app-button app-button-ghost"
+												[attr.aria-expanded]="actionMenuEncounterId() === item.encounter.id"
+												[attr.aria-controls]="'encounter-actions-' + item.encounter.id"
+												aria-label="Mais ações para {{ item.encounter.title }}"
+												(click)="$event.stopPropagation(); toggleActionMenu(item.encounter.id)"
+											>
+												<svg lucideEllipsis [size]="18" [strokeWidth]="2" aria-hidden="true"></svg>
+												<span class="text-sm">Mais ações</span>
+											</button>
 
-						<button
-							class="app-action-button cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 hover:bg-emerald-500/20"
-							(click)="completeBattle(item.encounter.id)"
-						>
-							Concluir Batalha
-						</button>
-					} @else if (item.latestBattle) {
-						<button
-							class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15"
-							(click)="newBattle(item.encounter.id)"
-						>
-							Nova Batalha
-						</button>
-					} @else {
-						<button
-							class="app-action-button cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 font-semibold hover:bg-emerald-500/20"
-							(click)="startBattle(item.encounter.id)"
-						>
-							Iniciar Batalha
-						</button>
-					}
-
-					<button
-						class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15"
-						(click)="edit(item.encounter.id)"
-					>
-						Editar
-					</button>
-
-					<button
-						class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15"
-						(click)="duplicate(item.encounter.id)"
-					>
-						Duplicar
-					</button>
-
-					<button
-						class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15"
-						(click)="export(item.encounter.id)"
-					>
-						Exportar encounter
-					</button>
-
-					<button
-						class="app-action-button cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 hover:bg-red-500/20"
-						(click)="remove(item.encounter.id)"
-					>
-						@if (item.latestBattle || item.activeBattle) {
-							Deletar Encontro e Batalhas
-						} @else {
-							Deletar
-						}
-					</button>
-				</div>
+											@if (actionMenuEncounterId() === item.encounter.id) {
+												<div
+													[id]="'encounter-actions-' + item.encounter.id"
+													role="menu"
+													class="absolute right-0 top-full z-20 mt-2 w-56 rounded-app-panel border border-app-border bg-app-surface-raised p-1 shadow-app-panel"
+													(click)="$event.stopPropagation()"
+												>
+													<button type="button" role="menuitem" class="app-nav-link w-full text-left" (click)="edit(item.encounter.id); closeActionMenu()">
+														Editar
+													</button>
+													<button type="button" role="menuitem" class="app-nav-link w-full text-left" (click)="duplicate(item.encounter.id); closeActionMenu()">
+														Duplicar
+													</button>
+													<button type="button" role="menuitem" class="app-nav-link w-full text-left" (click)="export(item.encounter.id); closeActionMenu()">
+														Exportar encounter
+													</button>
+													<div class="my-1 border-t border-app-divider"></div>
+													<button type="button" role="menuitem" class="app-button app-button-danger min-h-9 px-3 py-1.5 text-sm" (click)="remove(item.encounter.id); closeActionMenu()">
+														@if (item.latestBattle || item.activeBattle) { Deletar com batalhas } @else { Deletar }
+													</button>
+												</div>
+											}
+										</div>
+									</div>
 								</div>
-							</div>
+							</article>
 						}
 					</div>
 				</section>
@@ -332,49 +272,33 @@
 </div>
 
 @if (battleSetupModal(); as modal) {
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-		<div class="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-3xl border border-white/10 bg-[#1f1930] p-5 shadow-2xl">
-			<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+	<div class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeBattleSetupModal()">
+		<section id="battle-setup-modal" role="dialog" aria-modal="true" aria-labelledby="battle-setup-title" class="max-h-[calc(100vh-1.5rem)] w-full max-w-4xl overflow-auto rounded-app-shell border border-app-border bg-app-surface-raised p-4 shadow-app-modal sm:max-h-[90vh] sm:p-5" (click)="$event.stopPropagation()">
+			<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 				<div>
-					<h3 class="text-2xl font-semibold">
+					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle">Preparação de combate</div>
+					<h3 id="battle-setup-title" class="mt-1 text-2xl font-semibold text-app-text">
 						@if (modal.mode === 'new') { Nova batalha } @else { Iniciar batalha }
 					</h3>
-					<p class="mt-1 text-sm opacity-80">
-						Escolha o lado e ajuste a iniciativa de cada integrante antes de abrir o tracker.
-					</p>
+					<p class="mt-1 text-sm text-app-muted">Escolha o lado e ajuste a iniciativa de cada integrante antes de abrir o tracker.</p>
 				</div>
-
-				<button
-					type="button"
-					class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10"
-					(click)="closeBattleSetupModal()"
-					aria-label="Fechar"
-				>
-					x
+				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" (click)="closeBattleSetupModal()" aria-label="Fechar preparação de batalha">
+					<svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg>
 				</button>
 			</div>
 
-			<label class="mt-4 block text-sm">
-				<span class="mb-1 block opacity-70">Nome da batalha</span>
-				<input
-					class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
-					[ngModel]="modal.battleName"
-					(ngModelChange)="setBattleSetupName($event)"
-					placeholder="Nome da sessão de batalha"
-				/>
+			<label class="mt-4 block text-sm text-app-muted">
+				<span class="mb-1 block">Nome da batalha</span>
+				<input class="app-field w-full px-4 py-3" [ngModel]="modal.battleName" (ngModelChange)="setBattleSetupName($event)" placeholder="Nome da sessão de batalha" />
 			</label>
 
-			<div class="mt-5 rounded-3xl border border-white/10 bg-black/20 p-4">
-				<div class="mb-3 flex items-center justify-between gap-3">
+			<div class="app-inset mt-5 p-4">
+				<div class="mb-3 flex items-start justify-between gap-3">
 					<div>
-						<h4 class="font-semibold">Participantes</h4>
-						<p class="text-sm opacity-70">
-							PCs entram como jogador por padrão. NPCs e outros perfis podem ser ajustados antes de abrir a batalha.
-						</p>
+						<h4 class="font-semibold text-app-text">Participantes</h4>
+						<p class="mt-1 text-sm text-app-muted">PCs entram como jogador por padrão. NPCs e outros perfis podem ser ajustados antes de abrir a batalha.</p>
 					</div>
-					<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">
-						{{ getBattleSetupEncounter()?.data?.creatures?.length || 0 }} integrantes
-					</span>
+					<span class="app-status shrink-0 border border-app-divider bg-app-surface">{{ getBattleSetupEncounter()?.data?.creatures?.length || 0 }} integrantes</span>
 				</div>
 
 				<div class="space-y-3">
@@ -382,34 +306,21 @@
 						<div [class]="battleSetupRowClasses(creature.id)">
 							<div>
 								<div class="flex flex-wrap items-center gap-2">
-									<div class="font-semibold">{{ creature.name }}</div>
-									<span
-										class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold"
-										[class]="sideBadgeClasses(modal.sides[creature.id] || 'enemy')"
-									>
+									<div class="font-semibold text-app-text">{{ creature.name }}</div>
+									<span class="app-status border" [class]="sideBadgeClasses(modal.sides[creature.id] || 'enemy')">
 										<span class="h-2 w-2 rounded-full bg-current opacity-80"></span>
 										{{ sideLabel(modal.sides[creature.id] || 'enemy') }}
 									</span>
 								</div>
-								<div class="text-sm opacity-70">
-									HP {{ creature.maxHealthPoints }} · CA {{ creature.armorClass || '-' }}
-								</div>
+								<div class="mt-1 text-sm text-app-muted">HP {{ creature.maxHealthPoints }} · CA {{ creature.armorClass || '-' }}</div>
 								@if (battleSetupTieLabel(creature.id); as tieLabel) {
-									<span
-										[class]="battleSetupTieBadgeClasses(creature.id)"
-									>
-										{{ tieLabel }}
-									</span>
+									<span [class]="battleSetupTieBadgeClasses(creature.id)">{{ tieLabel }}</span>
 								}
 							</div>
 
-							<label class="text-sm">
-								<span class="mb-1 block opacity-70">Lado</span>
-								<select
-									class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-									[ngModel]="modal.sides[creature.id] || 'enemy'"
-									(ngModelChange)="setBattleSetupSide(creature.id, $event)"
-								>
+							<label class="text-sm text-app-muted">
+								<span class="mb-1 block">Lado</span>
+								<select class="app-field w-full cursor-pointer px-3 py-2" [ngModel]="modal.sides[creature.id] || 'enemy'" (ngModelChange)="setBattleSetupSide(creature.id, $event)">
 									<option value="player">Jogador</option>
 									<option value="ally">Aliado</option>
 									<option value="enemy">Inimigo</option>
@@ -417,26 +328,15 @@
 								</select>
 							</label>
 
-							<label class="text-sm">
-								<span class="mb-1 block opacity-70">Iniciativa</span>
-								<input
-									type="number"
-									class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-									[ngModel]="modal.initiatives[creature.id]"
-									(ngModelChange)="setBattleSetupInitiative(creature.id, $event)"
-								/>
+							<label class="text-sm text-app-muted">
+								<span class="mb-1 block">Iniciativa</span>
+								<input type="number" class="app-field w-full px-3 py-2" [ngModel]="modal.initiatives[creature.id]" (ngModelChange)="setBattleSetupInitiative(creature.id, $event)" />
 							</label>
 
 							@if (isBattleSetupInitiativeTied(creature.id)) {
-								<label class="text-sm">
-									<span class="mb-1 block opacity-70">DES (desempate)</span>
-									<input
-										type="number"
-										placeholder="-"
-										[class]="battleSetupTieBreakerInputClasses(creature.id)"
-										[ngModel]="modal.initiativeTieBreakers[creature.id]"
-										(ngModelChange)="setBattleSetupInitiativeTieBreaker(creature.id, $event)"
-									/>
+								<label class="text-sm text-app-muted">
+									<span class="mb-1 block">DES (desempate)</span>
+									<input type="number" placeholder="-" [class]="battleSetupTieBreakerInputClasses(creature.id)" [ngModel]="modal.initiativeTieBreakers[creature.id]" (ngModelChange)="setBattleSetupInitiativeTieBreaker(creature.id, $event)" />
 								</label>
 							}
 						</div>
@@ -445,77 +345,82 @@
 			</div>
 
 			<div class="mt-5 flex flex-wrap justify-end gap-2">
-				<button
-					type="button"
-					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/5 px-4 hover:bg-white/10"
-					(click)="closeBattleSetupModal()"
-				>
-					Cancelar
-				</button>
-
-				<button
-					type="button"
-					class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 font-semibold hover:bg-emerald-500/20"
-					(click)="launchBattleFromSetup()"
-				>
+				<button type="button" class="app-button app-button-ghost" (click)="closeBattleSetupModal()">Cancelar</button>
+				<button type="button" class="app-button app-button-accent" (click)="launchBattleFromSetup()">
 					Abrir Battle Tracker
 				</button>
 			</div>
-		</div>
+		</section>
 	</div>
 }
 
 @if (confirmModal(); as modal) {
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-		<div class="w-full max-w-md rounded-3xl border border-white/10 bg-[#1f1930] p-5 shadow-2xl">
-			<h3 class="text-xl font-semibold">{{ modal.title }}</h3>
-			<p class="mt-2 text-sm opacity-80">{{ modal.description }}</p>
-
-			<div class="mt-5 flex flex-wrap justify-end gap-2">
-				<button
-					type="button"
-					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/5 px-4 hover:bg-white/10"
-					(click)="closeConfirmModal()"
-				>
-					Cancelar
+	<div class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeConfirmModal()">
+		<section id="encounter-confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="encounter-confirmation-title" class="w-full max-w-lg rounded-app-shell border border-app-border bg-app-surface-raised p-5 shadow-app-modal sm:p-6" [class.border-rose-400/30]="modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'" (click)="$event.stopPropagation()">
+			<div class="flex items-start justify-between gap-3">
+				<div class="min-w-0">
+					<div class="text-[11px] font-semibold uppercase tracking-[0.16em]" [class.text-rose-200]="modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'" [class.text-app-subtle]="modal.action === 'new-battle'">
+						@if (modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles') { Ação irreversível } @else { Confirmação necessária }
+					</div>
+					<h3 id="encounter-confirmation-title" class="mt-1 text-xl font-semibold text-app-text">{{ modal.title }}</h3>
+				</div>
+				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" (click)="closeConfirmModal()" aria-label="Fechar confirmação">
+					<svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg>
 				</button>
+			</div>
+			<p class="mt-3 text-sm leading-6 text-app-muted">{{ modal.description }}</p>
+			@if (modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles') {
+				<div class="app-inset mt-4 border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+					Esta ação não pode ser desfeita.
+				</div>
+			}
 
-				<button
-					type="button"
-					class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
-					(click)="confirmNewBattle()"
-				>
+			<div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+				<button type="button" class="app-button app-button-ghost w-full sm:w-auto" (click)="closeConfirmModal()">Cancelar</button>
+				<button type="button" class="app-button w-full sm:w-auto" [class.app-button-danger]="modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'" [class.app-button-secondary]="modal.action === 'new-battle'" (click)="confirmNewBattle()">
 					{{ modal.confirmLabel }}
 				</button>
 			</div>
-		</div>
+		</section>
 	</div>
 }
 
 @if (toast(); as toastMessage) {
-	<div class="fixed right-4 top-4 z-50 pointer-events-none">
+	<div class="pointer-events-none fixed right-4 top-4 z-[55]">
 		<div
-			class="pointer-events-auto max-w-sm rounded-2xl border bg-black/50 px-4 py-3 shadow-lg backdrop-blur"
+			class="app-toast pointer-events-auto max-w-sm border px-4 py-3"
 			[class.border-emerald-400/30]="toastMessage.type === 'success'"
-			[class.bg-emerald-500/10]="toastMessage.type === 'success'"
 			[class.border-red-400/30]="toastMessage.type === 'error'"
-			[class.bg-red-500/10]="toastMessage.type === 'error'"
-			[class.border-yellow-400/30]="toastMessage.type === 'warn'"
-			[class.bg-yellow-500/10]="toastMessage.type === 'warn'"
+			[class.border-amber-400/30]="toastMessage.type === 'warn'"
 			role="status"
 			aria-live="polite"
 		>
-			<div class="flex items-start justify-between gap-3">
-				<div class="text-sm opacity-95">{{ toastMessage.text }}</div>
-
-				<button
-					type="button"
-					class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10"
-					(click)="toast.set(null)"
-					aria-label="Fechar"
-					title="Fechar"
+			<div class="flex items-start gap-3">
+				<div
+					class="app-toast-icon shrink-0"
+					[class.bg-emerald-500/15]="toastMessage.type === 'success'"
+					[class.text-emerald-200]="toastMessage.type === 'success'"
+					[class.bg-red-500/15]="toastMessage.type === 'error'"
+					[class.text-rose-200]="toastMessage.type === 'error'"
+					[class.bg-amber-500/15]="toastMessage.type === 'warn'"
+					[class.text-amber-100]="toastMessage.type === 'warn'"
 				>
-					x
+					@if (toastMessage.type === 'success') {
+						<svg lucideCircleCheck [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					} @else if (toastMessage.type === 'error') {
+						<svg lucideCircleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					} @else {
+						<svg lucideTriangleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					}
+				</div>
+				<div class="min-w-0 flex-1">
+					<div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
+						@if (toastMessage.type === 'success') { Concluído } @else if (toastMessage.type === 'error') { Não foi possível concluir } @else { Atenção }
+					</div>
+					<div class="mt-1 text-sm leading-5 text-app-text">{{ toastMessage.text }}</div>
+				</div>
+				<button type="button" class="app-toast-dismiss shrink-0" (click)="toast.set(null)" aria-label="Fechar mensagem" title="Fechar">
+					<svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg>
 				</button>
 			</div>
 		</div>

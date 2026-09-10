@@ -2,7 +2,10 @@
 
 ## Status
 
-Planejado. Nenhuma fase de redesign foi executada ainda.
+Fases 0, 1 e 2 concluidas. Apos cada fase, revisar e aprovar explicitamente antes de iniciar a proxima.
+
+Padrao aprovado: interface dark operacional, violeta intencional, densidade sem excesso de cards,
+acoes hierarquizadas, responsividade real e preservacao rigorosa da logica.
 
 ## Regras de execucao
 
@@ -128,6 +131,16 @@ As superficies devem ser grafite quase preto com subtom violeta. Violeta deve fi
 - Inputs, selects e textareas com altura, fundo, borda, foco, erro e disabled consistentes.
 - Status usam cor semantica e texto/icone; cor nao sera o unico indicador.
 
+### Modais e alertas
+
+- Todo modal novo ou redesenhado usa superficie elevada, backdrop, `role="dialog"`, titulo associado,
+  fechamento visivel com `app-modal-close` e `Escape`.
+- Confirmacoes destrutivas usam variante vermelha, contexto de irreversibilidade e acao primaria explicita.
+- Notificacoes temporarias usam `app-toast`: icone semantico, titulo de estado, mensagem, fechamento e
+  `role="status"` com `aria-live="polite"`.
+- As receitas de modal e alerta sao obrigatorias em toda pagina redesenhada; telas legadas sao migradas quando
+  entrarem em sua fase, sem refatoracao visual global fora do escopo aprovado.
+
 ## Reuso Planejado
 
 | Receita ou componente | Motivo | Onde usar |
@@ -137,6 +150,7 @@ As superficies devem ser grafite quase preto com subtom violeta. Violeta deve fi
 | Receita de campo | Formularios e buscas recorrentes | Hub, builders, calendario e 5etools |
 | Receita de status | Estados recorrentes | Hub, Battle Tracker, fichas e 5etools |
 | Receita de modal | Backdrop, superficie e acoes repetidos | Migracao incremental por familia de modal |
+| Receita de alerta | Feedback temporario semantico e escaneavel | Todas as paginas migradas |
 | Receita de header de pagina/secao | Titulos, descricao e toolbar recorrentes | Paginas alteradas em fases futuras |
 
 Nao criar inicialmente `Card`, `CardHeader`, `CardBody`, `CardFooter` ou variacoes semelhantes.
@@ -154,7 +168,7 @@ Resultado:
 
 ### Fase 1 - Foundation, Header, Shell e Sidebar
 
-Status: aguardando aprovacao.
+Status: concluida e aprovada.
 
 Objetivo:
 
@@ -210,6 +224,8 @@ Testes:
 - revisao manual em 360px, 768px e desktop amplo
 
 ### Fase 2 - Dashboard / Encounter Hub
+
+Status: concluida, aguardando aprovacao visual.
 
 Objetivo: reduzir nested cards e definir hierarquia entre continuar/iniciar batalha, acoes secundarias e acoes destrutivas.
 
