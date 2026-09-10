@@ -44,6 +44,11 @@ describe('Home', () => {
     expect(component).toBeTruthy();
   });
 
+	it('includes Mundo in the Campanha navigation group', () => {
+		const campaign = component.navGroups.find((group) => group.label === 'Campanha');
+		expect(campaign?.links?.map((link) => link.label)).toEqual(['Dashboard', 'Mundo', 'Calendário']);
+	});
+
 	it('reloads the app after applying a confirmed sync', async () => {
 		const reloadSpy = spyOn<any>(component, 'reloadPage');
 		const backup = { exportedAt: '2026-01-01T10:00:00.000Z' } as any;

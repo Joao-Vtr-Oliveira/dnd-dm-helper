@@ -1,0 +1,372 @@
+<section class="mx-auto w-full max-w-[1180px] pb-24 text-white">
+	<header class="border-b border-white/10 pb-6">
+		<div class="text-xs font-semibold uppercase tracking-[0.24em] text-fuchsia-200/70">
+			Campanha
+		</div>
+		<div class="mt-2 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+			<div>
+				<h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">Mundo</h1>
+				<p class="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+					Navegue pelos territórios, localidades e pontos de interesse da campanha.
+				</p>
+			</div>
+			<div class="flex flex-col gap-3 sm:items-end">
+				@if (campaignContext.resolvedCurrentLocation(); as location) {
+					<div class="min-w-0 border-l-2 border-fuchsia-300/70 pl-3 sm:max-w-md">
+						<div class="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">Party</div>
+						<div class="mt-1 break-words text-sm font-semibold text-white">
+							{{ location.breadcrumb.join(' › ') }}
+						</div>
+					</div>
+				} @else {
+					<div class="border-l-2 border-white/25 pl-3 text-sm text-white/65">
+						Posição da party ainda não definida
+					</div>
+				}
+				<button
+					type="button"
+					class="app-action-button w-fit rounded-xl border border-fuchsia-400/30 bg-violet-500/15 text-sm font-semibold hover:bg-violet-500/25"
+					(click)="beginPartyLocationSelection()"
+				>
+					Alterar posição
+				</button>
+			</div>
+		</div>
+	</header>
+
+	@if (campaignWorld.status() === 'loading') {
+		<div class="py-12 text-sm text-white/65">Carregando o mundo da campanha...</div>
+	} @else if (campaignWorld.status() === 'error') {
+		<div class="py-12 text-sm text-amber-100/85">
+			Não foi possível carregar o mundo da campanha.
+		</div>
+	} @else {
+		@if (campaignContext.locationError(); as error) {
+			<div
+				class="flex flex-col gap-3 border-b border-amber-200/25 py-4 text-sm text-amber-100/90 sm:flex-row sm:items-center sm:justify-between"
+			>
+				<span>{{ error }}</span>
+				<button
+					type="button"
+					class="app-action-button w-fit rounded-xl border border-white/15 bg-white/5 text-sm hover:bg-white/10"
+					(click)="clearPartyLocation()"
+				>
+					Limpar posição
+				</button>
+			</div>
+		}
+
+		@if (positionMessage(); as message) {
+			<div class="border-b border-emerald-200/20 py-3 text-sm text-emerald-100" role="status">
+				{{ message }}
+			</div>
+		}
+
+		<div class="mt-6">
+			<div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+				<div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+					<label
+						class="block min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/45"
+						for="world-search"
+					>
+						{{ isChoosingPartyLocation() ? 'Nova posição da party' : 'Busca global' }}
+						<input
+							id="world-search"
+							type="search"
+							class="mt-2 h-11 w-full rounded-xl border border-white/15 bg-black/20 px-3 text-sm font-normal text-white placeholder:text-white/40"
+							placeholder="Império, estado, localidade ou ponto de interesse..."
+							[ngModel]="searchQuery()"
+							(ngModelChange)="searchQuery.set($event)"
+						/>
+					</label>
+					@if (isChoosingPartyLocation()) {
+						<button
+							type="button"
+							class="app-action-button w-fit rounded-xl border border-white/15 bg-white/5 text-sm hover:bg-white/10"
+							(click)="cancelPartyLocationSelection()"
+						>
+							Cancelar
+						</button>
+					}
+				</div>
+				@if (isChoosingPartyLocation()) {
+					<p class="mt-3 text-sm text-white/60">
+						Escolha um império, estado ou localidade nos resultados. Pontos de interesse não podem
+						ser posição da party.
+					</p>
+				}
+
+				@if (searchQuery()) {
+					<div class="mt-4 grid gap-4 border-t border-white/10 pt-4 lg:grid-cols-2">
+						<div>
+							<div class="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">
+								Localizações
+							</div>
+							@if (locationSearchResults().length) {
+								<div class="mt-2 space-y-1">
+									@for (
+										result of locationSearchResults();
+										track result.ref.scopeType + result.ref.scopeId
+									) {
+										<button
+											type="button"
+											class="block w-full rounded-xl px-3 py-2 text-left transition hover:bg-white/8 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
+											(click)="selectSearchResult(result)"
+										>
+											<div class="truncate text-sm font-semibold text-white">
+												{{ isChoosingPartyLocation() ? 'Definir: ' : '' }}{{ result.label }}
+											</div>
+											<div class="truncate text-xs text-white/55">
+												{{ locationTypeLabel(result.ref) }} · {{ result.breadcrumb.join(' › ') }}
+											</div>
+										</button>
+									}
+								</div>
+							} @else {
+								<p class="mt-2 px-3 py-2 text-sm text-white/55">Nenhuma localização encontrada.</p>
+							}
+						</div>
+
+						@if (!isChoosingPartyLocation()) {
+							<div>
+								<div class="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">
+									Pontos de interesse
+								</div>
+								@if (pointOfInterestSearchResults().length) {
+									<div class="mt-2 space-y-1">
+										@for (
+											result of pointOfInterestSearchResults();
+											track result.pointOfInterest.id
+										) {
+											<button
+												type="button"
+												class="block w-full rounded-xl px-3 py-2 text-left transition hover:bg-white/8 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
+												(click)="selectPointOfInterestSearchResult(result)"
+											>
+												<div class="truncate text-sm font-semibold text-white">
+													{{ result.label }}
+												</div>
+												<div class="truncate text-xs text-white/55">
+													{{ pointOfInterestTypeLabel(result.pointOfInterest.poiType) }} ·
+													{{ result.breadcrumb.join(' › ') }}
+												</div>
+											</button>
+										}
+									</div>
+								} @else {
+									<p class="mt-2 px-3 py-2 text-sm text-white/55">
+										Nenhum ponto de interesse encontrado.
+									</p>
+								}
+							</div>
+						}
+					</div>
+				}
+			</div>
+
+			<section class="mt-8 min-w-0" aria-live="polite">
+				<nav
+					class="flex flex-wrap items-center gap-x-1 gap-y-2 text-xs text-white/55"
+					aria-label="Navegação do mundo"
+				>
+					<button
+						type="button"
+						class="rounded px-1 py-0.5 hover:text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
+						[class.text-white]="selectedLocation() === null"
+						(click)="selectRoot()"
+					>
+						Impérios
+					</button>
+					@if (selectedResolvedLocation(); as location) {
+						<span>›</span>
+						@if (location.ref.scopeType === 'empire') {
+							<span class="px-1 py-0.5 text-white">{{ location.empire!.name }}</span>
+						} @else {
+							<button
+								type="button"
+								class="rounded px-1 py-0.5 hover:text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
+								(click)="selectBreadcrumb('empire', location.empire!.id)"
+							>
+								{{ location.empire!.name }}
+							</button>
+							<span>›</span>
+							@if (location.ref.scopeType === 'state') {
+								<span class="px-1 py-0.5 text-white">{{ location.state!.name }}</span>
+							} @else {
+								<button
+									type="button"
+									class="rounded px-1 py-0.5 hover:text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
+									(click)="selectBreadcrumb('state', location.state!.id)"
+								>
+									{{ location.state!.name }}
+								</button>
+								<span>›</span>
+								<span class="px-1 py-0.5 text-white">{{ location.settlement!.name }}</span>
+							}
+						}
+					}
+				</nav>
+
+				@if (selectedResolvedLocation(); as location) {
+					<div
+						class="mt-4 flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-start sm:justify-between"
+					>
+						<div>
+							<button
+								type="button"
+								class="text-sm text-white/55 hover:text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
+								(click)="goBack()"
+							>
+								‹ Voltar
+							</button>
+							<h2 class="mt-3 text-3xl font-semibold tracking-tight">{{ location.label }}</h2>
+							<div class="mt-2 text-sm text-white/65">{{ locationTypeLabel(location.ref) }}</div>
+						</div>
+						<div class="app-action-group shrink-0">
+							@if (isCurrentPartyLocation(location.ref)) {
+								<span
+									class="app-action-button rounded-xl border border-fuchsia-300/30 bg-violet-500/15 text-sm font-semibold text-fuchsia-50"
+									>Party atualmente aqui</span
+								>
+							} @else {
+								<button
+									type="button"
+									class="app-action-button rounded-xl border border-fuchsia-400/30 bg-violet-500/15 text-sm font-semibold hover:bg-violet-500/25"
+									(click)="setPartyHere()"
+								>
+									Definir party aqui
+								</button>
+							}
+						</div>
+					</div>
+				}
+
+				@if (selectedLocation() === null) {
+					<div class="mt-6">
+						<h2 class="text-xl font-semibold">Impérios</h2>
+						<p class="mt-1 text-sm text-white/60">Escolha um império para explorar seus estados.</p>
+						@if ((campaignWorld.world()?.empires ?? []).length) {
+							<div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+								@for (empire of campaignWorld.world()?.empires ?? []; track empire.id) {
+									<button
+										type="button"
+										class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-fuchsia-300/40 hover:bg-violet-500/10 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
+										(click)="selectLocation({ scopeType: 'empire', scopeId: empire.id })"
+									>
+										<div class="font-semibold text-white">{{ empire.name }}</div>
+										<div class="mt-2 text-sm text-white/55">
+											{{ campaignWorld.getStatesByEmpire(empire.id).length }} estados
+										</div>
+									</button>
+								}
+							</div>
+						} @else {
+							<p class="mt-4 text-sm text-white/55">Nenhum império catalogado ainda.</p>
+						}
+					</div>
+				} @else if (selectedResolvedLocation(); as location) {
+					@if (location.ref.scopeType === 'empire') {
+						<div class="mt-6">
+							<h3 class="text-xl font-semibold">Estados</h3>
+							@if (campaignWorld.getStatesByEmpire(location.ref.scopeId).length) {
+								<div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+									@for (
+										state of campaignWorld.getStatesByEmpire(location.ref.scopeId);
+										track state.id
+									) {
+										<button
+											type="button"
+											class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-fuchsia-300/40 hover:bg-violet-500/10 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
+											(click)="selectLocation({ scopeType: 'state', scopeId: state.id })"
+										>
+											<div class="font-semibold text-white">{{ state.name }}</div>
+											<div class="mt-2 text-sm text-white/55">
+												{{ campaignWorld.getSettlementsByState(state.id).length }} localidades
+											</div>
+										</button>
+									}
+								</div>
+							} @else {
+								<p class="mt-4 text-sm text-white/55">
+									Nenhum Estado catalogado neste Império ainda.
+								</p>
+							}
+						</div>
+					}
+
+					@if (location.ref.scopeType === 'state') {
+						<div class="mt-6">
+							<h3 class="text-xl font-semibold">Localidades</h3>
+							@if (campaignWorld.getSettlementsByState(location.ref.scopeId).length) {
+								<div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+									@for (
+										settlement of campaignWorld.getSettlementsByState(location.ref.scopeId);
+										track settlement.id
+									) {
+										<button
+											type="button"
+											class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-fuchsia-300/40 hover:bg-violet-500/10 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
+											(click)="selectLocation({ scopeType: 'settlement', scopeId: settlement.id })"
+										>
+											<div class="font-semibold text-white">{{ settlement.name }}</div>
+											<div class="mt-2 text-sm text-white/55">
+												{{ settlementTypeLabels[settlement.settlementType] }} ·
+												{{ campaignWorld.getPointsOfInterestBySettlement(settlement.id).length }}
+												POIs
+											</div>
+										</button>
+									}
+								</div>
+							} @else {
+								<p class="mt-4 text-sm text-white/55">
+									Nenhuma localidade catalogada neste Estado ainda.
+								</p>
+							}
+						</div>
+					}
+
+					@if (location.ref.scopeType === 'settlement') {
+						<div class="mt-6">
+							<h3 class="text-xl font-semibold">Pontos de interesse</h3>
+							@if (campaignWorld.getPointsOfInterestBySettlement(location.ref.scopeId).length) {
+								<div class="mt-4 divide-y divide-white/10 border-y border-white/10">
+									@for (
+										pointOfInterest of campaignWorld.getPointsOfInterestBySettlement(
+											location.ref.scopeId
+										);
+										track pointOfInterest.id
+									) {
+										<article
+											[id]="'poi-' + pointOfInterest.id"
+											class="-mx-3 px-4 py-4 transition"
+											[class.bg-violet-500/10]="
+												highlightedPointOfInterestId() === pointOfInterest.id
+											"
+										>
+											<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+												<h4 class="font-semibold text-white">{{ pointOfInterest.name }}</h4>
+												<span
+													class="text-xs font-semibold uppercase tracking-[0.14em] text-fuchsia-100/70"
+													>{{ pointOfInterestTypeLabel(pointOfInterest.poiType) }}</span
+												>
+											</div>
+											@if (pointOfInterest.summary) {
+												<p class="mt-2 max-w-3xl text-sm leading-6 text-white/65">
+													{{ pointOfInterest.summary }}
+												</p>
+											}
+										</article>
+									}
+								</div>
+							} @else {
+								<p class="mt-4 text-sm text-white/55">
+									Nenhum ponto de interesse catalogado nesta localidade ainda.
+								</p>
+							}
+						</div>
+					}
+				}
+			</section>
+		</div>
+	}
+</section>

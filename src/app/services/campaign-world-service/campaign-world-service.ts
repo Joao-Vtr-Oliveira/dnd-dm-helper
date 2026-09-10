@@ -3,14 +3,19 @@ import { Injectable, inject, signal } from '@angular/core';
 import {
 	type CampaignEmpire,
 	type CampaignLocationRef,
+	type CampaignLocationSearchResult,
 	type CampaignOrganization,
 	type CampaignOrganizationPresence,
+	type CampaignPointOfInterest,
+	type CampaignPointOfInterestSearchResult,
 	type CampaignSettlement,
 	type CampaignState,
 	type CampaignWorld,
 	type CampaignWorldScopeType,
 	type ResolvedCampaignLocation,
+	type RelevantCampaignOrganization,
 	SETTLEMENT_TYPE_LABELS,
+	normalizeCampaignWorldSearchText,
 	validateCampaignWorld,
 } from '../../models/campaign-world-model';
 
@@ -23,8 +28,10 @@ export class CampaignWorldService {
 	private statesById = new Map<string, CampaignState>();
 	private settlementsById = new Map<string, CampaignSettlement>();
 	private organizationsById = new Map<string, CampaignOrganization>();
+	private pointsOfInterestById = new Map<string, CampaignPointOfInterest>();
 	private statesByEmpireId = new Map<string, CampaignState[]>();
 	private settlementsByStateId = new Map<string, CampaignSettlement[]>();
+	private pointsOfInterestBySettlementId = new Map<string, CampaignPointOfInterest[]>();
 	private organizationsByScope = new Map<string, CampaignOrganization[]>();
 
 	readonly world = signal<CampaignWorld | null>(null);
@@ -69,6 +76,10 @@ export class CampaignWorldService {
 		return this.organizationsById.get(id) ?? null;
 	}
 
+	getPointOfInterest(id: string): CampaignPointOfInterest | null {
+		return this.pointsOfInterestById.get(id) ?? null;
+	}
+
 	getStatesByEmpire(empireId: string): CampaignState[] {
 		return this.statesByEmpireId.get(empireId) ?? [];
 	}
@@ -77,22 +88,130 @@ export class CampaignWorldService {
 		return this.settlementsByStateId.get(stateId) ?? [];
 	}
 
-	getOrganizationsByScope(scope: Pick<CampaignOrganizationPresence, 'scopeType' | 'scopeId'>): CampaignOrganization[] {
+	getPointsOfInterestBySettlement(settlementId: string): CampaignPointOfInterest[] {
+		return this.pointsOfInterestBySettlementId.get(settlementId) ?? [];
+	}
+
+	getOrganizationsByScope(
+		scope: Pick<CampaignOrganizationPresence, 'scopeType' | 'scopeId'>,
+	): CampaignOrganization[] {
 		return this.organizationsByScope.get(this.scopeKey(scope.scopeType, scope.scopeId)) ?? [];
+	}
+
+	searchLocations(query: string): CampaignLocationSearchResult[] {
+		const normalizedQuery = normalizeCampaignWorldSearchText(query);
+		if (!normalizedQuery) return [];
+		const results: CampaignLocationSearchResult[] = [];
+		for (const [items, scopeType] of [
+			[this.world()?.empires ?? [], 'empire'],
+			[this.world()?.states ?? [], 'state'],
+			[this.world()?.settlements ?? [], 'settlement'],
+		] as const) {
+			for (const entity of items) {
+				if (!this.matchesLocationSearch(entity, normalizedQuery)) continue;
+				const ref: CampaignLocationRef = { scopeType, scopeId: entity.id };
+				const resolved = this.resolveLocation(ref);
+				if (!resolved) continue;
+				results.push({
+					ref,
+					entity,
+					entityType: scopeType,
+					label: resolved.label,
+					breadcrumb: resolved.breadcrumb,
+				});
+			}
+		}
+		return results.sort((left, right) => left.label.localeCompare(right.label));
+	}
+
+	searchPointsOfInterest(query: string): CampaignPointOfInterestSearchResult[] {
+		const normalizedQuery = normalizeCampaignWorldSearchText(query);
+		if (!normalizedQuery) return [];
+		const results: CampaignPointOfInterestSearchResult[] = [];
+		for (const pointOfInterest of this.world()?.pointsOfInterest ?? []) {
+			if (!this.matchesLocationSearch(pointOfInterest, normalizedQuery)) continue;
+			const settlement = this.getSettlement(pointOfInterest.settlementId);
+			const state = settlement && this.getState(settlement.stateId);
+			const empire = state && this.getEmpire(state.empireId);
+			if (!settlement || !state || !empire) continue;
+			const resolvedSettlement = this.resolveLocation({
+				scopeType: 'settlement',
+				scopeId: settlement.id,
+			});
+			if (!resolvedSettlement) continue;
+			results.push({
+				pointOfInterest,
+				settlement,
+				state,
+				empire,
+				label: pointOfInterest.name,
+				breadcrumb: resolvedSettlement.breadcrumb,
+			});
+		}
+		return results.sort(
+			(left, right) =>
+				left.label.localeCompare(right.label) ||
+				left.breadcrumb.join('\u0000').localeCompare(right.breadcrumb.join('\u0000')),
+		);
+	}
+
+	getRelevantOrganizations(ref: CampaignLocationRef): RelevantCampaignOrganization[] {
+		const resolved = this.resolveLocation(ref);
+		if (!resolved) return [];
+		const directKey = this.scopeKey(ref.scopeType, ref.scopeId);
+		const broaderKeys = [this.scopeKey('global')];
+		if (resolved.empire && ref.scopeType !== 'empire') {
+			broaderKeys.push(this.scopeKey('empire', resolved.empire.id));
+		}
+		if (resolved.state && ref.scopeType === 'settlement') {
+			broaderKeys.push(this.scopeKey('state', resolved.state.id));
+		}
+		const relevantKeys = new Set([directKey, ...broaderKeys]);
+		return (this.world()?.organizations ?? [])
+			.map((organization) => {
+				const relevant = organization.presence.filter((presence) =>
+					relevantKeys.has(this.scopeKey(presence.scopeType, presence.scopeId)),
+				);
+				return {
+					organization,
+					directPresences: relevant.filter(
+						(presence) => this.scopeKey(presence.scopeType, presence.scopeId) === directKey,
+					),
+					broaderPresences: relevant.filter(
+						(presence) => this.scopeKey(presence.scopeType, presence.scopeId) !== directKey,
+					),
+				};
+			})
+			.filter((item) => item.directPresences.length || item.broaderPresences.length)
+			.sort((left, right) => left.organization.name.localeCompare(right.organization.name));
 	}
 
 	resolveLocation(ref: CampaignLocationRef): ResolvedCampaignLocation | null {
 		if (ref.scopeType === 'empire') {
 			const empire = this.getEmpire(ref.scopeId);
 			if (!empire) return null;
-			return { ref, empire, state: null, settlement: null, label: empire.name, breadcrumb: [empire.name] };
+			return {
+				ref,
+				empire,
+				state: null,
+				settlement: null,
+				label: empire.name,
+				breadcrumb: [empire.name],
+			};
 		}
 		if (ref.scopeType === 'state') {
 			const state = this.getState(ref.scopeId);
 			if (!state) return null;
 			const empire = this.getEmpire(state.empireId);
 			if (!empire) return null;
-			return { ref, empire, state, settlement: null, label: state.name, breadcrumb: [empire.name, state.name] };
+			return {
+				ref,
+				empire,
+				state,
+				settlement: null,
+				label: state.name,
+				breadcrumb: [empire.name, state.name],
+			};
 		}
 		const settlement = this.getSettlement(ref.scopeId);
 		if (!settlement) return null;
@@ -117,8 +236,10 @@ export class CampaignWorldService {
 		this.statesById.clear();
 		this.settlementsById.clear();
 		this.organizationsById.clear();
+		this.pointsOfInterestById.clear();
 		this.statesByEmpireId.clear();
 		this.settlementsByStateId.clear();
+		this.pointsOfInterestBySettlementId.clear();
 		this.organizationsByScope.clear();
 		this.world.set(null);
 		this.error.set(error);
@@ -130,13 +251,21 @@ export class CampaignWorldService {
 		this.statesById = new Map(world.states.map((item) => [item.id, item]));
 		this.settlementsById = new Map(world.settlements.map((item) => [item.id, item]));
 		this.organizationsById = new Map(world.organizations.map((item) => [item.id, item]));
+		this.pointsOfInterestById = new Map(world.pointsOfInterest.map((item) => [item.id, item]));
 		this.statesByEmpireId = this.groupBy(world.states, (item) => item.empireId);
 		this.settlementsByStateId = this.groupBy(world.settlements, (item) => item.stateId);
+		this.pointsOfInterestBySettlementId = this.groupBy(
+			world.pointsOfInterest,
+			(item) => item.settlementId,
+		);
 		this.organizationsByScope = new Map();
 		for (const organization of world.organizations) {
 			for (const presence of organization.presence) {
 				const key = this.scopeKey(presence.scopeType, presence.scopeId);
-				this.organizationsByScope.set(key, [...(this.organizationsByScope.get(key) ?? []), organization]);
+				this.organizationsByScope.set(key, [
+					...(this.organizationsByScope.get(key) ?? []),
+					organization,
+				]);
 			}
 		}
 	}
@@ -152,5 +281,14 @@ export class CampaignWorldService {
 
 	private scopeKey(scopeType: CampaignWorldScopeType, scopeId?: string): string {
 		return `${scopeType}:${scopeId ?? ''}`;
+	}
+
+	private matchesLocationSearch(
+		entity: Pick<CampaignEmpire, 'name' | 'aliases'>,
+		normalizedQuery: string,
+	): boolean {
+		return [entity.name, ...entity.aliases].some((value) =>
+			normalizeCampaignWorldSearchText(value).includes(normalizedQuery),
+		);
 	}
 }

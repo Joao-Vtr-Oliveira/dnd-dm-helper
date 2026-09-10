@@ -38,9 +38,27 @@ describe('CampaignClock', () => {
 				{ id: 'mornk', name: 'Mornk', aliases: [], sourcePath: 'Mornk.md' },
 				{ id: 'komic', name: 'Komic', aliases: [], sourcePath: 'Komic.md' },
 			],
-			states: [{ id: 'nagazav', name: 'Nagazav', empireId: 'mornk', aliases: [], sourcePath: 'Nagazav.md' }],
-			settlements: [{ id: 'nagawoods', name: 'Nagawoods', stateId: 'nagazav', settlementType: 'village', aliases: [], sourcePath: 'Nagawoods.md' }],
+			states: [
+				{
+					id: 'nagazav',
+					name: 'Nagazav',
+					empireId: 'mornk',
+					aliases: [],
+					sourcePath: 'Nagazav.md',
+				},
+			],
+			settlements: [
+				{
+					id: 'nagawoods',
+					name: 'Nagawoods',
+					stateId: 'nagazav',
+					settlementType: 'village',
+					aliases: [],
+					sourcePath: 'Nagawoods.md',
+				},
+			],
 			organizations: [],
+			pointsOfInterest: [],
 		});
 		fixture.detectChanges();
 	});
@@ -112,35 +130,37 @@ describe('CampaignClock', () => {
 		expect(component.isOpen()).toBeFalse();
 	});
 
-	it('filters and clears hierarchical location selections before applying the most specific ref', () => {
+	it('finds locations in one search and updates the shared campaign context', () => {
 		component.beginLocationEdit();
-		component.selectEmpire('mornk');
-		expect(component.availableStates().map((state) => state.id)).toEqual(['nagazav']);
-		component.selectState('nagazav');
-		expect(component.availableSettlements().map((settlement) => settlement.id)).toEqual(['nagawoods']);
-		component.selectSettlement('nagawoods');
-		component.applyLocation();
-		expect(campaignContext.currentLocationRef()).toEqual({ scopeType: 'settlement', scopeId: 'nagawoods' });
-
-		component.beginLocationEdit();
-		component.selectEmpire('komic');
-		expect(component.selectedStateId()).toBe('');
-		expect(component.selectedSettlementId()).toBe('');
-		component.applyLocation();
-		expect(campaignContext.currentLocationRef()).toEqual({ scopeType: 'empire', scopeId: 'komic' });
+		component.locationSearchQuery.set('naga');
+		expect(component.locationSearchResults().map((result) => result.label)).toEqual([
+			'Nagawoods',
+			'Nagazav',
+		]);
+		component.setLocationFromSearch({ scopeType: 'settlement', scopeId: 'nagawoods' });
+		expect(campaignContext.currentLocationRef()).toEqual({
+			scopeType: 'settlement',
+			scopeId: 'nagawoods',
+		});
 	});
 
-	it('applies empire-only and state-only locations', () => {
-		component.beginLocationEdit();
-		component.selectEmpire('mornk');
-		component.applyLocation();
-		expect(campaignContext.currentLocationRef()).toEqual({ scopeType: 'empire', scopeId: 'mornk' });
+	it('can set empire and state locations directly from search results', () => {
+		component.setLocationFromSearch({ scopeType: 'empire', scopeId: 'komic' });
+		expect(campaignContext.currentLocationRef()).toEqual({ scopeType: 'empire', scopeId: 'komic' });
+		component.setLocationFromSearch({ scopeType: 'state', scopeId: 'nagazav' });
+		expect(campaignContext.currentLocationRef()).toEqual({
+			scopeType: 'state',
+			scopeId: 'nagazav',
+		});
+	});
 
-		component.beginLocationEdit();
-		component.selectEmpire('mornk');
-		component.selectState('nagazav');
-		component.applyLocation();
-		expect(campaignContext.currentLocationRef()).toEqual({ scopeType: 'state', scopeId: 'nagazav' });
+	it('opens the world explorer from location search', () => {
+		const router = TestBed.inject(Router);
+		const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+		component.open();
+		component.openWorld();
+		expect(component.isOpen()).toBeFalse();
+		expect(navigate).toHaveBeenCalledWith(['/home/world']);
 	});
 
 	it('renders current location, neutral state, recovery message, and compact trigger classes', () => {
@@ -153,6 +173,8 @@ describe('CampaignClock', () => {
 		fixture.detectChanges();
 		const trigger = fixture.nativeElement.querySelector('button');
 		expect(trigger.className).toContain('max-w-[calc(100vw-2rem)]');
-		expect(fixture.nativeElement.textContent).toContain('Posição salva não encontrada no catálogo atual.');
+		expect(fixture.nativeElement.textContent).toContain(
+			'Posição salva não encontrada no catálogo atual.',
+		);
 	});
 });

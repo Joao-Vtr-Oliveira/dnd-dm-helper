@@ -21,7 +21,11 @@ describe('AppBackupService', () => {
 		localStorage.clear();
 		sessionStorage.clear();
 		TestBed.configureTestingModule({
-			providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()],
+			providers: [
+				provideZonelessChangeDetection(),
+				provideHttpClient(),
+				provideHttpClientTesting(),
+			],
 		});
 		service = TestBed.inject(AppBackupService);
 		localStorageService = TestBed.inject(LocalStorageService);
@@ -35,6 +39,7 @@ describe('AppBackupService', () => {
 			states: [],
 			settlements: [],
 			organizations: [],
+			pointsOfInterest: [],
 		});
 	});
 
@@ -200,12 +205,19 @@ describe('AppBackupService', () => {
 		});
 
 		service.createSafetyBackupBeforeSync();
-		const safetyBackup = JSON.parse(localStorage.getItem(APP_STORAGE_KEYS.safetyBackupBeforeSync) ?? '{}');
+		const safetyBackup = JSON.parse(
+			localStorage.getItem(APP_STORAGE_KEYS.safetyBackupBeforeSync) ?? '{}',
+		);
 		expect(safetyBackup.data.campaignContext.currentLocation.scopeId).toBe('mornk');
 
-		backup.data.campaignContext = { currentLocation: { scopeType: 'empire', scopeId: 'old-mornk' } };
+		backup.data.campaignContext = {
+			currentLocation: { scopeType: 'empire', scopeId: 'old-mornk' },
+		};
 		service.applyBackup(backup);
-		expect(campaignContext.currentLocationRef()).toEqual({ scopeType: 'empire', scopeId: 'old-mornk' });
+		expect(campaignContext.currentLocationRef()).toEqual({
+			scopeType: 'empire',
+			scopeId: 'old-mornk',
+		});
 		expect(campaignContext.locationError()).toContain('não encontrada');
 	});
 

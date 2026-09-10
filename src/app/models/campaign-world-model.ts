@@ -1,5 +1,21 @@
 export type CampaignSettlementType = 'village' | 'city' | 'capital' | 'other';
 export type CampaignOrganizationType = 'guild' | 'group' | 'cult' | 'family';
+export type CampaignPointOfInterestType =
+	| 'academy'
+	| 'district'
+	| 'government'
+	| 'inn'
+	| 'landmark'
+	| 'market'
+	| 'natural'
+	| 'organization'
+	| 'other'
+	| 'port'
+	| 'residence'
+	| 'shop'
+	| 'tavern'
+	| 'temple'
+	| 'workshop';
 export type CampaignWorldScopeType = 'global' | 'empire' | 'state' | 'settlement';
 export type CampaignLocationScope = Exclude<CampaignWorldScopeType, 'global'>;
 
@@ -31,12 +47,20 @@ export interface CampaignOrganization extends CampaignEmpire {
 	presence: CampaignOrganizationPresence[];
 }
 
+export interface CampaignPointOfInterest extends CampaignEmpire {
+	settlementId: string;
+	poiType: CampaignPointOfInterestType;
+	summary?: string;
+	organizationIds?: string[];
+}
+
 export interface CampaignWorld {
 	schemaVersion: 1;
 	empires: CampaignEmpire[];
 	states: CampaignState[];
 	settlements: CampaignSettlement[];
 	organizations: CampaignOrganization[];
+	pointsOfInterest: CampaignPointOfInterest[];
 }
 
 export interface CampaignLocationRef {
@@ -53,12 +77,63 @@ export interface ResolvedCampaignLocation {
 	breadcrumb: string[];
 }
 
+export type CampaignWorldLocationEntity = CampaignEmpire | CampaignState | CampaignSettlement;
+
+export interface CampaignLocationSearchResult {
+	ref: CampaignLocationRef;
+	entity: CampaignWorldLocationEntity;
+	entityType: CampaignLocationScope;
+	label: string;
+	breadcrumb: string[];
+}
+
+export interface CampaignPointOfInterestSearchResult {
+	pointOfInterest: CampaignPointOfInterest;
+	settlement: CampaignSettlement;
+	state: CampaignState;
+	empire: CampaignEmpire;
+	label: string;
+	breadcrumb: string[];
+}
+
+export interface RelevantCampaignOrganization {
+	organization: CampaignOrganization;
+	directPresences: CampaignOrganizationPresence[];
+	broaderPresences: CampaignOrganizationPresence[];
+}
+
 export const SETTLEMENT_TYPE_LABELS: Record<CampaignSettlementType, string> = {
 	village: 'Vila',
 	city: 'Cidade',
 	capital: 'Capital',
 	other: 'Localidade',
 };
+
+export const POINT_OF_INTEREST_TYPE_LABELS: Record<CampaignPointOfInterestType, string> = {
+	academy: 'Academia',
+	district: 'Distrito',
+	government: 'Governo',
+	inn: 'Estalagem',
+	landmark: 'Marco',
+	market: 'Mercado',
+	natural: 'Natural',
+	organization: 'Organização',
+	other: 'Outro',
+	port: 'Porto',
+	residence: 'Residência',
+	shop: 'Loja',
+	tavern: 'Taverna',
+	temple: 'Templo',
+	workshop: 'Oficina',
+};
+
+export function normalizeCampaignWorldSearchText(value: string): string {
+	return value
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLocaleLowerCase()
+		.trim();
+}
 
 export interface CampaignWorldValidationResult {
 	valid: boolean;
@@ -68,6 +143,23 @@ export interface CampaignWorldValidationResult {
 
 const SETTLEMENT_TYPES: CampaignSettlementType[] = ['village', 'city', 'capital', 'other'];
 const ORGANIZATION_TYPES: CampaignOrganizationType[] = ['guild', 'group', 'cult', 'family'];
+const POINT_OF_INTEREST_TYPES: CampaignPointOfInterestType[] = [
+	'academy',
+	'district',
+	'government',
+	'inn',
+	'landmark',
+	'market',
+	'natural',
+	'organization',
+	'other',
+	'port',
+	'residence',
+	'shop',
+	'tavern',
+	'temple',
+	'workshop',
+];
 const WORLD_SCOPE_TYPES: CampaignWorldScopeType[] = ['global', 'empire', 'state', 'settlement'];
 
 interface UnknownCampaignRecord {
@@ -76,14 +168,19 @@ interface UnknownCampaignRecord {
 	states?: unknown;
 	settlements?: unknown;
 	organizations?: unknown;
+	pointsOfInterest?: unknown;
 	id?: unknown;
 	name?: unknown;
 	aliases?: unknown;
 	sourcePath?: unknown;
 	empireId?: unknown;
 	stateId?: unknown;
+	settlementId?: unknown;
 	settlementType?: unknown;
 	organizationType?: unknown;
+	poiType?: unknown;
+	summary?: unknown;
+	organizationIds?: unknown;
 	parentOrganizationId?: unknown;
 	presence?: unknown;
 	scopeType?: unknown;
@@ -131,7 +228,8 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 		!Array.isArray(raw.empires) ||
 		!Array.isArray(raw.states) ||
 		!Array.isArray(raw.settlements) ||
-		!Array.isArray(raw.organizations)
+		!Array.isArray(raw.organizations) ||
+		!Array.isArray(raw.pointsOfInterest)
 	) {
 		return { valid: false, error: 'Catálogo da campanha possui coleções obrigatórias inválidas.' };
 	}
@@ -164,7 +262,8 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 			!isRecord(organization) ||
 			!ORGANIZATION_TYPES.includes(organization.organizationType as CampaignOrganizationType) ||
 			!Array.isArray(organization.presence) ||
-			(organization.parentOrganizationId !== undefined && !hasText(organization.parentOrganizationId))
+			(organization.parentOrganizationId !== undefined &&
+				!hasText(organization.parentOrganizationId))
 		) {
 			return { valid: false, error: error ?? 'Organização possui campos inválidos.' };
 		}
@@ -180,6 +279,20 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 			}
 		}
 	}
+	for (const pointOfInterest of raw.pointsOfInterest) {
+		const error = validateBaseEntity(pointOfInterest, 'Ponto de interesse');
+		if (
+			error ||
+			!isRecord(pointOfInterest) ||
+			!hasText(pointOfInterest.settlementId) ||
+			!POINT_OF_INTEREST_TYPES.includes(pointOfInterest.poiType as CampaignPointOfInterestType) ||
+			(pointOfInterest.summary !== undefined && !hasText(pointOfInterest.summary)) ||
+			(pointOfInterest.organizationIds !== undefined &&
+				!hasStringArray(pointOfInterest.organizationIds))
+		) {
+			return { valid: false, error: error ?? 'Ponto de interesse possui campos inválidos.' };
+		}
+	}
 
 	const world: CampaignWorld = raw as unknown as CampaignWorld;
 	for (const [items, type] of [
@@ -187,6 +300,7 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 		[world.states, 'estados'],
 		[world.settlements, 'localidades'],
 		[world.organizations, 'organizações'],
+		[world.pointsOfInterest, 'pontos de interesse'],
 	] as const) {
 		const error = validateUniqueIds(items, type);
 		if (error) return { valid: false, error };
@@ -203,11 +317,17 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 	}
 	for (const settlement of world.settlements) {
 		if (!stateIds.has(settlement.stateId)) {
-			return { valid: false, error: `Localidade referencia estado inexistente: ${settlement.stateId}.` };
+			return {
+				valid: false,
+				error: `Localidade referencia estado inexistente: ${settlement.stateId}.`,
+			};
 		}
 	}
 	for (const organization of world.organizations) {
-		if (organization.parentOrganizationId && !organizationIds.has(organization.parentOrganizationId)) {
+		if (
+			organization.parentOrganizationId &&
+			!organizationIds.has(organization.parentOrganizationId)
+		) {
 			return {
 				valid: false,
 				error: `Organização referencia organização pai inexistente: ${organization.parentOrganizationId}.`,
@@ -215,13 +335,38 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 		}
 		for (const presence of organization.presence) {
 			if (presence.scopeType === 'empire' && !empireIds.has(presence.scopeId!)) {
-				return { valid: false, error: `Presença referencia império inexistente: ${presence.scopeId}.` };
+				return {
+					valid: false,
+					error: `Presença referencia império inexistente: ${presence.scopeId}.`,
+				};
 			}
 			if (presence.scopeType === 'state' && !stateIds.has(presence.scopeId!)) {
-				return { valid: false, error: `Presença referencia estado inexistente: ${presence.scopeId}.` };
+				return {
+					valid: false,
+					error: `Presença referencia estado inexistente: ${presence.scopeId}.`,
+				};
 			}
 			if (presence.scopeType === 'settlement' && !settlementIds.has(presence.scopeId!)) {
-				return { valid: false, error: `Presença referencia localidade inexistente: ${presence.scopeId}.` };
+				return {
+					valid: false,
+					error: `Presença referencia localidade inexistente: ${presence.scopeId}.`,
+				};
+			}
+		}
+	}
+	for (const pointOfInterest of world.pointsOfInterest) {
+		if (!settlementIds.has(pointOfInterest.settlementId)) {
+			return {
+				valid: false,
+				error: `Ponto de interesse referencia localidade inexistente: ${pointOfInterest.settlementId}.`,
+			};
+		}
+		for (const organizationId of pointOfInterest.organizationIds ?? []) {
+			if (!organizationIds.has(organizationId)) {
+				return {
+					valid: false,
+					error: `Ponto de interesse referencia organização inexistente: ${organizationId}.`,
+				};
 			}
 		}
 	}

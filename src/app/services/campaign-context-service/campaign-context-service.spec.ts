@@ -8,9 +8,21 @@ import { CampaignContextService } from './campaign-context-service';
 const WORLD = {
 	schemaVersion: 1,
 	empires: [{ id: 'mornk', name: 'Mornk', aliases: [], sourcePath: 'Mornk.md' }],
-	states: [{ id: 'nagazav', name: 'Nagazav', empireId: 'mornk', aliases: [], sourcePath: 'Nagazav.md' }],
-	settlements: [{ id: 'nagawoods', name: 'Nagawoods', stateId: 'nagazav', settlementType: 'village', aliases: [], sourcePath: 'Nagawoods.md' }],
+	states: [
+		{ id: 'nagazav', name: 'Nagazav', empireId: 'mornk', aliases: [], sourcePath: 'Nagazav.md' },
+	],
+	settlements: [
+		{
+			id: 'nagawoods',
+			name: 'Nagawoods',
+			stateId: 'nagazav',
+			settlementType: 'village',
+			aliases: [],
+			sourcePath: 'Nagawoods.md',
+		},
+	],
 	organizations: [],
+	pointsOfInterest: [],
 } as const;
 
 describe('CampaignContextService', () => {
@@ -20,7 +32,11 @@ describe('CampaignContextService', () => {
 	beforeEach(() => {
 		localStorage.clear();
 		TestBed.configureTestingModule({
-			providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()],
+			providers: [
+				provideZonelessChangeDetection(),
+				provideHttpClient(),
+				provideHttpClientTesting(),
+			],
 		});
 		service = TestBed.inject(CampaignContextService);
 		http = TestBed.inject(HttpTestingController);
@@ -37,7 +53,9 @@ describe('CampaignContextService', () => {
 		expect(service.currentState()?.name).toBe('Nagazav');
 		service.setCurrentLocation({ scopeType: 'settlement', scopeId: 'nagawoods' });
 		expect(service.currentSettlement()?.name).toBe('Nagawoods');
-		expect(JSON.parse(localStorage.getItem(APP_STORAGE_KEYS.campaignContext) ?? '{}')).toEqual({ currentLocation: { scopeType: 'settlement', scopeId: 'nagawoods' } });
+		expect(JSON.parse(localStorage.getItem(APP_STORAGE_KEYS.campaignContext) ?? '{}')).toEqual({
+			currentLocation: { scopeType: 'settlement', scopeId: 'nagawoods' },
+		});
 	});
 
 	it('clears the stored location', () => {
@@ -51,21 +69,31 @@ describe('CampaignContextService', () => {
 		localStorage.setItem(APP_STORAGE_KEYS.campaignContext, '{bad');
 		service.reloadFromStorage();
 		expect(service.currentLocationRef()).toBeNull();
-		localStorage.setItem(APP_STORAGE_KEYS.campaignContext, JSON.stringify({ currentLocation: { scopeType: 'world', scopeId: 'mornk' } }));
+		localStorage.setItem(
+			APP_STORAGE_KEYS.campaignContext,
+			JSON.stringify({ currentLocation: { scopeType: 'pointOfInterest', scopeId: 'guildhall' } }),
+		);
 		service.reloadFromStorage();
 		expect(service.currentLocationRef()).toBeNull();
 	});
 
 	it('preserves a removed reference and exposes a recoverable error', () => {
 		service.setCurrentLocation({ scopeType: 'settlement', scopeId: 'old-village' });
-		expect(service.currentLocationRef()).toEqual({ scopeType: 'settlement', scopeId: 'old-village' });
+		expect(service.currentLocationRef()).toEqual({
+			scopeType: 'settlement',
+			scopeId: 'old-village',
+		});
 		expect(service.resolvedCurrentLocation()).toBeNull();
 		expect(service.locationError()).toContain('não encontrada');
 	});
 
 	it('restores supplied state without needing a reload', () => {
 		service.restore({ currentLocation: { scopeType: 'settlement', scopeId: 'nagawoods' } });
-		expect(service.resolvedCurrentLocation()?.breadcrumb).toEqual(['Mornk', 'Nagazav', 'Nagawoods']);
+		expect(service.resolvedCurrentLocation()?.breadcrumb).toEqual([
+			'Mornk',
+			'Nagazav',
+			'Nagawoods',
+		]);
 		service.restore(null);
 		expect(service.currentLocationRef()).toBeNull();
 	});

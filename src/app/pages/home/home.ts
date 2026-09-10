@@ -77,6 +77,12 @@ export class Home {
 					exact: true,
 				},
 				{
+					label: 'Mundo',
+					description: 'Geografia, localidades e contexto da campanha.',
+					icon: 'layout',
+					path: '/home/world',
+				},
+				{
 					label: 'Calendário',
 					description: 'Data, estação e eventos do mundo.',
 					icon: 'calendar',

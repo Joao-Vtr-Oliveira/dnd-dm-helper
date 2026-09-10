@@ -41,14 +41,11 @@ export class CampaignClock {
 	readonly locationError = this.campaignContext.locationError;
 	readonly locationLabel = computed(() => this.currentLocation()?.label ?? 'Definir posição');
 	readonly locationBreadcrumbLabel = computed(() => this.currentLocation()?.breadcrumb.join(' › ') ?? 'Sem posição definida');
-	readonly availableStates = computed(() => this.campaignWorld.getStatesByEmpire(this.selectedEmpireId()));
-	readonly availableSettlements = computed(() =>
-		this.campaignWorld.getSettlementsByState(this.selectedStateId()),
-	);
 	readonly isEditingLocation = signal(false);
-	readonly selectedEmpireId = signal('');
-	readonly selectedStateId = signal('');
-	readonly selectedSettlementId = signal('');
+	readonly locationSearchQuery = signal('');
+	readonly locationSearchResults = computed(() =>
+		this.campaignWorld.searchLocations(this.locationSearchQuery()).slice(0, 7),
+	);
 
 	editDay = this.current().day;
 	editHour = this.current().hour;
@@ -107,10 +104,7 @@ export class CampaignClock {
 	}
 
 	beginLocationEdit() {
-		const location = this.currentLocation();
-		this.selectedEmpireId.set(location?.empire?.id ?? '');
-		this.selectedStateId.set(location?.state?.id ?? '');
-		this.selectedSettlementId.set(location?.settlement?.id ?? '');
+		this.locationSearchQuery.set('');
 		this.isEditingLocation.set(true);
 	}
 
@@ -118,34 +112,14 @@ export class CampaignClock {
 		this.isEditingLocation.set(false);
 	}
 
-	selectEmpire(empireId: string) {
-		this.selectedEmpireId.set(empireId);
-		this.selectedStateId.set('');
-		this.selectedSettlementId.set('');
-	}
-
-	selectState(stateId: string) {
-		this.selectedStateId.set(stateId);
-		this.selectedSettlementId.set('');
-	}
-
-	selectSettlement(settlementId: string) {
-		this.selectedSettlementId.set(settlementId);
-	}
-
-	applyLocation() {
-		const empireId = this.selectedEmpireId();
-		if (!empireId) return;
-		const settlementId = this.selectedSettlementId();
-		const stateId = this.selectedStateId();
-		if (settlementId) {
-			this.campaignContext.setCurrentLocation({ scopeType: 'settlement', scopeId: settlementId });
-		} else if (stateId) {
-			this.campaignContext.setCurrentLocation({ scopeType: 'state', scopeId: stateId });
-		} else {
-			this.campaignContext.setCurrentLocation({ scopeType: 'empire', scopeId: empireId });
-		}
+	setLocationFromSearch(ref: { scopeType: 'empire' | 'state' | 'settlement'; scopeId: string }) {
+		this.campaignContext.setCurrentLocation(ref);
 		this.isEditingLocation.set(false);
+	}
+
+	openWorld() {
+		this.close();
+		void this.router.navigate(['/home/world']);
 	}
 
 	clearLocation() {

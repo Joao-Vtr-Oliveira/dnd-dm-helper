@@ -14,6 +14,10 @@ export const routes: Routes = [
 		component: Home,
 		children: [
 			{ path: '', component: EncounterHub },
+			{
+				path: 'world',
+				loadComponent: () => import('./pages/world/world').then((module) => module.WorldPage),
+			},
 			{ path: 'encounter-builder', component: EncounterBuilder },
 			{ path: 'encounter-builder/:id', component: EncounterBuilder },
 			{
