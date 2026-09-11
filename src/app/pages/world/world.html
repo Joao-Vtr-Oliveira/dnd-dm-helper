@@ -1,31 +1,31 @@
-<section class="mx-auto w-full max-w-[1180px] pb-24 text-white">
-	<header class="border-b border-white/10 pb-6">
-		<div class="text-xs font-semibold uppercase tracking-[0.24em] text-fuchsia-200/70">
+<section class="mx-auto w-full max-w-[1180px] pb-24 text-app-text">
+	<header class="border-b border-app-divider pb-6">
+		<div class="app-eyebrow">
 			Campanha
 		</div>
 		<div class="mt-2 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 			<div>
-				<h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">Mundo</h1>
-				<p class="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+				<h1 class="text-3xl font-semibold tracking-tight text-app-text sm:text-4xl">Mundo</h1>
+				<p class="mt-2 max-w-2xl text-sm leading-6 text-app-muted">
 					Navegue pelos territórios, localidades e pontos de interesse da campanha.
 				</p>
 			</div>
 			<div class="flex flex-col gap-3 sm:items-end">
 				@if (campaignContext.resolvedCurrentLocation(); as location) {
-					<div class="min-w-0 border-l-2 border-fuchsia-300/70 pl-3 sm:max-w-md">
-						<div class="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">Party</div>
-						<div class="mt-1 break-words text-sm font-semibold text-white">
+					<div class="min-w-0 border-l-2 border-violet-300/70 pl-3 sm:max-w-md">
+						<div class="app-eyebrow">Party</div>
+						<div class="mt-1 break-words text-sm font-semibold text-app-text">
 							{{ location.breadcrumb.join(' › ') }}
 						</div>
 					</div>
 				} @else {
-					<div class="border-l-2 border-white/25 pl-3 text-sm text-white/65">
+					<div class="border-l-2 border-app-divider pl-3 text-sm text-app-muted">
 						Posição da party ainda não definida
 					</div>
 				}
 				<button
 					type="button"
-					class="app-action-button w-fit rounded-xl border border-fuchsia-400/30 bg-violet-500/15 text-sm font-semibold hover:bg-violet-500/25"
+					class="app-button app-button-primary w-fit text-sm"
 					(click)="beginPartyLocationSelection()"
 				>
 					Alterar posição
@@ -35,9 +35,9 @@
 	</header>
 
 	@if (campaignWorld.status() === 'loading') {
-		<div class="py-12 text-sm text-white/65">Carregando o mundo da campanha...</div>
+		<div class="app-empty-state my-8" role="status">Carregando o mundo da campanha...</div>
 	} @else if (campaignWorld.status() === 'error') {
-		<div class="py-12 text-sm text-amber-100/85">
+		<div class="app-alert my-8 border-amber-400/25 bg-amber-500/10 text-sm text-amber-100" role="alert">
 			Não foi possível carregar o mundo da campanha.
 		</div>
 	} @else {
@@ -63,7 +63,7 @@
 		}
 
 		<div class="mt-6">
-			<div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+			<div class="app-panel p-4 sm:p-5">
 				<div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 					<label
 						class="block min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/45"
@@ -73,7 +73,7 @@
 						<input
 							id="world-search"
 							type="search"
-							class="mt-2 h-11 w-full rounded-xl border border-white/15 bg-black/20 px-3 text-sm font-normal text-white placeholder:text-white/40"
+						class="app-field mt-2 h-11 w-full px-3 text-sm font-normal"
 							placeholder="Império, estado, localidade ou ponto de interesse..."
 							[ngModel]="searchQuery()"
 							(ngModelChange)="searchQuery.set($event)"
@@ -82,7 +82,7 @@
 					@if (isChoosingPartyLocation()) {
 						<button
 							type="button"
-							class="app-action-button w-fit rounded-xl border border-white/15 bg-white/5 text-sm hover:bg-white/10"
+							class="app-button app-button-secondary w-fit text-sm"
 							(click)="cancelPartyLocationSelection()"
 						>
 							Cancelar

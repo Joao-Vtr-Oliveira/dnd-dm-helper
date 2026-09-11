@@ -18,7 +18,7 @@
 
 	@if (isOpen()) {
 		<div
-			class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+			class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
 			(click)="close()"
 		>
 			<section
@@ -26,7 +26,9 @@
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="campaign-clock-title"
-				class="w-full max-w-md rounded-app-shell border border-app-border bg-app-surface-raised p-4 shadow-app-modal sm:p-5"
+				[appDialogFocus]="true"
+				(appDialogEscape)="close()"
+				class="app-dialog w-full max-w-md p-4 sm:p-5"
 				(click)="$event.stopPropagation()"
 			>
 				<div class="flex items-start justify-between gap-3">
@@ -44,6 +46,7 @@
 					<button
 						type="button"
 					class="app-button app-modal-close h-11 w-11 shrink-0 p-0"
+					data-dialog-initial-focus
 						aria-label="Fechar contexto da campanha"
 						(click)="close()"
 					>

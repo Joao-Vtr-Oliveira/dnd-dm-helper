@@ -3,6 +3,8 @@ import { Component, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterModule, RouterOutlet } from '@angular/router';
 import {
 	LucideArchive,
+	LucideCircleAlert,
+	LucideCircleCheck,
 	LucideCalendarDays,
 	LucideDices,
 	LucideDownload,
@@ -24,6 +26,7 @@ import {
 	type AppBackupSummary,
 } from '../../services/app-backup-service/app-backup-service';
 import { CampaignClock } from '../../components/campaign-clock/campaign-clock';
+import { DialogFocusDirective } from '../../directives/dialog-focus';
 
 type NavLink = {
 	label: string;
@@ -58,6 +61,9 @@ type SyncPreviewState = {
 	imports: [
 		CampaignClock,
 		CommonModule,
+		DialogFocusDirective,
+		LucideCircleAlert,
+		LucideCircleCheck,
 		LucideDices,
 		LucideDynamicIcon,
 		LucideMenu,

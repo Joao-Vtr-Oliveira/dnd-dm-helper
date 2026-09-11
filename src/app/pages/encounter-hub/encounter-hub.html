@@ -272,8 +272,8 @@
 </div>
 
 @if (battleSetupModal(); as modal) {
-	<div class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeBattleSetupModal()">
-		<section id="battle-setup-modal" role="dialog" aria-modal="true" aria-labelledby="battle-setup-title" class="max-h-[calc(100vh-1.5rem)] w-full max-w-4xl overflow-auto rounded-app-shell border border-app-border bg-app-surface-raised p-4 shadow-app-modal sm:max-h-[90vh] sm:p-5" (click)="$event.stopPropagation()">
+	<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeBattleSetupModal()">
+		<section id="battle-setup-modal" role="dialog" aria-modal="true" aria-labelledby="battle-setup-title" [appDialogFocus]="true" (appDialogEscape)="closeBattleSetupModal()" class="app-dialog w-full max-w-4xl p-4 sm:p-5" (click)="$event.stopPropagation()">
 			<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 				<div>
 					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle">Preparação de combate</div>
@@ -282,7 +282,7 @@
 					</h3>
 					<p class="mt-1 text-sm text-app-muted">Escolha o lado e ajuste a iniciativa de cada integrante antes de abrir o tracker.</p>
 				</div>
-				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" (click)="closeBattleSetupModal()" aria-label="Fechar preparação de batalha">
+				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" data-dialog-initial-focus (click)="closeBattleSetupModal()" aria-label="Fechar preparação de batalha">
 					<svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg>
 				</button>
 			</div>
@@ -355,8 +355,8 @@
 }
 
 @if (confirmModal(); as modal) {
-	<div class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeConfirmModal()">
-		<section id="encounter-confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="encounter-confirmation-title" class="w-full max-w-lg rounded-app-shell border border-app-border bg-app-surface-raised p-5 shadow-app-modal sm:p-6" [class.border-rose-400/30]="modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'" (click)="$event.stopPropagation()">
+	<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeConfirmModal()">
+		<section id="encounter-confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="encounter-confirmation-title" [appDialogFocus]="true" (appDialogEscape)="closeConfirmModal()" class="app-dialog w-full max-w-lg p-5 sm:p-6" [class.border-rose-400/30]="modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'" (click)="$event.stopPropagation()">
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0">
 					<div class="text-[11px] font-semibold uppercase tracking-[0.16em]" [class.text-rose-200]="modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'" [class.text-app-subtle]="modal.action === 'new-battle'">
@@ -364,7 +364,7 @@
 					</div>
 					<h3 id="encounter-confirmation-title" class="mt-1 text-xl font-semibold text-app-text">{{ modal.title }}</h3>
 				</div>
-				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" (click)="closeConfirmModal()" aria-label="Fechar confirmação">
+				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" data-dialog-initial-focus (click)="closeConfirmModal()" aria-label="Fechar confirmação">
 					<svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg>
 				</button>
 			</div>

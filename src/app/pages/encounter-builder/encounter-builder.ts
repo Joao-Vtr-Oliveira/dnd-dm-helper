@@ -39,6 +39,7 @@ import { firstValueFrom } from 'rxjs';
 import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
+import { DialogFocusDirective } from '../../directives/dialog-focus';
 
 type DraftCreature = {
 	name: string;
@@ -81,6 +82,7 @@ type TrapDraft = {
 	standalone: true,
 	imports: [
 		CommonModule,
+		DialogFocusDirective,
 		FormsModule,
 		LucideBookOpen,
 		LucideCircleAlert,

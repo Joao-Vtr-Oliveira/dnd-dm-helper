@@ -18,6 +18,7 @@ import {
 	type EncounterHubStatusFilter,
 } from '../../services/encounter-hub-filter-service/encounter-hub-filter-service';
 import { EncounterIoService } from '../../services/encounter-io-service/encounter-io-service';
+import { DialogFocusDirective } from '../../directives/dialog-focus';
 import {
 	LocalStorageService,
 	SavedEncounter,
@@ -45,6 +46,7 @@ type BattleSetupModalState = {
 	standalone: true,
 	imports: [
 		CommonModule,
+		DialogFocusDirective,
 		FormsModule,
 		LucideCircleAlert,
 		LucideCircleCheck,

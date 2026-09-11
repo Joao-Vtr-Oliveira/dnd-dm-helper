@@ -295,10 +295,16 @@ export class FiveEToolsHomebrewPage {
 
 	@HostListener('window:keydown.escape')
 	onEscape() {
+		if (this.previewModal()) return this.closePreview();
+		if (this.spellPickerState()) return this.closeSpellPicker();
+		if (this.referencePickerState()) return this.closeReferencePicker();
+		if (this.languagePickerState()) return this.closeLanguagePicker();
 		if (this.copyTagFallback()) return this.closeCopyTagFallback();
 		if (this.confirmModal()) return this.closeConfirmModal();
 		if (this.syncPreview()) return this.closeSyncPreview();
 		if (this.importOpen()) return this.closeImport();
+		if (this.editorTagHelperOpen()) return this.closeTagHelper();
+		if (this.newItemMenuOpen()) return this.closeNewItemMenu();
 		if (this.editorMode()) this.cancelEditor();
 	}
 

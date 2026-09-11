@@ -79,7 +79,40 @@ describe('FiveEToolsHomebrewPage', () => {
 		});
 	});
 
-	it('closes the highest-priority open workflow with Escape', () => {
+	it('closes the highest-priority overlay with Escape without discarding the editor', () => {
+		const service = TestBed.inject(FiveEToolsHomebrewService);
+		const file = service.createEmptyFile('Notion');
+		const monster = service.createEmptyMonster('Notion');
+		monster.name = 'Clockwork Owl';
+		file.monster = [monster];
+		component.file.set(file);
+		component.newMonster();
+
+		component.openPreview(component.monsterSummaries()[0]);
+		component.onEscape();
+		expect(component.previewModal()).toBeNull();
+		expect(component.editorMode()).toBe('monster');
+
+		component.openSpellPicker(0, '1');
+		component.onEscape();
+		expect(component.spellPickerState()).toBeNull();
+		expect(component.editorMode()).toBe('monster');
+
+		component.openReferencePicker('action', 'action');
+		component.onEscape();
+		expect(component.referencePickerState()).toBeNull();
+		expect(component.editorMode()).toBe('monster');
+
+		component.openLanguagePicker();
+		component.onEscape();
+		expect(component.languagePickerState()).toBeNull();
+		expect(component.editorMode()).toBe('monster');
+
+		component.openTagHelper();
+		component.onEscape();
+		expect(component.editorTagHelperOpen()).toBeFalse();
+		expect(component.editorMode()).toBe('monster');
+
 		component.importOpen.set(true);
 		component.onEscape();
 		expect(component.importOpen()).toBeFalse();

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { LucideX } from '@lucide/angular';
 import type {
 	FiveEToolsEntitySummary,
@@ -28,11 +28,6 @@ export class FiveEToolsPreviewModalComponent {
 
 	@Output() readonly close = new EventEmitter<void>();
 	@Output() readonly edit = new EventEmitter<void>();
-
-	@HostListener('window:keydown.escape')
-	onEscape() {
-		this.close.emit();
-	}
 
 	readonly monsterSections: Array<{ key: MonsterSectionKey; label: string }> = [
 		{ key: 'trait', label: 'Traits' },

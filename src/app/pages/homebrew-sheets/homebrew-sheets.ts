@@ -16,6 +16,7 @@ import {
 	HomebrewCategory,
 } from '../../services/local-storage-service/local-storage-service';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
+import { DialogFocusDirective } from '../../directives/dialog-focus';
 import {
 	HomebrewSheetImportService,
 	type HomebrewSheetConflictResolution,
@@ -38,6 +39,7 @@ type ConfirmModalState = {
 	standalone: true,
 	imports: [
 		CommonModule,
+		DialogFocusDirective,
 		FormsModule,
 		LucideCircleAlert,
 		LucideCircleCheck,

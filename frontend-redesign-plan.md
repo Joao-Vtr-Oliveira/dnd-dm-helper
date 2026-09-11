@@ -2,7 +2,7 @@
 
 ## Status
 
-Fases 0, 1, 2, 3, 4, 5, 6 e 7 concluidas e aprovadas. A Fase 8 esta concluida e aguarda revisao visual. As Fases 9 e 10 estao concluidas e aguardam revisao visual operacional.
+Fases 0, 1, 2, 3, 4, 5, 6, 7, 8 e 11 concluidas e aprovadas. As Fases 9 e 10 estao concluidas e aguardam revisao visual operacional.
 
 Padrao aprovado: interface dark operacional, violeta intencional, densidade sem excesso de cards,
 acoes hierarquizadas, responsividade real e preservacao rigorosa da logica.
@@ -301,7 +301,7 @@ Resultado: acoes inventariadas e classificadas como criticas, frequentes ou secu
 
 ### Fase 10 - Battle Tracker
 
-Status: concluida, aguardando revisao visual operacional.
+Status: concluida e aprovada.
 
 Objetivo: reduzir niveis de superficie sem reduzir informacao, rapidez ou redundancia util durante a mesa.
 
@@ -311,7 +311,11 @@ Risco e testes: risco funcional maximo; executar `battle-tracker.spec.ts`, suite
 
 ### Fase 11 - Polimento Cross-app
 
+Status: concluida e aprovada.
+
 Objetivo: consolidar tokens, responsividade, modais, toasts, estados vazios e inconsistencias restantes.
+
+Resultado: recipes globais, camadas semanticas, foco em dialogos estaveis, toasts, estados vazios e ajustes responsivos foram consolidados. Comportamentos de overlays 5etools permanecem fora do escopo ate a frente corretiva dedicada.
 
 Preservar: todos os fluxos ja aprovados e a composicao principal de Mundo.
 

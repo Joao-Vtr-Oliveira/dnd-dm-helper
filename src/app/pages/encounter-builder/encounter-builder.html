@@ -944,16 +944,20 @@
 </div>
 
 @if (homebrewModalOpen()) {
-<div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" (click)="closeHomebrewModal()">
-	<div class="min-h-screen w-full flex items-center justify-center p-4">
-		<div
-			class="w-full max-w-4xl rounded-2xl bg-[#0b0b0f]/90 border border-white/10 shadow-2xl"
+<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeHomebrewModal()">
+		<section
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="homebrew-import-title"
+			[appDialogFocus]="true"
+			(appDialogEscape)="closeHomebrewModal()"
+			class="app-dialog w-full max-w-4xl bg-app-surface-raised"
 			(click)="$event.stopPropagation()"
 		>
 			<!-- Header -->
 			<div class="p-4 border-b border-white/10 flex items-start justify-between gap-3">
 				<div class="min-w-0">
-					<div class="text-lg font-semibold">Import Homebrew Sheets</div>
+					<h2 id="homebrew-import-title" class="text-lg font-semibold">Import Homebrew Sheets</h2>
 					<div class="text-xs opacity-70">
 						Use <b>Use</b> pra preencher o draft • <b>Add</b> adiciona direto (usa o Qty do draft).
 					</div>
@@ -969,6 +973,7 @@
 					</button>
 					<button
 						class="h-10 w-10 inline-flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
+						data-dialog-initial-focus
 						(click)="closeHomebrewModal()"
 						aria-label="Close"
 						title="Close"
@@ -1166,8 +1171,7 @@
 					Done
 				</button>
 			</div>
-		</div>
-	</div>
+		</section>
 </div>
 <div class="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-app-surface/95 p-3 backdrop-blur md:hidden"><div class="mx-auto flex max-w-[1480px] gap-2"><button type="button" class="app-button app-button-ghost flex-1" (click)="save()">Salvar</button><button type="button" class="app-button app-button-primary flex-1" (click)="saveAndStartBattle()">Iniciar batalha</button></div></div>
 } @if (unsavedChangesModal()) {
@@ -1175,16 +1179,20 @@
 } @if (toast(); as t) {
 <div class="pointer-events-none fixed right-4 top-4 z-[55]"><div class="app-toast pointer-events-auto max-w-sm border px-4 py-3" [class.border-emerald-400/30]="t.type === 'success'" [class.border-red-400/30]="t.type === 'error'" [class.border-amber-400/30]="t.type === 'warn'" role="status" aria-live="polite"><div class="flex items-start gap-3"><div class="app-toast-icon shrink-0" [class.bg-emerald-500/15]="t.type === 'success'" [class.text-emerald-200]="t.type === 'success'" [class.bg-red-500/15]="t.type === 'error'" [class.text-rose-200]="t.type === 'error'" [class.bg-amber-500/15]="t.type === 'warn'" [class.text-amber-100]="t.type === 'warn'">@if (t.type === 'success') { <svg lucideCircleCheck [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else if (t.type === 'error') { <svg lucideCircleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else { <svg lucideTriangleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> }</div><div class="min-w-0 flex-1"><div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">@if (t.type === 'success') { Concluído } @else if (t.type === 'error') { Não foi possível concluir } @else { Atenção }</div><div class="mt-1 text-sm leading-5 text-app-text">{{ t.text }}</div></div><button type="button" class="app-toast-dismiss shrink-0" (click)="toast.set(null)" aria-label="Fechar mensagem"><svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg></button></div></div></div>
 } @if (apiModalOpen()) {
-<div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" (click)="closeApiModal()">
-	<div class="min-h-screen w-full flex items-center justify-center p-4">
-		<div
-			class="w-full max-w-4xl rounded-2xl bg-[#0b0b0f]/90 border border-white/10 shadow-2xl"
+<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeApiModal()">
+		<section
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="api-import-title"
+			[appDialogFocus]="true"
+			(appDialogEscape)="closeApiModal()"
+			class="app-dialog w-full max-w-4xl bg-app-surface-raised"
 			(click)="$event.stopPropagation()"
 		>
 			<!-- Header -->
 			<div class="p-4 border-b border-white/10 flex items-start justify-between gap-3">
 				<div class="min-w-0">
-					<div class="text-lg font-semibold">Import API Bestiary</div>
+					<h2 id="api-import-title" class="text-lg font-semibold">Import API Bestiary</h2>
 					<div class="text-xs opacity-70">
 						Lista vem com <b>name/index</b> • detalhes carregam ao clicar em <b>Use/Add</b>.
 					</div>
@@ -1192,6 +1200,7 @@
 
 				<button
 					class="h-10 w-10 inline-flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
+					data-dialog-initial-focus
 					(click)="closeApiModal()"
 					aria-label="Close"
 					title="Close"
@@ -1274,7 +1283,6 @@
 					Done
 				</button>
 			</div>
-		</div>
-	</div>
+		</section>
 </div>
 }

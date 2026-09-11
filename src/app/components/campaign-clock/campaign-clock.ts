@@ -7,6 +7,7 @@ import { LucideClock, LucideX } from '@lucide/angular';
 import { filter } from 'rxjs';
 import { WorldClockService } from '../../services/WorldClockService/world-clock-service';
 import { CampaignContextService } from '../../services/campaign-context-service/campaign-context-service';
+import { DialogFocusDirective } from '../../directives/dialog-focus';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
 import { SEASONS } from '../../utils/calendar-utils/calendar-constants';
 import { getWeekdayLabel } from '../../utils/calendar-utils/calendar-util';
@@ -14,7 +15,7 @@ import { getWeekdayLabel } from '../../utils/calendar-utils/calendar-util';
 @Component({
 	selector: 'app-campaign-clock',
 	standalone: true,
-	imports: [CommonModule, FormsModule, LucideClock, LucideX],
+	imports: [CommonModule, DialogFocusDirective, FormsModule, LucideClock, LucideX],
 	templateUrl: './campaign-clock.html',
 })
 export class CampaignClock {

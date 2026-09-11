@@ -31,6 +31,12 @@
 	--radius-app-shell: 1.5rem;
 	--shadow-app-panel: 0 16px 36px rgb(0 0 0 / 0.2);
 	--shadow-app-modal: 0 28px 60px rgb(0 0 0 / 0.42);
+	--z-app-header: 40;
+	--z-app-floating: 50;
+	--z-app-popover: 60;
+	--z-app-toast: 70;
+	--z-app-modal: 80;
+	--z-app-nested-modal: 90;
 }
 
 :root {
@@ -58,6 +64,10 @@ html {
 html,
 body {
 	height: 100%;
+}
+
+body.app-dialog-open {
+	overflow: hidden;
 }
 
 body {
@@ -230,6 +240,37 @@ select optgroup {
 	border-color: var(--color-app-border);
 	background: rgb(255 255 255 / 0.06);
 	color: var(--color-app-text);
+}
+
+.app-eyebrow {
+	font-size: 0.6875rem;
+	font-weight: 600;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--color-app-subtle);
+}
+
+.app-dialog {
+	max-height: calc(100vh - 1.5rem);
+	overflow: auto;
+	border: 1px solid var(--color-app-border);
+	border-radius: var(--radius-app-shell);
+	background: var(--color-app-surface-raised);
+	box-shadow: var(--shadow-app-modal);
+}
+
+.app-alert,
+.app-empty-state {
+	border: 1px solid var(--color-app-divider);
+	border-radius: var(--radius-app-panel);
+	background: var(--color-app-surface);
+	padding: 1rem;
+}
+
+.app-empty-state {
+	border-style: dashed;
+	text-align: center;
+	color: var(--color-app-muted);
 }
 
 .app-field {

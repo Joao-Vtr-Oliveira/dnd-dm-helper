@@ -2471,21 +2471,24 @@
 }
 
 @if (toast(); as t) {
-	<div class="pointer-events-none fixed right-4 top-4 z-50">
+	<div class="pointer-events-none fixed right-4 top-4 z-[var(--z-app-toast)]">
 		<div
-			class="pointer-events-auto max-w-sm rounded-2xl border px-4 py-3 shadow-lg backdrop-blur bg-black/50"
+			class="app-toast pointer-events-auto max-w-sm border px-4 py-3"
 			[class.border-emerald-400/30]="t.type === 'success'"
 			[class.bg-emerald-500/10]="t.type === 'success'"
 			[class.border-red-400/30]="t.type === 'error'"
 			[class.bg-red-500/10]="t.type === 'error'"
 			[class.border-yellow-400/30]="t.type === 'warn'"
 			[class.bg-yellow-500/10]="t.type === 'warn'"
+			role="status"
+			aria-live="polite"
 		>
 			<div class="flex items-start justify-between gap-3">
 				<div class="text-sm opacity-95">{{ t.text }}</div>
 				<button
-					class="h-8 w-8 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:bg-white/10"
+					class="app-toast-dismiss shrink-0"
 					(click)="toast.set(null)"
+					aria-label="Fechar mensagem"
 				>
 					✕
 				</button>
