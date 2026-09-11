@@ -1,40 +1,7 @@
-<div class="grid gap-10 sm:grid-cols-2 xl:grid-cols-5">
-	<div
-		class="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-[0_10px_30px_rgba(0,0,0,0.16)]"
-	>
-		<div class="text-[11px] uppercase tracking-[0.22em] text-white/50">Source</div>
-		<div class="mt-2 text-lg font-semibold text-white">{{ summary.primarySource }}</div>
-	</div>
-
-	<div
-		class="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-[0_10px_30px_rgba(0,0,0,0.16)]"
-	>
-		<div class="text-[11px] uppercase tracking-[0.22em] text-white/50">Site version</div>
-		<div class="mt-2 text-lg font-semibold text-white">
-			{{ summary.siteVersion || 'Nao informado' }}
-		</div>
-	</div>
-
-	<div
-		class="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-[0_10px_30px_rgba(0,0,0,0.16)]"
-	>
-		<div class="text-[11px] uppercase tracking-[0.22em] text-white/50">Monsters</div>
-		<div class="mt-2 text-2xl font-semibold text-white">{{ summary.monsterCount }}</div>
-	</div>
-
-	<div
-		class="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-[0_10px_30px_rgba(0,0,0,0.16)]"
-	>
-		<div class="text-[11px] uppercase tracking-[0.22em] text-white/50">Traps</div>
-		<div class="mt-2 text-2xl font-semibold text-white">{{ summary.trapCount }}</div>
-	</div>
-
-	<div
-		class="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-[0_10px_30px_rgba(0,0,0,0.16)] sm:col-span-2 xl:col-span-1"
-	>
-		<div class="text-[11px] uppercase tracking-[0.22em] text-white/50">Ultima modificacao</div>
-		<div class="mt-2 text-sm font-semibold text-white/90">
-			{{ formatDate(summary.dateLastModified) }}
-		</div>
-	</div>
-</div>
+<section class="five-library-summary" aria-label="Resumo do arquivo">
+	<div><div class="app-eyebrow">Source principal</div><div class="mt-1 font-semibold text-app-text">{{ summary.primarySource }}</div></div>
+	<div><div class="app-eyebrow">Monstros</div><div class="mt-1 text-2xl font-semibold text-app-text">{{ summary.monsterCount }}</div></div>
+	<div><div class="app-eyebrow">Traps</div><div class="mt-1 text-2xl font-semibold text-app-text">{{ summary.trapCount }}</div></div>
+	<div><div class="app-eyebrow">Modificado</div><div class="mt-1 text-sm font-medium text-app-text">{{ formatDate(summary.dateLastModified) }}</div></div>
+	<div><div class="app-eyebrow">Versão</div><div class="mt-1 text-sm font-medium text-app-text">{{ summary.siteVersion || 'Não informada' }}</div></div>
+</section>

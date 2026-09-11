@@ -1,19 +1,18 @@
-<div class="mx-auto w-full max-w-[1760px] space-y-20 px-4 py-8">
-	<div
-		class="flex flex-col gap-10 rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(139,92,246,0.16),_transparent_38%),rgba(19,13,32,0.76)] p-10 shadow-[0_22px_44px_rgba(0,0,0,0.24)] backdrop-blur-sm xl:flex-row xl:items-center xl:justify-between"
-	>
+	<div class="mx-auto w-full max-w-[1480px] space-y-6 pb-8 pt-1 sm:py-2">
+	<div class="five-library-hero flex flex-col gap-5 rounded-app-shell border p-5 sm:p-6 xl:flex-row xl:items-end xl:justify-between">
 		<div class="space-y-2">
-			<h2 class="text-3xl font-semibold text-white">Arquivo 5etools</h2>
-			<p class="max-w-3xl text-sm text-white/70">
+			<div class="app-eyebrow text-violet-200">Biblioteca 5etools</div>
+			<h2 class="text-3xl font-semibold text-app-text">Arquivo de campanha</h2>
+			<p class="max-w-3xl text-sm text-app-muted">
 				Resumo do arquivo, sincronização, importação segura e biblioteca confortável para navegar
 				entre monsters e traps.
 			</p>
 		</div>
 
-		<div class="flex flex-wrap items-center gap-4 xl:justify-end">
+		<div class="app-action-group xl:justify-end">
 			<button
 				type="button"
-				class="inline-flex h-11 items-center rounded-2xl border border-fuchsia-400/30 bg-violet-500/20 px-4 text-sm font-semibold text-violet-50 transition hover:bg-violet-500/25"
+				class="app-button app-button-secondary"
 				[disabled]="syncing()"
 				(click)="previewSync()"
 			>
@@ -22,7 +21,7 @@
 
 			<button
 				type="button"
-				class="inline-flex h-11 items-center rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/15"
+				class="app-button app-button-secondary"
 				(click)="openImport()"
 			>
 				Importar trecho
@@ -30,7 +29,7 @@
 
 			<button
 				type="button"
-				class="inline-flex h-11 items-center rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/15"
+				class="app-button app-button-ghost"
 				(click)="requestExportFull()"
 			>
 				Exportar JSON
@@ -39,7 +38,7 @@
 			<div class="relative">
 				<button
 					type="button"
-					class="inline-flex h-11 items-center rounded-2xl border border-white/10 bg-black/20 px-4 text-sm font-semibold text-white transition hover:bg-black/30"
+					class="app-button app-button-primary"
 					(click)="toggleNewItemMenu()"
 				>
 					Novo item
@@ -47,7 +46,7 @@
 
 				@if (newItemMenuOpen()) {
 					<div
-						class="absolute right-0 top-[3.25rem] z-20 w-52 rounded-2xl border border-white/10 bg-[#171122] p-2 shadow-[0_18px_40px_rgba(0,0,0,0.32)]"
+						class="absolute right-0 top-[3.25rem] z-20 w-52 rounded-app-panel border border-app-border bg-app-surface-raised p-2 shadow-app-modal"
 					>
 						<button
 							type="button"
@@ -84,7 +83,7 @@
 	</div>
 
 	@if (loading()) {
-		<div class="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-white/75">
+		<div class="app-panel p-6 text-sm text-app-muted">
 			Carregando arquivo 5etools...
 		</div>
 	} @else if (summary(); as summary) {
@@ -113,27 +112,25 @@
 			(clearFilters)="clearFilters()"
 		></app-fiveetools-filters>
 
-		<div class="space-y-16">
+		<div class="space-y-6">
 			@if (collectionTab() === 'all' || collectionTab() === 'monster') {
-				<section
-					class="space-y-12 rounded-[30px] border border-white/10 bg-[rgba(19,13,32,0.62)] p-10 shadow-[0_18px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm"
-				>
-					<div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+				<section class="space-y-4">
+					<div class="flex flex-col gap-3 border-b border-app-divider pb-4 sm:flex-row sm:items-end sm:justify-between">
 						<div>
-							<h3 class="text-xl font-semibold text-white">Monstros e fichas</h3>
-							<p class="text-sm text-white/65">
+							<div class="app-eyebrow">Entidades</div><h3 class="mt-1 text-xl font-semibold text-app-text">Monstros e fichas</h3>
+							<p class="text-sm text-app-muted">
 								Biblioteca principal de stat blocks com visual mais limpo para navegar, abrir
 								preview e editar.
 							</p>
 						</div>
 						<span
-							class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/75"
+							class="app-status border border-violet-400/30 bg-violet-500/10 text-violet-100"
 						>
 							{{ monsterSummaries().length }} itens
 						</span>
 					</div>
 
-					<div class="space-y-10">
+					<div class="space-y-2">
 						@for (entity of monsterSummaries(); track entity.id) {
 							<app-fiveetools-entity-card
 								[entity]="entity"
@@ -147,7 +144,7 @@
 							></app-fiveetools-entity-card>
 						} @empty {
 							<div
-								class="rounded-3xl border border-dashed border-white/10 bg-white/5 p-5 text-sm text-white/70"
+								class="rounded-app-panel border border-dashed border-app-divider bg-app-inset/50 p-5 text-sm text-app-muted"
 							>
 								Nenhum monster encontrado.
 							</div>
@@ -157,25 +154,23 @@
 			}
 
 			@if (collectionTab() === 'all' || collectionTab() === 'trap') {
-				<section
-					class="space-y-12 rounded-[30px] border border-white/10 bg-[rgba(19,13,32,0.62)] p-10 shadow-[0_18px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm"
-				>
-					<div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+				<section class="space-y-4">
+					<div class="flex flex-col gap-3 border-b border-app-divider pb-4 sm:flex-row sm:items-end sm:justify-between">
 						<div>
-							<h3 class="text-xl font-semibold text-white">Traps e hazards</h3>
-							<p class="text-sm text-white/65">
+							<div class="app-eyebrow">Entidades</div><h3 class="mt-1 text-xl font-semibold text-app-text">Traps e hazards</h3>
+							<p class="text-sm text-app-muted">
 								Eventos e hazards separados visualmente dos monsters, com fluxo próprio para preview
 								e edição.
 							</p>
 						</div>
 						<span
-							class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/75"
+							class="app-status border border-amber-400/30 bg-amber-500/10 text-amber-100"
 						>
 							{{ trapSummaries().length }} itens
 						</span>
 					</div>
 
-					<div class="space-y-10">
+					<div class="space-y-2">
 						@for (entity of trapSummaries(); track entity.id) {
 							<app-fiveetools-entity-card
 								[entity]="entity"
@@ -188,7 +183,7 @@
 							></app-fiveetools-entity-card>
 						} @empty {
 							<div
-								class="rounded-3xl border border-dashed border-white/10 bg-white/5 p-5 text-sm text-white/70"
+								class="rounded-app-panel border border-dashed border-app-divider bg-app-inset/50 p-5 text-sm text-app-muted"
 							>
 								Nenhuma trap encontrada.
 							</div>
@@ -198,12 +193,10 @@
 			}
 
 			@if (collectionTab() === 'extras') {
-				<section
-					class="space-y-12 rounded-[30px] border border-white/10 bg-[rgba(19,13,32,0.62)] p-10 shadow-[0_18px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm"
-				>
-					<div>
-						<h3 class="text-xl font-semibold text-white">Outros</h3>
-						<p class="text-sm text-white/65">
+				<section class="space-y-6">
+					<div class="border-b border-app-divider pb-4">
+						<div class="app-eyebrow">Coleções complementares</div><h3 class="mt-1 text-xl font-semibold text-app-text">Outros</h3>
+						<p class="text-sm text-app-muted">
 							Templates, legendary groups, pacotes reutilizaveis e demais coleções preservadas fora
 							da navegação principal de monsters e traps.
 						</p>
@@ -243,8 +236,8 @@
 						</div>
 					}
 
-					<div class="grid gap-6 xl:grid-cols-3">
-						<div class="rounded-3xl border border-white/10 bg-white/[0.04] p-5 space-y-4">
+					<div class="grid gap-4 xl:grid-cols-3">
+						<div class="app-panel space-y-4 p-5">
 							<div class="flex items-start justify-between gap-3">
 								<div>
 									<h4 class="font-semibold text-white">Monster Templates</h4>
@@ -258,9 +251,9 @@
 									Novo
 								</button>
 							</div>
-							<div class="space-y-3">
+							<div class="space-y-2">
 								@for (template of monsterTemplates(); track template.name + '::' + template.source) {
-									<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+									<div class="border-t border-app-divider pt-3 first:border-t-0 first:pt-0">
 										<div class="flex items-start justify-between gap-3">
 											<div class="min-w-0">
 												<div class="font-semibold text-white">{{ template.name }}</div>
@@ -281,7 +274,7 @@
 							</div>
 						</div>
 
-						<div class="rounded-3xl border border-white/10 bg-white/[0.04] p-5 space-y-4">
+						<div class="app-panel space-y-4 p-5">
 							<div class="flex items-start justify-between gap-3">
 								<div>
 									<h4 class="font-semibold text-white">Legendary Groups</h4>
@@ -295,9 +288,9 @@
 									Novo
 								</button>
 							</div>
-							<div class="space-y-3">
+							<div class="space-y-2">
 								@for (group of legendaryGroups(); track group.name + '::' + group.source) {
-									<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+									<div class="border-t border-app-divider pt-3 first:border-t-0 first:pt-0">
 										<div class="flex items-start justify-between gap-3">
 											<div class="min-w-0">
 												<div class="font-semibold text-white">{{ group.name }}</div>
@@ -318,14 +311,14 @@
 							</div>
 						</div>
 
-						<div class="rounded-3xl border border-white/10 bg-white/[0.04] p-5 space-y-4">
+						<div class="app-panel space-y-4 p-5">
 							<div>
 								<h4 class="font-semibold text-white">Pacotes de Composicao</h4>
 								<p class="mt-1 text-sm text-white/60">Pacotes locais reutilizaveis para blocos e spellcasting.</p>
 							</div>
-							<div class="space-y-3">
+							<div class="space-y-2">
 								@for (pkg of compositionPackages(); track pkg.id) {
-									<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+									<div class="border-t border-app-divider pt-3 first:border-t-0 first:pt-0">
 										<div class="flex items-start justify-between gap-3">
 											<div class="min-w-0">
 												<div class="font-semibold text-white">{{ pkg.name }}</div>
@@ -344,7 +337,7 @@
 						</div>
 					</div>
 
-					<div class="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+					<div class="app-panel p-5">
 						<div class="mb-4">
 							<h4 class="font-semibold text-white">Coleções Extras Preservadas</h4>
 							<p class="mt-1 text-sm text-white/60">Arrays adicionais mantidos no arquivo sem editor dedicado.</p>

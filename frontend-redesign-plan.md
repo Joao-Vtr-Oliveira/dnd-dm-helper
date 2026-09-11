@@ -2,7 +2,7 @@
 
 ## Status
 
-Fases 0, 1, 2, 3, 4 e 5 concluidas e aprovadas. A Fase 6 esta concluida e aguarda revisao visual.
+Fases 0, 1, 2, 3, 4, 5 e 6 concluidas e aprovadas. A Fase 7 esta concluida e aguarda revisao visual.
 
 Padrao aprovado: interface dark operacional, violeta intencional, densidade sem excesso de cards,
 acoes hierarquizadas, responsividade real e preservacao rigorosa da logica.
@@ -265,7 +265,7 @@ Risco e testes: alto risco de regressao de importacao e persistencia; executar `
 
 ### Fase 6 - Calendario
 
-Status: concluida, aguardando aprovacao visual.
+Status: concluida e aprovada.
 
 Objetivo: manter a personalidade tematica do mundo, priorizando leitura de data, tempo, eventos e controles frequentes.
 
@@ -274,6 +274,8 @@ Preservar: data, hora, estacao, navegacao, reset, eventos, fases da lua e oculta
 Risco e testes: mudancas diretas no relogio do mundo; reset de data/hora exige confirmacao. Executar `calendar.spec.ts`, `campaign-clock.spec.ts`, suite completa e build.
 
 ### Fase 7 - 5etools Browse
+
+Status: concluida, aguardando aprovacao visual.
 
 Objetivo: melhorar densidade, filtros, cards de entidade, preview e hierarquia de acoes sem tocar ainda nos editores profundos.
 
