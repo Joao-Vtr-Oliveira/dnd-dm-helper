@@ -2,7 +2,7 @@
 
 ## Status
 
-Fases 0, 1, 2 e 3 concluidas e aprovadas. A Fase 4 esta concluida e aguarda revisao visual.
+Fases 0, 1, 2, 3 e 4 concluidas e aprovadas. A Fase 5 esta concluida e aguarda revisao visual.
 
 Padrao aprovado: interface dark operacional, violeta intencional, densidade sem excesso de cards,
 acoes hierarquizadas, responsividade real e preservacao rigorosa da logica.
@@ -245,7 +245,7 @@ Risco e testes: preservar escolhas de conflito e IDs externos; executar `homebre
 
 ### Fase 4 - Homebrew Builder
 
-Status: concluida, aguardando aprovacao visual.
+Status: concluida e aprovada.
 
 Objetivo: estabelecer padrao de editor com sections, fieldsets visuais, divisores e acoes de salvamento claras.
 
@@ -254,6 +254,8 @@ Preservar: carregamento por rota, sincronizacao titulo/nome, stats, spells, slot
 Risco e testes: comportamentos automaticos de nome e HP precisam permanecer claros; executar `homebrew-builder.spec.ts`, suite completa e build.
 
 ### Fase 5 - Encounter Builder
+
+Status: concluida, aguardando aprovacao visual.
 
 Objetivo: aplicar padrao de editor no fluxo mais complexo antes do Battle Tracker.
 

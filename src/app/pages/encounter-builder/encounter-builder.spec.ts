@@ -117,4 +117,28 @@ describe('EncounterBuilder', () => {
 			jasmine.any(Object),
 		);
 	});
+
+	it('blocks navigation until pending changes are discarded or retained', async () => {
+		expect(component.hasUnsavedChanges()).toBeFalse();
+		component.title.set('Bridge Ambush');
+		expect(component.hasUnsavedChanges()).toBeTrue();
+
+		const retainDecision = component.canDeactivate() as Promise<boolean>;
+		expect(component.unsavedChangesModal()).toBeTrue();
+		component.stayOnPage();
+		expect(await retainDecision).toBeFalse();
+
+		const discardDecision = component.canDeactivate() as Promise<boolean>;
+		component.discardChanges();
+		expect(await discardDecision).toBeTrue();
+	});
+
+	it('clears the pending state after a successful save', () => {
+		component.title.set('Bridge Ambush');
+		expect(component.hasUnsavedChanges()).toBeTrue();
+
+		component.save();
+
+		expect(component.hasUnsavedChanges()).toBeFalse();
+	});
 });

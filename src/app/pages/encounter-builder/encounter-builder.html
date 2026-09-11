@@ -1,8 +1,20 @@
-<div class="mx-auto w-full max-w-[1480px] space-y-6 px-4 py-6">
-	<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+<div class="mx-auto w-full max-w-[1480px] space-y-6 pb-24 pt-1 sm:py-2 md:pb-2">
+	<header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+		<div class="min-w-0 flex-1">
+			<div class="flex flex-wrap items-center gap-2"><span class="app-eyebrow">{{ savedId() ? 'Encounter em edição' : 'Novo encounter' }}</span>@if (hasUnsavedChanges()) { <span class="app-status border border-amber-400/30 bg-amber-500/10 text-amber-100">Alterações pendentes</span> } @else { <span class="app-status border border-emerald-400/30 bg-emerald-500/10 text-emerald-100">Tudo salvo</span> }</div>
+			<label class="mt-2 block max-w-2xl"><span class="sr-only">Título do encounter</span><input class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xl font-semibold text-app-text placeholder:text-app-muted" [ngModel]="title()" (ngModelChange)="title.set($event)" placeholder="Ex: Sessão 12 - Cemitério" /></label>
+			<p class="mt-2 text-sm text-app-muted">Monte participantes e eventos antes de iniciar a batalha.</p>
+		</div>
+		<div class="app-action-group"><button type="button" class="app-button app-button-ghost" (click)="backToHub()">Voltar ao Hub</button><button type="button" class="app-button app-button-ghost" (click)="save()">Salvar</button><button type="button" class="app-button app-button-primary" (click)="saveAndStartBattle()">{{ saveAndBattleLabel() }}</button></div>
+	</header>
+	<section class="app-panel p-4">
+		<div class="flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-end lg:justify-between">
+			<div><div class="app-eyebrow">Participantes</div><h3 class="mt-1 text-lg font-semibold text-app-text">Adicionar fichas ao encounter</h3><p class="mt-1 text-sm text-app-muted">Crie uma ficha rápida ou importe uma ficha existente para compor a iniciativa.</p></div>
+			<div class="flex flex-wrap gap-2"><button type="button" class="app-button border border-violet-400/40 bg-violet-500/20 text-violet-50 shadow-lg shadow-violet-950/30 transition hover:bg-violet-500/30" (click)="openHomebrewModal()"><svg lucideBookOpen [size]="18" [strokeWidth]="2.25" aria-hidden="true"></svg>Importar Homebrew</button><button type="button" class="app-button border border-sky-400/30 bg-sky-500/10 text-sky-50 shadow-lg shadow-sky-950/20 transition hover:bg-sky-500/20" (click)="openApiModal()"><svg lucideSearch [size]="18" [strokeWidth]="2.25" aria-hidden="true"></svg>Buscar na API</button></div>
+		</div>
 		<div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
 			<label class="block md:col-span-5">
-				<span class="text-xs opacity-80">Creature Name</span>
+				<span class="text-xs text-app-muted">Nome da criatura</span>
 				<input
 					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
 					[ngModel]="draft().name"
@@ -11,7 +23,7 @@
 			</label>
 
 			<label class="block md:col-span-2">
-				<span class="text-xs opacity-80">Init</span>
+				<span class="text-xs text-app-muted">Iniciativa</span>
 				<input
 					type="number"
 					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
@@ -21,7 +33,7 @@
 			</label>
 
 			<label class="block md:col-span-2">
-				<span class="text-xs opacity-80">HP</span>
+				<span class="text-xs text-app-muted">PV</span>
 				<input
 					type="number"
 					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
@@ -31,7 +43,7 @@
 			</label>
 
 			<label class="block md:col-span-1">
-				<span class="text-xs opacity-80">AC</span>
+				<span class="text-xs text-app-muted">CA</span>
 				<input
 					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
 					[ngModel]="draft().ac"
@@ -40,7 +52,7 @@
 			</label>
 
 			<label class="block md:col-span-1">
-				<span class="text-xs opacity-80">Qty</span>
+				<span class="text-xs text-app-muted">Qtd.</span>
 				<input
 					type="number"
 					min="1"
@@ -54,19 +66,18 @@
 				class="app-action-button md:col-span-1 cursor-pointer rounded-2xl border border-white/10 bg-white/10 text-sm hover:bg-white/15"
 				(click)="addCreatures()"
 			>
-				+ Add
+				Adicionar
 			</button>
 		</div>
-	</div>
+	</section>
 
-	<div class="grid gap-4 xl:grid-cols-2">
-		<section class="rounded-2xl border border-white/10 bg-white/5 p-4">
+	<section class="app-panel overflow-hidden p-0">
+		<div class="flex flex-col gap-2 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-end sm:justify-between"><div><div class="app-eyebrow">Configuração de combate</div><h3 class="mt-1 text-lg font-semibold text-app-text">Eventos do encounter</h3><p class="mt-1 text-sm text-app-muted">Ações ambientais configuradas agora entram prontas na battle session.</p></div><span class="app-status border border-violet-400/30 bg-violet-500/10 text-violet-100">{{ (encounter().lairActions?.length ?? 0) + (encounter().traps?.length ?? 0) }} eventos</span></div>
+		<div class="grid xl:grid-cols-2">
+		<section class="p-5 xl:border-r xl:border-white/10">
 			<div class="flex items-center justify-between gap-3">
-				<div>
-					<h3 class="text-sm font-semibold opacity-90">Lair Actions</h3>
-					<p class="mt-1 text-sm opacity-70">Configuradas antes da batalha e copiadas para a battle session.</p>
-				</div>
-				<span class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px]">
+				<div><h3 class="text-sm font-semibold text-app-text">Lair actions</h3><p class="mt-1 text-sm text-app-muted">Efeitos ligados à iniciativa ou ao round.</p></div>
+				<span class="app-status border border-white/10 bg-white/5 text-app-muted">
 					{{ encounter().lairActions?.length ?? 0 }} ativa(s)
 				</span>
 			</div>
@@ -139,7 +150,7 @@
 				}
 			</div>
 
-			<div class="mt-4 rounded-2xl border border-white/10 bg-black/10 p-4 space-y-3">
+			<div class="mt-4 space-y-3 border-t border-white/10 pt-4">
 				<div class="grid gap-3 md:grid-cols-2">
 					<label class="text-sm">
 						<span class="mb-1 block opacity-70">Nome</span>
@@ -205,13 +216,10 @@
 			</div>
 		</section>
 
-		<section class="rounded-2xl border border-white/10 bg-white/5 p-4">
+		<section class="border-t border-white/10 p-5 xl:border-t-0">
 			<div class="flex items-center justify-between gap-3">
-				<div>
-					<h3 class="text-sm font-semibold opacity-90">Traps / ambiente</h3>
-					<p class="mt-1 text-sm opacity-70">Ações de ambiente que também entram prontas na battle session.</p>
-				</div>
-				<span class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px]">
+				<div><h3 class="text-sm font-semibold text-app-text">Armadilhas e ambiente</h3><p class="mt-1 text-sm text-app-muted">Disparos manuais, de round ou por iniciativa.</p></div>
+				<span class="app-status border border-white/10 bg-white/5 text-app-muted">
 					{{ encounter().traps?.length ?? 0 }} ativa(s)
 				</span>
 			</div>
@@ -302,7 +310,7 @@
 				}
 			</div>
 
-			<div class="mt-4 rounded-2xl border border-white/10 bg-black/10 p-4 space-y-3">
+			<div class="mt-4 space-y-3 border-t border-white/10 pt-4">
 				<div class="grid gap-3 md:grid-cols-2">
 					<label class="text-sm">
 						<span class="mb-1 block opacity-70">Nome</span>
@@ -383,55 +391,12 @@
 				</div>
 			</div>
 		</section>
-	</div>
-
-	<div class="flex flex-wrap gap-2">
-		<button
-			class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 transition hover:bg-white/15"
-			(click)="openHomebrewModal()"
-		>
-			Import Homebrew
-		</button>
-
-		<button
-			class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 transition hover:bg-white/15"
-			(click)="openApiModal()"
-		>
-			Import API
-		</button>
-	</div>
-
-	<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
-		<div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-			<label class="md:col-span-8 block">
-				<span class="text-xs opacity-70">Encounter title</span>
-				<input
-					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2 placeholder:italic"
-					[ngModel]="title()"
-					(ngModelChange)="title.set($event)"
-					placeholder="Ex: Session 12 - Graveyard"
-				/>
-			</label>
-
-			<button
-				class="app-action-button md:col-span-2 w-full shrink-0 cursor-pointer rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15"
-				(click)="save()"
-			>
-				Save
-			</button>
-
-			<button
-				class="app-action-button md:col-span-2 w-full shrink-0 cursor-pointer rounded-2xl border border-fuchsia-400/30 bg-violet-500/15 font-semibold hover:bg-violet-500/25"
-				(click)="saveAndStartBattle()"
-			>
-				{{ saveAndBattleLabel() }}
-			</button>
 		</div>
-	</div>
+	</section>
 
 	<div class="space-y-3">
 		@for (c of creatures(); track c.id) {
-		<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+		<div class="app-panel p-4">
 			<div class="flex items-center gap-3">
 				<input
 					class="flex-1 text-lg font-semibold rounded-xl bg-black/20 border border-white/10 px-3 py-2"
@@ -443,39 +408,39 @@
 					class="px-3 py-2 rounded-xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
 					(click)="toggleExpanded(c.id)"
 				>
-					@if (isExpanded(c.id)) { Hide } @else { Details }
+					@if (isExpanded(c.id)) { Recolher } @else { Editar ficha }
 				</button>
 
 				<button
 					class="px-3 py-2 rounded-xl cursor-pointer bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 text-sm"
 					(click)="removeCreature(c.id)"
 				>
-					Remove
+				Remover
 				</button>
 			</div>
 
-			<div class="mt-3 grid grid-cols-1 md:grid-cols-12 gap-3">
-				<div class="md:col-span-2 rounded-xl bg-black/15 border border-white/10 p-3">
-					<div class="text-[10px] uppercase tracking-wider opacity-70">Init</div>
+			<div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-white/10 pt-3 md:grid-cols-12">
+				<label class="md:col-span-2">
+					<div class="text-[10px] uppercase tracking-wider text-app-muted">Iniciativa</div>
 					<input
 						type="number"
 						class="mt-2 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
 						[ngModel]="c.initiative"
 						(ngModelChange)="updateCreature(c.id, { initiative: $event === '' ? null : +$event })"
 					/>
-				</div>
+				</label>
 
-				<div class="md:col-span-2 rounded-xl bg-black/15 border border-white/10 p-3">
-					<div class="text-[10px] uppercase tracking-wider opacity-70">AC</div>
+				<label class="md:col-span-2">
+					<div class="text-[10px] uppercase tracking-wider text-app-muted">CA</div>
 					<input
 						class="mt-2 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
 						[ngModel]="c.armorClass"
 						(ngModelChange)="updateCreature(c.id, { armorClass: $event })"
 					/>
-				</div>
+				</label>
 
-				<div class="md:col-span-5 rounded-xl bg-black/15 border border-white/10 p-3">
-					<div class="text-[10px] uppercase tracking-wider opacity-70">HP (current / max)</div>
+				<div class="col-span-2 md:col-span-5">
+					<div class="text-[10px] uppercase tracking-wider text-app-muted">PV atual / máximo</div>
 					<div class="mt-2 flex items-center gap-2">
 						<input
 							type="number"
@@ -493,8 +458,8 @@
 					</div>
 				</div>
 
-				<div class="md:col-span-3 rounded-xl bg-black/15 border border-white/10 p-3">
-					<div class="text-[10px] uppercase tracking-wider opacity-70">Temp HP</div>
+				<label class="col-span-2 md:col-span-3">
+					<div class="text-[10px] uppercase tracking-wider text-app-muted">PV temporário</div>
 					<input
 						type="number"
 						class="mt-2 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
@@ -503,20 +468,20 @@
 							updateCreature(c.id, { temporaryHealthPoints: $event === '' ? null : +$event })
 						"
 					/>
-				</div>
+				</label>
 			</div>
 
 			@if (isExpanded(c.id)) {
 			<div class="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4">
-				<section class="md:col-span-6 rounded-2xl bg-black/10 border border-white/10 p-4">
+				<section class="md:col-span-5 border-b border-white/10 pb-5 md:border-b-0 md:border-r md:pr-5 md:pb-0">
 					<div class="flex items-center justify-between gap-2">
-						<h3 class="text-sm font-semibold opacity-90">Notes</h3>
-						<span class="text-xs opacity-60">{{ c.notes.length }} item(s)</span>
+					<h3 class="text-sm font-semibold text-app-text">Notas</h3>
+					<span class="text-xs text-app-muted">{{ c.notes.length }} item(s)</span>
 					</div>
 
 					<textarea
 						class="mt-3 w-full h-24 rounded-xl bg-black/20 border border-white/10 p-3 text-sm"
-						placeholder="Write a note…"
+						placeholder="Adicionar uma nota..."
 						[ngModel]="getNoteDraft(c.id)"
 						(ngModelChange)="setNoteDraft(c.id, $event)"
 					></textarea>
@@ -525,7 +490,7 @@
 						class="mt-2 px-3 py-2 rounded-xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
 						(click)="addNote(c.id)"
 					>
-						+ Add Note
+						Adicionar nota
 					</button>
 
 					<div class="mt-3 space-y-2">
@@ -547,10 +512,10 @@
 					</div>
 				</section>
 
-				<section class="md:col-span-6 rounded-2xl bg-black/10 border border-white/10 p-4">
+				<section class="md:col-span-7 md:pl-1">
 					<div class="flex items-center justify-between gap-2">
-						<h3 class="text-sm font-semibold opacity-90">Spellcasting</h3>
-						<span class="text-xs opacity-60"> {{ spellEntries(c.spells).length }} spell(s) </span>
+					<h3 class="text-sm font-semibold text-app-text">Magias e espaços</h3>
+					<span class="text-xs text-app-muted"> {{ spellEntries(c.spells).length }} magias </span>
 					</div>
 
 					@if (c.totalSpellSlots === null || c.usedSpellSlots === null) {
@@ -558,13 +523,13 @@
 						class="mt-3 px-3 py-2 cursor-pointer rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
 						(click)="enableSpellcasting(c.id)"
 					>
-						Enable spell slots
+						Ativar espaços de magia
 					</button>
 					} @else {
 					<div class="mt-3 grid grid-cols-1 gap-2">
 						@for (lvl of SPELL_LEVELS; track lvl) {
 						<div
-							class="grid grid-cols-12 gap-2 items-center rounded-xl bg-black/15 border border-white/10 p-2"
+							class="grid grid-cols-12 items-center gap-2 border-b border-white/10 py-2 last:border-b-0"
 						>
 							<div class="col-span-2 text-xs opacity-80 font-semibold">{{ lvl }}</div>
 
@@ -592,8 +557,8 @@
 					</div>
 					}
 
-					<div class="mt-4 rounded-2xl bg-black/10 border border-white/10 p-3">
-						<div class="text-xs font-semibold opacity-80">Spells</div>
+					<div class="mt-4 border-t border-white/10 pt-4">
+						<div class="text-xs font-semibold text-app-text">Magias conhecidas</div>
 
 						<div class="mt-2 grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
 							<input
@@ -650,18 +615,19 @@
 					</div>
 				</section>
 
-				<section class="md:col-span-12 rounded-2xl bg-black/10 border border-white/10 p-4">
+				<section class="md:col-span-12 border-t border-white/10 pt-5">
 					<div>
-						<h3 class="text-sm font-semibold opacity-90">Habilidades especiais</h3>
-						<p class="mt-1 text-sm opacity-70">
+						<h3 class="text-sm font-semibold text-app-text">Habilidades especiais</h3>
+						<p class="mt-1 text-sm text-app-muted">
 							Edite aqui antes da batalha para a criatura já entrar pronta no tracker.
 						</p>
 					</div>
 
 					<div class="mt-4 space-y-3">
 						@for (ability of c.specialAbilities; track ability.id) {
-							<div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-								<div class="grid gap-3 2xl:grid-cols-[minmax(0,1fr)_15rem]">
+							<div class="border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
+								<div class="space-y-3">
+									<div class="flex flex-wrap items-center justify-between gap-3"><div class="rounded-xl border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm text-app-muted">{{ abilityStatusPreview(ability) }}</div><button type="button" class="app-button app-button-danger h-10 shrink-0" (click)="removeSpecialAbility(c.id, ability.id)">Remover</button></div>
 									<div class="grid gap-3 md:grid-cols-2">
 										<label class="text-sm">
 											<span class="mb-1 block opacity-70">Nome</span>
@@ -761,28 +727,16 @@
 										}
 									</div>
 
-									<div class="flex flex-col gap-2">
-										<div class="rounded-xl border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm opacity-75">
-											{{ abilityStatusPreview(ability) }}
-										</div>
-
-										<button
-											class="h-10 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-4 hover:bg-red-500/20"
-											(click)="removeSpecialAbility(c.id, ability.id)"
-										>
-											Remover
-										</button>
-									</div>
 								</div>
 							</div>
 						} @empty {
-							<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
+							<div class="border-y border-dashed border-white/10 py-4 text-sm text-app-muted">
 								Nenhuma habilidade especial cadastrada.
 							</div>
 						}
 					</div>
 
-					<div class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+					<div class="mt-4 border-t border-white/10 pt-4">
 						<div class="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,0.9fr)]">
 							<label class="text-sm">
 								<span class="mb-1 block opacity-70">Nome</span>
@@ -1215,33 +1169,11 @@
 		</div>
 	</div>
 </div>
+<div class="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-app-surface/95 p-3 backdrop-blur md:hidden"><div class="mx-auto flex max-w-[1480px] gap-2"><button type="button" class="app-button app-button-ghost flex-1" (click)="save()">Salvar</button><button type="button" class="app-button app-button-primary flex-1" (click)="saveAndStartBattle()">Iniciar batalha</button></div></div>
+} @if (unsavedChangesModal()) {
+<div class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="stayOnPage()"><section role="dialog" aria-modal="true" aria-labelledby="encounter-unsaved-title" class="w-full max-w-lg rounded-app-shell border border-amber-400/25 bg-app-surface-raised p-5 shadow-app-modal sm:p-6" (click)="$event.stopPropagation()"><div class="flex items-start justify-between gap-3"><div><div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100">Alterações pendentes</div><h2 id="encounter-unsaved-title" class="mt-1 text-xl font-semibold text-app-text">Descartar alterações?</h2></div><button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" (click)="stayOnPage()" aria-label="Fechar confirmação"><svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg></button></div><p class="mt-3 text-sm leading-6 text-app-muted">As alterações deste encounter não foram salvas e serão perdidas ao sair.</p><div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" class="app-button app-button-ghost w-full sm:w-auto" (click)="stayOnPage()">Continuar editando</button><button type="button" class="app-button app-button-danger w-full sm:w-auto" (click)="discardChanges()">Descartar alterações</button></div></section></div>
 } @if (toast(); as t) {
-<div
-	class="fixed top-4 right-4 z-50 max-w-sm rounded-2xl border px-4 py-3 shadow-lg bg-black/50 backdrop-blur"
-	[ngClass]="{
-		'border-emerald-400/30': t.type === 'success',
-		'bg-emerald-500/10': t.type === 'success',
-		'border-red-400/30': t.type === 'error',
-		'bg-red-500/10': t.type === 'error',
-		'border-yellow-400/30': t.type === 'warn',
-		'bg-yellow-500/10': t.type === 'warn'
-	}"
-	role="status"
-	aria-live="polite"
->
-	<div class="flex items-start justify-between gap-3">
-		<div class="text-sm opacity-95">{{ t.text }}</div>
-
-		<button
-			class="h-8 w-8 inline-flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10"
-			(click)="toast.set(null)"
-			aria-label="Close"
-			title="Close"
-		>
-			✕
-		</button>
-	</div>
-</div>
+<div class="pointer-events-none fixed right-4 top-4 z-[55]"><div class="app-toast pointer-events-auto max-w-sm border px-4 py-3" [class.border-emerald-400/30]="t.type === 'success'" [class.border-red-400/30]="t.type === 'error'" [class.border-amber-400/30]="t.type === 'warn'" role="status" aria-live="polite"><div class="flex items-start gap-3"><div class="app-toast-icon shrink-0" [class.bg-emerald-500/15]="t.type === 'success'" [class.text-emerald-200]="t.type === 'success'" [class.bg-red-500/15]="t.type === 'error'" [class.text-rose-200]="t.type === 'error'" [class.bg-amber-500/15]="t.type === 'warn'" [class.text-amber-100]="t.type === 'warn'">@if (t.type === 'success') { <svg lucideCircleCheck [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else if (t.type === 'error') { <svg lucideCircleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else { <svg lucideTriangleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> }</div><div class="min-w-0 flex-1"><div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">@if (t.type === 'success') { Concluído } @else if (t.type === 'error') { Não foi possível concluir } @else { Atenção }</div><div class="mt-1 text-sm leading-5 text-app-text">{{ t.text }}</div></div><button type="button" class="app-toast-dismiss shrink-0" (click)="toast.set(null)" aria-label="Fechar mensagem"><svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg></button></div></div></div>
 } @if (apiModalOpen()) {
 <div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" (click)="closeApiModal()">
 	<div class="min-h-screen w-full flex items-center justify-center p-4">

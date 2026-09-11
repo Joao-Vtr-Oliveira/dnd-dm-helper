@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -20,7 +20,15 @@ import type {
 	SpellsByKey,
 } from '../../models/battleTracker-model';
 import { EncounterIoService } from '../../services/encounter-io-service/encounter-io-service';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, CanDeactivateFn, Router } from '@angular/router';
+import {
+	LucideBookOpen,
+	LucideCircleAlert,
+	LucideCircleCheck,
+	LucideSearch,
+	LucideTriangleAlert,
+	LucideX,
+} from '@lucide/angular';
 import {
 	LocalStorageService,
 	SavedEncounter,
@@ -71,7 +79,16 @@ type TrapDraft = {
 @Component({
 	selector: 'app-encounter-builder',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [
+		CommonModule,
+		FormsModule,
+		LucideBookOpen,
+		LucideCircleAlert,
+		LucideCircleCheck,
+		LucideSearch,
+		LucideTriangleAlert,
+		LucideX,
+	],
 	templateUrl: './encounter-builder.html',
 })
 export class EncounterBuilder {
@@ -400,12 +417,68 @@ export class EncounterBuilder {
 	});
 
 	toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
+	unsavedChangesModal = signal(false);
+	private savedSnapshot = signal('');
+	private pendingNavigationResolver: ((allowed: boolean) => void) | null = null;
 	private toastTimer: number | null = null;
+	readonly hasUnsavedChanges = computed(() => this.editorSnapshot() !== this.savedSnapshot());
 
 	private showToast(t: { type: 'success' | 'error' | 'warn'; text: string }, ms = 2200) {
 		if (this.toastTimer) window.clearTimeout(this.toastTimer);
 		this.toast.set(t);
 		this.toastTimer = window.setTimeout(() => this.toast.set(null), ms);
+	}
+
+	private editorSnapshot() {
+		return JSON.stringify({
+			title: this.title(),
+			encounter: this.encounter(),
+			draft: this.draft(),
+			lairActionDraft: this.lairActionDraft(),
+			trapDraft: this.trapDraft(),
+		});
+	}
+
+	private markSaved() {
+		this.savedSnapshot.set(this.editorSnapshot());
+	}
+
+	@HostListener('window:beforeunload', ['$event'])
+	onBeforeUnload(event: BeforeUnloadEvent) {
+		if (!this.hasUnsavedChanges()) return;
+		event.preventDefault();
+		event.returnValue = '';
+	}
+
+	@HostListener('window:keydown.escape')
+	onEscape() {
+		if (this.unsavedChangesModal()) this.stayOnPage();
+	}
+
+	canDeactivate(): boolean | Promise<boolean> {
+		if (!this.hasUnsavedChanges()) return true;
+		this.unsavedChangesModal.set(true);
+		return new Promise((resolve) => (this.pendingNavigationResolver = resolve));
+	}
+
+	stayOnPage() {
+		this.unsavedChangesModal.set(false);
+		this.resolvePendingNavigation(false);
+	}
+
+	discardChanges() {
+		this.unsavedChangesModal.set(false);
+		this.resolvePendingNavigation(true);
+	}
+
+	backToHub() {
+		this.router.navigate(['/home']);
+	}
+
+	private resolvePendingNavigation(allowed: boolean) {
+		const resolve = this.pendingNavigationResolver;
+		this.pendingNavigationResolver = null;
+		resolve?.(allowed);
 	}
 
 	private parseNullableNumber(v: any): number | null {
@@ -1099,6 +1172,7 @@ export class EncounterBuilder {
 			if (!id) {
 				const encounter = this.ls.createEncounter(title, data);
 				this.savedId.set(encounter.id);
+				this.markSaved();
 				return { encounter, created: true };
 			}
 
@@ -1108,6 +1182,7 @@ export class EncounterBuilder {
 				return null;
 			}
 
+			this.markSaved();
 			return { encounter, created: false };
 		} catch {
 			this.showToast({ type: 'error', text: 'Não foi possível salvar o encounter.' });
@@ -1136,6 +1211,7 @@ export class EncounterBuilder {
 
 		void this.handleFiveEToolsNavigationImport();
 		this.refreshHomebrewSheets();
+		this.markSaved();
 	}
 
 	private async handleFiveEToolsNavigationImport() {
@@ -1182,3 +1258,6 @@ export class EncounterBuilder {
 		}
 	}
 }
+
+export const canDeactivateEncounterBuilder: CanDeactivateFn<EncounterBuilder> = (component) =>
+	component.canDeactivate();
