@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { By } from '@angular/platform-browser';
+	import { By } from '@angular/platform-browser';
 import { Calendar } from './calendar';
 
 describe('Calendar', () => {
@@ -25,7 +25,7 @@ describe('Calendar', () => {
 	});
 
 	it('updates the calendar immediately when changing the season select and persists the value', () => {
-		const seasonSelect = fixture.debugElement.queryAll(By.css('select'))[0]
+		const seasonSelect = fixture.debugElement.query(By.css('.calendar-field select'))
 			.nativeElement as HTMLSelectElement;
 
 		seasonSelect.value = 'winter';
@@ -45,5 +45,56 @@ describe('Calendar', () => {
 
 		expect(component.selected().hour).toBe(component.current().hour);
 		expect(component.selected().day).toBe(component.current().day);
+	});
+
+	it('selects a day for inspection without changing the world clock', () => {
+		const currentDay = component.current().day;
+		const cell = component
+			.weeks()
+			.flat()
+			.find((candidate) => candidate?.day !== currentDay) ?? null;
+
+		expect(cell).not.toBeNull();
+		component.selectCell(cell);
+
+		expect(component.selected().day).toBe(cell!.day);
+		expect(component.current().day).toBe(currentDay);
+	});
+
+	it('keeps the header event summary tied to the current world date', () => {
+		component.jumpSeasonInput = 'spring';
+		component.jumpDayInput = 18;
+		component.goToDate();
+		const otherDay = component.weeks().flat().find((candidate) => candidate?.day === 17) ?? null;
+
+		component.selectCell(otherDay);
+
+		expect(component.eventsCurrent()).toHaveSize(1);
+		expect(component.eventsSelected()).toHaveSize(0);
+	});
+
+	it('moves across the year boundary when navigating to the previous season', () => {
+		component.jumpYearInput = 1001;
+		component.jumpSeasonInput = 'spring';
+		component.goToDate();
+		const year = component.current().year;
+
+		component.changeSeason(-1);
+
+		expect(component.current().season).toBe('winter');
+		expect(component.current().year).toBe(year - 1);
+	});
+
+	it('only resets time after confirming the action', () => {
+		component.changeHour(4);
+		expect(component.current().hour).toBe(9);
+
+		component.requestReset('time');
+		expect(component.resetConfirmation()).toBe('time');
+		expect(component.current().hour).toBe(9);
+
+		component.confirmReset();
+		expect(component.resetConfirmation()).toBeNull();
+		expect(component.current().hour).toBe(5);
 	});
 });

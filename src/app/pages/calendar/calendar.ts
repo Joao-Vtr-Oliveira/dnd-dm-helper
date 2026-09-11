@@ -1,5 +1,5 @@
 // src/app/pages/world-calendar/world-calendar.ts
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, HostListener, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import {
@@ -16,6 +16,16 @@ import type { MoonPhase, Season, WorldDate } from '../../models/calendar-model';
 import { SEASONS } from '../../utils/calendar-utils/calendar-constants';
 import { FormsModule } from '@angular/forms';
 import { WorldClockService } from '../../services/WorldClockService/world-clock-service';
+import {
+	LucideCalendarDays,
+	LucideChevronLeft,
+	LucideChevronRight,
+	LucideClock3,
+	LucideMoon,
+	LucideRotateCcw,
+	LucideSparkles,
+	LucideX,
+} from '@lucide/angular';
 
 type WeekRow = (CalendarDayCell | null)[];
 
@@ -26,7 +36,18 @@ const DEFAULT_MINUTE = 0;
 @Component({
 	selector: 'app-calendar',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [
+		CommonModule,
+		FormsModule,
+		LucideCalendarDays,
+		LucideChevronLeft,
+		LucideChevronRight,
+		LucideClock3,
+		LucideMoon,
+		LucideRotateCcw,
+		LucideSparkles,
+		LucideX,
+	],
 	templateUrl: './calendar.html',
 })
 export class Calendar {
@@ -79,6 +100,19 @@ export class Calendar {
 
 	weekdayLabelCurrent = computed(() => getWeekdayLabel(this.current()));
 	moonCurrent = computed(() => getMoonInfo(this.current()));
+	eventsCurrent = computed(() => getEventsForDate(this.current()));
+	seasonTheme = computed(() => {
+		switch (this.current().season) {
+			case 'spring':
+				return 'calendar-spring';
+			case 'summer':
+				return 'calendar-summer';
+			case 'autumn':
+				return 'calendar-autumn';
+			case 'winter':
+				return 'calendar-winter';
+		}
+	});
 
 	weekdayLabelSelected = computed(() => getWeekdayLabel(this.selected()));
 	moonSelected = computed(() => getMoonInfo(this.selected()));
@@ -97,6 +131,7 @@ export class Calendar {
 		const mm = String(d.minute).padStart(2, '0');
 		return `${hh}:${mm}`;
 	});
+	resetConfirmation = signal<'date' | 'time' | null>(null);
 
 	constructor() {
 		const start = this.current();
@@ -132,7 +167,7 @@ export class Calendar {
 		this.selected.set(this.current());
 	}
 
-	goToday() {
+	private goToday() {
 		this.setCurrent(() => ({ ...EPOCH_DATE }));
 	}
 
@@ -152,12 +187,32 @@ export class Calendar {
 		this.selected.set(this.current());
 	}
 
-	resetTime() {
+	private resetTime() {
 		this.setCurrent((d) => ({
 			...d,
 			hour: DEFAULT_HOUR,
 			minute: DEFAULT_MINUTE,
 		}));
+	}
+
+	requestReset(kind: 'date' | 'time') {
+		this.resetConfirmation.set(kind);
+	}
+
+	cancelReset() {
+		this.resetConfirmation.set(null);
+	}
+
+	confirmReset() {
+		const kind = this.resetConfirmation();
+		this.resetConfirmation.set(null);
+		if (kind === 'date') this.goToday();
+		if (kind === 'time') this.resetTime();
+	}
+
+	@HostListener('window:keydown.escape')
+	onEscape() {
+		if (this.resetConfirmation()) this.cancelReset();
 	}
 
 	changeSeason(delta: number) {
