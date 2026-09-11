@@ -9,6 +9,7 @@ describe('HomebrewBuilder', () => {
   let fixture: ComponentFixture<HomebrewBuilder>;
 
   beforeEach(async () => {
+		localStorage.clear();
     await TestBed.configureTestingModule({
       imports: [HomebrewBuilder],
 		providers: [
@@ -45,5 +46,33 @@ describe('HomebrewBuilder', () => {
 		component.setName('Lady Rosa');
 		component.setTitle('Rosa Final');
 		expect(component.creature().name).toBe('Lady Rosa');
+	});
+
+	it('asks before navigating away with unsaved changes', async () => {
+		component.setTitle('Ficha pendente');
+		const navigation = component.canDeactivate();
+
+		expect(component.unsavedChangesModal()).toBeTrue();
+		component.stayOnPage();
+		expect(await navigation).toBeFalse();
+
+		const discardNavigation = component.canDeactivate();
+		component.discardChanges();
+		expect(await discardNavigation).toBeTrue();
+	});
+
+	it('keeps used spell slots within the configured total', () => {
+		component.enableSpellcasting();
+		component.setSpellSlot('total', '1st', 2);
+		component.setSpellSlot('used', '1st', 4);
+
+		expect(component.slotValue(component.creature().totalSpellSlots, '1st')).toBe(2);
+		expect(component.slotValue(component.creature().usedSpellSlots, '1st')).toBe(2);
+	});
+
+	it('shows feedback instead of saving a sheet without a creature name', () => {
+		component.save();
+		expect(component.toast()?.type).toBe('warn');
+		expect(component.toast()?.text).toContain('nome');
 	});
 });

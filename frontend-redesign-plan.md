@@ -2,7 +2,7 @@
 
 ## Status
 
-Fases 0, 1 e 2 concluidas e aprovadas. A Fase 3 esta concluida e aguarda revisao visual.
+Fases 0, 1, 2 e 3 concluidas e aprovadas. A Fase 4 esta concluida e aguarda revisao visual.
 
 Padrao aprovado: interface dark operacional, violeta intencional, densidade sem excesso de cards,
 acoes hierarquizadas, responsividade real e preservacao rigorosa da logica.
@@ -235,7 +235,7 @@ Risco e testes: manter setup de batalha e relacoes encounter/batalha; atualizar 
 
 ### Fase 3 - Biblioteca de Fichas
 
-Status: concluida, aguardando aprovacao visual.
+Status: concluida e aprovada.
 
 Objetivo: transformar a area em biblioteca escaneavel, com acoes de ficha hierarquizadas e metadata mais densa.
 
@@ -244,6 +244,8 @@ Preservar: busca, filtros, tags, fontes, import preview, conflitos, exportacao, 
 Risco e testes: preservar escolhas de conflito e IDs externos; executar `homebrew-sheets.spec.ts`, suite completa e build.
 
 ### Fase 4 - Homebrew Builder
+
+Status: concluida, aguardando aprovacao visual.
 
 Objetivo: estabelecer padrao de editor com sections, fieldsets visuais, divisores e acoes de salvamento claras.
 

@@ -1,7 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, CanDeactivateFn, Router } from '@angular/router';
+import {
+	LucideCircleAlert,
+	LucideCircleCheck,
+	LucideTriangleAlert,
+	LucideX,
+} from '@lucide/angular';
 
 import {
 	HomebrewCategory,
@@ -18,14 +24,14 @@ import type {
 } from '../../models/battleTracker-model';
 
 type SpellDraft = { label: string; total: number };
-	type AbilityDraft = {
-		name: string;
-		description: string;
-		rechargeType: CreatureAbilityRechargeType;
-		maxUses: number;
-		cooldownValue: number;
-		rechargeOn: string;
-	};
+type AbilityDraft = {
+	name: string;
+	description: string;
+	rechargeType: CreatureAbilityRechargeType;
+	maxUses: number;
+	cooldownValue: number;
+	rechargeOn: string;
+};
 
 function createEmptyCreature(): CreatureInterface {
 	return {
@@ -70,7 +76,14 @@ function normalizeCreature(raw: CreatureInterface): CreatureInterface {
 @Component({
 	selector: 'app-homebrew-builder',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [
+		CommonModule,
+		FormsModule,
+		LucideCircleAlert,
+		LucideCircleCheck,
+		LucideTriangleAlert,
+		LucideX,
+	],
 	templateUrl: './homebrew-builder.html',
 })
 export class HomebrewBuilder {
@@ -101,7 +114,21 @@ export class HomebrewBuilder {
 	SPELL_LEVELS: SpellLevel[] = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
 
 	toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
+	unsavedChangesModal = signal(false);
+	private savedSnapshot = signal('');
+	private pendingNavigationResolver: ((allowed: boolean) => void) | null = null;
 	private toastTimer: number | null = null;
+
+	readonly hasUnsavedChanges = computed(
+		() =>
+			JSON.stringify({
+				title: this.title(),
+				creature: this.creature(),
+				category: this.category(),
+				tagsText: this.tagsText(),
+				source: this.source(),
+			}) !== this.savedSnapshot(),
+	);
 
 	constructor() {
 		const id = this.route.snapshot.paramMap.get('id');
@@ -122,6 +149,32 @@ export class HomebrewBuilder {
 				this.source.set(sheet.source ?? '');
 			}
 		}
+		this.markSaved();
+	}
+
+	@HostListener('window:beforeunload', ['$event'])
+	onBeforeUnload(event: BeforeUnloadEvent) {
+		if (!this.hasUnsavedChanges()) return;
+		event.preventDefault();
+		event.returnValue = '';
+	}
+
+	canDeactivate(): boolean | Promise<boolean> {
+		if (!this.hasUnsavedChanges()) return true;
+		this.unsavedChangesModal.set(true);
+		return new Promise((resolve) => {
+			this.pendingNavigationResolver = resolve;
+		});
+	}
+
+	stayOnPage() {
+		this.unsavedChangesModal.set(false);
+		this.resolvePendingNavigation(false);
+	}
+
+	discardChanges() {
+		this.unsavedChangesModal.set(false);
+		this.resolvePendingNavigation(true);
 	}
 
 	// -------- toast --------
@@ -129,6 +182,24 @@ export class HomebrewBuilder {
 		if (this.toastTimer) window.clearTimeout(this.toastTimer);
 		this.toast.set(t);
 		this.toastTimer = window.setTimeout(() => this.toast.set(null), ms);
+	}
+
+	private markSaved() {
+		this.savedSnapshot.set(
+			JSON.stringify({
+				title: this.title(),
+				creature: this.creature(),
+				category: this.category(),
+				tagsText: this.tagsText(),
+				source: this.source(),
+			}),
+		);
+	}
+
+	private resolvePendingNavigation(allowed: boolean) {
+		const resolve = this.pendingNavigationResolver;
+		this.pendingNavigationResolver = null;
+		resolve?.(allowed);
 	}
 
 	// -------- helpers numéricos / slug --------
@@ -432,6 +503,7 @@ export class HomebrewBuilder {
 			});
 
 			this.sheetId.set(saved.id);
+			this.markSaved();
 			this.showToast({ type: 'success', text: 'Sheet criada!' });
 			this.router.navigate(['/home/homebrew-builder', saved.id]);
 		} else {
@@ -440,8 +512,9 @@ export class HomebrewBuilder {
 				data: structuredClone(data),
 				category,
 				tags: rawTags,
-				source,
+				 source,
 			});
+			this.markSaved();
 			this.showToast({ type: 'success', text: 'Sheet atualizada.' });
 		}
 	}
@@ -450,3 +523,6 @@ export class HomebrewBuilder {
 		this.router.navigate(['/home/homebrew']);
 	}
 }
+
+export const canDeactivateHomebrewBuilder: CanDeactivateFn<HomebrewBuilder> = (component) =>
+	component.canDeactivate();

@@ -4,7 +4,7 @@ import { EncounterBuilder } from './pages/encounter-builder/encounter-builder';
 import { EncounterHub } from './pages/encounter-hub/encounter-hub';
 import { HomebrewSheets } from './pages/homebrew-sheets/homebrew-sheets';
 import { Calendar } from './pages/calendar/calendar';
-import { HomebrewBuilder } from './pages/homebrew-builder/homebrew-builder';
+import { canDeactivateHomebrewBuilder, HomebrewBuilder } from './pages/homebrew-builder/homebrew-builder';
 import { FiveEToolsHomebrewPage } from './pages/fiveetools-homebrew/fiveetools-homebrew';
 
 export const routes: Routes = [
@@ -26,8 +26,8 @@ export const routes: Routes = [
 					import('./pages/battle-tracker/battle-tracker').then((module) => module.BattleTrackerPage),
 			},
 			{ path: 'homebrew', component: HomebrewSheets },
-			{ path: 'homebrew-builder', component: HomebrewBuilder },
-			{ path: 'homebrew-builder/:id', component: HomebrewBuilder },
+			{ path: 'homebrew-builder', component: HomebrewBuilder, canDeactivate: [canDeactivateHomebrewBuilder] },
+			{ path: 'homebrew-builder/:id', component: HomebrewBuilder, canDeactivate: [canDeactivateHomebrewBuilder] },
 			{ path: '5etools-homebrew', component: FiveEToolsHomebrewPage },
 			{ path: 'calendar', component: Calendar },
 		],
