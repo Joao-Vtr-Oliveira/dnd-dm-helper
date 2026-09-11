@@ -2,7 +2,7 @@
 
 ## Status
 
-Fases 0, 1, 2, 3, 4, 5 e 6 concluidas e aprovadas. A Fase 7 esta concluida e aguarda revisao visual.
+Fases 0, 1, 2, 3, 4, 5, 6 e 7 concluidas e aprovadas. A Fase 8 esta concluida e aguarda revisao visual.
 
 Padrao aprovado: interface dark operacional, violeta intencional, densidade sem excesso de cards,
 acoes hierarquizadas, responsividade real e preservacao rigorosa da logica.
@@ -275,7 +275,7 @@ Risco e testes: mudancas diretas no relogio do mundo; reset de data/hora exige c
 
 ### Fase 7 - 5etools Browse
 
-Status: concluida, aguardando aprovacao visual.
+Status: concluida e aprovada.
 
 Objetivo: melhorar densidade, filtros, cards de entidade, preview e hierarquia de acoes sem tocar ainda nos editores profundos.
 
@@ -284,6 +284,8 @@ Preservar: busca, filtros, tabs, preview, criar, duplicar, exportar, remover, te
 Risco e testes: manter handoffs e filtros; executar `fiveetools-homebrew.spec.ts`, suite completa, build e revisao manual.
 
 ### Fase 8 - 5etools Editors e Modais
+
+Status: concluida, aguardando aprovacao visual.
 
 Objetivo: reduzir profundidade visual dos editores e modais sem perder suporte ao formato real do 5etools.
 

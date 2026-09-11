@@ -29,7 +29,7 @@
 
 			<button
 				type="button"
-				class="app-button app-button-ghost"
+				class="app-button app-button-secondary"
 				(click)="requestExportFull()"
 			>
 				Exportar JSON
@@ -375,10 +375,10 @@
 
 @if (editorMode() === 'monster') {
 	@if (selectedMonster(); as monster) {
-		<div class="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" (click)="cancelEditor()">
+		<div class="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm" (click)="cancelEditor()">
 			<div class="flex min-h-screen items-stretch justify-end">
 				<div
-					class="h-screen w-full overflow-auto border-l border-white/10 bg-[#120c20] shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_28px_60px_rgba(0,0,0,0.36)] xl:max-w-[1180px]"
+					class="five-editor-drawer h-screen w-full overflow-auto border-l xl:max-w-[1180px]"
 					(click)="$event.stopPropagation()"
 				>
 					<div
@@ -403,14 +403,14 @@
 								@if (editorTab() === 'blocks' || editorTab() === 'spellcasting') {
 									<button
 										type="button"
-										class="inline-flex h-10 items-center rounded-2xl border border-sky-400/25 bg-sky-500/12 px-4 text-sm font-semibold text-sky-50 transition hover:bg-sky-500/20"
+									class="app-button border border-sky-400/25 bg-sky-500/12 text-sky-50 hover:bg-sky-500/20"
 										(click)="saveCurrentMonsterAsCompositionPackage()"
 									>
 										Salvar como pacote
 									</button>
 									<button
 										type="button"
-										class="inline-flex h-10 items-center rounded-2xl border border-white/10 bg-black/20 px-4 text-sm font-semibold text-white transition hover:bg-black/30"
+									class="app-button app-button-secondary"
 										(click)="openTagHelper()"
 									>
 										Abrir helper de tags
@@ -418,14 +418,14 @@
 								}
 								<button
 									type="button"
-									class="inline-flex h-10 items-center rounded-2xl border border-emerald-400/30 bg-emerald-500/16 px-4 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-500/22"
+							class="app-button app-button-accent"
 									(click)="saveMonster()"
 								>
 									Salvar monster
 								</button>
 								<button
 									type="button"
-									class="inline-flex h-10 items-center rounded-2xl border border-white/10 bg-white/10 px-4 text-sm text-white/85 transition hover:bg-white/15"
+							class="app-button app-button-ghost"
 									(click)="cancelEditor()"
 								>
 									Fechar
@@ -1746,14 +1746,14 @@
 
 @if (editorMode() === 'trap') {
 	@if (selectedTrap(); as trap) {
-		<div class="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" (click)="cancelEditor()">
+		<div class="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm" (click)="cancelEditor()">
 			<div class="flex min-h-screen items-stretch justify-end">
 				<div
-					class="h-screen w-full overflow-auto border-l border-white/10 bg-[#120c20] shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_28px_60px_rgba(0,0,0,0.36)] xl:max-w-[1080px]"
+					class="five-editor-drawer h-screen w-full overflow-auto border-l xl:max-w-[1080px]"
 					(click)="$event.stopPropagation()"
 				>
 					<div
-						class="sticky top-0 z-10 border-b border-white/10 bg-[#120c20]/95 px-5 py-4 backdrop-blur sm:px-6"
+					class="five-editor-header sticky top-0 z-10 border-b px-5 py-4 backdrop-blur sm:px-6"
 					>
 						<div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
 							<div>
@@ -1771,20 +1771,20 @@
 							<div class="flex flex-wrap items-center gap-2">
 								@if (editorTab() === 'blocks') {
 									<button
-										class="inline-flex h-10 items-center rounded-2xl border border-white/10 bg-black/20 px-4 text-sm font-semibold text-white transition hover:bg-black/30"
+							class="app-button app-button-secondary"
 										(click)="openTagHelper()"
 									>
 										Abrir helper de tags
 									</button>
 								}
 								<button
-									class="inline-flex h-10 items-center rounded-2xl border border-emerald-400/30 bg-emerald-500/16 px-4 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-500/22"
+							class="app-button app-button-accent"
 									(click)="saveTrap()"
 								>
 									Salvar trap
 								</button>
 								<button
-									class="inline-flex h-10 items-center rounded-2xl border border-white/10 bg-white/10 px-4 text-sm text-white/85 transition hover:bg-white/15"
+							class="app-button app-button-ghost"
 									(click)="cancelEditor()"
 								>
 									Fechar
@@ -2096,18 +2096,21 @@
 }
 
 @if (importOpen()) {
-	<div class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" (click)="closeImport()">
+	<div class="fixed inset-0 z-[90] bg-black/75 backdrop-blur-sm" (click)="closeImport()">
 		<div class="flex min-h-screen items-stretch justify-center p-0 sm:items-center sm:p-4">
 			<div
-				class="flex h-screen w-full flex-col overflow-auto border-white/10 bg-[#120c20] sm:h-auto sm:max-h-[94vh] sm:max-w-6xl sm:rounded-[30px] sm:border"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="five-import-title"
+				class="five-workflow-modal flex h-screen w-full flex-col overflow-auto sm:h-auto sm:max-h-[94vh] sm:max-w-6xl"
 				(click)="$event.stopPropagation()"
 			>
 				<div
-					class="sticky top-0 z-10 border-b border-white/10 bg-[#120c20]/95 px-5 py-4 backdrop-blur sm:px-6"
+					class="five-editor-header sticky top-0 z-10 border-b px-5 py-4 backdrop-blur sm:px-6"
 				>
 					<div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
 						<div>
-							<h3 class="text-2xl font-semibold text-white">Importar trecho</h3>
+							<h3 id="five-import-title" class="text-2xl font-semibold text-white">Importar trecho</h3>
 							<p class="mt-1 text-sm text-white/65">
 								Cole o JSON, valide o conteúdo e resolva conflitos antes de aplicar ao arquivo
 								principal.
@@ -2308,13 +2311,16 @@
 }
 
 @if (syncPreview(); as preview) {
-	<div class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" (click)="closeSyncPreview()">
+	<div class="fixed inset-0 z-[90] bg-black/75 backdrop-blur-sm" (click)="closeSyncPreview()">
 		<div class="flex min-h-screen items-center justify-center p-4">
 			<div
-				class="w-full max-w-2xl rounded-[30px] border border-white/10 bg-[#120c20] p-5 shadow-[0_28px_60px_rgba(0,0,0,0.36)]"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="five-sync-title"
+				class="five-workflow-modal w-full max-w-2xl p-5"
 				(click)="$event.stopPropagation()"
 			>
-				<h3 class="text-2xl font-semibold text-white">Sincronizar JSON 5etools</h3>
+				<h3 id="five-sync-title" class="text-2xl font-semibold text-white">Sincronizar JSON 5etools</h3>
 				<p class="mt-2 text-sm text-white/65">
 					O arquivo local atual será salvo em backup antes de aplicar o conteúdo remoto.
 				</p>
@@ -2385,13 +2391,16 @@
 }
 
 @if (confirmModal(); as modal) {
-	<div class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" (click)="closeConfirmModal()">
+	<div class="fixed inset-0 z-[90] bg-black/75 backdrop-blur-sm" (click)="closeConfirmModal()">
 		<div class="flex min-h-screen items-center justify-center p-4">
 			<div
-				class="w-full max-w-xl rounded-[30px] border border-white/10 bg-[#120c20] p-5 shadow-[0_28px_60px_rgba(0,0,0,0.36)]"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="five-confirm-title"
+				class="five-workflow-modal w-full max-w-xl p-5"
 				(click)="$event.stopPropagation()"
 			>
-				<h3 class="text-2xl font-semibold text-white">{{ modal.title }}</h3>
+				<h3 id="five-confirm-title" class="text-2xl font-semibold text-white">{{ modal.title }}</h3>
 				<p class="mt-2 text-sm text-white/65">{{ modal.description }}</p>
 
 				@if (modal.action === 'export-with-warnings') {
@@ -2430,13 +2439,16 @@
 }
 
 @if (copyTagFallback(); as tag) {
-	<div class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm" (click)="closeCopyTagFallback()">
+	<div class="fixed inset-0 z-[90] bg-black/75 backdrop-blur-sm" (click)="closeCopyTagFallback()">
 		<div class="flex min-h-screen items-center justify-center p-4">
 			<div
-				class="w-full max-w-2xl rounded-[30px] border border-white/10 bg-[#120c20] p-5 shadow-[0_28px_60px_rgba(0,0,0,0.36)]"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="five-copy-tag-title"
+				class="five-workflow-modal w-full max-w-2xl p-5"
 				(click)="$event.stopPropagation()"
 			>
-				<h3 class="text-2xl font-semibold text-white">Copiar tag</h3>
+				<h3 id="five-copy-tag-title" class="text-2xl font-semibold text-white">Copiar tag</h3>
 				<p class="mt-2 text-sm text-white/65">
 					Não foi possível usar a área de transferência automaticamente. Copie a tag abaixo.
 				</p>

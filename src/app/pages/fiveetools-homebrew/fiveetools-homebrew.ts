@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { FiveEToolsEntityCardComponent } from './components/fiveetools-entity-card/fiveetools-entity-card';
@@ -291,6 +291,15 @@ export class FiveEToolsHomebrewPage {
 	constructor() {
 		this.refreshCompositionPackages();
 		void this.loadFile();
+	}
+
+	@HostListener('window:keydown.escape')
+	onEscape() {
+		if (this.copyTagFallback()) return this.closeCopyTagFallback();
+		if (this.confirmModal()) return this.closeConfirmModal();
+		if (this.syncPreview()) return this.closeSyncPreview();
+		if (this.importOpen()) return this.closeImport();
+		if (this.editorMode()) this.cancelEditor();
 	}
 
 	async loadFile() {

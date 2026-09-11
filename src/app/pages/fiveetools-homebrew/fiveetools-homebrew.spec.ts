@@ -78,4 +78,14 @@ describe('FiveEToolsHomebrewPage', () => {
 			state: { fiveEToolsImport: { entityId: entity.id } },
 		});
 	});
+
+	it('closes the highest-priority open workflow with Escape', () => {
+		component.importOpen.set(true);
+		component.onEscape();
+		expect(component.importOpen()).toBeFalse();
+
+		component.copyTagFallback.set('{@spell fireball}');
+		component.onEscape();
+		expect(component.copyTagFallback()).toBeNull();
+	});
 });
