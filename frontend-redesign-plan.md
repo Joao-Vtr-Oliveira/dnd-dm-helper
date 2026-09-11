@@ -2,7 +2,7 @@
 
 ## Status
 
-Fases 0, 1, 2, 3, 4, 5, 6 e 7 concluidas e aprovadas. A Fase 8 esta concluida e aguarda revisao visual.
+Fases 0, 1, 2, 3, 4, 5, 6 e 7 concluidas e aprovadas. A Fase 8 esta concluida e aguarda revisao visual. As Fases 9 e 10 estao concluidas e aguardam revisao visual operacional.
 
 Padrao aprovado: interface dark operacional, violeta intencional, densidade sem excesso de cards,
 acoes hierarquizadas, responsividade real e preservacao rigorosa da logica.
@@ -295,11 +295,13 @@ Risco e testes: risco maximo de compatibilidade de dados; executar validacoes ma
 
 ### Fase 9 - Subplano do Battle Tracker
 
-Status: bloqueada ate aprovacao especifica.
+Status: concluida e aprovada.
 
-Sem implementacao. Inventariar todas as acoes e classifica-las como critica, frequente ou secundaria. Propor composicao do cockpit, iniciativa, pendencias, HP, dano/cura, condicoes, recursos, eventos, undo e modais. Esperar nova aprovacao.
+Resultado: acoes inventariadas e classificadas como criticas, frequentes ou secundarias. A composicao aprovada definiu cockpit de turno, iniciativa compacta, inspector contextual, pendencias, recursos, eventos, undo e modais acessiveis.
 
 ### Fase 10 - Battle Tracker
+
+Status: concluida, aguardando revisao visual operacional.
 
 Objetivo: reduzir niveis de superficie sem reduzir informacao, rapidez ou redundancia util durante a mesa.
 

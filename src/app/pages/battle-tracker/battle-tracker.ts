@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import type {
@@ -157,6 +157,7 @@ export class BattleTrackerPage {
 		const battle = this.battle();
 		return battle ? this.battleService.getCurrentCombatant(battle) : null;
 	});
+	readonly selectedCombatantId = signal<string | null>(null);
 	readonly currentTurnElapsedSeconds = computed(() => {
 		const battle = this.battle();
 		if (!battle) return 0;
@@ -211,6 +212,7 @@ export class BattleTrackerPage {
 		if (status === 'completed') return 'Concluída';
 		return 'Ativa';
 	});
+	private modalTrigger: HTMLElement | null = null;
 
 	constructor() {
 		effect((onCleanup) => {
@@ -228,6 +230,38 @@ export class BattleTrackerPage {
 		});
 	}
 
+	@HostListener('document:keydown', ['$event'])
+	onDocumentKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			if (this.addCombatantModalOpen()) {
+				this.closeAddCombatantModal();
+				return;
+			}
+			if (this.confirmModal()) this.closeConfirmModal();
+			return;
+		}
+
+		if (event.key !== 'Tab' || (!this.addCombatantModalOpen() && !this.confirmModal())) return;
+		const dialog = document.querySelector<HTMLElement>('[data-battle-modal]');
+		if (!dialog) return;
+		const focusable = Array.from(
+			dialog.querySelectorAll<HTMLElement>(
+				'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href]'
+			)
+		);
+		if (!focusable.length) return;
+
+		const first = focusable[0];
+		const last = focusable.at(-1)!;
+		if (event.shiftKey && document.activeElement === first) {
+			event.preventDefault();
+			last.focus();
+		} else if (!event.shiftKey && document.activeElement === last) {
+			event.preventDefault();
+			first.focus();
+		}
+	}
+
 	goBackToHub() {
 		this.router.navigate(['/home']);
 	}
@@ -243,6 +277,7 @@ export class BattleTrackerPage {
 	}
 
 	openCompleteBattleModal() {
+		this.captureModalTrigger();
 		this.confirmModal.set({
 			title: 'Concluir batalha?',
 			description: 'O histórico será mantido e essa batalha deixará de aparecer como ativa.',
@@ -250,10 +285,12 @@ export class BattleTrackerPage {
 			action: 'complete-battle',
 			tone: 'success',
 		});
+		this.focusModal();
 	}
 
 	closeConfirmModal() {
 		this.confirmModal.set(null);
+		this.restoreModalTrigger();
 	}
 
 	confirmModalAction() {
@@ -325,13 +362,9 @@ export class BattleTrackerPage {
 		);
 	}
 
-	toggleCombatantCollapsed(combatantId: string, collapsed?: boolean) {
-		const combatant = this.combatants().find((item) => item.id === combatantId);
-		if (!combatant) return;
-		this.updateBattle((battle) =>
-			this.battleService.updateCombatant(battle, combatantId, {
-				collapsed: collapsed ?? !combatant.collapsed,
-			})
+	toggleCombatantInspector(combatantId: string) {
+		this.selectedCombatantId.update((selectedId) =>
+			selectedId === combatantId ? null : combatantId
 		);
 	}
 
@@ -930,6 +963,7 @@ export class BattleTrackerPage {
 	}
 
 	openAddCombatantModal() {
+		this.captureModalTrigger();
 		this.homebrewSheets.set(this.localStorageService.listSheets());
 		this.addCombatantDraft.set(this.createAddCombatantDraft());
 		this.apiSearch.set('');
@@ -937,11 +971,13 @@ export class BattleTrackerPage {
 		if (!this.apiMonsters().length) {
 			this.loadApiMonsters();
 		}
+		this.focusModal();
 	}
 
 	closeAddCombatantModal() {
 		this.selectedImportedCreature.set(null);
 		this.addCombatantModalOpen.set(false);
+		this.restoreModalTrigger();
 	}
 
 	setAddCombatantMode(mode: AddCombatantDraft['mode']) {
@@ -1083,6 +1119,7 @@ export class BattleTrackerPage {
 		const combatant = this.combatants().find((item) => item.id === combatantId);
 		if (!combatant) return;
 
+		this.captureModalTrigger();
 		this.confirmModal.set({
 			title: 'Remover combatente?',
 			description: `Essa ação remove ${combatant.displayName || combatant.name} da batalha atual.`,
@@ -1091,6 +1128,7 @@ export class BattleTrackerPage {
 			tone: 'danger',
 			combatantId,
 		});
+		this.focusModal();
 	}
 
 	getInitiativeDraft(combatant: BattleCombatant): string {
@@ -1159,15 +1197,16 @@ export class BattleTrackerPage {
 	}
 
 	initiativeSummary(combatant: BattleCombatant): string {
-		const tieBreaker = combatant.initiativeTieBreaker == null ? '-' : combatant.initiativeTieBreaker;
-		if (combatant.pendingAdd) return `Entra com iniciativa ${combatant.initiative} (DES ${tieBreaker})`;
+		const tieBreaker =
+			combatant.initiativeTieBreaker == null ? '' : ` (DES ${combatant.initiativeTieBreaker})`;
+		if (combatant.pendingAdd) return `Entra com iniciativa ${combatant.initiative}${tieBreaker}`;
 		if (this.isInactiveUntilNextRound(combatant)) {
 			return `Fora da rotação até o round ${combatant.inactiveUntilRound}`;
 		}
 		if (this.shouldShowPendingInitiative(combatant)) {
-			return `Iniciativa ${combatant.initiative} (DES ${tieBreaker}) · Próximo round ${combatant.nextRoundInitiative}`;
+			return `Iniciativa ${combatant.initiative}${tieBreaker} · Próximo round ${combatant.nextRoundInitiative}`;
 		}
-		return `Iniciativa ${combatant.initiative} (DES ${tieBreaker})`;
+		return `Iniciativa ${combatant.initiative}${tieBreaker}`;
 	}
 
 	hpSummary(combatant: BattleCombatant): string {
@@ -1268,6 +1307,22 @@ export class BattleTrackerPage {
 		const battle = this.battle();
 		if (!battle) return;
 		this.battle.set(updater(battle));
+	}
+
+	private captureModalTrigger() {
+		this.modalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+	}
+
+	private restoreModalTrigger() {
+		const trigger = this.modalTrigger;
+		this.modalTrigger = null;
+		window.setTimeout(() => trigger?.focus());
+	}
+
+	private focusModal() {
+		window.setTimeout(() =>
+			document.querySelector<HTMLElement>('[data-battle-modal] button, [data-battle-modal] input, [data-battle-modal] select')?.focus()
+		);
 	}
 
 	private createAddCombatantDraft(): AddCombatantDraft {

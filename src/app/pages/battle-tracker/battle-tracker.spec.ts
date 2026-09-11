@@ -211,6 +211,48 @@ describe('BattleTrackerPage', () => {
 		expect(details.open).toBeFalse();
 	});
 
+	it('opens only the selected combatant inspector while keeping other combatants compact', () => {
+		component.toggleCombatantInspector('c1');
+		fixture.detectChanges();
+		expect(component.selectedCombatantId()).toBe('c1');
+		expect(fixture.nativeElement.textContent).toContain('HP atual');
+
+		component.toggleCombatantInspector('c2');
+		fixture.detectChanges();
+		expect(component.selectedCombatantId()).toBe('c2');
+		const heroCard = fixture.nativeElement.querySelector(
+			'[data-testid="combatant-card"][data-combatant-id="c1"]',
+		) as HTMLElement;
+		expect(heroCard?.textContent).toContain('Dano rapido');
+		expect(heroCard?.textContent).not.toContain('Notas privadas');
+	});
+
+	it('keeps undefined tie breakers and empty ability states out of the combatant view', () => {
+		expect(component.initiativeSummary(component.battle()!.combatants[0])).toBe('Iniciativa 15');
+
+		component.toggleCombatantInspector('c2');
+		fixture.detectChanges();
+		const dodmanCard = fixture.nativeElement.querySelector(
+			'[data-testid="combatant-card"][data-combatant-id="c2"]',
+		) as HTMLElement;
+		expect(dodmanCard?.textContent).toContain('Adicionar habilidade especial');
+		expect(dodmanCard?.textContent).not.toContain('Habilidades especiais');
+	});
+
+	it('uses an accessible dialog that closes with Escape', () => {
+		component.openAddCombatantModal();
+		fixture.detectChanges();
+
+		const dialog = fixture.nativeElement.querySelector('[data-battle-modal]') as HTMLElement;
+		expect(dialog?.getAttribute('role')).toBe('dialog');
+		expect(dialog?.getAttribute('aria-modal')).toBe('true');
+		expect(dialog?.getAttribute('aria-labelledby')).toBe('add-combatant-title');
+
+		component.onDocumentKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
+		fixture.detectChanges();
+		expect(component.addCombatantModalOpen()).toBeFalse();
+	});
+
 	it('restores the cockpit state through real turn undo and disables undo without a snapshot', () => {
 		const undoButton = Array.from(
 			fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
@@ -328,7 +370,7 @@ describe('BattleTrackerPage', () => {
 
 	it('starts death saves from a PC card and records the physical d20 in the cockpit', () => {
 		expect(fixture.nativeElement.querySelector('[data-testid="start-death-saves"]')).toBeNull();
-		component.toggleCombatantCollapsed('c1', false);
+		component.toggleCombatantInspector('c1');
 		fixture.detectChanges();
 		fixture.nativeElement.querySelector('[data-testid="start-death-saves"]')?.click();
 		fixture.detectChanges();
@@ -350,7 +392,7 @@ describe('BattleTrackerPage', () => {
 	});
 
 	it('hides empty spell slots, spells, and sheet data from expanded cards', () => {
-		component.toggleCombatantCollapsed('c1', false);
+		component.toggleCombatantInspector('c1');
 		fixture.detectChanges();
 
 		const text = fixture.nativeElement.textContent as string;

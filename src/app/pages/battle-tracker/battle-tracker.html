@@ -79,19 +79,11 @@
 			@if (battle()!.status === 'active') {
 				<button
 					type="button"
-					class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-45"
+					class="app-button app-button-secondary disabled:cursor-not-allowed disabled:opacity-45"
 					[disabled]="!undoTurnTarget()"
 					(click)="undoTurn()"
 				>
 					Desfazer turno
-				</button>
-
-				<button
-					type="button"
-					class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 font-semibold hover:bg-amber-500/20"
-					(click)="nextTurn()"
-				>
-					Próximo Turno
 				</button>
 
 				<button
@@ -127,7 +119,7 @@
 				@if (currentCombatant(); as combatant) {
 					<section
 						data-testid="current-turn-cockpit"
-						class="sticky top-3 z-20 rounded-3xl border border-amber-300/35 bg-[#211b31]/95 p-4 shadow-xl shadow-black/20 backdrop-blur"
+						class="sticky top-3 z-20 rounded-app-panel border border-amber-300/35 bg-app-surface-raised/95 p-4 shadow-app-modal backdrop-blur"
 					>
 						<div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
 							<div class="min-w-0">
@@ -150,6 +142,8 @@
 									{{ combatant.displayName || combatant.name }}
 								</h3>
 								<div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm opacity-80">
+									<span>Round {{ battle()!.round }}</span>
+									<span>{{ formatDuration(currentTurnElapsedSeconds()) }}</span>
 									<span>Iniciativa {{ combatant.initiative }}</span>
 									<span>HP {{ combatant.currentHp }} / {{ combatant.maxHp }}</span>
 									@if (combatant.temporaryHp > 0) {
@@ -165,7 +159,7 @@
 								<button
 									type="button"
 									data-testid="cockpit-next-turn"
-									class="h-12 cursor-pointer rounded-2xl border border-amber-300/40 bg-amber-500/20 px-5 font-semibold text-amber-50 hover:bg-amber-500/30"
+									class="app-button h-12 border-amber-300/40 bg-amber-500/20 px-5 font-semibold text-amber-50 hover:bg-amber-500/30"
 									(click)="nextTurn()"
 								>
 									Próximo turno
@@ -206,17 +200,17 @@
 																<button type="button" data-testid="concentration-failure" class="h-9 cursor-pointer rounded-2xl border border-red-300/30 bg-red-500/15 px-3 text-sm hover:bg-red-500/25" (click)="resolveConcentrationCheck(action.id, false)">Falha</button>
 															</div>
 														} @else if (action.type === 'death-save') {
-															<div class="grid grid-cols-5 gap-1.5" [attr.aria-label]="'Resultado do d20 para ' + pendingActionCombatantName(action)">
+													<fieldset class="grid grid-cols-5 gap-1.5" [attr.aria-label]="'Resultado do d20 para ' + pendingActionCombatantName(action)">
 																@for (result of deathSaveDieResults; track result) {
 																	<button type="button" data-testid="death-save-result" class="flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-xl border border-amber-300/35 bg-amber-500/15 font-semibold hover:bg-amber-500/30" (click)="recordDeathSaveResult(action.id, result)">{{ result }}</button>
 																}
-															</div>
-														} @else {
-													<div class="grid grid-cols-6 gap-1.5" [attr.aria-label]="'Resultado do d6 para ' + action.abilityName">
+													</fieldset>
+												} @else {
+													<fieldset class="grid grid-cols-6 gap-1.5" [attr.aria-label]="'Resultado do d6 para ' + action.abilityName">
 														@for (result of rechargeDieResults; track result) {
 															<button type="button" class="flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-xl border border-amber-300/35 bg-amber-500/15 font-semibold hover:bg-amber-500/30" (click)="recordAbilityRecharge(action.combatantId, action.abilityId, result)">{{ result }}</button>
 														}
-													</div>
+													</fieldset>
 												}
 											</div>
 										}
@@ -269,7 +263,8 @@
 								type="number"
 								min="0"
 								data-testid="cockpit-damage-input"
-								class="h-10 min-w-0 rounded-2xl border border-red-400/20 bg-black/20 px-3"
+								class="app-field h-11 min-w-0 border-red-400/20 px-3"
+								aria-label="Dano para o turno atual"
 								placeholder="Dano"
 								[ngModel]="damageDrafts()[combatant.id] || ''"
 								(ngModelChange)="setDamageDraft(combatant.id, $event)"
@@ -286,7 +281,8 @@
 								type="number"
 								min="0"
 								data-testid="cockpit-healing-input"
-								class="h-10 min-w-0 rounded-2xl border border-emerald-400/20 bg-black/20 px-3"
+								class="app-field h-11 min-w-0 border-emerald-400/20 px-3"
+								aria-label="Cura para o turno atual"
 								placeholder="Cura"
 								[ngModel]="healingDrafts()[combatant.id] || ''"
 								(ngModelChange)="setHealingDraft(combatant.id, $event)"
@@ -299,14 +295,17 @@
 							>
 								Cura
 							</button>
-							<input
-								type="number"
-								min="0"
-								class="h-10 min-w-0 rounded-2xl border border-white/10 bg-black/20 px-3"
-								placeholder="HP temp"
-								[ngModel]="combatant.temporaryHp"
-								(ngModelChange)="setTemporaryHp(combatant.id, $event)"
-							/>
+							<label class="relative min-w-0">
+								<span class="pointer-events-none absolute left-3 top-1.5 text-[11px] font-medium text-app-subtle">HP temporário</span>
+								<input
+									type="number"
+									min="0"
+									class="app-field h-11 w-full min-w-0 px-3 pb-1 pt-5"
+									aria-label="HP temporário para o turno atual"
+									[ngModel]="combatant.temporaryHp"
+									(ngModelChange)="setTemporaryHp(combatant.id, $event)"
+								/>
+							</label>
 							<button
 								type="button"
 								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 text-sm hover:bg-white/15"
@@ -430,7 +429,7 @@
 
 					<div class="space-y-4">
 						@for (combatant of combatants(); track combatant.id) {
-							<div [class]="cardClasses(combatant)">
+							<div data-testid="combatant-card" [attr.data-combatant-id]="combatant.id" [class]="cardClasses(combatant)">
 								<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
 									<div class="min-w-0">
 										<div class="flex flex-wrap items-center gap-2">
@@ -446,11 +445,17 @@
 												{{ sideLabel(combatant.side) }}
 											</span>
 
-											@if (currentCombatant()?.id === combatant.id) {
-												<span class="rounded-full border border-amber-300/40 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-100">
-													Turno atual
-												</span>
-											}
+										@if (currentCombatant()?.id === combatant.id) {
+											<span class="rounded-full border border-amber-300/40 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-100">
+												Turno atual
+											</span>
+										}
+
+										@if (selectedCombatantId() === combatant.id) {
+											<span class="rounded-full border border-violet-300/35 bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-100">
+												Em foco
+											</span>
+										}
 
 											@if (combatant.defeated) {
 												<span class="rounded-full border border-red-400/30 bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-100">
@@ -531,7 +536,7 @@
 									</div>
 
 									<div class="flex flex-wrap items-center gap-2 lg:max-w-105 lg:justify-end">
-										@if (!combatant.collapsed) {
+										@if (selectedCombatantId() === combatant.id) {
 											<label class="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-black/15 px-2.5 text-sm">
 												<span class="opacity-65">Lado</span>
 												<select
@@ -578,9 +583,10 @@
 										<button
 											type="button"
 											class="h-9 cursor-pointer rounded-xl border border-white/10 bg-white/8 px-3 text-sm hover:bg-white/15"
-											(click)="toggleCombatantCollapsed(combatant.id)"
+											[attr.aria-expanded]="selectedCombatantId() === combatant.id"
+											(click)="toggleCombatantInspector(combatant.id)"
 										>
-											@if (combatant.collapsed) { Expandir } @else { Recolher }
+											@if (selectedCombatantId() === combatant.id) { Fechar painel } @else { Abrir painel }
 										</button>
 
 										@if (battle()!.status !== 'completed') {
@@ -620,7 +626,7 @@
 							</div>
 						}
 
-						@if (combatant.collapsed) {
+										@if (selectedCombatantId() !== combatant.id) {
 							<div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
 								<div class="mb-2 text-sm font-semibold">Dano rapido</div>
 								<div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
@@ -643,7 +649,7 @@
 							</div>
 						}
 
-						@if (!combatant.collapsed) {
+										@if (selectedCombatantId() === combatant.id) {
 						<div class="mt-4 grid gap-3 md:grid-cols-3">
 							<label class="text-sm">
 										<span class="mb-1 block opacity-70">HP atual</span>
@@ -860,10 +866,13 @@
 									</div>
 								</div>
 
-								<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+								<details class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4" [open]="combatant.specialAbilities.length > 0">
+									<summary class="cursor-pointer text-sm font-semibold text-app-text">
+										@if (combatant.specialAbilities.length > 0) { Habilidades especiais } @else { Adicionar habilidade especial }
+									</summary>
+									@if (combatant.specialAbilities.length > 0) {
 									<div>
-										<h4 class="font-semibold">Habilidades especiais</h4>
-										<p class="text-sm opacity-70">
+										<p class="mt-1 text-sm opacity-70">
 											Controle usos por dia, descanso, cooldown e recharge durante o combate.
 										</p>
 									</div>
@@ -933,13 +942,11 @@
 													</div>
 												</div>
 											</div>
-										} @empty {
-											<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
-												Nenhuma habilidade especial cadastrada.
-											</div>
 										}
 									</div>
+									}
 
+									<div class="border-t border-white/10 pt-3 text-sm font-semibold">Nova habilidade especial</div>
 									<div class="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)]">
 										<label class="text-sm">
 											<span class="mb-1 block opacity-70">Nome</span>
@@ -1029,7 +1036,7 @@
 											/>
 										</label>
 									}
-								</div>
+								</details>
 
 								@if (spellSlotsEnabled(combatant)) {
 									<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -1174,8 +1181,8 @@
 									</label>
 								</div>
 								} @else {
-									<div class="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-3 text-sm opacity-75">
-										Ficha recolhida. Recursos completos, dano, condições detalhadas e spell slots aparecem ao expandir.
+											<div class="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-3 text-sm opacity-75">
+												Selecione Abrir painel para acessar estado detalhado, recursos, referência e notas.
 									</div>
 								}
 							</div>
@@ -1217,91 +1224,55 @@
 					</div>
 				</div>
 
-				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
-					<div class="flex items-center justify-between gap-3">
+				<details class="app-panel p-4">
+					<summary class="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-app-text">
+						<span>Ferramentas da sessão</span>
+						<span class="text-xs font-normal text-app-muted">Iniciativa, ambiente, notas e histórico</span>
+					</summary>
+					<div class="mt-4 space-y-4">
+				<section class="app-panel p-4 sm:p-5">
+					<div class="flex items-start justify-between gap-3">
 						<div>
 							<h3 class="text-xl font-semibold">Iniciativas</h3>
-							<p class="mt-1 text-sm opacity-75">
-								Edite agora e aplique no começo do próximo round.
-							</p>
+							<p class="mt-1 text-sm text-app-muted">Alterações são aplicadas no início do próximo round.</p>
 						</div>
-						<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">
-							{{ combatants().length }} combatentes
-						</span>
+						<span class="app-status shrink-0 border border-app-divider bg-app-surface">{{ combatants().length }} combatentes</span>
 					</div>
 
-					<div class="mt-4 space-y-3">
+					<div class="mt-4 divide-y divide-app-divider border-y border-app-divider">
 						@for (combatant of combatants(); track combatant.id) {
-							<div class="rounded-2xl border border-white/10 bg-black/20 p-3">
-								<div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-									<div class="min-w-0">
-										<div class="font-semibold">
-											{{ combatant.displayName || combatant.name }}
-										</div>
-										<div class="mt-1 text-sm opacity-75">
-											Iniciativa: {{ combatant.initiative }}
-											@if (shouldShowPendingInitiative(combatant)) {
-												<span> · Próximo round: {{ combatant.nextRoundInitiative }}</span>
-											}
-											<span> · DES: {{ combatant.initiativeTieBreaker ?? '-' }}</span>
-											@if (shouldShowPendingInitiativeTieBreaker(combatant)) {
-												<span>
-													· DES próximo round:
-													{{ combatant.nextRoundInitiativeTieBreaker ?? '-' }}
-												</span>
-											}
-											@if (combatant.pendingAdd) {
-												<span> · Entra no próximo round</span>
-											}
-										</div>
-									</div>
-
-									<div class="w-full space-y-2 lg:w-64">
-										<div class="flex gap-2">
-											<input
-												type="number"
-												aria-label="Iniciativa"
-												class="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getInitiativeDraft(combatant)"
-												(ngModelChange)="setInitiativeDraft(combatant.id, $event)"
-											/>
-											<button
-												type="button"
-												class="h-10 shrink-0 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-												(click)="applyInitiativeChange(combatant.id)"
-											>
-												Aplicar
-											</button>
-											@if (combatant.nextRoundInitiative != null) {
-												<button
-													type="button"
-													class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-4 hover:bg-black/30"
-													(click)="clearInitiativeChange(combatant.id)"
-												>
-													Limpar
-												</button>
-											}
-										</div>
-										<label class="flex items-center gap-2 text-sm">
-											<span class="shrink-0 opacity-70">DES</span>
-											<input
-												type="number"
-												aria-label="DES de desempate"
-												placeholder="-"
-												class="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getInitiativeTieBreakerValue(combatant)"
-												(ngModelChange)="scheduleInitiativeTieBreaker(combatant.id, $event)"
-											/>
-										</label>
-										@if (shouldShowPendingInitiativeTieBreaker(combatant)) {
-											<div class="text-xs opacity-70">DES aplicado no próximo round</div>
-										}
-										</div>
+							<div class="grid gap-3 py-3 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.8fr)] lg:items-center">
+								<div class="min-w-0">
+									<div class="font-semibold text-app-text">{{ combatant.displayName || combatant.name }}</div>
+									<div class="mt-0.5 text-sm text-app-muted">
+										Iniciativa {{ combatant.initiative }}
+										@if (combatant.initiativeTieBreaker != null) { · DES {{ combatant.initiativeTieBreaker }} }
+										@if (shouldShowPendingInitiative(combatant)) { · Próximo round {{ combatant.nextRoundInitiative }} }
+										@if (shouldShowPendingInitiativeTieBreaker(combatant)) { · DES agendado {{ combatant.nextRoundInitiativeTieBreaker ?? '-' }} }
+										@if (combatant.pendingAdd) { · Entra no próximo round }
 									</div>
 								</div>
+
+								<div class="flex min-w-0 flex-wrap items-end gap-2">
+									<label class="min-w-22 flex-1 text-sm text-app-muted">
+										<span class="mb-1 block">Próximo round</span>
+										<input type="number" aria-label="Iniciativa para o próximo round" class="app-field h-10 w-full px-3" [ngModel]="getInitiativeDraft(combatant)" (ngModelChange)="setInitiativeDraft(combatant.id, $event)" />
+									</label>
+									<button type="button" class="app-button app-button-secondary h-10" (click)="applyInitiativeChange(combatant.id)">Aplicar</button>
+									@if (combatant.nextRoundInitiative != null) {
+										<button type="button" class="app-button app-button-ghost h-10" (click)="clearInitiativeChange(combatant.id)">Limpar</button>
+									}
+									@if (combatant.initiativeTieBreaker != null || shouldShowPendingInitiativeTieBreaker(combatant)) {
+										<label class="w-full text-sm text-app-muted">
+											<span class="mb-1 block">DES de desempate</span>
+											<input type="number" aria-label="DES de desempate" class="app-field h-10 w-full px-3" [ngModel]="getInitiativeTieBreakerValue(combatant)" (ngModelChange)="scheduleInitiativeTieBreaker(combatant.id, $event)" />
+										</label>
+									}
+								</div>
+							</div>
 						}
 					</div>
-				</div>
+				</section>
 
 				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
 					<div>
@@ -1610,17 +1581,19 @@
 						}
 					</div>
 				</div>
+					</div>
+				</details>
 			</div>
 		</div>
 	}
 </div>
 
 @if (addCombatantModalOpen()) {
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-		<div class="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-3xl border border-white/10 bg-[#1f1930] p-5 shadow-2xl">
+	<div class="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeAddCombatantModal()">
+		<section data-battle-modal role="dialog" aria-modal="true" aria-labelledby="add-combatant-title" class="max-h-[calc(100vh-1.5rem)] w-full max-w-3xl overflow-auto rounded-app-shell border border-app-border bg-app-surface-raised p-4 shadow-app-modal sm:max-h-[90vh] sm:p-5" (click)="$event.stopPropagation()">
 			<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
 				<div>
-					<h3 class="text-2xl font-semibold">Adicionar combatente</h3>
+					<h3 id="add-combatant-title" class="text-2xl font-semibold">Adicionar combatente</h3>
 					<p class="mt-1 text-sm opacity-80">
 						Novos participantes entram no próximo round para não quebrar o turno atual.
 					</p>
@@ -1628,7 +1601,7 @@
 
 				<button
 					type="button"
-					class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10"
+					class="app-button app-modal-close h-11 w-11 shrink-0 p-0"
 					(click)="closeAddCombatantModal()"
 					aria-label="Fechar"
 				>
@@ -1895,15 +1868,26 @@
 					Adicionar combatente
 				</button>
 			</div>
-		</div>
+		</section>
 	</div>
 }
 
 @if (confirmModal(); as modal) {
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-		<div class="w-full max-w-md rounded-3xl border border-white/10 bg-[#1f1930] p-5 shadow-2xl">
-			<h3 class="text-xl font-semibold">{{ modal.title }}</h3>
+	<div class="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeConfirmModal()">
+		<section data-battle-modal role="dialog" aria-modal="true" aria-labelledby="battle-confirmation-title" class="w-full max-w-md rounded-app-shell border border-app-border bg-app-surface-raised p-5 shadow-app-modal sm:p-6" [class.border-rose-400/30]="modal.tone === 'danger'" (click)="$event.stopPropagation()">
+			<div class="flex items-start justify-between gap-3">
+				<div>
+					<div class="text-[11px] font-semibold uppercase tracking-[0.16em]" [class.text-rose-200]="modal.tone === 'danger'" [class.text-app-subtle]="modal.tone !== 'danger'">
+						@if (modal.tone === 'danger') { Ação irreversível } @else { Confirmação necessária }
+					</div>
+					<h3 id="battle-confirmation-title" class="mt-1 text-xl font-semibold">{{ modal.title }}</h3>
+				</div>
+				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" (click)="closeConfirmModal()" aria-label="Fechar confirmação">x</button>
+			</div>
 			<p class="mt-2 text-sm opacity-80">{{ modal.description }}</p>
+			@if (modal.tone === 'danger') {
+				<div class="app-inset mt-4 border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">Esta ação não pode ser desfeita.</div>
+			}
 
 			<div class="mt-5 flex flex-wrap justify-end gap-2">
 				<button
@@ -1923,20 +1907,30 @@
 					{{ modal.confirmLabel }}
 				</button>
 			</div>
-		</div>
+		</section>
 	</div>
 }
 
 @if (toast(); as toastMessage) {
-	<div class="fixed right-4 top-4 z-50">
+	<div class="pointer-events-none fixed right-4 top-4 z-[55]">
 		<div
-			class="max-w-sm rounded-2xl border px-4 py-3 shadow-lg backdrop-blur"
+			class="app-toast pointer-events-auto max-w-sm border px-4 py-3"
 			[class.border-emerald-400/30]="toastMessage.type === 'success'"
 			[class.bg-emerald-500/10]="toastMessage.type === 'success'"
 			[class.border-red-400/30]="toastMessage.type === 'error'"
 			[class.bg-red-500/10]="toastMessage.type === 'error'"
+			role="status"
+			aria-live="polite"
 		>
-			<div class="text-sm">{{ toastMessage.text }}</div>
+			<div class="flex items-start gap-3">
+				<div class="min-w-0 flex-1">
+					<div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
+						@if (toastMessage.type === 'success') { Concluído } @else { Não foi possível concluir }
+					</div>
+					<div class="mt-1 text-sm leading-5">{{ toastMessage.text }}</div>
+				</div>
+				<button type="button" class="app-toast-dismiss shrink-0" (click)="toast.set(null)" aria-label="Fechar mensagem">x</button>
+			</div>
 		</div>
 	</div>
 }
