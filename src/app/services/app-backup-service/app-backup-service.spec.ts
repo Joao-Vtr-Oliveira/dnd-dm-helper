@@ -115,6 +115,56 @@ describe('AppBackupService', () => {
 		expect(result.error).toBe('JSON inválido ou incompatível.');
 	});
 
+	it('accepts the tracked V2 backup served by the application', async () => {
+		const response = await fetch('/rpg_files/dnd-dm-helper-backup-v2.json');
+		expect(response.ok).withContext(`asset returned ${response.status}`).toBeTrue();
+		const backup = await response.json();
+		const validation = service.validateBackup(backup);
+		const validators = service as unknown as {
+			isSavedEncounter(value: unknown): boolean;
+			isBattleEncounter(value: unknown): boolean;
+			isSavedSheet(value: unknown): boolean;
+		};
+		const collections: Array<[string, unknown[], (item: unknown) => boolean]> = [
+			['encounters', backup.data.encounters, (item) => validators.isSavedEncounter(item)],
+			['battleEncounters', backup.data.battleEncounters, (item) => validators.isBattleEncounter(item)],
+			['homebrewSheets', backup.data.homebrewSheets, (item) => validators.isSavedSheet(item)],
+		];
+		const invalidCollections = collections
+			.filter(([, items, validator]) => items.some((item) => !validator(item)))
+			.map(([name]) => name);
+
+		expect(validation.valid)
+			.withContext(`${validation.error ?? 'unknown validation error'}: ${invalidCollections.join(', ')}`)
+			.toBeTrue();
+		expect(validation.summary).toEqual(jasmine.objectContaining({
+			encounters: 7,
+			battleEncounters: 5,
+			homebrewSheets: 17,
+		}));
+	});
+
+	it('falls back to the bundled V2 backup when the remote backup is incompatible', async () => {
+		const nativeFetch = window.fetch.bind(window);
+		const fetchSpy = spyOn(window, 'fetch').and.callFake((input, init) => {
+			if (String(input).includes('raw.githubusercontent.com')) {
+				return Promise.resolve(
+					new Response(JSON.stringify({ schemaVersion: 1 }), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' },
+					}),
+				);
+			}
+			return nativeFetch(input, init);
+		});
+
+		const backup = await service.fetchRemoteBackup();
+
+		expect(backup.schemaVersion).toBe(2);
+		expect(fetchSpy.calls.allArgs().some(([url]) => url === '/rpg_files/dnd-dm-helper-backup-v2.json'))
+			.toBeTrue();
+	});
+
 	it('accepts canonical calendar payloads and exposes a readable summary', () => {
 		const backup = service.exportAll();
 		backup.data.calendar = {

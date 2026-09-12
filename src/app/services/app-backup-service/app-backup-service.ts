@@ -107,13 +107,11 @@ export class AppBackupService {
 		try {
 			return await this.fetchBackup(environment.defaultSyncBackupUrl);
 		} catch (error) {
-			// The tracked V2 backup is served locally during development before it is published.
-			if (!environment.production) {
-				try {
-					return await this.fetchBackup('/rpg_files/dnd-dm-helper-backup-v2.json');
-				} catch {
-					// Preserve the remote error below: it is more useful to the user.
-				}
+			// The tracked V2 backup is bundled with every build, including production.
+			try {
+				return await this.fetchBackup('/rpg_files/dnd-dm-helper-backup-v2.json');
+			} catch {
+				// Preserve the remote error below: it is more useful to the user.
 			}
 			throw error;
 		}

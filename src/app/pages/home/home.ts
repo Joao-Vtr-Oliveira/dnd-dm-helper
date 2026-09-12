@@ -178,11 +178,7 @@ export class Home {
 		if (postSyncToast) {
 			this.showToast('success', postSyncToast);
 		} else if (this.hasUnmigratedLocalData()) {
-			this.showToast(
-				'error',
-				'Dados locais antigos detectados. Use Sincronizar para restaurar o backup V2 antes de editar.',
-				7000,
-			);
+			void this.prepareLegacyDataRestore();
 		}
 	}
 
@@ -192,6 +188,25 @@ export class Home {
 			localStorage.getItem(key),
 		);
 		return hasLegacyData && !hasCanonicalData;
+	}
+
+	private async prepareLegacyDataRestore() {
+		this.syncLoading.set(true);
+		try {
+			const backup = await this.appBackupService.fetchRemoteBackup();
+			this.syncPreview.set({
+				backup,
+				summary: this.appBackupService.buildSummary(backup),
+			});
+		} catch (error) {
+			this.showToast(
+				'error',
+				this.getErrorMessage(error, 'Não foi possível preparar a restauração dos dados V2.'),
+				7000,
+			);
+		} finally {
+			this.syncLoading.set(false);
+		}
 	}
 
 	onClickTitle() {

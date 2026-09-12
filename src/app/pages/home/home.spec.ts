@@ -13,6 +13,7 @@ describe('Home', () => {
 	let appBackupService: jasmine.SpyObj<AppBackupService>;
 
 	beforeEach(async () => {
+		localStorage.clear();
 		appBackupService = jasmine.createSpyObj<AppBackupService>('AppBackupService', [
 			'consumePostSyncToast',
 			'createSafetyBackupBeforeSync',
@@ -88,5 +89,26 @@ describe('Home', () => {
 		expect(appBackupService.applyBackup).toHaveBeenCalledWith(backup);
 		expect(appBackupService.storePostSyncToast).toHaveBeenCalledWith('Sincronização concluída');
 		expect(reloadSpy).toHaveBeenCalled();
+	});
+
+	it('opens a V2 restore confirmation when only local V1 data exists', async () => {
+		const backup = { exportedAt: '2026-01-01T10:00:00.000Z' } as any;
+		appBackupService.fetchRemoteBackup.and.resolveTo(backup);
+		appBackupService.buildSummary.and.returnValue({
+			encounters: 7,
+			battleEncounters: 5,
+			homebrewSheets: 17,
+			hasCalendar: true,
+			calendarLabel: 'Primavera',
+			exportedAt: backup.exportedAt,
+		});
+		localStorage.setItem('dnd-dm-helper.encounters.v1', '[]');
+
+		const restoreFixture = TestBed.createComponent(Home);
+		restoreFixture.detectChanges();
+		await Promise.resolve();
+
+		expect(appBackupService.fetchRemoteBackup).toHaveBeenCalled();
+		expect(restoreFixture.componentInstance.syncPreview()?.backup).toBe(backup);
 	});
 });

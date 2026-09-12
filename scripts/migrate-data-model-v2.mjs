@@ -392,6 +392,7 @@ function migrateBattle(raw, participantMaps, report, context = 'Battle') {
 	}
 	battle.lairActions = migrateConfig(raw.lairActions, report, 'LairAction');
 	battle.traps = migrateConfig(raw.traps, report, 'Trap');
+	battle.pendingActions = Array.isArray(raw.pendingActions) ? clone(raw.pendingActions) : [];
 	if (Array.isArray(raw.turnSnapshots)) {
 		battle.turnSnapshots = raw.turnSnapshots.map((snapshot) => {
 			if (!isRecord(snapshot) || !isRecord(snapshot.state)) return clone(snapshot);
@@ -407,7 +408,7 @@ function migrateBattle(raw, participantMaps, report, context = 'Battle') {
 			state.traps = migrateConfig(snapshot.state.traps, report, 'Trap');
 			return { ...clone(snapshot), state };
 		});
-	}
+	} else battle.turnSnapshots = [];
 	return battle;
 }
 

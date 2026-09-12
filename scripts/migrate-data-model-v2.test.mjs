@@ -46,6 +46,8 @@ test('migrates representative v1 encounters, battle references, sheets, and raw 
 	assert.equal(combatant.sheetFeatures, undefined);
 	assert.equal(combatant.specialAbilities[0].currentCooldownRounds, 1);
 	assert.equal(combatant.specialAbilities[0].recoveryType, 'dice-recharge');
+	assert.deepEqual(backup.data.battleEncounters[0].pendingActions, []);
+	assert.deepEqual(backup.data.battleEncounters[0].turnSnapshots, []);
 
 	const sheet = backup.data.homebrewSheets[0];
 	assert.equal(sheet.externalId, 'sheet-wolf');
