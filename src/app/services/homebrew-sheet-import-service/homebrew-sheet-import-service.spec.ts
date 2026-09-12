@@ -11,37 +11,24 @@ describe('HomebrewSheetImportService', () => {
 
 	const creature = (overrides: Record<string, unknown> = {}) => ({
 		name: 'Zhang Huang',
-		initiative: null,
-		healthPoints: 108,
-		maxHealthPoints: 108,
+		maxHp: 108,
 		armorClass: 17,
-		temporaryHealthPoints: null,
-		id: 55,
-		alive: true,
-		conditions: [],
-		notes: [],
-		shared: true,
-		hitPointsShared: true,
-		totalSpellSlots: { '1st': 2 },
-		usedSpellSlots: { '1st': 1 },
-		spells: { fire: { label: 'Fire Bolt', total: 2 } },
-		specialAbilities: [{ id: 'ability-1', name: 'Comando', rechargeType: 'manual' }],
-		sheetFeatures: [{ id: 'feature-1', name: 'Tática', kind: 'trait' }],
-		category: 'npc',
+		spellSlots: [{ level: 1, max: 2 }],
+		spells: [{ id: 'fire', name: 'Fire Bolt', level: 0, uses: 2 }],
+		specialAbilities: [{ id: 'ability-1', name: 'Comando', recoveryType: 'manual' }],
+		features: [{ id: 'feature-1', name: 'Tática', kind: 'trait' }],
 		rawFiveETools: { name: 'Zhang Huang', source: 'Notion' },
+		fiveEToolsIdentity: { name: 'Zhang Huang', source: 'Notion' },
 		...overrides,
 	});
 
-	const payload = (sheets: unknown[], legacy = false) =>
-		legacy
-			? { version: 1, exportedAt: Date.now(), sheets }
-			: {
-					app: 'dnd-dm-helper',
-					type: 'homebrew-sheets',
-					schemaVersion: 1,
-					exportedAt: '2026-09-07T00:00:00.000Z',
-					sheets,
-			  };
+	const payload = (sheets: unknown[]) => ({
+		app: 'dnd-dm-helper',
+		type: 'homebrew-sheets',
+		schemaVersion: 2,
+		exportedAt: '2026-09-07T00:00:00.000Z',
+		sheets,
+	});
 
 	const sheet = (overrides: Record<string, unknown> = {}) => ({
 		externalId: 'npc-zhang-huang',
@@ -62,46 +49,44 @@ describe('HomebrewSheetImportService', () => {
 		storage = TestBed.inject(LocalStorageService);
 	});
 
-	it('accepts the current and legacy formats and preserves the full creature data', () => {
+	it('accepts the current schema and preserves canonical creature data', () => {
 		const current = service.prepareImport(payload([sheet()]));
-		const legacy = service.prepareImport(payload([sheet({ externalId: undefined })], true));
 
 		expect(current.format).toBe('current');
 		expect(current.candidates).toHaveSize(1);
-		expect(legacy.format).toBe('legacy');
-		expect(legacy.candidates).toHaveSize(1);
 
 		service.apply(current);
 		const saved = storage.listSheets()[0];
 		expect(saved.externalId).toBe('npc-zhang-huang');
-		expect(saved.data.id).toBe(0);
 		expect(saved.data.specialAbilities[0].name).toBe('Comando');
-		expect(saved.data.sheetFeatures?.[0].name).toBe('Tática');
-		expect(saved.data.spells['fire'].label).toBe('Fire Bolt');
-		expect(saved.data.totalSpellSlots?.['1st']).toBe(2);
+		expect(saved.data.features[0].name).toBe('Tática');
+		expect(saved.data.spells[0].name).toBe('Fire Bolt');
+		expect(saved.data.spellSlots[0].max).toBe(2);
 		expect(saved.data.rawFiveETools?.source).toBe('Notion');
-		expect(saved.id).not.toBe('55');
+		expect('category' in saved.data).toBeFalse();
 	});
 
 	it('rejects invalid JSON, complete backups, and invalid rows without partial row writes', () => {
 		expect(() => service.parseText('{')).toThrowError(/JSON inválido/);
-		expect(() => service.prepareImport({
-			app: 'dnd-dm-helper',
-			type: 'campaign-backup',
-			schemaVersion: 1,
-			data: { homebrewSheets: [] },
-		})).toThrowError(/importador de backup/);
+		expect(() =>
+			service.prepareImport({
+				app: 'dnd-dm-helper',
+				type: 'campaign-backup',
+				schemaVersion: 1,
+				data: { homebrewSheets: [] },
+			}),
+		).toThrowError(/importador de backup/);
 
 		const preview = service.prepareImport(
-			payload([
-				sheet(),
-				sheet({ title: '', data: creature({ name: '' }) }),
-			]),
+			payload([sheet(), sheet({ title: '', data: creature({ name: '' }) })]),
 		);
 		expect(preview.candidates).toHaveSize(1);
 		expect(preview.invalid).toHaveSize(1);
 		service.apply(preview);
 		expect(storage.listSheets()).toHaveSize(1);
+		expect(() => service.prepareImport({ ...payload([]), schemaVersion: 1 })).toThrowError(
+			/incompatível/,
+		);
 	});
 
 	it('resolves externalId and normalized name conflicts as replace, keep, and duplicate', () => {
@@ -113,70 +98,52 @@ describe('HomebrewSheetImportService', () => {
 			data: creature({ name: 'Zhang Huang' }) as any,
 		});
 
-		const replacePreview = service.prepareImport(payload([sheet({ data: creature({ name: 'Zhang Novo' }) })]));
+		const replacePreview = service.prepareImport(
+			payload([sheet({ data: creature({ name: 'Zhang Novo' }) })]),
+		);
 		expect(replacePreview.conflicts[0].matchedBy).toBe('externalId');
 		service.apply(replacePreview);
 		expect(storage.listSheets()[0].id).toBe(existing.id);
 		expect(storage.listSheets()[0].data.name).toBe('Zhang Novo');
 
 		const namePreview = service.prepareImport(
-			payload([sheet({ externalId: 'different', title: 'Zhang Huang', source: 'NOTION', data: creature({ name: 'Zhang Novo' }) })]),
+			payload([
+				sheet({
+					externalId: 'different',
+					title: 'Zhang Huang',
+					source: 'NOTION',
+					data: creature({ name: 'Zhang Novo' }),
+				}),
+			]),
 		);
 		expect(namePreview.conflicts[0].matchedBy).toBe('name');
 		service.apply(namePreview, { [namePreview.candidates[0].index]: 'keep-existing' });
 		expect(storage.listSheets()).toHaveSize(1);
 
-		const copyPreview = service.prepareImport(payload([sheet({ data: creature({ name: 'Zhang Novo' }) })]));
+		const copyPreview = service.prepareImport(
+			payload([sheet({ data: creature({ name: 'Zhang Novo' }) })]),
+		);
 		service.apply(copyPreview, { [copyPreview.candidates[0].index]: 'duplicate' });
 		expect(storage.listSheets()).toHaveSize(2);
 		expect(new Set(storage.listSheets().map((item) => item.externalId)).size).toBe(2);
-	});
-
-	it('keeps linked encounter and battle names synchronized when replacing a sheet', () => {
-		const existing = storage.createSheet({
-			title: 'Zhang Huang',
-			category: 'npc',
-			source: 'Notion',
-			externalId: 'npc-zhang-huang',
-			data: creature({ name: 'Zhang Huang' }) as any,
-		});
-		storage.createEncounter('Ruínas', {
-			creatures: [{ ...creature({ name: 'Zhang Huang', sourceSheetId: existing.id }) as any }],
-			creatureIdCount: 1,
-			lairActions: [],
-			traps: [],
-			round: 0,
-			battleCreated: false,
-			shareEnabled: false,
-			battleTrackerVersion: '5.123.0',
-			sharedTimestamp: null,
-			loaded: true,
-		});
-		localStorage.setItem(APP_STORAGE_KEYS.battleEncounters, JSON.stringify([{
-			id: 'battle-1',
-			combatants: [{ id: 'combatant-1', sourceSheetId: existing.id, name: 'Zhang Huang' }],
-			pendingCombatants: [],
-		}]));
-
-		const preview = service.prepareImport(payload([sheet({ data: creature({ name: 'Zhang Novo' }) })]));
-		service.apply(preview);
-
-		expect(storage.listEncounters()[0].data.creatures[0].name).toBe('Zhang Novo');
-		expect(JSON.parse(localStorage.getItem(APP_STORAGE_KEYS.battleEncounters) || '[]')[0].combatants[0].name).toBe('Zhang Novo');
 	});
 
 	it('round-trips an exported sheet without losing relevant data', () => {
 		const preview = service.prepareImport(payload([sheet()]));
 		service.apply(preview);
 		const saved = storage.listSheets()[0];
-		const roundTrip = service.prepareImport(payload([{
-			externalId: saved.externalId,
-			title: saved.title,
-			category: saved.category,
-			tags: saved.tags,
-			source: saved.source,
-			data: saved.data,
-		}]));
+		const roundTrip = service.prepareImport(
+			payload([
+				{
+					externalId: saved.externalId,
+					title: saved.title,
+					category: saved.category,
+					tags: saved.tags,
+					source: saved.source,
+					data: saved.data,
+				},
+			]),
+		);
 
 		expect(roundTrip.invalid).toHaveSize(0);
 		expect(roundTrip.candidates[0].data.specialAbilities[0].name).toBe('Comando');

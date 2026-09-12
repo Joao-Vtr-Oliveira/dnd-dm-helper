@@ -1,6 +1,6 @@
 export const APP_STORAGE_KEYS = {
-	encounters: 'dnd-dm-helper.encounters.v1',
-	sheets: 'dnd-dm-helper.sheets.v1',
+	encounters: 'dnd-dm-helper.encounters.v2',
+	sheets: 'dnd-dm-helper.sheets.v2',
 	battleEncounters: 'dnd-dm-helper.battle-encounters.v1',
 	worldDate: 'dmh-world-date-v1',
 	encounterHubFilters: 'dnd-dm-helper.encounter-hub.filters.v1',
@@ -10,6 +10,11 @@ export const APP_STORAGE_KEYS = {
 	fiveEToolsHomebrewBackups: 'dnd-dm-helper.5etools-homebrew.backups.v1',
 	fiveEToolsHomebrewCompositionPackages: 'dnd-dm-helper.5etools-homebrew.composition-packages.v1',
 } as const;
+
+export const APP_LEGACY_PRIMARY_STORAGE_KEYS = [
+	'dnd-dm-helper.encounters.v1',
+	'dnd-dm-helper.sheets.v1',
+] as const;
 
 export const APP_POST_SYNC_TOAST_SESSION_KEY = 'dnd-dm-helper.post-sync-toast.v1';
 

@@ -1,6 +1,6 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 
 import { EncounterBuilder } from './encounter-builder';
@@ -8,137 +8,85 @@ import { BattleEncounterStorageService } from '../../services/battle-encounter-s
 import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
 
 describe('EncounterBuilder', () => {
-  let component: EncounterBuilder;
-  let fixture: ComponentFixture<EncounterBuilder>;
+	let component: EncounterBuilder;
+	let fixture: ComponentFixture<EncounterBuilder>;
 
 	beforeEach(async () => {
 		localStorage.clear();
-    await TestBed.configureTestingModule({
-		imports: [EncounterBuilder],
-		providers: [
-			provideZonelessChangeDetection(),
-			provideHttpClient(),
-			provideRouter([]),
-			{
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: {
-              paramMap: convertToParamMap({}),
-            },
-          },
-        },
-      ],
-    })
-    .compileComponents();
-
-    fixture = TestBed.createComponent(EncounterBuilder);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
-
-	 it('should create', () => {
-		expect(component).toBeTruthy();
+		await TestBed.configureTestingModule({
+			imports: [EncounterBuilder],
+			providers: [
+				provideZonelessChangeDetection(),
+				provideHttpClient(),
+				provideRouter([]),
+				{ provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({}) } } },
+			],
+		}).compileComponents();
+		fixture = TestBed.createComponent(EncounterBuilder);
+		component = fixture.componentInstance;
+		fixture.detectChanges();
 	});
 
-	it('creates manual traps by default and requires an explicit initiative choice', () => {
-		expect(component.trapDraft().triggerType).toBe('manual');
-		expect(component.trapDraft().frequency).toBe('manual');
-		expect(component.trapDraft().initiative).toBe('');
-
-		component.setTrapDraft({ name: 'Pressure Plate' });
-		component.addTrap();
-		expect(component.encounter().traps?.[0]).toEqual(
-			jasmine.objectContaining({ triggerType: 'manual', frequency: 'manual', initiative: undefined }),
-		);
-
-		component.setTrapDraftTriggerType('initiative');
-		expect(component.trapDraft().initiative).toBe('20');
-		component.setTrapDraft({ name: 'Arrow Wall', frequency: 'every-round' });
-		component.addTrap();
-		expect(component.encounter().traps?.[1]).toEqual(
-			jasmine.objectContaining({ triggerType: 'initiative', initiative: 20, frequency: 'every-round' }),
-		);
+	it('creates a clean canonical encounter', () => {
+		const encounter = component.encounter();
+		expect(encounter.participants).toEqual([]);
+		expect(encounter.lairActions).toEqual([]);
+		expect(encounter.traps).toEqual([]);
+		expect((encounter as any).creatures).toBeUndefined();
+		expect((encounter as any).creatureIdCount).toBeUndefined();
 	});
 
-	it('saves a new encounter before creating and navigating to its battle', () => {
-		const router = TestBed.inject<any>(Router);
+	it('creates a UUID participant for every requested manual quantity', () => {
+		component.setDraftName('Skeleton');
+		component.setDraftQuantity(3);
+		component.addParticipants();
+
+		const participants = component.participants();
+		expect(participants).toHaveSize(3);
+		expect(new Set(participants.map((participant) => participant.id)).size).toBe(3);
+		expect(participants.every((participant) => participant.sheet.maxHp === 0)).toBeTrue();
+	});
+
+	it('edits durable values through the participant sheet', () => {
+		component.addParticipants();
+		const participant = component.participants()[0];
+		component.updateSheet(participant.id, { maxHp: 18, armorClass: 14 });
+		component.setSpellSlot(participant.id, 2, 3);
+		component.setSpellDraft(participant.id, { name: 'Misty Step', level: 2, uses: 1 });
+		component.addSpell(participant.id);
+
+		const sheet = component.participants()[0].sheet;
+		expect(sheet.maxHp).toBe(18);
+		expect(sheet.spellSlots).toContain(jasmine.objectContaining({ level: 2, max: 3 }));
+		expect(sheet.spells).toContain(jasmine.objectContaining({ name: 'Misty Step', level: 2 }));
+		expect((component.participants()[0] as any).healthPoints).toBeUndefined();
+	});
+
+	it('saves the direct encounter record and routes to its edit URL', () => {
+		const router = TestBed.inject(Router);
 		const navigate = spyOn(router, 'navigate').and.resolveTo(true);
-		const battleStorage = TestBed.inject(BattleEncounterStorageService);
-		component.title.set('Bridge Ambush');
-		component.setTrapDraft({ name: 'Pressure Plate' });
-		component.addTrap();
+		component.updateTitle('Bridge Ambush');
+		component.updateDescription('Stop the cultists.');
+		component.updateTags('bridge, night, bridge');
+		component.save();
 
+		const saved = TestBed.inject(LocalStorageService).getEncounter(component.savedId()!);
+		expect(saved?.title).toBe('Bridge Ambush');
+		expect(saved?.description).toBe('Stop the cultists.');
+		expect(saved?.tags).toEqual(['bridge', 'night']);
+		expect(navigate).toHaveBeenCalledWith(['/home/encounter-builder', component.savedId()]);
+	});
+
+	it('saves before creating a battle', () => {
+		const router = TestBed.inject(Router);
+		const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+		component.addParticipants();
 		component.saveAndStartBattle();
 
-		const savedId = component.savedId();
-		const battle = savedId ? battleStorage.getActiveBattleByEncounterId(savedId) : null;
-		expect(savedId).toBeTruthy();
-		expect(battle?.traps[0].triggerType).toBe('manual');
+		const battle = TestBed.inject(BattleEncounterStorageService).getActiveBattleByEncounterId(
+			component.savedId()!,
+		);
+		expect(battle).not.toBeNull();
 		expect(navigate).toHaveBeenCalledWith(['/home/battle-tracker', battle?.id]);
-	});
-
-	it('updates an existing encounter and does not create a second active battle', () => {
-		const router = TestBed.inject<any>(Router);
-		spyOn(router, 'navigate').and.resolveTo(true);
-		const storage = TestBed.inject(LocalStorageService);
-		const battleStorage = TestBed.inject(BattleEncounterStorageService);
-		const saved = storage.createEncounter('Existing encounter', component.encounter());
-		component.savedId.set(saved.id);
-		component.title.set('Updated encounter');
-
-		component.saveAndStartBattle();
-		component.title.set('Updated again');
-		component.saveAndStartBattle();
-
-		expect(storage.getEncounter(saved.id)?.title).toBe('Updated again');
-		expect(battleStorage.getBattlesByEncounterId(saved.id)).toHaveSize(1);
-		expect(component.saveAndBattleLabel()).toBe('Salvar e continuar batalha');
-	});
-
-	it('does not create a battle when saving an unknown encounter fails', () => {
-		const battleStorage = TestBed.inject(BattleEncounterStorageService);
-		component.savedId.set('missing-encounter');
-
-		component.saveAndStartBattle();
-
-		expect(battleStorage.getBattleEncounters()).toEqual([]);
-		expect(component.toast()?.type).toBe('error');
-	});
-
-	it('keeps the traditional save action available', () => {
-		const router = TestBed.inject<any>(Router);
-		const navigate = spyOn(router, 'navigate').and.resolveTo(true);
-
-		component.save();
-
-		expect(component.savedId()).toBeTruthy();
-		expect(navigate).toHaveBeenCalledWith(
-			['/home/encounter-builder', component.savedId()],
-			jasmine.any(Object),
-		);
-	});
-
-	it('blocks navigation until pending changes are discarded or retained', async () => {
-		expect(component.hasUnsavedChanges()).toBeFalse();
-		component.title.set('Bridge Ambush');
-		expect(component.hasUnsavedChanges()).toBeTrue();
-
-		const retainDecision = component.canDeactivate() as Promise<boolean>;
-		expect(component.unsavedChangesModal()).toBeTrue();
-		component.stayOnPage();
-		expect(await retainDecision).toBeFalse();
-
-		const discardDecision = component.canDeactivate() as Promise<boolean>;
-		component.discardChanges();
-		expect(await discardDecision).toBeTrue();
-	});
-
-	it('clears the pending state after a successful save', () => {
-		component.title.set('Bridge Ambush');
-		expect(component.hasUnsavedChanges()).toBeTrue();
-
-		component.save();
-
-		expect(component.hasUnsavedChanges()).toBeFalse();
 	});
 });

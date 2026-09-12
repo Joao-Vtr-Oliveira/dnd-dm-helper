@@ -5,36 +5,35 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { HomebrewBuilder } from './homebrew-builder';
 
 describe('HomebrewBuilder', () => {
-  let component: HomebrewBuilder;
-  let fixture: ComponentFixture<HomebrewBuilder>;
+	let component: HomebrewBuilder;
+	let fixture: ComponentFixture<HomebrewBuilder>;
 
-  beforeEach(async () => {
+	beforeEach(async () => {
 		localStorage.clear();
-    await TestBed.configureTestingModule({
-      imports: [HomebrewBuilder],
-		providers: [
-			provideZonelessChangeDetection(),
-			provideRouter([]),
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: {
-              paramMap: convertToParamMap({}),
-            },
-          },
-        },
-      ],
-    })
-    .compileComponents();
+		await TestBed.configureTestingModule({
+			imports: [HomebrewBuilder],
+			providers: [
+				provideZonelessChangeDetection(),
+				provideRouter([]),
+				{
+					provide: ActivatedRoute,
+					useValue: {
+						snapshot: {
+							paramMap: convertToParamMap({}),
+						},
+					},
+				},
+			],
+		}).compileComponents();
 
-    fixture = TestBed.createComponent(HomebrewBuilder);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+		fixture = TestBed.createComponent(HomebrewBuilder);
+		component = fixture.componentInstance;
+		fixture.detectChanges();
+	});
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+	it('should create', () => {
+		expect(component).toBeTruthy();
+	});
 
 	it('syncs title into creature name until the user edits the name manually', () => {
 		component.setTitle('Rosa V.');
@@ -61,13 +60,11 @@ describe('HomebrewBuilder', () => {
 		expect(await discardNavigation).toBeTrue();
 	});
 
-	it('keeps used spell slots within the configured total', () => {
-		component.enableSpellcasting();
-		component.setSpellSlot('total', '1st', 2);
-		component.setSpellSlot('used', '1st', 4);
+	it('stores maximum spell slots without runtime usage state', () => {
+		component.setSpellSlot(1, 2);
 
-		expect(component.slotValue(component.creature().totalSpellSlots, '1st')).toBe(2);
-		expect(component.slotValue(component.creature().usedSpellSlots, '1st')).toBe(2);
+		expect(component.slotValue(1)).toBe(2);
+		expect(component.creature().spellSlots).toEqual([{ level: 1, max: 2 }]);
 	});
 
 	it('shows feedback instead of saving a sheet without a creature name', () => {

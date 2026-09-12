@@ -14,62 +14,50 @@ import {
 	LocalStorageService,
 } from '../../services/local-storage-service/local-storage-service';
 import type {
-	CreatureInterface,
+	CreatureAbilityRecoveryType,
+	CreatureSheet,
 	CreatureSpecialAbility,
-	CreatureAbilityRechargeType,
-	SpellLevel,
-	SpellInterface,
-	SpellSlots,
-	SpellsByKey,
-} from '../../models/battleTracker-model';
+} from '../../models/creature-sheet-model';
 
-type SpellDraft = { label: string; total: number };
+type SpellDraft = { name: string; uses: number; level: number };
 type AbilityDraft = {
 	name: string;
 	description: string;
-	rechargeType: CreatureAbilityRechargeType;
+	recoveryType: CreatureAbilityRecoveryType;
 	maxUses: number;
 	cooldownValue: number;
 	rechargeOn: string;
 };
 
-function createEmptyCreature(): CreatureInterface {
+function createEmptyCreature(): CreatureSheet {
 	return {
 		name: '',
-		initiative: null,
-		healthPoints: 0,
-		maxHealthPoints: 0,
+		maxHp: 0,
 		armorClass: '',
-		temporaryHealthPoints: null,
-		id: 0,
-		alive: true,
-		conditions: [],
-		notes: [],
-		shared: true,
-		hitPointsShared: true,
-		totalSpellSlots: null,
-		usedSpellSlots: null,
-		spells: {},
+		spellSlots: [],
+		spells: [],
 		specialAbilities: [],
-		sheetFeatures: [],
-		category: 'monster',
+		features: [],
 	};
 }
 
-function normalizeCreature(raw: CreatureInterface): CreatureInterface {
+function normalizeCreature(raw: CreatureSheet): CreatureSheet {
 	return {
+		...createEmptyCreature(),
 		...structuredClone(raw),
-		conditions: Array.isArray(raw.conditions) ? raw.conditions : [],
-		notes: Array.isArray(raw.notes) ? raw.notes : [],
-		spells: raw.spells ?? {},
-		totalSpellSlots: raw.totalSpellSlots ?? null,
-		usedSpellSlots: raw.usedSpellSlots ?? null,
+		spellSlots: Array.isArray(raw.spellSlots) ? raw.spellSlots : [],
+		spells: Array.isArray(raw.spells) ? raw.spells : [],
 		specialAbilities: Array.isArray(raw.specialAbilities) ? raw.specialAbilities : [],
-		sheetFeatures: Array.isArray(raw.sheetFeatures) ? raw.sheetFeatures : [],
+		features: Array.isArray(raw.features) ? raw.features : [],
 		rawFiveETools:
-			raw.rawFiveETools && typeof raw.rawFiveETools === 'object' && !Array.isArray(raw.rawFiveETools)
+			raw.rawFiveETools &&
+			typeof raw.rawFiveETools === 'object' &&
+			!Array.isArray(raw.rawFiveETools)
 				? structuredClone(raw.rawFiveETools)
 				: undefined,
+		fiveEToolsIdentity: raw.fiveEToolsIdentity
+			? structuredClone(raw.fiveEToolsIdentity)
+			: undefined,
 	};
 }
 
@@ -93,7 +81,7 @@ export class HomebrewBuilder {
 
 	sheetId = signal<string | null>(null);
 	title = signal<string>('');
-	creature = signal<CreatureInterface>(createEmptyCreature());
+	creature = signal<CreatureSheet>(createEmptyCreature());
 	private lastAutoCreatureName = signal<string>('');
 
 	category = signal<HomebrewCategory>('monster');
@@ -101,17 +89,17 @@ export class HomebrewBuilder {
 	source = signal<string>('');
 
 	// draft de magia nova
-	spellDraft = signal<SpellDraft>({ label: '', total: 1 });
+	spellDraft = signal<SpellDraft>({ name: '', uses: 1, level: 0 });
 	abilityDraft = signal<AbilityDraft>({
 		name: '',
 		description: '',
-		rechargeType: 'manual',
+		recoveryType: 'manual',
 		maxUses: 1,
 		cooldownValue: 1,
 		rechargeOn: '5,6',
 	});
 
-	SPELL_LEVELS: SpellLevel[] = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+	SPELL_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 	toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
 	unsavedChangesModal = signal(false);
@@ -134,14 +122,11 @@ export class HomebrewBuilder {
 		const id = this.route.snapshot.paramMap.get('id');
 		if (id) {
 			const sheet = this.ls.getSheet(id);
-				if (sheet) {
-					this.sheetId.set(id);
-					this.title.set(sheet.title);
-					this.creature.set({
-						...normalizeCreature(sheet.data),
-						category: sheet.category ?? sheet.data.category ?? 'monster',
-					});
-					this.lastAutoCreatureName.set(sheet.data.name === sheet.title ? sheet.title : '');
+			if (sheet) {
+				this.sheetId.set(id);
+				this.title.set(sheet.title);
+				this.creature.set(normalizeCreature(sheet.data));
+				this.lastAutoCreatureName.set(sheet.data.name === sheet.title ? sheet.title : '');
 
 				// 👇 popula meta
 				this.category.set(sheet.category ?? 'monster');
@@ -215,16 +200,6 @@ export class HomebrewBuilder {
 			.filter((item) => item > 0);
 	}
 
-	private slugify(s: string): string {
-		return (s || '')
-			.trim()
-			.toLowerCase()
-			.normalize('NFKD')
-			.replace(/[\u0300-\u036f]/g, '')
-			.replace(/[^a-z0-9]+/g, '')
-			.slice(0, 40);
-	}
-
 	// -------- setters básicos --------
 	setTitle(v: string) {
 		const currentName = this.creature().name;
@@ -245,88 +220,28 @@ export class HomebrewBuilder {
 		}
 	}
 
-	setHp(v: any) {
+	setHp(v: unknown) {
 		const n = this.parseNonNegInt(v);
-		this.creature.update((c) => ({
-			...c,
-			healthPoints: n,
-			maxHealthPoints: n,
-		}));
-	}
-
-	setMaxHp(v: any) {
-		const n = this.parseNonNegInt(v);
-		this.creature.update((c) => ({ ...c, maxHealthPoints: n }));
+		this.creature.update((c) => ({ ...c, maxHp: n }));
 	}
 
 	setAc(v: string) {
 		this.creature.update((c) => ({ ...c, armorClass: v }));
 	}
 
-	setInitiative(v: any) {
-		if (v === '' || v === null || v === undefined) {
-			this.creature.update((c) => ({ ...c, initiative: null }));
-			return;
-		}
-		const n = Number(v);
-		this.creature.update((c) => ({
-			...c,
-			initiative: Number.isFinite(n) ? n : null,
-		}));
-	}
-
 	// -------- spellcasting --------
-	enableSpellcasting() {
-		this.creature.update((c) => ({
-			...c,
-			totalSpellSlots: {},
-			usedSpellSlots: {},
-		}));
+	slotValue(level: number): number | null {
+		return this.creature().spellSlots.find((slot) => slot.level === level)?.max ?? null;
 	}
 
-	slotValue(slots: SpellSlots | null, level: SpellLevel): number | null {
-		if (!slots) return null;
-		const v = slots[level];
-		return typeof v === 'number' ? v : null;
-	}
-
-	setSpellSlot(kind: 'total' | 'used', level: SpellLevel, v: any) {
+	setSpellSlot(level: number, v: unknown) {
 		const value = this.parseNonNegInt(v);
 
 		this.creature.update((c) => {
-			const total = (c.totalSpellSlots ?? {}) as SpellSlots;
-			const used = (c.usedSpellSlots ?? {}) as SpellSlots;
-
-			if (kind === 'total') {
-				const hadTotal = typeof total[level] === 'number';
-				total[level] = value;
-				if (!hadTotal) used[level] = 0;
-
-				const usedVal = used[level] ?? 0;
-				if (usedVal > value) used[level] = value;
-
-				return { ...c, totalSpellSlots: total, usedSpellSlots: used };
-			} else {
-				const max = total[level] ?? value;
-				used[level] = Math.min(value, max);
-				return { ...c, usedSpellSlots: used };
-			}
+			const spellSlots = c.spellSlots.filter((slot) => slot.level !== level);
+			if (value > 0) spellSlots.push({ level, max: value });
+			return { ...c, spellSlots: spellSlots.sort((left, right) => left.level - right.level) };
 		});
-	}
-
-	spellEntries(spells: SpellsByKey): Array<{ key: string; value: SpellInterface }> {
-		return Object.entries(spells || {}).map(([key, value]) => ({ key, value }));
-	}
-
-	private uniqueSpellKey(spells: SpellsByKey, label: string) {
-		const base = this.slugify(label) || 'spell';
-		let key = base;
-		let i = 2;
-		while (spells[key]) {
-			key = `${base}${i}`;
-			i++;
-		}
-		return key;
 	}
 
 	setSpellDraft(patch: Partial<SpellDraft>) {
@@ -335,40 +250,38 @@ export class HomebrewBuilder {
 
 	addSpell() {
 		const d = this.spellDraft();
-		const label = (d.label || '').trim();
-		const total = this.parseNonNegInt(d.total);
-		if (!label) return;
+		const name = (d.name || '').trim();
+		if (!name) return;
 
 		this.creature.update((c) => {
-			const spells = { ...(c.spells ?? {}) } as SpellsByKey;
-			const key = this.uniqueSpellKey(spells, label);
-			spells[key] = { label, total };
-			return { ...c, spells };
-		});
-
-		this.spellDraft.set({ label: '', total: 1 });
-	}
-
-	updateSpell(key: string, patch: Partial<SpellInterface>) {
-		this.creature.update((c) => {
-			const curr = c.spells?.[key];
-			if (!curr) return c;
 			return {
 				...c,
-				spells: {
+				spells: [
 					...c.spells,
-					[key]: { ...curr, ...patch },
-				},
+					{
+						id: crypto.randomUUID(),
+						name,
+						uses: this.parseNonNegInt(d.uses),
+						level: this.parseNonNegInt(d.level),
+					},
+				],
+			};
+		});
+
+		this.spellDraft.set({ name: '', uses: 1, level: 0 });
+	}
+
+	updateSpell(id: string, patch: Partial<CreatureSheet['spells'][number]>) {
+		this.creature.update((c) => {
+			return {
+				...c,
+				spells: c.spells.map((spell) => (spell.id === id ? { ...spell, ...patch } : spell)),
 			};
 		});
 	}
 
-	removeSpell(key: string) {
-		this.creature.update((c) => {
-			const clone = { ...(c.spells ?? {}) } as SpellsByKey;
-			delete clone[key];
-			return { ...c, spells: clone };
-		});
+	removeSpell(id: string) {
+		this.creature.update((c) => ({ ...c, spells: c.spells.filter((spell) => spell.id !== id) }));
 	}
 
 	// -------- special abilities --------
@@ -393,17 +306,23 @@ export class HomebrewBuilder {
 			id: crypto.randomUUID(),
 			name,
 			description: (draft.description || '').trim() || undefined,
-			rechargeType: draft.rechargeType,
+			recoveryType: draft.recoveryType,
 			maxUses:
-				draft.rechargeType === 'per-day' ||
-				draft.rechargeType === 'short-rest' ||
-				draft.rechargeType === 'long-rest'
+				draft.recoveryType === 'uses-per-day' ||
+				draft.recoveryType === 'short-rest' ||
+				draft.recoveryType === 'long-rest'
 					? Math.max(1, this.parseNonNegInt(draft.maxUses) || 1)
 					: undefined,
-			cooldownTurns: draft.rechargeType === 'turns' ? Math.max(1, this.parseNonNegInt(draft.cooldownValue)) : undefined,
-			cooldownRounds: draft.rechargeType === 'rounds' ? Math.max(1, this.parseNonNegInt(draft.cooldownValue)) : undefined,
-			rechargeDice: draft.rechargeType === 'dice' ? 'd6' : undefined,
-			rechargeOn: draft.rechargeType === 'dice' ? rechargeOn : undefined,
+			cooldownTurns:
+				draft.recoveryType === 'turn-cooldown'
+					? Math.max(1, this.parseNonNegInt(draft.cooldownValue))
+					: undefined,
+			cooldownRounds:
+				draft.recoveryType === 'round-cooldown'
+					? Math.max(1, this.parseNonNegInt(draft.cooldownValue))
+					: undefined,
+			rechargeDice: draft.recoveryType === 'dice-recharge' ? 'd6' : undefined,
+			rechargeOn: draft.recoveryType === 'dice-recharge' ? rechargeOn : undefined,
 		};
 
 		this.creature.update((creature) => ({
@@ -414,7 +333,7 @@ export class HomebrewBuilder {
 		this.abilityDraft.set({
 			name: '',
 			description: '',
-			rechargeType: 'manual',
+			recoveryType: 'manual',
 			maxUses: 1,
 			cooldownValue: 1,
 			rechargeOn: '5,6',
@@ -425,7 +344,7 @@ export class HomebrewBuilder {
 		this.creature.update((creature) => ({
 			...creature,
 			specialAbilities: (creature.specialAbilities ?? []).map((ability) =>
-				ability.id === id ? { ...ability, ...patch } : ability
+				ability.id === id ? { ...ability, ...patch } : ability,
 			),
 		}));
 	}
@@ -438,48 +357,38 @@ export class HomebrewBuilder {
 	}
 
 	abilityStatusPreview(ability: CreatureSpecialAbility): string {
-		if (ability.rechargeType === 'turns') {
+		if (ability.recoveryType === 'turn-cooldown') {
 			const turns = Math.max(1, ability.cooldownTurns ?? 1);
 			return turns === 1 ? 'Volta em 1 turno' : `Volta em ${turns} turnos`;
 		}
-		if (ability.rechargeType === 'rounds') {
+		if (ability.recoveryType === 'round-cooldown') {
 			const rounds = Math.max(1, ability.cooldownRounds ?? 1);
 			return rounds === 1 ? 'Volta em 1 round' : `Volta em ${rounds} rounds`;
 		}
-		if (ability.rechargeType === 'dice') {
+		if (ability.recoveryType === 'dice-recharge') {
 			const targets = ability.rechargeOn?.length ? ability.rechargeOn.join('–') : '5–6';
 			return `Recharge ${targets}`;
 		}
-		if (ability.rechargeType === 'per-day') {
+		if (ability.recoveryType === 'uses-per-day') {
 			const uses = Math.max(1, ability.maxUses ?? 1);
 			return uses === 1 ? '1 uso por dia' : `${uses} usos por dia`;
 		}
-		if (ability.rechargeType === 'short-rest') {
+		if (ability.recoveryType === 'short-rest') {
 			const uses = Math.max(1, ability.maxUses ?? 1);
 			return uses === 1 ? '1 uso por descanso curto' : `${uses} usos por descanso curto`;
 		}
-		if (ability.rechargeType === 'long-rest') {
+		if (ability.recoveryType === 'long-rest') {
 			const uses = Math.max(1, ability.maxUses ?? 1);
 			return uses === 1 ? '1 uso por descanso longo' : `${uses} usos por descanso longo`;
 		}
 		return 'Recarga manual';
 	}
 
-	setTempHp(v: any) {
-		if (v === '' || v === null || v === undefined) {
-			this.creature.update((c) => ({ ...c, temporaryHealthPoints: null }));
-			return;
-		}
-
-		const n = this.parseNonNegInt(v);
-		this.creature.update((c) => ({ ...c, temporaryHealthPoints: n }));
-	}
-
 	// -------- salvar sheet --------
 	save() {
 		const title = this.title().trim() || this.creature().name;
 		const category = this.category();
-		const data = { ...this.creature(), category };
+		const data = this.creature();
 
 		if (!data.name.trim()) {
 			this.showToast({ type: 'warn', text: 'Defina um nome para a criatura.' });
@@ -512,7 +421,7 @@ export class HomebrewBuilder {
 				data: structuredClone(data),
 				category,
 				tags: rawTags,
-				 source,
+				source,
 			});
 			this.markSaved();
 			this.showToast({ type: 'success', text: 'Sheet atualizada.' });

@@ -11,18 +11,14 @@
 			<button type="button" class="app-button app-button-primary" (click)="newEncounter()">
 				Novo encounter
 			</button>
-			<button
-				type="button"
-				class="app-button app-button-ghost"
-				(click)="importOpen.set(!importOpen())"
-			>
-				@if (importOpen()) { Fechar importação legada } @else { Importar encounter legado }
-			</button>
 		</div>
 	</header>
 
 	@if (ongoingBattles().length > 0) {
-		<section class="app-panel border-amber-400/20 bg-amber-500/[0.06] p-4 sm:p-5" aria-labelledby="ongoing-battles-title">
+		<section
+			class="app-panel border-amber-400/20 bg-amber-500/[0.06] p-4 sm:p-5"
+			aria-labelledby="ongoing-battles-title"
+		>
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div>
 					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100/70">
@@ -39,7 +35,9 @@
 
 			<div class="mt-4 divide-y divide-amber-200/10">
 				@for (battle of ongoingBattles(); track battle.id) {
-					<div class="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 md:flex-row md:items-center md:justify-between">
+					<div
+						class="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 md:flex-row md:items-center md:justify-between"
+					>
 						<div class="min-w-0">
 							<div class="truncate font-semibold text-app-text">{{ battle.name }}</div>
 							<div class="mt-1 text-sm text-app-muted">
@@ -47,7 +45,7 @@
 								{{ currentCombatantName(battle) }}
 							</div>
 							<div class="mt-1 text-xs text-app-subtle">
-								Atualizada em {{ battle.updatedAt | date:'short' }}
+								Atualizada em {{ battle.updatedAt | date: 'short' }}
 							</div>
 						</div>
 						<button
@@ -107,55 +105,22 @@
 		</div>
 
 		<div class="mt-3 flex flex-wrap gap-2 text-xs text-app-muted">
-			<span class="app-status border border-app-divider bg-app-inset">{{ filterLabel(filters().status) }}</span>
-			<span class="app-status border border-app-divider bg-app-inset">{{ sortLabel(filters().sort) }}</span>
-			<span class="app-status border border-app-divider bg-app-inset">{{ filteredItems().length }} resultados</span>
+			<span class="app-status border border-app-divider bg-app-inset">{{
+				filterLabel(filters().status)
+			}}</span>
+			<span class="app-status border border-app-divider bg-app-inset">{{
+				sortLabel(filters().sort)
+			}}</span>
+			<span class="app-status border border-app-divider bg-app-inset"
+				>{{ filteredItems().length }} resultados</span
+			>
 		</div>
 	</section>
 
-	@if (importOpen()) {
-		<section class="app-panel space-y-4 p-4" aria-label="Importar encounter legado">
-			<div class="app-inset border-amber-300/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-50/90">
-				Fluxo legado para importar um encounter isolado. Para backup completo do projeto, use
-				<code>Sincronizar</code> na navegação.
-			</div>
-
-			<input
-				type="file"
-				accept="application/json,.json"
-				class="app-field app-file-input block w-full text-sm text-app-muted"
-				(change)="onFileSelected($event)"
-			/>
-
-			<textarea
-				class="app-field h-40 w-full p-3 font-mono text-xs"
-				placeholder="Cole o JSON do encounter..."
-				[ngModel]="importText()"
-				(ngModelChange)="importText.set($event)"
-			></textarea>
-
-			<button type="button" class="app-button app-button-secondary" (click)="importAndSave()">
-				Importar encounter legado
-			</button>
-
-			@if (msg()) {
-				<div
-					class="app-inset p-3 text-sm"
-					[class.border-red-400/30]="msg()!.type === 'error'"
-					[class.bg-red-500/10]="msg()!.type === 'error'"
-					[class.border-amber-400/30]="msg()!.type === 'warn'"
-					[class.bg-amber-500/10]="msg()!.type === 'warn'"
-					[class.border-emerald-400/30]="msg()!.type === 'success'"
-					[class.bg-emerald-500/10]="msg()!.type === 'success'"
-				>
-					{{ msg()!.text }}
-				</div>
-			}
-		</section>
-	}
-
 	@if (groupedItems().length === 0) {
-		<div class="app-panel p-5 text-sm text-app-muted">Nenhum encounter encontrado para os filtros atuais.</div>
+		<div class="app-panel p-5 text-sm text-app-muted">
+			Nenhum encounter encontrado para os filtros atuais.
+		</div>
 	} @else {
 		<div class="space-y-6">
 			@for (group of groupedItems(); track group.label) {
@@ -182,9 +147,9 @@
 										<div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-app-muted">
 											<span>{{ item.combatantCount }} combatentes</span>
 											<span aria-hidden="true">·</span>
-											<span>Atualizado em {{ item.referenceTimestamp | date:'short' }}</span>
+											<span>Atualizado em {{ item.referenceTimestamp | date: 'short' }}</span>
 											<span aria-hidden="true">·</span>
-											<span>Criado em {{ item.encounter.createdAt | date:'short' }}</span>
+											<span>Criado em {{ item.encounter.createdAt | date: 'short' }}</span>
 										</div>
 
 										@if (latestBattle(item); as battle) {
@@ -195,7 +160,9 @@
 												{{ battle.combatants.length }} participantes
 											</div>
 										} @else {
-											<div class="mt-2 text-sm text-app-subtle">Pronto para iniciar uma nova batalha local.</div>
+											<div class="mt-2 text-sm text-app-subtle">
+												Pronto para iniciar uma nova batalha local.
+											</div>
 										}
 									</div>
 
@@ -208,18 +175,34 @@
 											>
 												Continuar batalha
 											</button>
-											<button type="button" class="app-button app-button-secondary" (click)="newBattle(item.encounter.id)">
+											<button
+												type="button"
+												class="app-button app-button-secondary"
+												(click)="newBattle(item.encounter.id)"
+											>
 												Nova batalha
 											</button>
-											<button type="button" class="app-button app-button-accent" (click)="completeBattle(item.encounter.id)">
+											<button
+												type="button"
+												class="app-button app-button-accent"
+												(click)="completeBattle(item.encounter.id)"
+											>
 												Concluir batalha
 											</button>
 										} @else if (item.latestBattle) {
-											<button type="button" class="app-button app-button-primary w-full sm:w-auto" (click)="newBattle(item.encounter.id)">
+											<button
+												type="button"
+												class="app-button app-button-primary w-full sm:w-auto"
+												(click)="newBattle(item.encounter.id)"
+											>
 												Nova batalha
 											</button>
 										} @else {
-											<button type="button" class="app-button app-button-primary w-full sm:w-auto" (click)="startBattle(item.encounter.id)">
+											<button
+												type="button"
+												class="app-button app-button-primary w-full sm:w-auto"
+												(click)="startBattle(item.encounter.id)"
+											>
 												Iniciar batalha
 											</button>
 										}
@@ -244,18 +227,34 @@
 													class="absolute right-0 top-full z-20 mt-2 w-56 rounded-app-panel border border-app-border bg-app-surface-raised p-1 shadow-app-panel"
 													(click)="$event.stopPropagation()"
 												>
-													<button type="button" role="menuitem" class="app-nav-link w-full text-left" (click)="edit(item.encounter.id); closeActionMenu()">
+													<button
+														type="button"
+														role="menuitem"
+														class="app-nav-link w-full text-left"
+														(click)="edit(item.encounter.id); closeActionMenu()"
+													>
 														Editar
 													</button>
-													<button type="button" role="menuitem" class="app-nav-link w-full text-left" (click)="duplicate(item.encounter.id); closeActionMenu()">
+													<button
+														type="button"
+														role="menuitem"
+														class="app-nav-link w-full text-left"
+														(click)="duplicate(item.encounter.id); closeActionMenu()"
+													>
 														Duplicar
 													</button>
-													<button type="button" role="menuitem" class="app-nav-link w-full text-left" (click)="export(item.encounter.id); closeActionMenu()">
-														Exportar encounter
-													</button>
 													<div class="my-1 border-t border-app-divider"></div>
-													<button type="button" role="menuitem" class="app-button app-button-danger min-h-9 px-3 py-1.5 text-sm" (click)="remove(item.encounter.id); closeActionMenu()">
-														@if (item.latestBattle || item.activeBattle) { Deletar com batalhas } @else { Deletar }
+													<button
+														type="button"
+														role="menuitem"
+														class="app-button app-button-danger min-h-9 px-3 py-1.5 text-sm"
+														(click)="remove(item.encounter.id); closeActionMenu()"
+													>
+														@if (item.latestBattle || item.activeBattle) {
+															Deletar com batalhas
+														} @else {
+															Deletar
+														}
 													</button>
 												</div>
 											}
@@ -272,55 +271,113 @@
 </div>
 
 @if (battleSetupModal(); as modal) {
-	<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeBattleSetupModal()">
-		<section id="battle-setup-modal" role="dialog" aria-modal="true" aria-labelledby="battle-setup-title" [appDialogFocus]="true" (appDialogEscape)="closeBattleSetupModal()" class="app-dialog w-full max-w-4xl p-4 sm:p-5" (click)="$event.stopPropagation()">
+	<div
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+		(click)="closeBattleSetupModal()"
+	>
+		<section
+			id="battle-setup-modal"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="battle-setup-title"
+			[appDialogFocus]="true"
+			(appDialogEscape)="closeBattleSetupModal()"
+			class="app-dialog w-full max-w-4xl p-4 sm:p-5"
+			(click)="$event.stopPropagation()"
+		>
 			<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 				<div>
-					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle">Preparação de combate</div>
+					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
+						Preparação de combate
+					</div>
 					<h3 id="battle-setup-title" class="mt-1 text-2xl font-semibold text-app-text">
-						@if (modal.mode === 'new') { Nova batalha } @else { Iniciar batalha }
+						@if (modal.mode === 'new') {
+							Nova batalha
+						} @else {
+							Iniciar batalha
+						}
 					</h3>
-					<p class="mt-1 text-sm text-app-muted">Escolha o lado e ajuste a iniciativa de cada integrante antes de abrir o tracker.</p>
+					<p class="mt-1 text-sm text-app-muted">
+						Escolha o lado e ajuste a iniciativa de cada integrante antes de abrir o tracker.
+					</p>
 				</div>
-				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" data-dialog-initial-focus (click)="closeBattleSetupModal()" aria-label="Fechar preparação de batalha">
+				<button
+					type="button"
+					class="app-button app-modal-close h-11 w-11 shrink-0 p-0"
+					data-dialog-initial-focus
+					(click)="closeBattleSetupModal()"
+					aria-label="Fechar preparação de batalha"
+				>
 					<svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg>
 				</button>
 			</div>
 
 			<label class="mt-4 block text-sm text-app-muted">
 				<span class="mb-1 block">Nome da batalha</span>
-				<input class="app-field w-full px-4 py-3" [ngModel]="modal.battleName" (ngModelChange)="setBattleSetupName($event)" placeholder="Nome da sessão de batalha" />
+				<input
+					class="app-field w-full px-4 py-3"
+					[ngModel]="modal.battleName"
+					(ngModelChange)="setBattleSetupName($event)"
+					placeholder="Nome da sessão de batalha"
+				/>
 			</label>
 
 			<div class="app-inset mt-5 p-4">
 				<div class="mb-3 flex items-start justify-between gap-3">
 					<div>
 						<h4 class="font-semibold text-app-text">Participantes</h4>
-						<p class="mt-1 text-sm text-app-muted">PCs entram como jogador por padrão. NPCs e outros perfis podem ser ajustados antes de abrir a batalha.</p>
+						<p class="mt-1 text-sm text-app-muted">
+							PCs entram como jogador por padrão. NPCs e outros perfis podem ser ajustados antes de
+							abrir a batalha.
+						</p>
 					</div>
-					<span class="app-status shrink-0 border border-app-divider bg-app-surface">{{ getBattleSetupEncounter()?.data?.creatures?.length || 0 }} integrantes</span>
+					<span class="app-status shrink-0 border border-app-divider bg-app-surface"
+						>{{ getBattleSetupEncounter()?.participants?.length || 0 }} integrantes</span
+					>
 				</div>
 
 				<div class="space-y-3">
-					@for (creature of getBattleSetupEncounter()?.data?.creatures ?? []; track creature.id) {
-						<div [class]="battleSetupRowClasses(creature.id)">
+					@for (
+						participant of getBattleSetupEncounter()?.participants ?? [];
+						track participant.id
+					) {
+						<div [class]="battleSetupRowClasses(participant.id)">
 							<div>
 								<div class="flex flex-wrap items-center gap-2">
-									<div class="font-semibold text-app-text">{{ creature.name }}</div>
-									<span class="app-status border" [class]="sideBadgeClasses(modal.sides[creature.id] || 'enemy')">
+									<div class="font-semibold text-app-text">{{ participant.name }}</div>
+									<span
+										class="app-status border"
+										[class]="
+											sideBadgeClasses(
+												modal.sides[participant.id] || defaultBattleSetupSide(participant.category)
+											)
+										"
+									>
 										<span class="h-2 w-2 rounded-full bg-current opacity-80"></span>
-										{{ sideLabel(modal.sides[creature.id] || 'enemy') }}
+										{{
+											sideLabel(
+												modal.sides[participant.id] || defaultBattleSetupSide(participant.category)
+											)
+										}}
 									</span>
 								</div>
-								<div class="mt-1 text-sm text-app-muted">HP {{ creature.maxHealthPoints }} · CA {{ creature.armorClass || '-' }}</div>
-								@if (battleSetupTieLabel(creature.id); as tieLabel) {
-									<span [class]="battleSetupTieBadgeClasses(creature.id)">{{ tieLabel }}</span>
+								<div class="mt-1 text-sm text-app-muted">
+									HP {{ participant.sheet.maxHp }} · CA {{ participant.sheet.armorClass || '-' }}
+								</div>
+								@if (battleSetupTieLabel(participant.id); as tieLabel) {
+									<span [class]="battleSetupTieBadgeClasses(participant.id)">{{ tieLabel }}</span>
 								}
 							</div>
 
 							<label class="text-sm text-app-muted">
 								<span class="mb-1 block">Lado</span>
-								<select class="app-field w-full cursor-pointer px-3 py-2" [ngModel]="modal.sides[creature.id] || 'enemy'" (ngModelChange)="setBattleSetupSide(creature.id, $event)">
+								<select
+									class="app-field w-full cursor-pointer px-3 py-2"
+									[ngModel]="
+										modal.sides[participant.id] || defaultBattleSetupSide(participant.category)
+									"
+									(ngModelChange)="setBattleSetupSide(participant.id, $event)"
+								>
 									<option value="player">Jogador</option>
 									<option value="ally">Aliado</option>
 									<option value="enemy">Inimigo</option>
@@ -330,13 +387,24 @@
 
 							<label class="text-sm text-app-muted">
 								<span class="mb-1 block">Iniciativa</span>
-								<input type="number" class="app-field w-full px-3 py-2" [ngModel]="modal.initiatives[creature.id]" (ngModelChange)="setBattleSetupInitiative(creature.id, $event)" />
+								<input
+									type="number"
+									class="app-field w-full px-3 py-2"
+									[ngModel]="modal.initiatives[participant.id]"
+									(ngModelChange)="setBattleSetupInitiative(participant.id, $event)"
+								/>
 							</label>
 
-							@if (isBattleSetupInitiativeTied(creature.id)) {
+							@if (isBattleSetupInitiativeTied(participant.id)) {
 								<label class="text-sm text-app-muted">
 									<span class="mb-1 block">DES (desempate)</span>
-									<input type="number" placeholder="-" [class]="battleSetupTieBreakerInputClasses(creature.id)" [ngModel]="modal.initiativeTieBreakers[creature.id]" (ngModelChange)="setBattleSetupInitiativeTieBreaker(creature.id, $event)" />
+									<input
+										type="number"
+										placeholder="-"
+										[class]="battleSetupTieBreakerInputClasses(participant.id)"
+										[ngModel]="modal.initiativeTieBreakers[participant.id]"
+										(ngModelChange)="setBattleSetupInitiativeTieBreaker(participant.id, $event)"
+									/>
 								</label>
 							}
 						</div>
@@ -345,8 +413,14 @@
 			</div>
 
 			<div class="mt-5 flex flex-wrap justify-end gap-2">
-				<button type="button" class="app-button app-button-ghost" (click)="closeBattleSetupModal()">Cancelar</button>
-				<button type="button" class="app-button app-button-accent" (click)="launchBattleFromSetup()">
+				<button type="button" class="app-button app-button-ghost" (click)="closeBattleSetupModal()">
+					Cancelar
+				</button>
+				<button
+					type="button"
+					class="app-button app-button-accent"
+					(click)="launchBattleFromSetup()"
+				>
 					Abrir Battle Tracker
 				</button>
 			</div>
@@ -355,29 +429,80 @@
 }
 
 @if (confirmModal(); as modal) {
-	<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeConfirmModal()">
-		<section id="encounter-confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="encounter-confirmation-title" [appDialogFocus]="true" (appDialogEscape)="closeConfirmModal()" class="app-dialog w-full max-w-lg p-5 sm:p-6" [class.border-rose-400/30]="modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'" (click)="$event.stopPropagation()">
+	<div
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+		(click)="closeConfirmModal()"
+	>
+		<section
+			id="encounter-confirmation-modal"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="encounter-confirmation-title"
+			[appDialogFocus]="true"
+			(appDialogEscape)="closeConfirmModal()"
+			class="app-dialog w-full max-w-lg p-5 sm:p-6"
+			[class.border-rose-400/30]="
+				modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'
+			"
+			(click)="$event.stopPropagation()"
+		>
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0">
-					<div class="text-[11px] font-semibold uppercase tracking-[0.16em]" [class.text-rose-200]="modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'" [class.text-app-subtle]="modal.action === 'new-battle'">
-						@if (modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles') { Ação irreversível } @else { Confirmação necessária }
+					<div
+						class="text-[11px] font-semibold uppercase tracking-[0.16em]"
+						[class.text-rose-200]="
+							modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'
+						"
+						[class.text-app-subtle]="modal.action === 'new-battle'"
+					>
+						@if (
+							modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'
+						) {
+							Ação irreversível
+						} @else {
+							Confirmação necessária
+						}
 					</div>
-					<h3 id="encounter-confirmation-title" class="mt-1 text-xl font-semibold text-app-text">{{ modal.title }}</h3>
+					<h3 id="encounter-confirmation-title" class="mt-1 text-xl font-semibold text-app-text">
+						{{ modal.title }}
+					</h3>
 				</div>
-				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" data-dialog-initial-focus (click)="closeConfirmModal()" aria-label="Fechar confirmação">
+				<button
+					type="button"
+					class="app-button app-modal-close h-11 w-11 shrink-0 p-0"
+					data-dialog-initial-focus
+					(click)="closeConfirmModal()"
+					aria-label="Fechar confirmação"
+				>
 					<svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg>
 				</button>
 			</div>
 			<p class="mt-3 text-sm leading-6 text-app-muted">{{ modal.description }}</p>
 			@if (modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles') {
-				<div class="app-inset mt-4 border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+				<div
+					class="app-inset mt-4 border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+				>
 					Esta ação não pode ser desfeita.
 				</div>
 			}
 
 			<div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-				<button type="button" class="app-button app-button-ghost w-full sm:w-auto" (click)="closeConfirmModal()">Cancelar</button>
-				<button type="button" class="app-button w-full sm:w-auto" [class.app-button-danger]="modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'" [class.app-button-secondary]="modal.action === 'new-battle'" (click)="confirmNewBattle()">
+				<button
+					type="button"
+					class="app-button app-button-ghost w-full sm:w-auto"
+					(click)="closeConfirmModal()"
+				>
+					Cancelar
+				</button>
+				<button
+					type="button"
+					class="app-button w-full sm:w-auto"
+					[class.app-button-danger]="
+						modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'
+					"
+					[class.app-button-secondary]="modal.action === 'new-battle'"
+					(click)="confirmNewBattle()"
+				>
 					{{ modal.confirmLabel }}
 				</button>
 			</div>
@@ -415,11 +540,23 @@
 				</div>
 				<div class="min-w-0 flex-1">
 					<div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
-						@if (toastMessage.type === 'success') { Concluído } @else if (toastMessage.type === 'error') { Não foi possível concluir } @else { Atenção }
+						@if (toastMessage.type === 'success') {
+							Concluído
+						} @else if (toastMessage.type === 'error') {
+							Não foi possível concluir
+						} @else {
+							Atenção
+						}
 					</div>
 					<div class="mt-1 text-sm leading-5 text-app-text">{{ toastMessage.text }}</div>
 				</div>
-				<button type="button" class="app-toast-dismiss shrink-0" (click)="toast.set(null)" aria-label="Fechar mensagem" title="Fechar">
+				<button
+					type="button"
+					class="app-toast-dismiss shrink-0"
+					(click)="toast.set(null)"
+					aria-label="Fechar mensagem"
+					title="Fechar"
+				>
 					<svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg>
 				</button>
 			</div>

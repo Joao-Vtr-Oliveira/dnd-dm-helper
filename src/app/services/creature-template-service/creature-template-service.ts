@@ -2,8 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import type {
 	CreatureCategory,
 	CreatureFeature,
-	CreatureInterface,
-} from '../../models/battleTracker-model';
+	CreatureSheet,
+} from '../../models/creature-sheet-model';
 import { Dnd5eApiService, type ApiMonster } from '../dnd-api/dnd-api';
 import type { SavedSheetInterface } from '../local-storage-service/local-storage-service';
 
@@ -11,163 +11,107 @@ import type { SavedSheetInterface } from '../local-storage-service/local-storage
 export class CreatureTemplateService {
 	private readonly dndApi = inject(Dnd5eApiService);
 
-	createFromSavedSheet(
-		sheet: SavedSheetInterface,
-		args: { id: number; quantityIndex?: number }
-	): CreatureInterface {
-		const creature = this.normalizeCreature({
-			...structuredClone(sheet.data),
-			id: args.id,
-			category: sheet.category ?? sheet.data.category ?? 'monster',
-			sourceSheetId: sheet.id,
-		});
-
-		if ((args.quantityIndex ?? 0) > 0) {
-			creature.name = `${creature.name} #${args.quantityIndex! + 1}`;
-		}
-
-		return creature;
+	createFromSavedSheet(sheet: SavedSheetInterface): CreatureSheet {
+		return this.normalizeCreature(sheet.data);
 	}
 
-	createFromApiMonster(
-		monster: ApiMonster,
-		args: { id: number; initiative?: number | null; quantityIndex?: number }
-	): CreatureInterface {
-		const creature = this.normalizeCreature({
-			...this.dndApi.toCreature(monster, {
-				id: args.id,
-				initiative: args.initiative ?? null,
-			}),
-			category: 'monster',
-		});
-
-		if ((args.quantityIndex ?? 0) > 0) {
-			creature.name = `${creature.name} #${args.quantityIndex! + 1}`;
-		}
-
-		return creature;
+	createFromApiMonster(monster: ApiMonster): CreatureSheet {
+		return this.normalizeCreature(this.dndApi.toCreatureSheet(monster));
 	}
 
 	createManualCreature(args: {
-		id: number;
 		name: string;
-		initiative?: number | null;
 		hp?: number | null;
 		armorClass?: string | number;
 		category?: CreatureCategory;
-	}): CreatureInterface {
+	}): CreatureSheet {
+		void args.category;
 		const hp = this.toNonNegativeInt(args.hp);
-		return this.normalizeCreature({
-			name: args.name.trim() || `Creature #${args.id + 1}`,
-			initiative: args.initiative ?? null,
-			healthPoints: hp,
-			maxHealthPoints: hp,
-			armorClass: args.armorClass ?? '',
-			temporaryHealthPoints: null,
-			id: args.id,
-			alive: true,
-			conditions: [],
-			notes: [],
-			shared: true,
-			hitPointsShared: true,
-			totalSpellSlots: null,
-			usedSpellSlots: null,
-			spells: {},
-			specialAbilities: [],
-			sheetFeatures: [],
-			category: args.category ?? 'monster',
-		});
-	}
-
-	cloneCreature(creature: CreatureInterface, overrides?: Partial<CreatureInterface>): CreatureInterface {
-		return this.normalizeCreature({
-			...structuredClone(creature),
-			...overrides,
-		});
-	}
-
-	normalizeCreature(raw: Partial<CreatureInterface>): CreatureInterface {
 		return {
-			name: typeof raw.name === 'string' ? raw.name : 'Creature',
-			initiative: raw.initiative == null ? null : this.toFiniteNumber(raw.initiative),
-			healthPoints: this.toNonNegativeInt(raw.healthPoints),
-			maxHealthPoints: this.toNonNegativeInt(raw.maxHealthPoints ?? raw.healthPoints),
+			name: args.name.trim() || 'Creature',
+			maxHp: hp,
+			armorClass: args.armorClass ?? '',
+			spellSlots: [],
+			spells: [],
+			specialAbilities: [],
+			features: [],
+		};
+	}
+
+	cloneCreature(sheet: CreatureSheet, overrides?: Partial<CreatureSheet>): CreatureSheet {
+		return this.normalizeCreature({ ...structuredClone(sheet), ...overrides });
+	}
+
+	normalizeCreature(raw: Partial<CreatureSheet>): CreatureSheet {
+		return {
+			name: typeof raw.name === 'string' ? raw.name.trim() || 'Creature' : 'Creature',
+			maxHp: this.toNonNegativeInt(raw.maxHp),
 			armorClass:
 				raw.armorClass == null || raw.armorClass === ''
 					? ''
 					: typeof raw.armorClass === 'number'
 						? raw.armorClass
 						: String(raw.armorClass),
-			temporaryHealthPoints:
-				raw.temporaryHealthPoints == null ? null : this.toNonNegativeInt(raw.temporaryHealthPoints),
-			id: typeof raw.id === 'number' ? raw.id : Date.now(),
-			alive: raw.alive !== false,
-			conditions: Array.isArray(raw.conditions) ? raw.conditions : [],
-			notes: Array.isArray(raw.notes) ? raw.notes : [],
-			shared: raw.shared !== false,
-			hitPointsShared: raw.hitPointsShared !== false,
-			totalSpellSlots: raw.totalSpellSlots ?? null,
-			usedSpellSlots: raw.usedSpellSlots ?? null,
-			spells: raw.spells ?? {},
-			specialAbilities: Array.isArray(raw.specialAbilities) ? raw.specialAbilities : [],
-			sheetFeatures: this.normalizeFeatures(raw.sheetFeatures),
-			category: this.normalizeCategory(raw.category),
-			sourceSheetId: typeof raw.sourceSheetId === 'string' ? raw.sourceSheetId : undefined,
+			spellSlots: this.normalizeSlots(raw.spellSlots),
+			spells: this.normalizeSpells(raw.spells),
+			specialAbilities: this.normalizeAbilities(raw.specialAbilities),
+			features: this.normalizeFeatures(raw.features),
 			rawFiveETools:
 				raw.rawFiveETools && typeof raw.rawFiveETools === 'object' && !Array.isArray(raw.rawFiveETools)
 					? structuredClone(raw.rawFiveETools)
 					: undefined,
+			fiveEToolsIdentity: raw.fiveEToolsIdentity
+				? structuredClone(raw.fiveEToolsIdentity)
+				: undefined,
 		};
 	}
 
-	private normalizeCategory(value: unknown): CreatureCategory {
-		if (value === 'pc') return 'pc';
-		if (value === 'npc') return 'npc';
-		if (value === 'other') return 'other';
-		return 'monster';
+	private normalizeSlots(slots: CreatureSheet['spellSlots'] | undefined): CreatureSheet['spellSlots'] {
+		if (!Array.isArray(slots)) return [];
+		return slots
+			.filter((slot) => Number.isInteger(slot?.level) && slot.level >= 1 && slot.level <= 9)
+			.map((slot) => ({ level: slot.level, max: this.toNonNegativeInt(slot.max) }))
+			.sort((left, right) => left.level - right.level);
 	}
 
-	private normalizeFeatures(features: unknown): CreatureFeature[] {
+	private normalizeSpells(spells: CreatureSheet['spells'] | undefined): CreatureSheet['spells'] {
+		if (!Array.isArray(spells)) return [];
+		return spells.flatMap((spell, index) => {
+			const name = typeof spell?.name === 'string' ? spell.name.trim() : '';
+			if (!name) return [];
+			return [{
+				id: typeof spell.id === 'string' && spell.id.trim() ? spell.id : `spell-${index + 1}`,
+				name,
+				...(typeof spell.source === 'string' && spell.source.trim() ? { source: spell.source.trim() } : {}),
+				...(Number.isInteger(spell.level) ? { level: spell.level } : {}),
+				...(Number.isFinite(spell.uses) ? { uses: this.toNonNegativeInt(spell.uses) } : {}),
+			}];
+		});
+	}
+
+	private normalizeAbilities(
+		abilities: CreatureSheet['specialAbilities'] | undefined,
+	): CreatureSheet['specialAbilities'] {
+		if (!Array.isArray(abilities)) return [];
+		return abilities.filter((ability) => typeof ability?.name === 'string' && ability.name.trim());
+	}
+
+	private normalizeFeatures(features: CreatureFeature[] | undefined): CreatureFeature[] {
 		if (!Array.isArray(features)) return [];
-		const normalized = features
-			.map((feature, index) => {
-				const candidate = feature as Partial<CreatureFeature>;
-				const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
-				if (!name) return null;
-				return {
-					id: typeof candidate.id === 'string' ? candidate.id : `feature-${index + 1}`,
-					name,
-					description:
-						typeof candidate.description === 'string' ? candidate.description.trim() : undefined,
-					kind: this.normalizeFeatureKind(candidate.kind),
-				};
-			})
-			.filter((feature) => feature !== null);
-		return normalized as CreatureFeature[];
-	}
-
-	private normalizeFeatureKind(value: unknown): CreatureFeature['kind'] {
-		if (
-			value === 'trait' ||
-			value === 'action' ||
-			value === 'reaction' ||
-			value === 'legendary' ||
-			value === 'spellcasting' ||
-			value === 'note'
-		) {
-			return value;
-		}
-		return 'note';
+		return features.flatMap((feature, index) => {
+			const name = typeof feature?.name === 'string' ? feature.name.trim() : '';
+			if (!name) return [];
+			return [{
+				id: typeof feature.id === 'string' && feature.id ? feature.id : `feature-${index + 1}`,
+				name,
+				description: typeof feature.description === 'string' ? feature.description.trim() || undefined : undefined,
+				kind: feature.kind,
+			}];
+		});
 	}
 
 	private toNonNegativeInt(value: unknown): number {
 		const numeric = Number(value);
-		if (!Number.isFinite(numeric)) return 0;
-		return Math.max(0, Math.floor(numeric));
-	}
-
-	private toFiniteNumber(value: unknown): number {
-		const numeric = Number(value);
-		return Number.isFinite(numeric) ? numeric : 0;
+		return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
 	}
 }

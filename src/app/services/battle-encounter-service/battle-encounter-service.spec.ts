@@ -1,1173 +1,230 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { EncounterTemplate } from '../../models/battle-encounter-model';
+import type { Encounter, EncounterParticipant } from '../../models/encounter-model';
 import { BattleEncounterService, MAX_BATTLE_TURN_SNAPSHOTS } from './battle-encounter-service';
 
 describe('BattleEncounterService', () => {
 	let service: BattleEncounterService;
 
-	const template: EncounterTemplate = {
-		id: 'enc-1',
-		name: 'Goblin Ambush',
-		data: {
-			creatures: [
+	const boss: EncounterParticipant = {
+		id: 'participant-boss',
+		sourceSheetId: 'sheet-boss',
+		name: 'Goblin Boss',
+		category: 'monster',
+		initiative: 18,
+		notes: 'Focus the wizard',
+		sheet: {
+			name: 'Goblin Boss Sheet',
+			armorClass: 16,
+			maxHp: 30,
+			spellSlots: [{ level: 1, max: 2 }],
+			spells: [{ id: 'spell-fire', name: 'Fire Bolt', level: 0 }],
+			specialAbilities: [
 				{
-					id: 0,
-					name: 'Goblin Boss',
-					initiative: 18,
-					healthPoints: 30,
-					maxHealthPoints: 30,
-					armorClass: 16,
-					temporaryHealthPoints: 5,
-					alive: true,
-					conditions: [],
-					notes: [{ id: 1, text: 'Focus no wizard', appliedAtRound: 0, appliedAtSeconds: 0 }],
-					shared: true,
-					hitPointsShared: true,
-					totalSpellSlots: null,
-					usedSpellSlots: null,
-					spells: {},
-					specialAbilities: [],
-					sheetFeatures: [],
-				},
-				{
-					id: 1,
-					name: 'Goblin Minion',
-					initiative: 12,
-					healthPoints: 12,
-					maxHealthPoints: 12,
-					armorClass: 13,
-					temporaryHealthPoints: 0,
-					alive: true,
-					conditions: [],
-					notes: [],
-					shared: true,
-					hitPointsShared: true,
-					totalSpellSlots: null,
-					usedSpellSlots: null,
-					spells: {},
-					specialAbilities: [],
-					sheetFeatures: [],
+					id: 'fire-breath',
+					name: 'Fire Breath',
+					recoveryType: 'dice-recharge',
+					rechargeDice: 'd6',
+					rechargeOn: [5, 6],
 				},
 			],
-			creatureIdCount: 2,
-			lairActions: [],
-			traps: [],
-			round: 0,
-			battleCreated: false,
-			shareEnabled: false,
-			battleTrackerVersion: '5.123.0',
-			sharedTimestamp: null,
-			loaded: true,
+			features: [{ id: 'nimble', name: 'Nimble Escape', kind: 'bonus' }],
 		},
 	};
 
+	const encounter: Encounter = {
+		schemaVersion: 1,
+		type: 'dnd-dm-helper-encounter',
+		id: 'enc-1',
+		title: 'Goblin Ambush',
+		description: 'A bridge is guarded by goblins.',
+		createdAt: 1,
+		updatedAt: 1,
+		tags: [],
+		participants: [
+			boss,
+			{
+				...structuredClone(boss),
+				id: 'participant-minion',
+				name: 'Goblin Minion',
+				initiative: 12,
+				sheet: { ...structuredClone(boss.sheet), maxHp: 12 },
+			},
+		],
+		lairActions: [
+			{
+				id: 'lair-1',
+				name: 'Cave Pulse',
+				initiative: 20,
+				active: true,
+				frequency: 'cooldown-rounds',
+				cooldownRounds: 2,
+			},
+		],
+		traps: [
+			{
+				id: 'trap-1',
+				name: 'Falling Rocks',
+				triggerType: 'initiative',
+				initiative: 10,
+				active: true,
+				frequency: 'every-round',
+			},
+		],
+	};
+
 	beforeEach(() => {
-		TestBed.configureTestingModule({
-			providers: [provideZonelessChangeDetection()],
-		});
+		TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
 		service = TestBed.inject(BattleEncounterService);
 	});
 
-	it('creates a battle encounter from a saved encounter', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
+	it('creates isolated runtime combatants from encounter participants', () => {
+		const source = structuredClone(encounter);
+		const battle = service.createBattleFromEncounter(source, undefined, new Date('2026-01-01T10:00:00Z'));
+		const combatant = battle.combatants[0];
 
-		expect(battle.sourceEncounterId).toBe('enc-1');
-		expect(battle.name).toBe('Goblin Ambush');
-		expect(battle.round).toBe(1);
-		expect(battle.activeTurnIndex).toBe(0);
-		expect(battle.combatants.length).toBe(2);
-		expect(battle.combatants[0].name).toBe('Goblin Boss');
-		expect(battle.combatants[0].privateNotes).toContain('Focus no wizard');
-		expect(battle.combatants[0].side).toBe('enemy');
-		expect(battle.combatants.every((combatant) => combatant.collapsed)).toBeTrue();
+		expect(battle.sourceEncounterId).toBe(encounter.id);
+		expect(battle.name).toBe(encounter.title);
+		expect(battle.description).toBe(encounter.description);
+		expect(combatant.sourceParticipantId).toBe(boss.id);
+		expect(combatant.sourceSheetId).toBe(boss.sourceSheetId);
+		expect(combatant.currentHp).toBe(combatant.maxHp);
+		expect(combatant.temporaryHp).toBe(0);
+		expect(combatant.spellSlots).toEqual([{ level: 1, max: 2, used: 0 }]);
+		expect(combatant.spells).toEqual(boss.sheet.spells);
+		expect(combatant.features).toEqual(boss.sheet.features);
+		expect(combatant.specialAbilities[0]).toEqual(jasmine.objectContaining({
+			id: 'fire-breath', recoveryType: 'dice-recharge', isAvailable: true, usedCount: 0,
+			currentCooldownTurns: 0, currentCooldownRounds: 0,
+		}));
+		expect(combatant.privateNotes).toBe(boss.notes);
+		expect(source).toEqual(encounter);
 	});
 
-	it('supports selecting sides before the battle starts', () => {
-		const battle = service.createBattleFromEncounter(template, {
-			combatantSides: {
-				0: 'ally',
-				1: 'player',
-			},
-		});
-
-		expect(battle.combatants[0].side).toBe('ally');
-		expect(battle.combatants[1].side).toBe('player');
-	});
-
-	it('supports overriding initiative before the battle starts', () => {
-		const battle = service.createBattleFromEncounter(template, {
-			initiativeOverrides: {
-				0: 7,
-				1: 19,
-			},
-		});
-
-		expect(battle.combatants[0].name).toBe('Goblin Minion');
-		expect(battle.combatants[0].initiative).toBe(19);
-		expect(battle.combatants[1].initiative).toBe(7);
-	});
-
-	it('uses DES tie breakers only when initiatives are equal and keeps equal DES stable', () => {
-		const differentInitiatives = service.createBattleFromEncounter(template, {
-			initiativeOverrides: { 0: 20, 1: 18 },
-			initiativeTieBreakerOverrides: { 0: 0, 1: 99 },
-		});
-		const resolved = service.createBattleFromEncounter(template, {
-			initiativeOverrides: { 0: 17, 1: 17 },
-			initiativeTieBreakerOverrides: { 0: 12, 1: 16 },
-		});
-		const unresolved = service.createBattleFromEncounter(template, {
-			initiativeOverrides: { 0: 17, 1: 17 },
-			initiativeTieBreakerOverrides: { 0: 16, 1: 16 },
-		});
-
-		expect(resolved.combatants.map((combatant) => combatant.name)).toEqual([
-			'Goblin Minion',
-			'Goblin Boss',
-		]);
-		expect(differentInitiatives.combatants[0].name).toBe('Goblin Boss');
-		expect(unresolved.combatants.map((combatant) => combatant.name)).toEqual([
-			'Goblin Boss',
-			'Goblin Minion',
-		]);
-	});
-
-	it('orders every member of a three-way initiative tie by DES', () => {
-		const threeWayTemplate: EncounterTemplate = {
-			...template,
-			data: {
-				...template.data,
-				creatures: [
-					...template.data.creatures,
-					{ ...template.data.creatures[1], id: 2, name: 'Goblin Scout' },
-				],
-			},
-		};
-		const battle = service.createBattleFromEncounter(threeWayTemplate, {
-			initiativeOverrides: { 0: 18, 1: 18, 2: 18 },
-			initiativeTieBreakerOverrides: { 0: 16, 1: 14, 2: 18 },
+	it('uses participant ids for side and initiative setup while keeping ties stable', () => {
+		const battle = service.createBattleFromEncounter(encounter, {
+			combatantSides: { 'participant-boss': 'ally', 'participant-minion': 'player' },
+			initiativeOverrides: { 'participant-boss': 17, 'participant-minion': 17 },
+			initiativeTieBreakerOverrides: { 'participant-boss': 12, 'participant-minion': 16 },
 		});
 
 		expect(battle.combatants.map((combatant) => combatant.name)).toEqual([
-			'Goblin Scout',
-			'Goblin Boss',
-			'Goblin Minion',
+			'Goblin Minion', 'Goblin Boss',
 		]);
+		expect(battle.combatants.map((combatant) => combatant.side)).toEqual(['player', 'ally']);
 	});
 
-	it('orders combatants by initiative', () => {
-		const battle = service.createBattleFromEncounter(template);
+	it('initializes encounter event runtime state without changing the source', () => {
+		const battle = service.createBattleFromEncounter(encounter);
 
-		expect(battle.combatants.map((combatant) => combatant.name)).toEqual([
-			'Goblin Boss',
-			'Goblin Minion',
-		]);
+		expect(battle.lairActions[0]).toEqual(jasmine.objectContaining({
+			id: 'lair-1', currentCooldownRounds: 0, lastTriggeredAtRound: undefined,
+		}));
+		expect(battle.traps[0]).toEqual(jasmine.objectContaining({
+			id: 'trap-1', currentCooldownRounds: 0, lastTriggeredAtRound: undefined,
+		}));
+		expect('currentCooldownRounds' in encounter.lairActions[0]).toBeFalse();
 	});
 
-	it('advances the turn and then advances the round after the last combatant', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-		const afterFirstTurn = service.advanceTurn(battle, new Date('2026-01-01T10:01:30.000Z'));
-		const afterSecondTurn = service.advanceTurn(
-			afterFirstTurn,
-			new Date('2026-01-01T10:02:00.000Z'),
-		);
+	it('snapshots and restores the same canonical runtime shape', () => {
+		const battle = service.createBattleFromEncounter(encounter);
+		const before = structuredClone(battle);
+		const advanced = service.advanceTurn(battle, new Date('2026-01-01T10:00:05Z'));
+		const restored = service.undoTurn(advanced, new Date('2026-01-01T10:01:00Z'));
 
-		expect(afterFirstTurn.activeTurnIndex).toBe(1);
-		expect(afterFirstTurn.turnHistory).toHaveSize(1);
-		expect(afterSecondTurn.activeTurnIndex).toBe(0);
-		expect(afterSecondTurn.round).toBe(2);
-		expect(afterSecondTurn.turnHistory).toHaveSize(2);
-	});
-
-	it('captures a full pre-advance snapshot and restores it on undo', () => {
-		const initial = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-		const bossId = initial.combatants[0].id;
-		const minionId = initial.combatants[1].id;
-		let beforeAdvance = service.addCondition(initial, bossId, {
-			name: 'poisoned',
-			label: 'Poisoned',
-			durationType: 'turns',
-			durationTurns: 1,
-		});
-		beforeAdvance = service.addSpecialAbility(beforeAdvance, minionId, {
-			name: 'Fire Breath',
-			recoveryType: 'dice-recharge',
-			rechargeOn: [5, 6],
-		});
-		const abilityId = beforeAdvance.combatants[1].specialAbilities[0].id;
-		beforeAdvance = service.useSpecialAbility(beforeAdvance, minionId, abilityId);
-		beforeAdvance = service.enableSpellSlots(beforeAdvance, minionId);
-		beforeAdvance = service.setSpellSlotMax(beforeAdvance, minionId, 1, 2);
-		beforeAdvance = service.addLairAction(beforeAdvance, {
-			name: 'Cave Pulse',
-			frequency: 'cooldown-rounds',
-			cooldownRounds: 2,
-		});
-		beforeAdvance = service.addTrap(beforeAdvance, {
-			name: 'Falling Rocks',
-			triggerType: 'manual',
-			frequency: 'cooldown-rounds',
-			cooldownRounds: 2,
-		});
-		const expected = structuredClone(beforeAdvance);
-
-		let advanced = service.advanceTurn(beforeAdvance, new Date('2026-01-01T10:00:05.000Z'));
 		expect(advanced.turnSnapshots).toHaveSize(1);
+		expect(advanced.turnSnapshots[0].state.combatants[0].spells).toEqual(before.combatants[0].spells);
+		expect(advanced.turnSnapshots[0].state.combatants[0].features).toEqual(before.combatants[0].features);
+		expect(restored.combatants).toEqual(before.combatants);
+		expect(restored.lairActions).toEqual(before.lairActions);
+		expect(restored.traps).toEqual(before.traps);
+	});
+
+	it('adds and duplicates canonical participants with fresh runtime state', () => {
+		const battle = service.createBattleFromEncounter(encounter);
+		const added = service.addCombatantFromParticipant(battle, {
+			...structuredClone(boss), id: 'participant-reinforcement', name: 'Cult Fanatic', initiative: 20,
+		});
+		const original = added.pendingCombatants[0];
+		const spent = service.useSpellSlot(added, original.id, 1);
+		const duplicated = service.duplicateCombatant(spent, original.id);
+		const copy = duplicated.pendingCombatants.find((combatant) => combatant.id !== original.id)!;
+
+		expect(original.sourceParticipantId).toBe('participant-reinforcement');
+		expect(original.spells).toEqual(boss.sheet.spells);
+		expect(original.features).toEqual(boss.sheet.features);
+		expect(copy.currentHp).toBe(copy.maxHp);
+		expect(copy.temporaryHp).toBe(0);
+		expect(copy.spellSlots[0].used).toBe(0);
+		expect(copy.specialAbilities[0].isAvailable).toBeTrue();
+	});
+
+	it('keeps damage, conditions, and spell-slot state isolated to the battle', () => {
+		const battle = service.createBattleFromEncounter(encounter);
+		const combatantId = battle.combatants[0].id;
+		const withTemporaryHp = service.updateCombatantHp(battle, combatantId, { temporaryHp: 5 });
+		const damaged = service.applyDamage(withTemporaryHp, combatantId, 8);
+		const withCondition = service.addCondition(damaged, combatantId, {
+			name: 'stunned', label: 'Stunned', durationType: 'turns', durationTurns: 1,
+		});
+		const advanced = service.advanceTurn(withCondition);
+		const spent = service.useSpellSlot(advanced, combatantId, 1);
+		const recovered = service.recoverSpellSlot(spent, combatantId, 1);
+
+		expect(damaged.combatants[0]).toEqual(jasmine.objectContaining({
+			temporaryHp: 0, currentHp: 27,
+		}));
 		expect(advanced.combatants[0].conditions).toEqual([]);
-		advanced = service.recordSpecialAbilityRecharge(advanced, minionId, abilityId, 3)!.battle;
-		advanced = service.applyDamage(advanced, minionId, 99);
-		advanced = service.updateCombatantHp(advanced, minionId, { maxHp: 30, temporaryHp: 6 });
-		advanced = service.useSpellSlot(advanced, minionId, 1);
-		advanced = service.triggerLairAction(advanced, advanced.lairActions[0].id);
-		advanced = service.triggerTrap(advanced, advanced.traps[0].id);
-		advanced = service.addCondition(advanced, minionId, {
-			name: 'stunned',
-			label: 'Stunned',
-			durationType: 'manual',
-		});
-
-		const restored = service.undoTurn(advanced, new Date('2026-01-01T10:01:00.000Z'));
-
-		expect(restored.round).toBe(expected.round);
-		expect(service.getCurrentCombatant(restored)?.id).toBe(bossId);
-		expect(restored.combatants).toEqual(expected.combatants);
-		expect(restored.lairActions).toEqual(expected.lairActions);
-		expect(restored.traps).toEqual(expected.traps);
-		expect(restored.turnHistory).toEqual(expected.turnHistory);
-		expect(restored.turnSnapshots).toEqual([]);
-		expect(restored.currentTurnElapsedSeconds).toBe(0);
+		expect(spent.combatants[0].spellSlots[0].used).toBe(1);
+		expect(recovered.combatants[0].spellSlots[0].used).toBe(0);
+		expect(encounter.participants[0].sheet.spellSlots[0]).toEqual({ level: 1, max: 2 });
 	});
 
-	it('supports multiple undos and leaves a battle unchanged without a snapshot', () => {
-		const initial = service.createBattleFromEncounter(template);
-		const afterFirst = service.advanceTurn(initial);
-		const afterSecond = service.advanceTurn(afterFirst);
-		const afterUndo = service.undoTurn(afterSecond);
-		const afterSecondUndo = service.undoTurn(afterUndo);
-
-		expect(afterSecond.turnSnapshots).toHaveSize(2);
-		expect(service.getCurrentCombatant(afterUndo)?.id).toBe(initial.combatants[1].id);
-		expect(service.getCurrentCombatant(afterSecondUndo)?.id).toBe(initial.combatants[0].id);
-		expect(service.undoTurn(initial)).toBe(initial);
-	});
-
-	it('keeps only the configured number of turn snapshots', () => {
-		let battle = service.createBattleFromEncounter(template);
-		for (let index = 0; index < MAX_BATTLE_TURN_SNAPSHOTS + 1; index += 1) {
-			battle = service.advanceTurn(battle);
-		}
-
-		expect(battle.turnSnapshots).toHaveSize(MAX_BATTLE_TURN_SNAPSHOTS);
-	});
-
-	it('restores pending combatants and the previous round when undoing a round transition', () => {
-		const initial = service.createBattleFromEncounter(template);
-		const withPending = service.addCombatantFromCreature(initial, {
-			...template.data.creatures[1],
-			id: 99,
-			name: 'Goblin Reinforcement',
-		});
-		const afterFirst = service.advanceTurn(withPending);
-		const afterRoundTransition = service.advanceTurn(afterFirst);
-
-		expect(afterRoundTransition.round).toBe(2);
-		expect(afterRoundTransition.pendingCombatants).toEqual([]);
-
-		const restored = service.undoTurn(afterRoundTransition);
-		expect(restored.round).toBe(1);
-		expect(restored.pendingCombatants.map((combatant) => combatant.name)).toEqual([
-			'Goblin Reinforcement',
-		]);
-	});
-
-	it('advances the round when a single combatant wraps back to the start of the order', () => {
-		const singleCombatantTemplate: EncounterTemplate = {
-			...template,
-			data: {
-				...template.data,
-				creatures: [template.data.creatures[0]],
-				creatureIdCount: 1,
-			},
-		};
-		const battle = service.createBattleFromEncounter(
-			singleCombatantTemplate,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-		const advanced = service.advanceTurn(battle, new Date('2026-01-01T10:00:05.000Z'));
-
-		expect(advanced.round).toBe(2);
-		expect(advanced.activeTurnIndex).toBe(0);
-	});
-
-	it('calculates elapsed time for the current turn', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-
-		expect(service.getCurrentTurnElapsedSeconds(battle, new Date('2026-01-01T10:01:24.000Z'))).toBe(
-			84,
-		);
-	});
-
-	it('expires turn-based conditions automatically on turn advance', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
+	it('keeps dice recharge physical and accepts one recorded result per round', () => {
+		const battle = service.createBattleFromEncounter(encounter);
 		const combatantId = battle.combatants[0].id;
-		const withCondition = service.addCondition(battle, combatantId, {
-			name: 'stunned',
-			label: 'Atordoado / Stunned',
-			durationType: 'turns',
-			durationTurns: 1,
-		});
-		const advanced = service.advanceTurn(withCondition, new Date('2026-01-01T10:00:05.000Z'));
+		const abilityId = battle.combatants[0].specialAbilities[0].id;
+		const used = service.useSpecialAbility(battle, combatantId, abilityId);
+		const ownerNextTurn = service.advanceTurn(service.advanceTurn(used));
+		const resolved = service.recordSpecialAbilityRecharge(ownerNextTurn, combatantId, abilityId, 5)!;
 
-		expect(advanced.combatants[0].conditions).toHaveSize(0);
-		expect(advanced.turnHistory.at(-1)?.notes).toContain('Atordoado');
-	});
-
-	it('expires round-based conditions automatically when the round changes', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-		const combatantId = battle.combatants[0].id;
-		const withCondition = service.addCondition(battle, combatantId, {
-			name: 'blessed',
-			label: 'Abençoado / Blessed',
-			durationType: 'rounds',
-			durationRounds: 1,
-		});
-
-		const afterFirstTurn = service.advanceTurn(withCondition, new Date('2026-01-01T10:00:05.000Z'));
-		const afterSecondTurn = service.advanceTurn(
-			afterFirstTurn,
-			new Date('2026-01-01T10:00:10.000Z'),
-		);
-
-		expect(afterSecondTurn.combatants[0].conditions).toHaveSize(0);
-	});
-
-	it('applies damage using temporary hit points first', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		const updated = service.applyDamage(battle, combatantId, 8);
-
-		expect(updated.combatants[0].temporaryHp).toBe(0);
-		expect(updated.combatants[0].currentHp).toBe(27);
-		expect(updated.combatants[0].defeated).toBeFalse();
-	});
-
-	it('creates concentration checks from the incoming damage, including damage absorbed by temporary hp', () => {
-		for (const [damage, difficultyClass] of [
-			[5, 10],
-			[18, 10],
-			[22, 11],
-			[40, 20],
-		]) {
-			let battle = service.createBattleFromEncounter(template);
-			const combatantId = battle.combatants[0].id;
-			battle = service.updateCombatant(battle, combatantId, { side: 'player' });
-			battle = service.startConcentration(battle, combatantId);
-			const damaged = service.applyDamage(battle, combatantId, damage);
-			const check = damaged.pendingActions.find((action) => action.type === 'concentration-check');
-
-			expect(check?.damage).toBe(damage);
-			expect(check?.difficultyClass).toBe(difficultyClass);
-		}
-	});
-
-	it('does not create a concentration check when the damaged combatant is not concentrating', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const damaged = service.applyDamage(battle, battle.combatants[0].id, 10);
-
-		expect(damaged.pendingActions).toEqual([]);
-	});
-
-	it('keeps concentration checks on the battle and resolves each damage instance independently', () => {
-		let battle = service.createBattleFromEncounter(template);
-		const targetId = battle.combatants[1].id;
-		battle = service.updateCombatant(battle, targetId, { side: 'player' });
-		battle = service.startConcentration(battle, targetId);
-		battle = service.applyDamage(battle, targetId, 12);
-		battle = service.applyDamage(battle, targetId, 30);
-
-		expect(service.getCurrentCombatant(battle)?.id).not.toBe(targetId);
-		expect(battle.pendingActions.map((action) => action.combatantId)).toEqual([targetId, targetId]);
-		expect(battle.pendingActions.map((action) => action.type === 'concentration-check' && action.difficultyClass)).toEqual([
-			10,
-			15,
-		]);
-
-		const succeeded = service.resolveConcentrationCheck(battle, battle.pendingActions[0].id, true)!;
-		expect(succeeded.battle.pendingActions).toHaveSize(1);
-		expect(succeeded.battle.combatants[1].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
-
-		const failed = service.resolveConcentrationCheck(succeeded.battle, succeeded.battle.pendingActions[0].id, false)!;
-		expect(failed.battle.pendingActions).toEqual([]);
-		expect(failed.battle.combatants[1].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
-	});
-
-	it('starts and stops concentration through the condition source of truth for every side', () => {
-		for (const side of ['player', 'ally', 'enemy', 'neutral'] as const) {
-			let battle = service.createBattleFromEncounter(template);
-			const combatantId = battle.combatants[0].id;
-			battle = service.updateCombatant(battle, combatantId, { side });
-			battle = service.startConcentration(battle, combatantId);
-			expect(battle.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
-			battle = service.applyDamage(battle, combatantId, 5);
-			expect(battle.pendingActions).toHaveSize(1);
-
-			battle = service.stopConcentration(battle, combatantId);
-			expect(battle.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
-			expect(battle.pendingActions).toEqual([]);
-		}
-	});
-
-	it('does not create concentration checks for healing or administrative hp changes', () => {
-		let battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		battle = service.startConcentration(battle, combatantId);
-		battle = service.applyHealing(battle, combatantId, 5);
-		battle = service.updateCombatantHp(battle, combatantId, { temporaryHp: 12 });
-		battle = service.updateCombatantHp(battle, combatantId, { currentHp: 20, maxHp: 40 });
-
-		expect(battle.pendingActions).toEqual([]);
-	});
-
-	it('restores concentration and a pending check when undoing the following turn', () => {
-		let battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		battle = service.startConcentration(battle, combatantId);
-		battle = service.applyDamage(battle, combatantId, 28);
-		const actionId = battle.pendingActions[0].id;
-		const advanced = service.advanceTurn(battle);
-		const failed = service.resolveConcentrationCheck(advanced, actionId, false)!.battle;
-		const restored = service.undoTurn(failed);
-
-		expect(restored.pendingActions.map((action) => action.id)).toEqual([actionId]);
-		expect(restored.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
-	});
-
-	it('only enables death saves for PCs and non-enemy NPCs', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const [first, second] = battle.combatants;
-
-		expect(service.canUseDeathSaves({ ...first, category: 'pc', side: 'enemy' })).toBeTrue();
-		expect(service.canUseDeathSaves({ ...first, category: 'npc', side: 'ally' })).toBeTrue();
-		expect(service.canUseDeathSaves({ ...first, category: 'npc', side: 'enemy' })).toBeFalse();
-		expect(service.canUseDeathSaves({ ...second, category: 'monster', side: 'player' })).toBeFalse();
-	});
-
-	it('starts death saves manually without deriving them from hit points or creating an immediate roll', () => {
-		let battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
-		battle = service.updateCombatantHp(battle, combatantId, { currentHp: 0 });
-		battle = service.startConcentration(battle, combatantId);
-		const started = service.startDeathSaves(battle, combatantId);
-
-		expect(started.combatants[0].defeated).toBeFalse();
-		expect(started.combatants[0].deathSaves).toEqual({ status: 'active', successes: 0, failures: 0 });
-		expect(started.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
-		expect(started.pendingActions).toEqual([]);
-	});
-
-	it('creates one death save only on the combatant next turn and restores it through undo', () => {
-		let battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[1].id;
-		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
-		battle = service.startDeathSaves(battle, combatantId);
-		const atOwnerTurn = service.advanceTurn(battle);
-
-		expect(service.getCurrentCombatant(atOwnerTurn)?.id).toBe(combatantId);
-		expect(atOwnerTurn.pendingActions.filter((action) => action.type === 'death-save')).toHaveSize(1);
-		expect(service.getPendingActions(atOwnerTurn)[0].type).toBe('death-save');
-
-		const restored = service.undoTurn(atOwnerTurn);
-		expect(restored.pendingActions).toEqual([]);
-		expect(restored.combatants[1].deathSaves?.status).toBe('active');
-	});
-
-	it('records natural 1 failures and lets a natural 20 recover', () => {
-		let battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[1].id;
-		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
-		battle = service.startDeathSaves(battle, combatantId);
-		battle = service.advanceTurn(battle);
-		const firstAction = battle.pendingActions[0];
-		const failed = service.recordDeathSaveResult(battle, firstAction.id, 1)!;
-
-		expect(failed.outcome).toBe('failure');
-		expect(failed.battle.combatants[1].deathSaves?.failures).toBe(2);
-
-		const recovered = service.recoverFromDeathSaves(failed.battle, combatantId);
-		const restarted = service.startDeathSaves(recovered, combatantId);
-		const atOwnerTurn = service.advanceTurn(service.advanceTurn(restarted));
-		const naturalTwenty = service.recordDeathSaveResult(atOwnerTurn, atOwnerTurn.pendingActions[0].id, 20)!;
-
-		expect(naturalTwenty.outcome).toBe('natural-20');
-		expect(naturalTwenty.battle.combatants[1].deathSaves).toBeUndefined();
-		expect(naturalTwenty.battle.combatants[1].defeated).toBeFalse();
-	});
-
-	it('stabilizes after three successful death saves', () => {
-		let battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[1].id;
-		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
-		battle = service.startDeathSaves(battle, combatantId);
-
-		for (let index = 0; index < 3; index += 1) {
-			battle = service.advanceTurn(battle);
-			if (service.getCurrentCombatant(battle)?.id !== combatantId) {
-				battle = service.advanceTurn(battle);
-			}
-			battle = service.recordDeathSaveResult(battle, battle.pendingActions[0].id, 10)!.battle;
-		}
-
-		expect(battle.combatants[1].deathSaves).toEqual({ status: 'stable', successes: 3, failures: 0 });
-		expect(battle.pendingActions).toEqual([]);
-	});
-
-	it('allows manually correcting an active death save with a success', () => {
-		let battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[1].id;
-		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
-		battle = service.startDeathSaves(battle, combatantId);
-		const corrected = service.addDeathSaveSuccess(battle, combatantId);
-
-		expect(corrected.combatants[1].deathSaves).toEqual({ status: 'active', successes: 1, failures: 0 });
-	});
-
-	it('marks a death-save combatant dead after three failures and removes its pending action', () => {
-		let battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[1].id;
-		battle = service.updateCombatant(battle, combatantId, { category: 'pc', side: 'player' });
-		battle = service.startDeathSaves(battle, combatantId);
-		const dead = service.addDeathSaveFailures(battle, combatantId, 3);
-
-		expect(dead.combatants[1].deathSaves?.status).toBe('dead');
-		expect(dead.combatants[1].defeated).toBeTrue();
-		expect(dead.pendingActions).toEqual([]);
-	});
-
-	it('normalizes persisted death saves and deduplicates their pending action', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const combatant = { ...battle.combatants[0], category: 'pc' as const, side: 'player' as const,
-			deathSaves: { status: 'active' as const, successes: 9, failures: 1 } };
-		const normalized = service.normalizeBattleEncounter({
-			...battle,
-			combatants: [combatant],
-			pendingActions: [
-				{ id: 'first', type: 'death-save', combatantId: combatant.id, createdAtRound: 1, createdAtTurnIndex: 0, priority: 1 },
-				{ id: 'duplicate', type: 'death-save', combatantId: combatant.id, createdAtRound: 1, createdAtTurnIndex: 0, priority: 1 },
-			],
-		});
-
-		expect(normalized.combatants[0].deathSaves).toEqual({ status: 'active', successes: 3, failures: 1 });
-		expect(normalized.pendingActions).toHaveSize(1);
-		expect(normalized.pendingActions[0].priority).toBe(300);
-	});
-
-	it('applies healing without exceeding max hp and removes defeated when healing above zero', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[1].id;
-		const defeated = service.applyDamage(battle, combatantId, 20);
-		const healed = service.applyHealing(defeated, combatantId, 5);
-
-		expect(healed.combatants[1].currentHp).toBe(5);
-		expect(healed.combatants[1].defeated).toBeFalse();
-	});
-
-	it('returns special abilities to available when cooldown by turns reaches zero', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		const withAbility = service.addSpecialAbility(battle, combatantId, {
-			name: 'Sopro Flamejante',
-			recoveryType: 'turn-cooldown',
-			cooldownTurns: 1,
-		});
-		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
-		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
-		const advanced = service.advanceTurn(used, new Date('2026-01-01T10:00:05.000Z'));
-
-		expect(advanced.combatants[0].specialAbilities[0].isAvailable).toBeTrue();
-		expect(advanced.turnHistory.at(-1)?.notes).toContain('Sopro Flamejante');
-	});
-
-	it('exhausts abilities with uses per day after the configured maximum', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		const withAbility = service.addSpecialAbility(battle, combatantId, {
-			name: 'Furia',
-			recoveryType: 'uses-per-day',
-			maxUses: 1,
-		});
-		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
-		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
-
-		expect(used.combatants[0].specialAbilities[0].usedCount).toBe(1);
-		expect(used.combatants[0].specialAbilities[0].isAvailable).toBeFalse();
-	});
-
-	it('records a physical recharge result and restores the ability on success', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		const withAbility = service.addSpecialAbility(battle, combatantId, {
-			name: 'Sopro Flamejante',
-			recoveryType: 'dice-recharge',
-			rechargeOn: [5, 6],
-		});
-		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
-		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
-		const afterOtherCombatant = service.advanceTurn(used);
-		const ownerNextTurn = service.advanceTurn(afterOtherCombatant);
-		const rolled = service.recordSpecialAbilityRecharge(ownerNextTurn, combatantId, abilityId, 5);
-
-		expect(rolled?.success).toBeTrue();
-		expect(rolled?.roll).toBe(5);
-		expect(rolled?.battle.combatants[0].specialAbilities[0].isAvailable).toBeTrue();
-	});
-
-	it('only prompts an unavailable dice recharge at the owner next turn', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		const withAbility = service.addSpecialAbility(battle, combatantId, {
-			name: 'Sopro Flamejante',
-			recoveryType: 'dice-recharge',
-			rechargeOn: [5, 6],
-		});
-		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
-		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
-
-		expect(service.getPendingDiceRechargeAbilities(used)).toEqual([]);
-
-		const afterOtherCombatant = service.advanceTurn(used);
-		const ownerNextTurn = service.advanceTurn(afterOtherCombatant);
 		expect(service.getPendingDiceRechargeAbilities(ownerNextTurn).map((ability) => ability.id)).toEqual([
 			abilityId,
 		]);
-		expect(service.getPendingActions(ownerNextTurn).map((action) => action.type)).toEqual([
-			'dice-recharge',
-		]);
+		expect(resolved.success).toBeTrue();
+		expect(resolved.battle.combatants[0].specialAbilities[0]).toEqual(jasmine.objectContaining({
+			isAvailable: true, lastRechargeRoll: 5, lastRechargeAttemptAtRound: 2,
+		}));
+		expect(service.recordSpecialAbilityRecharge(resolved.battle, combatantId, abilityId, 6)).toBeNull();
 	});
 
-	it('keeps a failed physical recharge unavailable and blocks a second attempt that turn', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		const withAbility = service.addSpecialAbility(battle, combatantId, {
-			name: 'Sopro Flamejante',
-			recoveryType: 'dice-recharge',
-			rechargeOn: [5, 6],
-		});
-		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
-		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
-		const ownerNextTurn = service.advanceTurn(service.advanceTurn(used));
-
-		const failed = service.recordSpecialAbilityRecharge(ownerNextTurn, combatantId, abilityId, 3);
-		expect(failed?.success).toBeFalse();
-		expect(failed?.battle.combatants[0].specialAbilities[0].isAvailable).toBeFalse();
-		expect(failed?.battle.combatants[0].specialAbilities[0].lastRechargeAttemptAtRound).toBe(2);
-		expect(service.getPendingDiceRechargeAbilities(failed!.battle)).toEqual([]);
-		expect(service.recordSpecialAbilityRecharge(failed!.battle, combatantId, abilityId, 6)).toBeNull();
-	});
-
-	it('asks again at the owner next turn after a failed recharge without auto-rolling', () => {
-		spyOn(Math, 'random');
-		const battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		const withAbility = service.addSpecialAbility(battle, combatantId, {
-			name: 'Sopro Flamejante',
-			recoveryType: 'dice-recharge',
-			rechargeOn: [5, 6],
-		});
-		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
-		const used = service.useSpecialAbility(withAbility, combatantId, abilityId);
-		const firstOwnerTurn = service.advanceTurn(service.advanceTurn(used));
-		const failed = service.recordSpecialAbilityRecharge(firstOwnerTurn, combatantId, abilityId, 3)!.battle;
-		const nextOwnerTurn = service.advanceTurn(service.advanceTurn(failed));
-
-		expect(Math.random).not.toHaveBeenCalled();
-		expect(service.getPendingDiceRechargeAbilities(nextOwnerTurn).map((ability) => ability.id)).toEqual([
-			abilityId,
-		]);
-	});
-
-	it('resolves each pending dice recharge independently', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		const withFirst = service.addSpecialAbility(battle, combatantId, {
-			name: 'Sopro Flamejante',
-			recoveryType: 'dice-recharge',
-			rechargeOn: [5, 6],
-		});
-		const withBoth = service.addSpecialAbility(withFirst, combatantId, {
-			name: 'Explosão de Asas',
-			recoveryType: 'dice-recharge',
-			rechargeOn: [6],
-		});
-		const [first, second] = withBoth.combatants[0].specialAbilities;
-		const usedFirst = service.useSpecialAbility(withBoth, combatantId, first.id);
-		const usedBoth = service.useSpecialAbility(usedFirst, combatantId, second.id);
-		const ownerNextTurn = service.advanceTurn(service.advanceTurn(usedBoth));
-
-		expect(service.getPendingDiceRechargeAbilities(ownerNextTurn)).toHaveSize(2);
-		const rechargedFirst = service.recordSpecialAbilityRecharge(ownerNextTurn, combatantId, first.id, 5)!;
-		const failedSecond = service.recordSpecialAbilityRecharge(rechargedFirst.battle, combatantId, second.id, 5)!;
-
-		expect(failedSecond.battle.combatants[0].specialAbilities[0].isAvailable).toBeTrue();
-		expect(failedSecond.battle.combatants[0].specialAbilities[1].isAvailable).toBeFalse();
-		expect(service.getPendingDiceRechargeAbilities(failedSecond.battle)).toEqual([]);
-	});
-
-	it('uses and recovers spell slots without exceeding bounds', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const combatantId = battle.combatants[0].id;
-		const enabled = service.enableSpellSlots(battle, combatantId);
-		const configured = service.setSpellSlotMax(enabled, combatantId, 1, 4);
-		const spent = service.useSpellSlot(configured, combatantId, 1);
-		const recovered = service.recoverSpellSlot(spent, combatantId, 1);
-
-		expect(configured.combatants[0].spellSlots[0].max).toBe(4);
-		expect(spent.combatants[0].spellSlots[0].used).toBe(1);
-		expect(recovered.combatants[0].spellSlots[0].used).toBe(0);
-	});
-
-	it('maps spell slots from the source creature into the battle combatant', () => {
-		const withSlots: EncounterTemplate = {
-			...template,
-			data: {
-				...template.data,
-				creatures: [
-					{
-						...template.data.creatures[0],
-						totalSpellSlots: { '1st': 3, '2nd': 2 },
-						usedSpellSlots: { '1st': 1, '2nd': 0 },
-					},
-				],
-			},
-		};
-
-		const battle = service.createBattleFromEncounter(withSlots);
-
-		expect(battle.combatants[0].spellSlots[0].max).toBe(3);
-		expect(battle.combatants[0].spellSlots[0].used).toBe(1);
-		expect(battle.combatants[0].spellSlots[1].max).toBe(2);
-	});
-
-	it('preserves spells and ficha data when adding and duplicating combatants', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-		const withImported = service.addCombatantFromCreature(
-			battle,
-			{
-				id: 77,
-				name: 'Cult Fanatic',
-				initiative: 14,
-				healthPoints: 33,
-				maxHealthPoints: 33,
-				armorClass: 13,
-				temporaryHealthPoints: 0,
-				alive: true,
-				conditions: [],
-				notes: [
-					{ id: 99, text: 'Concentra em Hold Person', appliedAtRound: 0, appliedAtSeconds: 0 },
-				],
-				shared: true,
-				hitPointsShared: true,
-				totalSpellSlots: { '1st': 4, '2nd': 2 },
-				usedSpellSlots: { '1st': 1, '2nd': 0 },
-				spells: {
-					holdPerson: { label: 'Hold Person', total: 2 },
-					spiritualWeapon: { label: 'Spiritual Weapon', total: 1 },
-				},
-				specialAbilities: [
-					{
-						id: 'dark-devotion',
-						name: 'Dark Devotion',
-						description: 'Advantage against being charmed or frightened.',
-						rechargeType: 'manual',
-					},
-				],
-				sheetFeatures: [
-					{
-						id: 'fanatic-spellcasting',
-						name: 'Spellcasting',
-						description: 'Prepared cleric spells.',
-						kind: 'spellcasting',
-					},
-				],
-				category: 'monster',
-			},
-			undefined,
-			new Date('2026-01-01T10:00:01.000Z'),
-		);
-
-		expect(withImported.pendingCombatants).toHaveSize(1);
-		expect(withImported.pendingCombatants[0].spells['holdPerson']?.label).toBe('Hold Person');
-		expect(withImported.pendingCombatants[0].specialAbilities[0].name).toBe('Dark Devotion');
-		expect(withImported.pendingCombatants[0].sheetFeatures[0].name).toBe('Spellcasting');
-		expect(withImported.pendingCombatants[0].collapsed).toBeFalse();
-
-		const duplicated = service.duplicateCombatant(
-			withImported,
-			withImported.pendingCombatants[0].id,
-			new Date('2026-01-01T10:00:02.000Z'),
-		);
-		const duplicate = duplicated.pendingCombatants.find(
-			(combatant) => combatant.id !== withImported.pendingCombatants[0].id,
-		);
-
-		expect(duplicate).toBeTruthy();
-		expect(duplicate?.currentHp).toBe(33);
-		expect(duplicate?.temporaryHp).toBe(0);
-		expect(duplicate?.conditions).toEqual([]);
-		expect(duplicate?.spells['spiritualWeapon']?.label).toBe('Spiritual Weapon');
-		expect(duplicate?.sheetFeatures[0].name).toBe('Spellcasting');
-		expect(duplicate?.collapsed).toBeFalse();
-	});
-
-	it('keeps pc category separated from battle side defaults', () => {
-		const withPc: EncounterTemplate = {
-			...template,
-			data: {
-				...template.data,
-				creatures: [
-					{
-						...template.data.creatures[0],
-						name: 'Cleriga do grupo',
-						category: 'pc',
-					},
-				],
-			},
-		};
-
-		const battle = service.createBattleFromEncounter(withPc);
-
-		expect(battle.combatants[0].category).toBe('pc');
-		expect(battle.combatants[0].side).toBe('player');
-	});
-
-	it('does not auto-defeat pcs with 0 hp when the sheet leaves hp tracking to the player', () => {
-		const withPcNoHp: EncounterTemplate = {
-			...template,
-			data: {
-				...template.data,
-				creatures: [
-					{
-						...template.data.creatures[0],
-						name: 'Barda do grupo',
-						category: 'pc',
-						healthPoints: 0,
-						maxHealthPoints: 0,
-						alive: true,
-					},
-				],
-			},
-		};
-
-		const battle = service.createBattleFromEncounter(withPcNoHp);
-
-		expect(battle.combatants[0].side).toBe('player');
-		expect(battle.combatants[0].currentHp).toBe(0);
-		expect(battle.combatants[0].defeated).toBeFalse();
-	});
-
-	it('lets players clear defeated manually even while they are at 0 hp', () => {
-		const withPc: EncounterTemplate = {
-			...template,
-			data: {
-				...template.data,
-				creatures: [
-					{
-						...template.data.creatures[0],
-						name: 'Cleriga do grupo',
-						category: 'pc',
-						healthPoints: 0,
-						maxHealthPoints: 0,
-						alive: true,
-					},
-				],
-			},
-		};
-
-		const battle = service.createBattleFromEncounter(withPc);
-		const marked = service.setCombatantDefeated(battle, battle.combatants[0].id, true);
-		const cleared = service.setCombatantDefeated(marked, marked.combatants[0].id, false);
-
-		expect(marked.combatants[0].defeated).toBeTrue();
-		expect(cleared.combatants[0].defeated).toBeFalse();
-		expect(cleared.combatants[0].collapsed).toBeFalse();
-	});
-
-	it('still auto-defeats non-player combatants when they hit 0 hp', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const defeated = service.applyDamage(battle, battle.combatants[1].id, 999);
-
-		expect(defeated.combatants[1].currentHp).toBe(0);
-		expect(defeated.combatants[1].defeated).toBeTrue();
-	});
-
-	it('starts spell slots collapsed by default when normalizing battles antigas', () => {
+	it('normalizes persisted battles to canonical runtime fields only', () => {
 		const normalized = service.normalizeBattleEncounter({
-			id: 'legacy',
-			sourceEncounterId: 'enc-legacy',
-			name: 'Legacy Battle',
-			round: 1,
-			activeTurnIndex: 0,
-			createdAt: '2026-01-01T10:00:00.000Z',
-			startedAt: '2026-01-01T10:00:00.000Z',
-			updatedAt: '2026-01-01T10:00:00.000Z',
-			combatants: [
-				{
-					id: 'c1',
-					name: 'Mage',
-					side: 'enemy',
-					initiative: 10,
-					turnOrder: 0,
-					maxHp: 12,
-					currentHp: 12,
-					temporaryHp: 0,
-					defeated: false,
-					hidden: false,
-					collapsed: false,
-					spellSlotsCollapsed: true,
-					pendingAdd: false,
-					conditions: [],
-					specialAbilities: [],
-					spellSlots: [{ level: 1, max: 3, used: 1 }],
-					spells: {},
-					sheetFeatures: [],
-				},
-			],
-			turnHistory: [],
+			id: 'battle-1', sourceEncounterId: 'enc-1', name: 'Battle', round: 1, activeTurnIndex: 0,
+			createdAt: '2026-01-01T10:00:00Z', startedAt: '2026-01-01T10:00:00Z',
+			updatedAt: '2026-01-01T10:00:00Z',
+			combatants: [{
+				id: 'combatant-1', sourceParticipantId: 'participant-1', name: 'Mage', side: 'enemy',
+				initiative: 10, turnOrder: 0, maxHp: 12, currentHp: 12, temporaryHp: 0,
+				defeated: false, hidden: false, collapsed: false, spellSlotsCollapsed: true,
+				pendingAdd: false, conditions: [],
+				specialAbilities: [], spellSlots: [],
+				spells: [{ id: 'spell-1', name: 'Magic Missile', level: 1 }],
+				features: [{ id: 'feature-1', name: 'Spellcasting', kind: 'spellcasting' }],
+			}],
+			pendingCombatants: [], lairActions: [], traps: [], turnHistory: [], pendingActions: [], turnSnapshots: [],
 		});
 
-		expect(normalized.combatants[0].collapsed).toBeFalse();
-		expect(normalized.combatants[0].spellSlotsCollapsed).toBeTrue();
-		expect(normalized.pendingCombatants).toEqual([]);
-		expect(normalized.lairActions).toEqual([]);
-		expect(normalized.traps).toEqual([]);
+		expect(normalized.combatants[0].sourceParticipantId).toBe('participant-1');
+		expect(normalized.combatants[0].spells[0].name).toBe('Magic Missile');
+		expect(normalized.combatants[0].features[0].name).toBe('Spellcasting');
 	});
 
-	it('adds lair actions and traps without treating them as combatants', () => {
-		const battle = service.createBattleFromEncounter(template);
-		const withLairAction = service.addLairAction(battle, {
-			name: 'Olho do Covil',
-			initiative: 20,
-			frequency: 'every-round',
-		});
-		const withTrap = service.addTrap(withLairAction, {
-			name: 'Dardos da Parede',
-			triggerType: 'initiative',
-			initiative: 10,
-			frequency: 'once',
-		});
-
-		expect(withTrap.combatants).toHaveSize(2);
-		expect(service.getInitiativeEligibleCombatants(withTrap)).toHaveSize(2);
-		expect(withTrap.lairActions).toHaveSize(1);
-		expect(withTrap.traps).toHaveSize(1);
-	});
-
-	it('copies configured lair actions and traps from the encounter into the battle session', () => {
-		const withEvents: EncounterTemplate = {
-			...template,
-			data: {
-				...template.data,
-				lairActions: [
-					{
-						id: 'lair-1',
-						name: 'Olho do Covil',
-						initiative: 20,
-						active: true,
-						frequency: 'cooldown-rounds',
-						cooldownRounds: 2,
-						currentCooldownRounds: 1,
-					},
-				],
-				traps: [
-					{
-						id: 'trap-1',
-						name: 'Dardos da Parede',
-						triggerType: 'initiative',
-						initiative: 10,
-						active: true,
-						frequency: 'every-round',
-					},
-				],
-			},
-		};
-
-		const battle = service.createBattleFromEncounter(withEvents);
-
-		expect(battle.lairActions).toHaveSize(1);
-		expect(battle.lairActions[0].name).toBe('Olho do Covil');
-		expect(battle.lairActions[0].currentCooldownRounds).toBe(0);
-		expect(battle.traps).toHaveSize(1);
-		expect(battle.traps[0].name).toBe('Dardos da Parede');
-	});
-
-	it('queues added combatants for the next round and activates them on round advance', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-		const withPending = service.addCombatantFromCreature(
-			battle,
-			{
-				id: 99,
-				name: 'Wolf Reinforcement',
-				initiative: 20,
-				healthPoints: 11,
-				maxHealthPoints: 11,
-				armorClass: 13,
-				temporaryHealthPoints: 0,
-				alive: true,
-				conditions: [],
-				notes: [],
-				shared: true,
-				hitPointsShared: true,
-				totalSpellSlots: null,
-				usedSpellSlots: null,
-				spells: {},
-				specialAbilities: [],
-				sheetFeatures: [],
-				category: 'monster',
-			},
-			undefined,
-			new Date('2026-01-01T10:00:01.000Z'),
-		);
-
-		expect(withPending.combatants).toHaveSize(2);
-		expect(withPending.pendingCombatants).toHaveSize(1);
-		expect(withPending.pendingCombatants[0].pendingAdd).toBeTrue();
-
-		const afterFirstTurn = service.advanceTurn(withPending, new Date('2026-01-01T10:00:05.000Z'));
-		const afterSecondTurn = service.advanceTurn(
-			afterFirstTurn,
-			new Date('2026-01-01T10:00:10.000Z'),
-		);
-
-		expect(afterSecondTurn.round).toBe(2);
-		expect(afterSecondTurn.pendingCombatants).toHaveSize(0);
-		expect(afterSecondTurn.combatants[0].name).toBe('Wolf Reinforcement');
-	});
-
-	it('applies scheduled initiatives at the start of the next round', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-		const firstCombatantId = battle.combatants[0].id;
-		const secondCombatantId = battle.combatants[1].id;
-		const scheduled = service.scheduleCombatantInitiative(battle, secondCombatantId, 25);
-
-		expect(scheduled.combatants[1].nextRoundInitiative).toBe(25);
-
-		const afterFirstTurn = service.advanceTurn(scheduled, new Date('2026-01-01T10:00:05.000Z'));
-		const afterSecondTurn = service.advanceTurn(
-			afterFirstTurn,
-			new Date('2026-01-01T10:00:10.000Z'),
-		);
-
-		expect(afterSecondTurn.round).toBe(2);
-		expect(afterSecondTurn.combatants[0].id).toBe(secondCombatantId);
-		expect(afterSecondTurn.combatants[0].initiative).toBe(25);
-		expect(
-			afterSecondTurn.combatants.find((combatant) => combatant.id === firstCombatantId)?.initiative,
-		).toBe(18);
-	});
-
-	it('applies scheduled DES changes at the next round without changing the current turn', () => {
-		const battle = service.createBattleFromEncounter(template, {
-			initiativeOverrides: { 0: 17, 1: 17 },
-		});
-		const currentId = battle.combatants[0].id;
-		const secondId = battle.combatants[1].id;
-		const scheduled = service.scheduleCombatantInitiativeTieBreaker(battle, secondId, 16);
-
-		expect(service.getCurrentCombatant(scheduled)?.id).toBe(currentId);
-		expect(scheduled.combatants[1].nextRoundInitiativeTieBreaker).toBe(16);
-
-		const afterFirst = service.advanceTurn(scheduled);
-		const afterRound = service.advanceTurn(afterFirst);
-		expect(afterRound.round).toBe(2);
-		expect(afterRound.combatants[0].id).toBe(secondId);
-		expect(afterRound.combatants[0].initiativeTieBreaker).toBe(16);
-	});
-
-	it('skips defeated combatants in initiative order', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-		const defeated = service.setCombatantDefeated(battle, battle.combatants[1].id, true);
-		const advanced = service.advanceTurn(defeated, new Date('2026-01-01T10:00:10.000Z'));
-
-		expect(advanced.round).toBe(2);
-		expect(advanced.activeTurnIndex).toBe(0);
-		expect(service.getCurrentCombatant(advanced)?.id).toBe(defeated.combatants[0].id);
-	});
-
-	it('returns revived combatants to initiative only on the next round', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-		const defeated = service.applyDamage(battle, battle.combatants[1].id, 99);
-		const revived = service.applyHealing(defeated, battle.combatants[1].id, 5);
-
-		expect(revived.combatants[1].defeated).toBeFalse();
-		expect(revived.combatants[1].inactiveUntilRound).toBe(2);
-		expect(service.getInitiativeEligibleCombatants(revived)).toHaveSize(1);
-
-		const afterFirstTurn = service.advanceTurn(revived, new Date('2026-01-01T10:00:05.000Z'));
-		expect(afterFirstTurn.round).toBe(2);
-		expect(service.getInitiativeEligibleCombatants(afterFirstTurn)).toHaveSize(2);
-	});
-
-	it('stops initiative safely when every combatant is defeated', () => {
-		const battle = service.createBattleFromEncounter(
-			template,
-			undefined,
-			new Date('2026-01-01T10:00:00.000Z'),
-		);
-		let nextBattle = battle;
-		for (const combatant of battle.combatants) {
-			nextBattle = service.setCombatantDefeated(nextBattle, combatant.id, true);
+	it('keeps the configured number of snapshots', () => {
+		let battle = service.createBattleFromEncounter(encounter);
+		for (let index = 0; index < MAX_BATTLE_TURN_SNAPSHOTS + 1; index += 1) {
+			battle = service.advanceTurn(battle);
 		}
-
-		const advanced = service.advanceTurn(nextBattle, new Date('2026-01-01T10:00:05.000Z'));
-
-		expect(service.getInitiativeEligibleCombatants(advanced)).toEqual([]);
-		expect(service.getCurrentCombatant(advanced)).toBeNull();
-		expect(advanced.activeTurnIndex).toBe(-1);
+		expect(battle.turnSnapshots).toHaveSize(MAX_BATTLE_TURN_SNAPSHOTS);
 	});
 });

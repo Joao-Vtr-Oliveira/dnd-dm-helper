@@ -1,0 +1,109 @@
+{
+	"app": "dnd-dm-helper",
+	"schemaVersion": 1,
+	"type": "campaign-backup",
+	"exportedAt": "2026-09-11T12:00:00.000Z",
+	"data": {
+		"encounters": [
+			{
+				"id": "encounter-1",
+				"title": "Moonlit Ambush",
+				"createdAt": 100,
+				"updatedAt": 200,
+				"data": {
+					"creatures": [
+						{
+							"id": 7,
+							"name": "Moon Wolf",
+							"initiative": 14,
+							"healthPoints": 9,
+							"maxHealthPoints": 18,
+							"armorClass": "13",
+							"temporaryHealthPoints": 2,
+							"conditions": [{ "text": "restrained" }],
+							"notes": [{ "text": "Protects the shrine" }],
+							"totalSpellSlots": { "1st": 2 },
+							"usedSpellSlots": { "1st": 1 },
+							"spells": { "moonbeam": { "label": "Moonbeam", "total": 2 } },
+							"specialAbilities": [
+								{ "id": "howl", "name": "Moon Howl", "rechargeType": "dice", "rechargeOn": [5, 6] }
+							],
+							"sheetFeatures": [{ "id": "keen", "name": "Keen Hearing", "kind": "trait" }],
+							"category": "monster",
+							"sourceSheetId": "sheet-wolf"
+						}
+					],
+					"lairActions": [
+						{
+							"id": "mist",
+							"name": "Silver Mist",
+							"active": true,
+							"frequency": "cooldown-rounds",
+							"cooldownRounds": 2,
+							"currentCooldownRounds": 1,
+							"lastTriggeredAtRound": 3
+						}
+					],
+					"traps": [],
+					"round": 3,
+					"battleCreated": true
+				}
+			}
+		],
+		"battleEncounters": [
+			{
+				"id": "battle-1",
+				"sourceEncounterId": "encounter-1",
+				"combatants": [
+					{
+						"id": "combatant-1",
+						"sourceCreatureId": 7,
+						"name": "Moon Wolf",
+						"spells": { "moonbeam": { "label": "Moonbeam", "total": 1 } },
+						"sheetFeatures": [{ "id": "keen", "name": "Keen Hearing", "kind": "trait" }],
+						"specialAbilities": [
+							{
+								"id": "howl",
+								"name": "Moon Howl",
+								"rechargeType": "dice",
+								"currentCooldownRounds": 1,
+								"isAvailable": false
+							}
+						]
+					}
+				],
+				"pendingCombatants": [],
+				"lairActions": [],
+				"traps": [],
+				"turnSnapshots": []
+			}
+		],
+		"homebrewSheets": [
+			{
+				"id": "sheet-wolf",
+				"title": "Moon Wolf",
+				"createdAt": 100,
+				"updatedAt": 200,
+				"category": "monster",
+				"tags": ["lunar"],
+				"source": "Homebrew",
+				"data": {
+					"name": "Moon Wolf",
+					"maxHealthPoints": 18,
+					"armorClass": "13",
+					"spells": { "moonbeam": { "label": "Moonbeam", "total": 2 } },
+					"specialAbilities": [],
+					"rawFiveETools": { "name": "Moon Wolf", "source": "LUN" }
+				}
+			}
+		],
+		"calendar": null,
+		"settings": {},
+		"rawLocalStorage": {
+			"dnd-dm-helper.encounters.v1": "[]",
+			"dnd-dm-helper.sheets.v1": "[]",
+			"dnd-dm-helper.5etools-homebrew.composition-packages.v1": "[{\"id\":\"package-1\",\"name\":\"Moon Pack\"}]",
+			"unrelated.key": "preserve-me"
+		}
+	}
+}

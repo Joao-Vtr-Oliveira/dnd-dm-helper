@@ -1,101 +1,574 @@
-<form class="mx-auto w-full max-w-[1480px] space-y-6 pb-24 pt-1 sm:py-2 md:pb-2" (submit)="$event.preventDefault(); save()">
+<form
+	class="mx-auto w-full max-w-[1480px] space-y-6 pb-24 pt-1 sm:py-2 md:pb-2"
+	(submit)="$event.preventDefault(); save()"
+>
 	<header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 		<div>
 			<div class="flex flex-wrap items-center gap-2">
-				<h2 class="text-3xl font-semibold text-app-text">{{ sheetId() ? 'Editar ficha' : 'Nova ficha' }}</h2>
+				<h2 class="text-3xl font-semibold text-app-text">
+					{{ sheetId() ? 'Editar ficha' : 'Nova ficha' }}
+				</h2>
 				@if (hasUnsavedChanges()) {
-					<span class="app-status border border-amber-400/30 bg-amber-500/10 text-amber-100">Alterações pendentes</span>
+					<span class="app-status border border-amber-400/30 bg-amber-500/10 text-amber-100"
+						>Alterações pendentes</span
+					>
 				} @else {
-					<span class="app-status border border-emerald-400/30 bg-emerald-500/10 text-emerald-100">Tudo salvo</span>
+					<span class="app-status border border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+						>Tudo salvo</span
+					>
 				}
 			</div>
-			<p class="mt-1 text-sm text-app-muted">Configure a ficha que será usada na biblioteca e no Battle Tracker.</p>
+			<p class="mt-1 text-sm text-app-muted">
+				Configure a ficha que será usada na biblioteca e no Battle Tracker.
+			</p>
 		</div>
 		<div class="app-action-group">
-			<button type="button" class="app-button app-button-ghost" (click)="backToList()">Voltar à biblioteca</button>
-			<button type="submit" class="app-button app-button-primary">{{ sheetId() ? 'Salvar ficha' : 'Criar ficha' }}</button>
+			<button type="button" class="app-button app-button-ghost" (click)="backToList()">
+				Voltar à biblioteca
+			</button>
+			<button type="submit" class="app-button app-button-primary">
+				{{ sheetId() ? 'Salvar ficha' : 'Criar ficha' }}
+			</button>
 		</div>
 	</header>
 
 	<fieldset class="app-panel p-4 sm:p-5">
 		<legend class="px-1 text-sm font-semibold text-app-text">Identidade</legend>
 		<div class="grid gap-3 md:grid-cols-12">
-			<label class="text-sm text-app-muted md:col-span-6"><span class="mb-1 block">Título</span><input class="app-field w-full px-3 py-2" placeholder="Ex: Goblin Shaman" [ngModel]="title()" (ngModelChange)="setTitle($event)" name="title" /></label>
-			<label class="text-sm text-app-muted md:col-span-2"><span class="mb-1 block">Categoria</span><select class="app-field w-full cursor-pointer px-3 py-2" [ngModel]="category()" (ngModelChange)="category.set($event)" name="category"><option value="monster">Monstro</option><option value="npc">NPC</option><option value="pc">PC</option><option value="other">Outro</option></select></label>
-			<label class="text-sm text-app-muted md:col-span-4"><span class="mb-1 block">Tags</span><input class="app-field w-full px-3 py-2" placeholder="goblin, xamã, fogo" [ngModel]="tagsText()" (ngModelChange)="tagsText.set($event)" name="tags" /></label>
-			<label class="text-sm text-app-muted md:col-span-6"><span class="mb-1 block">Origem</span><input class="app-field w-full px-3 py-2" placeholder="Notion, 5etools ou Homebrew" [ngModel]="source()" (ngModelChange)="source.set($event)" name="source" /></label>
-			<div class="flex items-end md:col-span-6"><span class="app-status border border-app-divider bg-app-inset text-app-muted">@if (sheetId()) { ID: {{ sheetId() }} } @else { Ainda não salva }</span></div>
+			<label class="text-sm text-app-muted md:col-span-6"
+				><span class="mb-1 block">Título</span
+				><input
+					class="app-field w-full px-3 py-2"
+					placeholder="Ex: Goblin Shaman"
+					[ngModel]="title()"
+					(ngModelChange)="setTitle($event)"
+					name="title"
+			/></label>
+			<label class="text-sm text-app-muted md:col-span-2"
+				><span class="mb-1 block">Categoria</span
+				><select
+					class="app-field w-full cursor-pointer px-3 py-2"
+					[ngModel]="category()"
+					(ngModelChange)="category.set($event)"
+					name="category"
+				>
+					<option value="monster">Monstro</option>
+					<option value="npc">NPC</option>
+					<option value="pc">PC</option>
+					<option value="other">Outro</option>
+				</select></label
+			>
+			<label class="text-sm text-app-muted md:col-span-4"
+				><span class="mb-1 block">Tags</span
+				><input
+					class="app-field w-full px-3 py-2"
+					placeholder="goblin, xamã, fogo"
+					[ngModel]="tagsText()"
+					(ngModelChange)="tagsText.set($event)"
+					name="tags"
+			/></label>
+			<label class="text-sm text-app-muted md:col-span-6"
+				><span class="mb-1 block">Origem</span
+				><input
+					class="app-field w-full px-3 py-2"
+					placeholder="Notion, 5etools ou Homebrew"
+					[ngModel]="source()"
+					(ngModelChange)="source.set($event)"
+					name="source"
+			/></label>
+			<div class="flex items-end md:col-span-6">
+				<span class="app-status border border-app-divider bg-app-inset text-app-muted">
+					@if (sheetId()) {
+						ID: {{ sheetId() }}
+					} @else {
+						Ainda não salva
+					}
+				</span>
+			</div>
 		</div>
 	</fieldset>
 
 	<fieldset class="app-panel p-4 sm:p-5">
 		<legend class="px-1 text-sm font-semibold text-app-text">Estatísticas</legend>
-		<p class="mb-4 text-sm text-app-muted">O título acompanha o nome até que você o edite. Alterar HP atual também atualiza o HP máximo.</p>
+		<p class="mb-4 text-sm text-app-muted">O título acompanha o nome até que você o edite.</p>
 		<div class="grid gap-3 md:grid-cols-12">
-			<label class="text-sm text-app-muted md:col-span-5"><span class="mb-1 block">Nome da criatura</span><input class="app-field w-full px-3 py-2" [ngModel]="creature().name" (ngModelChange)="setName($event)" name="name" required [attr.aria-invalid]="!creature().name.trim()" /></label>
-			<label class="text-sm text-app-muted md:col-span-2"><span class="mb-1 block">Iniciativa</span><input type="number" class="app-field w-full px-3 py-2" [ngModel]="creature().initiative" (ngModelChange)="setInitiative($event)" name="initiative" /></label>
-			<label class="text-sm text-app-muted md:col-span-2"><span class="mb-1 block">CA</span><input class="app-field w-full px-3 py-2" [ngModel]="creature().armorClass" (ngModelChange)="setAc($event)" name="armor-class" /></label>
-			<label class="text-sm text-app-muted md:col-span-3"><span class="mb-1 block">HP temporário</span><input type="number" min="0" class="app-field w-full px-3 py-2" [ngModel]="creature().temporaryHealthPoints" (ngModelChange)="setTempHp($event)" name="temporary-hp" /></label>
-			<label class="text-sm text-app-muted md:col-span-3"><span class="mb-1 block">HP atual</span><input type="number" min="0" class="app-field w-full px-3 py-2" [ngModel]="creature().healthPoints" (ngModelChange)="setHp($event)" name="hp" /></label>
-			<label class="text-sm text-app-muted md:col-span-3"><span class="mb-1 block">HP máximo</span><input type="number" min="0" class="app-field w-full px-3 py-2" [ngModel]="creature().maxHealthPoints" (ngModelChange)="setMaxHp($event)" name="max-hp" /></label>
+			<label class="text-sm text-app-muted md:col-span-6"
+				><span class="mb-1 block">Nome da criatura</span
+				><input
+					class="app-field w-full px-3 py-2"
+					[ngModel]="creature().name"
+					(ngModelChange)="setName($event)"
+					name="name"
+					required
+					[attr.aria-invalid]="!creature().name.trim()"
+			/></label>
+			<label class="text-sm text-app-muted md:col-span-3"
+				><span class="mb-1 block">CA</span
+				><input
+					class="app-field w-full px-3 py-2"
+					[ngModel]="creature().armorClass"
+					(ngModelChange)="setAc($event)"
+					name="armor-class"
+			/></label>
+			<label class="text-sm text-app-muted md:col-span-3"
+				><span class="mb-1 block">HP base</span
+				><input
+					type="number"
+					min="0"
+					class="app-field w-full px-3 py-2"
+					[ngModel]="creature().maxHp"
+					(ngModelChange)="setHp($event)"
+					name="max-hp"
+			/></label>
 		</div>
 	</fieldset>
 
 	<fieldset class="app-panel p-4 sm:p-5">
 		<legend class="px-1 text-sm font-semibold text-app-text">Magias e slots</legend>
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-			<div><div class="font-medium text-app-text">Slots de magia</div><p class="mt-1 text-sm text-app-muted">Defina o total e o número já usado em cada nível.</p></div>
-			@if (creature().totalSpellSlots === null || creature().usedSpellSlots === null) { <button type="button" class="app-button app-button-secondary" (click)="enableSpellcasting()">Habilitar slots</button> } @else { <span class="app-status border border-emerald-400/30 bg-emerald-500/10 text-emerald-100">Slots habilitados</span> }
-		</div>
-		@if (creature().totalSpellSlots !== null && creature().usedSpellSlots !== null) {
-			<div class="mt-4 grid gap-2 xl:grid-cols-2">
-				@for (level of SPELL_LEVELS; track level) {
-					<div class="app-inset grid gap-2 p-3 sm:grid-cols-[5rem_1fr_1fr] sm:items-end"><div class="text-sm font-semibold text-app-text">{{ level }}</div><label class="text-xs text-app-muted"><span class="mb-1 block">Total</span><input type="number" min="0" class="app-field w-full px-3 py-2" [ngModel]="slotValue(creature().totalSpellSlots, level)" (ngModelChange)="setSpellSlot('total', level, $event)" [name]="'slot-total-' + level" /></label><label class="text-xs text-app-muted"><span class="mb-1 block">Usados</span><input type="number" min="0" class="app-field w-full px-3 py-2" [ngModel]="slotValue(creature().usedSpellSlots, level)" (ngModelChange)="setSpellSlot('used', level, $event)" [name]="'slot-used-' + level" /></label></div>
-				}
+			<div>
+				<div class="font-medium text-app-text">Slots de magia</div>
+				<p class="mt-1 text-sm text-app-muted">Defina o máximo de slots em cada nível.</p>
 			</div>
-		}
+		</div>
+		<div class="mt-4 grid gap-2 xl:grid-cols-3">
+			@for (level of SPELL_LEVELS; track level) {
+				<div class="app-inset grid grid-cols-[5rem_1fr] items-end gap-2 p-3">
+					<div class="text-sm font-semibold text-app-text">{{ level }}º</div>
+					<label class="text-xs text-app-muted"
+						><span class="mb-1 block">Máximo</span
+						><input
+							type="number"
+							min="0"
+							class="app-field w-full px-3 py-2"
+							[ngModel]="slotValue(level)"
+							(ngModelChange)="setSpellSlot(level, $event)"
+							[name]="'slot-max-' + level"
+					/></label>
+				</div>
+			}
+		</div>
 		<div class="mt-5 border-t border-app-divider pt-5">
 			<div class="font-medium text-app-text">Magias</div>
-			<div class="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_8rem_auto]">
-				<label class="sr-only" for="new-spell-label">Nome da magia</label><input id="new-spell-label" class="app-field w-full px-3 py-2" placeholder="Nome da magia" [ngModel]="spellDraft().label" (ngModelChange)="setSpellDraft({ label: $event })" name="new-spell-label" />
-				<label class="sr-only" for="new-spell-total">Quantidade</label><input id="new-spell-total" type="number" min="0" class="app-field w-full px-3 py-2" placeholder="Total" [ngModel]="spellDraft().total" (ngModelChange)="setSpellDraft({ total: +$event })" name="new-spell-total" />
-				<button type="button" class="app-button app-button-secondary" (click)="addSpell()">Adicionar magia</button>
+			<div class="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_6rem_8rem_auto]">
+				<label class="sr-only" for="new-spell-name">Nome da magia</label
+				><input
+					id="new-spell-name"
+					class="app-field w-full px-3 py-2"
+					placeholder="Nome da magia"
+					[ngModel]="spellDraft().name"
+					(ngModelChange)="setSpellDraft({ name: $event })"
+					name="new-spell-name"
+				/>
+				<label class="sr-only" for="new-spell-level">Nível</label
+				><input
+					id="new-spell-level"
+					type="number"
+					min="0"
+					max="9"
+					class="app-field w-full px-3 py-2"
+					placeholder="Nível"
+					[ngModel]="spellDraft().level"
+					(ngModelChange)="setSpellDraft({ level: +$event })"
+					name="new-spell-level"
+				/>
+				<label class="sr-only" for="new-spell-uses">Usos</label
+				><input
+					id="new-spell-uses"
+					type="number"
+					min="0"
+					class="app-field w-full px-3 py-2"
+					placeholder="Usos"
+					[ngModel]="spellDraft().uses"
+					(ngModelChange)="setSpellDraft({ uses: +$event })"
+					name="new-spell-uses"
+				/>
+				<button type="button" class="app-button app-button-secondary" (click)="addSpell()">
+					Adicionar magia
+				</button>
 			</div>
 			<div class="mt-3 divide-y divide-app-divider">
-				@for (spell of spellEntries(creature().spells); track spell.key) {
-					<div class="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_8rem_auto]"><input class="app-field min-w-0 px-3 py-2" [ngModel]="spell.value.label" (ngModelChange)="updateSpell(spell.key, { label: $event })" [name]="'spell-label-' + spell.key" /><input type="number" min="0" class="app-field px-3 py-2" [ngModel]="spell.value.total" (ngModelChange)="updateSpell(spell.key, { total: +$event })" [name]="'spell-total-' + spell.key" /><button type="button" class="app-button app-button-danger" (click)="removeSpell(spell.key)">Remover</button></div>
-				} @empty { <div class="py-3 text-sm text-app-subtle">Nenhuma magia adicionada.</div> }
+				@for (spell of creature().spells; track spell.id) {
+					<div class="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_6rem_8rem_auto]">
+						<input
+							class="app-field min-w-0 px-3 py-2"
+							[ngModel]="spell.name"
+							(ngModelChange)="updateSpell(spell.id, { name: $event })"
+							[name]="'spell-name-' + spell.id"
+						/><input
+							type="number"
+							min="0"
+							max="9"
+							class="app-field px-3 py-2"
+							[ngModel]="spell.level ?? 0"
+							(ngModelChange)="updateSpell(spell.id, { level: +$event })"
+							[name]="'spell-level-' + spell.id"
+						/><input
+							type="number"
+							min="0"
+							class="app-field px-3 py-2"
+							[ngModel]="spell.uses ?? 0"
+							(ngModelChange)="updateSpell(spell.id, { uses: +$event })"
+							[name]="'spell-uses-' + spell.id"
+						/><button
+							type="button"
+							class="app-button app-button-danger"
+							(click)="removeSpell(spell.id)"
+						>
+							Remover
+						</button>
+					</div>
+				} @empty {
+					<div class="py-3 text-sm text-app-subtle">Nenhuma magia adicionada.</div>
+				}
 			</div>
 		</div>
 	</fieldset>
 
 	<fieldset class="app-panel p-4 sm:p-5">
 		<legend class="px-1 text-sm font-semibold text-app-text">Habilidades especiais</legend>
-		<p class="mb-4 text-sm text-app-muted">Essas habilidades entram automaticamente no Battle Tracker.</p>
+		<p class="mb-4 text-sm text-app-muted">
+			Essas habilidades entram automaticamente no Battle Tracker.
+		</p>
 		<div class="divide-y divide-app-divider">
 			@for (ability of creature().specialAbilities; track ability.id) {
-				<section class="py-4 first:pt-0 last:pb-0"><div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_12rem]"><div class="grid gap-3 md:grid-cols-2"><label class="text-sm text-app-muted"><span class="mb-1 block">Nome</span><input class="app-field w-full px-3 py-2" [ngModel]="ability.name" (ngModelChange)="updateSpecialAbility(ability.id, { name: $event })" [name]="'ability-name-' + ability.id" /></label><label class="text-sm text-app-muted"><span class="mb-1 block">Recarga</span><select class="app-field w-full cursor-pointer px-3 py-2" [ngModel]="ability.rechargeType" (ngModelChange)="updateSpecialAbility(ability.id, { rechargeType: $event, cooldownTurns: $event === 'turns' ? ability.cooldownTurns ?? 1 : undefined, cooldownRounds: $event === 'rounds' ? ability.cooldownRounds ?? 1 : undefined, rechargeDice: $event === 'dice' ? 'd6' : undefined, rechargeOn: $event === 'dice' ? ability.rechargeOn ?? [5, 6] : undefined })" [name]="'ability-recharge-' + ability.id"><option value="manual">Manual</option><option value="turns">Por turnos</option><option value="rounds">Por rounds</option><option value="dice">Recharge por dado</option><option value="per-day">Usos por dia</option><option value="short-rest">Descanso curto</option><option value="long-rest">Descanso longo</option></select></label><label class="text-sm text-app-muted md:col-span-2"><span class="mb-1 block">Descrição</span><input class="app-field w-full px-3 py-2" [ngModel]="ability.description ?? ''" (ngModelChange)="updateSpecialAbility(ability.id, { description: ($event || '').trim() ? $event : undefined })" [name]="'ability-description-' + ability.id" /></label>
-					@if (ability.rechargeType === 'turns') { <label class="text-sm text-app-muted"><span class="mb-1 block">Volta em turnos</span><input type="number" min="1" class="app-field w-full px-3 py-2" [ngModel]="ability.cooldownTurns ?? 1" (ngModelChange)="updateSpecialAbility(ability.id, { cooldownTurns: $event === '' ? 1 : +$event })" [name]="'ability-turns-' + ability.id" /></label> }
-					@if (ability.rechargeType === 'rounds') { <label class="text-sm text-app-muted"><span class="mb-1 block">Volta em rounds</span><input type="number" min="1" class="app-field w-full px-3 py-2" [ngModel]="ability.cooldownRounds ?? 1" (ngModelChange)="updateSpecialAbility(ability.id, { cooldownRounds: $event === '' ? 1 : +$event })" [name]="'ability-rounds-' + ability.id" /></label> }
-					@if (ability.rechargeType === 'dice') { <label class="text-sm text-app-muted"><span class="mb-1 block">Resultados de recarga</span><input class="app-field w-full px-3 py-2" [ngModel]="(ability.rechargeOn ?? [5, 6]).join(',')" (ngModelChange)="updateSpecialAbility(ability.id, { rechargeOn: parseRechargeOnInput($event) })" [name]="'ability-dice-' + ability.id" /></label> }
-					@if (ability.rechargeType === 'per-day' || ability.rechargeType === 'short-rest' || ability.rechargeType === 'long-rest') { <label class="text-sm text-app-muted"><span class="mb-1 block">Usos máximos</span><input type="number" min="1" class="app-field w-full px-3 py-2" [ngModel]="ability.maxUses ?? 1" (ngModelChange)="updateSpecialAbility(ability.id, { maxUses: +$event || 1 })" [name]="'ability-uses-' + ability.id" /></label> }
-				</div><aside class="flex flex-col gap-2"><div class="app-inset px-3 py-2 text-sm text-app-muted">{{ abilityStatusPreview(ability) }}</div><button type="button" class="app-button app-button-danger" (click)="removeSpecialAbility(ability.id)">Remover</button></aside></div></section>
-			} @empty { <div class="app-inset border-dashed p-4 text-sm text-app-subtle">Nenhuma habilidade especial criada ainda.</div> }
+				<section class="py-4 first:pt-0 last:pb-0">
+					<div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_12rem]">
+						<div class="grid gap-3 md:grid-cols-2">
+							<label class="text-sm text-app-muted"
+								><span class="mb-1 block">Nome</span
+								><input
+									class="app-field w-full px-3 py-2"
+									[ngModel]="ability.name"
+									(ngModelChange)="updateSpecialAbility(ability.id, { name: $event })"
+									[name]="'ability-name-' + ability.id" /></label
+							><label class="text-sm text-app-muted"
+								><span class="mb-1 block">Recarga</span
+								><select
+									class="app-field w-full cursor-pointer px-3 py-2"
+									[ngModel]="ability.recoveryType"
+									(ngModelChange)="
+										updateSpecialAbility(ability.id, {
+											recoveryType: $event,
+											cooldownTurns:
+												$event === 'turn-cooldown' ? (ability.cooldownTurns ?? 1) : undefined,
+											cooldownRounds:
+												$event === 'round-cooldown' ? (ability.cooldownRounds ?? 1) : undefined,
+											rechargeDice: $event === 'dice-recharge' ? 'd6' : undefined,
+											rechargeOn:
+												$event === 'dice-recharge' ? (ability.rechargeOn ?? [5, 6]) : undefined,
+										})
+									"
+									[name]="'ability-recovery-' + ability.id"
+								>
+									<option value="manual">Manual</option>
+									<option value="turn-cooldown">Por turnos</option>
+									<option value="round-cooldown">Por rounds</option>
+									<option value="dice-recharge">Recharge por dado</option>
+									<option value="uses-per-day">Usos por dia</option>
+									<option value="short-rest">Descanso curto</option>
+									<option value="long-rest">Descanso longo</option>
+								</select></label
+							><label class="text-sm text-app-muted md:col-span-2"
+								><span class="mb-1 block">Descrição</span
+								><input
+									class="app-field w-full px-3 py-2"
+									[ngModel]="ability.description ?? ''"
+									(ngModelChange)="
+										updateSpecialAbility(ability.id, {
+											description: ($event || '').trim() ? $event : undefined,
+										})
+									"
+									[name]="'ability-description-' + ability.id"
+							/></label>
+							@if (ability.recoveryType === 'turn-cooldown') {
+								<label class="text-sm text-app-muted"
+									><span class="mb-1 block">Volta em turnos</span
+									><input
+										type="number"
+										min="1"
+										class="app-field w-full px-3 py-2"
+										[ngModel]="ability.cooldownTurns ?? 1"
+										(ngModelChange)="
+											updateSpecialAbility(ability.id, {
+												cooldownTurns: $event === '' ? 1 : +$event,
+											})
+										"
+										[name]="'ability-turns-' + ability.id"
+								/></label>
+							}
+							@if (ability.recoveryType === 'round-cooldown') {
+								<label class="text-sm text-app-muted"
+									><span class="mb-1 block">Volta em rounds</span
+									><input
+										type="number"
+										min="1"
+										class="app-field w-full px-3 py-2"
+										[ngModel]="ability.cooldownRounds ?? 1"
+										(ngModelChange)="
+											updateSpecialAbility(ability.id, {
+												cooldownRounds: $event === '' ? 1 : +$event,
+											})
+										"
+										[name]="'ability-rounds-' + ability.id"
+								/></label>
+							}
+							@if (ability.recoveryType === 'dice-recharge') {
+								<label class="text-sm text-app-muted"
+									><span class="mb-1 block">Resultados de recarga</span
+									><input
+										class="app-field w-full px-3 py-2"
+										[ngModel]="(ability.rechargeOn ?? [5, 6]).join(',')"
+										(ngModelChange)="
+											updateSpecialAbility(ability.id, { rechargeOn: parseRechargeOnInput($event) })
+										"
+										[name]="'ability-dice-' + ability.id"
+								/></label>
+							}
+							@if (
+								ability.recoveryType === 'uses-per-day' ||
+								ability.recoveryType === 'short-rest' ||
+								ability.recoveryType === 'long-rest'
+							) {
+								<label class="text-sm text-app-muted"
+									><span class="mb-1 block">Usos máximos</span
+									><input
+										type="number"
+										min="1"
+										class="app-field w-full px-3 py-2"
+										[ngModel]="ability.maxUses ?? 1"
+										(ngModelChange)="updateSpecialAbility(ability.id, { maxUses: +$event || 1 })"
+										[name]="'ability-uses-' + ability.id"
+								/></label>
+							}
+						</div>
+						<aside class="flex flex-col gap-2">
+							<div class="app-inset px-3 py-2 text-sm text-app-muted">
+								{{ abilityStatusPreview(ability) }}
+							</div>
+							<button
+								type="button"
+								class="app-button app-button-danger"
+								(click)="removeSpecialAbility(ability.id)"
+							>
+								Remover
+							</button>
+						</aside>
+					</div>
+				</section>
+			} @empty {
+				<div class="app-inset border-dashed p-4 text-sm text-app-subtle">
+					Nenhuma habilidade especial criada ainda.
+				</div>
+			}
 		</div>
-		<div class="app-inset mt-5 p-4"><div class="text-sm font-semibold text-app-text">Adicionar habilidade</div><div class="mt-3 grid gap-3 xl:grid-cols-3"><label class="text-sm text-app-muted"><span class="mb-1 block">Nome</span><input class="app-field w-full px-3 py-2" placeholder="Ex: Teleporte" [ngModel]="abilityDraft().name" (ngModelChange)="setAbilityDraft({ name: $event })" name="new-ability-name" /></label><label class="text-sm text-app-muted"><span class="mb-1 block">Descrição</span><input class="app-field w-full px-3 py-2" placeholder="Opcional" [ngModel]="abilityDraft().description" (ngModelChange)="setAbilityDraft({ description: $event })" name="new-ability-description" /></label><label class="text-sm text-app-muted"><span class="mb-1 block">Recarga</span><select class="app-field w-full cursor-pointer px-3 py-2" [ngModel]="abilityDraft().rechargeType" (ngModelChange)="setAbilityDraft({ rechargeType: $event })" name="new-ability-recharge"><option value="manual">Manual</option><option value="turns">Por turnos</option><option value="rounds">Por rounds</option><option value="dice">Recharge por dado</option><option value="per-day">Usos por dia</option><option value="short-rest">Descanso curto</option><option value="long-rest">Descanso longo</option></select></label></div>
-			@if (abilityDraft().rechargeType === 'turns' || abilityDraft().rechargeType === 'rounds') { <label class="mt-3 block text-sm text-app-muted"><span class="mb-1 block">@if (abilityDraft().rechargeType === 'turns') { Volta em quantos turnos? } @else { Volta em quantos rounds? }</span><input type="number" min="1" class="app-field w-full px-3 py-2" [ngModel]="abilityDraft().cooldownValue" (ngModelChange)="setAbilityDraft({ cooldownValue: $event })" name="new-ability-cooldown" /></label> }
-			@if (abilityDraft().rechargeType === 'per-day' || abilityDraft().rechargeType === 'short-rest' || abilityDraft().rechargeType === 'long-rest') { <label class="mt-3 block text-sm text-app-muted"><span class="mb-1 block">Usos máximos</span><input type="number" min="1" class="app-field w-full px-3 py-2" [ngModel]="abilityDraft().maxUses" (ngModelChange)="setAbilityDraft({ maxUses: +$event || 1 })" name="new-ability-uses" /></label> }
-			@if (abilityDraft().rechargeType === 'dice') { <label class="mt-3 block text-sm text-app-muted"><span class="mb-1 block">Resultados de recarga</span><input class="app-field w-full px-3 py-2" placeholder="Ex: 5,6" [ngModel]="abilityDraft().rechargeOn" (ngModelChange)="setAbilityDraft({ rechargeOn: $event })" name="new-ability-dice" /></label> }
-			<div class="mt-4 flex justify-end"><button type="button" class="app-button app-button-secondary" (click)="addSpecialAbility()">Adicionar habilidade</button></div></div>
+		<div class="app-inset mt-5 p-4">
+			<div class="text-sm font-semibold text-app-text">Adicionar habilidade</div>
+			<div class="mt-3 grid gap-3 xl:grid-cols-3">
+				<label class="text-sm text-app-muted"
+					><span class="mb-1 block">Nome</span
+					><input
+						class="app-field w-full px-3 py-2"
+						placeholder="Ex: Teleporte"
+						[ngModel]="abilityDraft().name"
+						(ngModelChange)="setAbilityDraft({ name: $event })"
+						name="new-ability-name" /></label
+				><label class="text-sm text-app-muted"
+					><span class="mb-1 block">Descrição</span
+					><input
+						class="app-field w-full px-3 py-2"
+						placeholder="Opcional"
+						[ngModel]="abilityDraft().description"
+						(ngModelChange)="setAbilityDraft({ description: $event })"
+						name="new-ability-description" /></label
+				><label class="text-sm text-app-muted"
+					><span class="mb-1 block">Recarga</span
+					><select
+						class="app-field w-full cursor-pointer px-3 py-2"
+						[ngModel]="abilityDraft().recoveryType"
+						(ngModelChange)="setAbilityDraft({ recoveryType: $event })"
+						name="new-ability-recovery"
+					>
+						<option value="manual">Manual</option>
+						<option value="turn-cooldown">Por turnos</option>
+						<option value="round-cooldown">Por rounds</option>
+						<option value="dice-recharge">Recharge por dado</option>
+						<option value="uses-per-day">Usos por dia</option>
+						<option value="short-rest">Descanso curto</option>
+						<option value="long-rest">Descanso longo</option>
+					</select></label
+				>
+			</div>
+			@if (
+				abilityDraft().recoveryType === 'turn-cooldown' ||
+				abilityDraft().recoveryType === 'round-cooldown'
+			) {
+				<label class="mt-3 block text-sm text-app-muted"
+					><span class="mb-1 block">
+						@if (abilityDraft().recoveryType === 'turn-cooldown') {
+							Volta em quantos turnos?
+						} @else {
+							Volta em quantos rounds?
+						}</span
+					><input
+						type="number"
+						min="1"
+						class="app-field w-full px-3 py-2"
+						[ngModel]="abilityDraft().cooldownValue"
+						(ngModelChange)="setAbilityDraft({ cooldownValue: $event })"
+						name="new-ability-cooldown"
+				/></label>
+			}
+			@if (
+				abilityDraft().recoveryType === 'uses-per-day' ||
+				abilityDraft().recoveryType === 'short-rest' ||
+				abilityDraft().recoveryType === 'long-rest'
+			) {
+				<label class="mt-3 block text-sm text-app-muted"
+					><span class="mb-1 block">Usos máximos</span
+					><input
+						type="number"
+						min="1"
+						class="app-field w-full px-3 py-2"
+						[ngModel]="abilityDraft().maxUses"
+						(ngModelChange)="setAbilityDraft({ maxUses: +$event || 1 })"
+						name="new-ability-uses"
+				/></label>
+			}
+			@if (abilityDraft().recoveryType === 'dice-recharge') {
+				<label class="mt-3 block text-sm text-app-muted"
+					><span class="mb-1 block">Resultados de recarga</span
+					><input
+						class="app-field w-full px-3 py-2"
+						placeholder="Ex: 5,6"
+						[ngModel]="abilityDraft().rechargeOn"
+						(ngModelChange)="setAbilityDraft({ rechargeOn: $event })"
+						name="new-ability-dice"
+				/></label>
+			}
+			<div class="mt-4 flex justify-end">
+				<button type="button" class="app-button app-button-secondary" (click)="addSpecialAbility()">
+					Adicionar habilidade
+				</button>
+			</div>
+		</div>
 	</fieldset>
 </form>
 
-<div class="fixed inset-x-0 bottom-0 z-30 border-t border-app-border bg-app-surface-raised/95 p-3 backdrop-blur md:hidden"><button type="button" class="app-button app-button-primary w-full" (click)="save()">{{ sheetId() ? 'Salvar ficha' : 'Criar ficha' }}</button></div>
+<div
+	class="fixed inset-x-0 bottom-0 z-30 border-t border-app-border bg-app-surface-raised/95 p-3 backdrop-blur md:hidden"
+>
+	<button type="button" class="app-button app-button-primary w-full" (click)="save()">
+		{{ sheetId() ? 'Salvar ficha' : 'Criar ficha' }}
+	</button>
+</div>
 
 @if (unsavedChangesModal()) {
-	<div class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="stayOnPage()"><section role="dialog" aria-modal="true" aria-labelledby="unsaved-changes-title" class="w-full max-w-lg rounded-app-shell border border-amber-400/25 bg-app-surface-raised p-5 shadow-app-modal sm:p-6" (click)="$event.stopPropagation()"><div class="flex items-start justify-between gap-3"><div><div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100">Alterações pendentes</div><h2 id="unsaved-changes-title" class="mt-1 text-xl font-semibold text-app-text">Descartar alterações?</h2></div><button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" (click)="stayOnPage()" aria-label="Fechar confirmação"><svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg></button></div><p class="mt-3 text-sm leading-6 text-app-muted">As alterações feitas nesta ficha não foram salvas e serão perdidas ao sair.</p><div class="app-inset mt-4 border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-50">Salve a ficha para manter as mudanças antes de navegar.</div><div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" class="app-button app-button-ghost w-full sm:w-auto" (click)="stayOnPage()">Continuar editando</button><button type="button" class="app-button app-button-danger w-full sm:w-auto" (click)="discardChanges()">Descartar alterações</button></div></section></div>
+	<div
+		class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+		(click)="stayOnPage()"
+	>
+		<section
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="unsaved-changes-title"
+			class="w-full max-w-lg rounded-app-shell border border-amber-400/25 bg-app-surface-raised p-5 shadow-app-modal sm:p-6"
+			(click)="$event.stopPropagation()"
+		>
+			<div class="flex items-start justify-between gap-3">
+				<div>
+					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100">
+						Alterações pendentes
+					</div>
+					<h2 id="unsaved-changes-title" class="mt-1 text-xl font-semibold text-app-text">
+						Descartar alterações?
+					</h2>
+				</div>
+				<button
+					type="button"
+					class="app-button app-modal-close h-11 w-11 shrink-0 p-0"
+					(click)="stayOnPage()"
+					aria-label="Fechar confirmação"
+				>
+					<svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg>
+				</button>
+			</div>
+			<p class="mt-3 text-sm leading-6 text-app-muted">
+				As alterações feitas nesta ficha não foram salvas e serão perdidas ao sair.
+			</p>
+			<div
+				class="app-inset mt-4 border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-50"
+			>
+				Salve a ficha para manter as mudanças antes de navegar.
+			</div>
+			<div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+				<button
+					type="button"
+					class="app-button app-button-ghost w-full sm:w-auto"
+					(click)="stayOnPage()"
+				>
+					Continuar editando</button
+				><button
+					type="button"
+					class="app-button app-button-danger w-full sm:w-auto"
+					(click)="discardChanges()"
+				>
+					Descartar alterações
+				</button>
+			</div>
+		</section>
+	</div>
 }
 
 @if (toast(); as t) {
-	<div class="pointer-events-none fixed right-4 top-4 z-[55]"><div class="app-toast pointer-events-auto max-w-sm border px-4 py-3" [class.border-emerald-400/30]="t.type === 'success'" [class.border-red-400/30]="t.type === 'error'" [class.border-amber-400/30]="t.type === 'warn'" role="status" aria-live="polite"><div class="flex items-start gap-3"><div class="app-toast-icon shrink-0" [class.bg-emerald-500/15]="t.type === 'success'" [class.text-emerald-200]="t.type === 'success'" [class.bg-red-500/15]="t.type === 'error'" [class.text-rose-200]="t.type === 'error'" [class.bg-amber-500/15]="t.type === 'warn'" [class.text-amber-100]="t.type === 'warn'">@if (t.type === 'success') { <svg lucideCircleCheck [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else if (t.type === 'error') { <svg lucideCircleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else { <svg lucideTriangleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> }</div><div class="min-w-0 flex-1"><div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">@if (t.type === 'success') { Concluído } @else if (t.type === 'error') { Não foi possível concluir } @else { Atenção }</div><div class="mt-1 text-sm leading-5 text-app-text">{{ t.text }}</div></div><button type="button" class="app-toast-dismiss shrink-0" (click)="toast.set(null)" aria-label="Fechar mensagem"><svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg></button></div></div></div>
+	<div class="pointer-events-none fixed right-4 top-4 z-[55]">
+		<div
+			class="app-toast pointer-events-auto max-w-sm border px-4 py-3"
+			[class.border-emerald-400/30]="t.type === 'success'"
+			[class.border-red-400/30]="t.type === 'error'"
+			[class.border-amber-400/30]="t.type === 'warn'"
+			role="status"
+			aria-live="polite"
+		>
+			<div class="flex items-start gap-3">
+				<div
+					class="app-toast-icon shrink-0"
+					[class.bg-emerald-500/15]="t.type === 'success'"
+					[class.text-emerald-200]="t.type === 'success'"
+					[class.bg-red-500/15]="t.type === 'error'"
+					[class.text-rose-200]="t.type === 'error'"
+					[class.bg-amber-500/15]="t.type === 'warn'"
+					[class.text-amber-100]="t.type === 'warn'"
+				>
+					@if (t.type === 'success') {
+						<svg lucideCircleCheck [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					} @else if (t.type === 'error') {
+						<svg lucideCircleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					} @else {
+						<svg lucideTriangleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					}
+				</div>
+				<div class="min-w-0 flex-1">
+					<div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
+						@if (t.type === 'success') {
+							Concluído
+						} @else if (t.type === 'error') {
+							Não foi possível concluir
+						} @else {
+							Atenção
+						}
+					</div>
+					<div class="mt-1 text-sm leading-5 text-app-text">{{ t.text }}</div>
+				</div>
+				<button
+					type="button"
+					class="app-toast-dismiss shrink-0"
+					(click)="toast.set(null)"
+					aria-label="Fechar mensagem"
+				>
+					<svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg>
+				</button>
+			</div>
+		</div>
+	</div>
 }

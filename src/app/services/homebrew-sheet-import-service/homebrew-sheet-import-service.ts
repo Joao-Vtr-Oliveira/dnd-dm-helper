@@ -1,16 +1,16 @@
 import { Injectable, inject } from '@angular/core';
 import type {
+	CreatureAbilityRecoveryType,
 	CreatureFeature,
-	CreatureInterface,
+	CreatureSheet,
 	CreatureSpecialAbility,
-} from '../../models/battleTracker-model';
+} from '../../models/creature-sheet-model';
 import {
 	LocalStorageService,
 	type HomebrewCategory,
 	type SavedSheetInterface,
 } from '../local-storage-service/local-storage-service';
 import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
-import { EncounterIoService } from '../encounter-io-service/encounter-io-service';
 
 export type HomebrewSheetConflictResolution = 'replace' | 'keep-existing' | 'duplicate';
 
@@ -21,7 +21,7 @@ export interface HomebrewSheetImportCandidate {
 	tags: string[];
 	source: string;
 	externalId: string;
-	data: CreatureInterface;
+	data: CreatureSheet;
 	extra: Record<string, unknown>;
 	warnings: string[];
 }
@@ -43,7 +43,7 @@ export interface HomebrewSheetImportConflict {
 }
 
 export interface HomebrewSheetImportPreview {
-	format: 'current' | 'legacy';
+	format: 'current';
 	exportedAt: string | null;
 	candidates: HomebrewSheetImportCandidate[];
 	invalid: HomebrewSheetImportInvalid[];
@@ -61,12 +61,15 @@ export interface HomebrewSheetImportResult {
 }
 
 const CATEGORIES: HomebrewCategory[] = ['monster', 'npc', 'pc', 'other'];
-const NUMERIC_FIELDS = [
-	'initiative',
-	'healthPoints',
-	'maxHealthPoints',
-	'temporaryHealthPoints',
-] as const;
+const RECOVERY_TYPES: CreatureAbilityRecoveryType[] = [
+	'manual',
+	'turn-cooldown',
+	'round-cooldown',
+	'uses-per-day',
+	'short-rest',
+	'long-rest',
+	'dice-recharge',
+];
 const SHEET_FIELDS = new Set(['title', 'category', 'tags', 'source', 'externalId', 'data']);
 
 interface RawEnvelope extends Record<string, unknown> {
@@ -90,24 +93,20 @@ interface RawSheet extends Record<string, unknown> {
 
 interface RawCreature extends Record<string, unknown> {
 	name?: unknown;
-	category?: unknown;
-	sheetFeatures?: unknown;
-	id?: unknown;
 	armorClass?: unknown;
-	conditions?: unknown;
-	notes?: unknown;
+	maxHp?: unknown;
 	specialAbilities?: unknown;
-	totalSpellSlots?: unknown;
-	usedSpellSlots?: unknown;
+	spellSlots?: unknown;
 	spells?: unknown;
+	features?: unknown;
 	rawFiveETools?: unknown;
+	fiveEToolsIdentity?: unknown;
 }
 
 @Injectable({ providedIn: 'root' })
 export class HomebrewSheetImportService {
 	private readonly storage = inject(LocalStorageService);
 	private readonly creatureTemplate = inject(CreatureTemplateService);
-	private readonly encounterIo = inject(EncounterIoService);
 
 	parseText(text: string): HomebrewSheetImportPreview {
 		let raw: unknown;
@@ -128,12 +127,8 @@ export class HomebrewSheetImportService {
 		this.rejectBackup(candidate);
 
 		const isCurrent = candidate.app === 'dnd-dm-helper' && candidate.type === 'homebrew-sheets';
-		const isLegacy = candidate.version === 1;
-		if (!isCurrent && !isLegacy) {
+		if (!isCurrent || candidate.schemaVersion !== 2) {
 			throw new Error('JSON incompatível: use uma exportação de fichas do dnd-dm-helper.');
-		}
-		if (isCurrent && candidate.schemaVersion !== 1) {
-			throw new Error('Versão de schema de fichas não suportada.');
 		}
 		if (!Array.isArray(candidate.sheets)) {
 			throw new Error('JSON inválido: "sheets" precisa ser um array.');
@@ -155,7 +150,7 @@ export class HomebrewSheetImportService {
 
 		const conflicts = this.findConflicts(candidates);
 		return {
-			format: isCurrent ? 'current' : 'legacy',
+			format: 'current',
 			exportedAt: this.normalizeExportedAt(candidate.exportedAt),
 			candidates,
 			invalid,
@@ -192,7 +187,9 @@ export class HomebrewSheetImportService {
 		for (const candidate of preview.candidates) {
 			const match = this.findMatch(candidate, working);
 			const resolution = match
-				? resolutions[candidate.index] ?? this.findConflict(preview.conflicts, candidate.index)?.resolution ?? 'replace'
+				? (resolutions[candidate.index] ??
+					this.findConflict(preview.conflicts, candidate.index)?.resolution ??
+					'replace')
 				: undefined;
 
 			if (match && resolution === 'keep-existing') {
@@ -213,7 +210,10 @@ export class HomebrewSheetImportService {
 			}
 
 			const isDuplicate = match != null && resolution === 'duplicate';
-			const next = this.buildNewSheet(candidate, isDuplicate ? this.duplicateExternalId(candidate.externalId) : undefined);
+			const next = this.buildNewSheet(
+				candidate,
+				isDuplicate ? this.duplicateExternalId(candidate.externalId) : undefined,
+			);
 			working.unshift(next);
 			if (isDuplicate) duplicated += 1;
 			else imported += 1;
@@ -221,7 +221,8 @@ export class HomebrewSheetImportService {
 		}
 
 		if (changed) this.storage.applySheetBatch(working, replacements);
-		if (preview.invalid.length) warnings.push(`${preview.invalid.length} ficha(s) rejeitada(s) por validação.`);
+		if (preview.invalid.length)
+			warnings.push(`${preview.invalid.length} ficha(s) rejeitada(s) por validação.`);
 
 		return { imported, replaced, kept, duplicated, rejected: preview.invalid.length, warnings };
 	}
@@ -229,11 +230,23 @@ export class HomebrewSheetImportService {
 	private normalizeCandidate(
 		raw: unknown,
 		index: number,
-	): { candidate?: HomebrewSheetImportCandidate; invalid?: HomebrewSheetImportInvalid; warnings: string[] } {
+	): {
+		candidate?: HomebrewSheetImportCandidate;
+		invalid?: HomebrewSheetImportInvalid;
+		warnings: string[];
+	} {
 		const warnings: string[] = [];
 		const errors: string[] = [];
 		if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-			return { invalid: { index, title: `Ficha ${index + 1}`, errors: ['A ficha precisa ser um objeto.'], warnings }, warnings };
+			return {
+				invalid: {
+					index,
+					title: `Ficha ${index + 1}`,
+					errors: ['A ficha precisa ser um objeto.'],
+					warnings,
+				},
+				warnings,
+			};
 		}
 
 		const sheet = raw as RawSheet;
@@ -241,31 +254,39 @@ export class HomebrewSheetImportService {
 		const source = this.requiredText(sheet.source, 'source', errors);
 		const category = this.category(sheet.category, errors);
 		const data = sheet.data;
-		if (!data || typeof data !== 'object' || Array.isArray(data)) errors.push('O campo data precisa ser um objeto.');
+		if (!data || typeof data !== 'object' || Array.isArray(data))
+			errors.push('O campo data precisa ser um objeto.');
 
-		const candidateData = data && typeof data === 'object' && !Array.isArray(data) ? (data as RawCreature) : null;
+		const candidateData =
+			data && typeof data === 'object' && !Array.isArray(data) ? (data as RawCreature) : null;
 		const name = candidateData ? this.requiredText(candidateData.name, 'data.name', errors) : '';
-		if (category && candidateData?.category !== undefined && candidateData.category !== category) {
-			errors.push('category do envelope é diferente de data.category.');
-		}
-		if (candidateData?.category !== undefined && !CATEGORIES.includes(candidateData.category as HomebrewCategory)) {
-			errors.push('data.category precisa ser monster, npc, pc ou other.');
-		}
 		this.validateCreature(candidateData, errors);
 
-		const externalId = this.externalId(sheet.externalId, source, title, name, warnings, errors, index);
+		const externalId = this.externalId(
+			sheet.externalId,
+			source,
+			title,
+			name,
+			warnings,
+			errors,
+			index,
+		);
 		const tags = this.tags(sheet.tags, errors);
 		const extra = this.unknownFields(sheet);
 		const dataUnknown = candidateData ? this.unknownDataFields(candidateData) : [];
 		if ('id' in sheet || 'createdAt' in sheet || 'updatedAt' in sheet) {
-			warnings.push(`Ficha ${index + 1}: identidade local e timestamps fornecidos foram ignorados.`);
-		}
-		if (candidateData && 'sourceSheetId' in candidateData) {
-			warnings.push(`Ficha ${index + 1}: sourceSheetId fornecido foi ignorado.`);
-		}
-		if (Object.keys(extra).length || dataUnknown.length) {
 			warnings.push(
-				`Ficha ${index + 1}: campos desconhecidos preservados (${[...Object.keys(extra), ...dataUnknown.map((field) => `data.${field}`)].join(', ')}).`,
+				`Ficha ${index + 1}: identidade local e timestamps fornecidos foram ignorados.`,
+			);
+		}
+		if (Object.keys(extra).length) {
+			warnings.push(
+				`Ficha ${index + 1}: campos desconhecidos do envelope preservados (${Object.keys(extra).join(', ')}).`,
+			);
+		}
+		if (dataUnknown.length) {
+			warnings.push(
+				`Ficha ${index + 1}: campos desconhecidos de data foram ignorados (${dataUnknown.map((field) => `data.${field}`).join(', ')}).`,
 			);
 		}
 
@@ -276,7 +297,7 @@ export class HomebrewSheetImportService {
 			};
 		}
 
-		const normalizedData = this.normalizeCreature(candidateData, category);
+		const normalizedData = this.normalizeCreature(candidateData);
 		return {
 			candidate: {
 				index,
@@ -293,76 +314,83 @@ export class HomebrewSheetImportService {
 		};
 	}
 
-	private normalizeCreature(raw: RawCreature, category: HomebrewCategory): CreatureInterface {
-		const imported = this.encounterIo.fromObject({ creatures: [raw], creatureIdCount: 1 }).encounter.creatures[0];
-		const normalized = this.creatureTemplate.normalizeCreature({
-			...raw,
-			...imported,
-			category,
-			sheetFeatures: raw.sheetFeatures as CreatureFeature[] | undefined,
-			rawFiveETools: raw.rawFiveETools as CreatureInterface['rawFiveETools'],
-			id: 0,
+	private normalizeCreature(raw: RawCreature): CreatureSheet {
+		return this.creatureTemplate.normalizeCreature({
+			name: raw.name as string,
+			maxHp: raw.maxHp as number,
+			armorClass: raw.armorClass as string | number,
+			spellSlots: raw.spellSlots as CreatureSheet['spellSlots'],
+			spells: raw.spells as CreatureSheet['spells'],
+			specialAbilities: raw.specialAbilities as CreatureSheet['specialAbilities'],
+			features: raw.features as CreatureFeature[] | undefined,
+			rawFiveETools: raw.rawFiveETools as CreatureSheet['rawFiveETools'],
+			fiveEToolsIdentity: raw.fiveEToolsIdentity as CreatureSheet['fiveEToolsIdentity'],
 		});
-		const preserved = {
-			...structuredClone(raw),
-			...normalized,
-			id: 0,
-			category,
-		} as CreatureInterface & Record<string, unknown>;
-		delete preserved.sourceSheetId;
-		return preserved;
 	}
 
 	private validateCreature(data: RawCreature | null, errors: string[]): void {
 		if (!data) return;
-		for (const field of NUMERIC_FIELDS) {
-			if (data[field] !== undefined && data[field] !== null && !this.isFiniteNumeric(data[field])) {
-				errors.push(`data.${field} precisa ser um número finito ou null.`);
-			}
+		if (!this.isFiniteNumeric(data.maxHp)) {
+			errors.push('data.maxHp precisa ser um número finito.');
 		}
-		if (data.id !== undefined && (!this.isFiniteNumber(data.id) || !Number.isInteger(data.id))) {
-			errors.push('data.id precisa ser um número inteiro finito.');
-		}
-		if (data.armorClass !== undefined && data.armorClass !== null && data.armorClass !== '' && !this.isFiniteNumeric(data.armorClass) && typeof data.armorClass !== 'string') {
+		if (
+			data.armorClass === undefined ||
+			(data.armorClass !== null &&
+				data.armorClass !== '' &&
+				!this.isFiniteNumeric(data.armorClass) &&
+				typeof data.armorClass !== 'string')
+		) {
 			errors.push('data.armorClass tem tipo inválido.');
 		}
-		for (const field of ['conditions', 'notes', 'specialAbilities', 'sheetFeatures'] as const) {
-			if (data[field] !== undefined && !Array.isArray(data[field])) errors.push(`data.${field} precisa ser um array.`);
+		for (const field of ['spellSlots', 'spells', 'specialAbilities', 'features'] as const) {
+			if (!Array.isArray(data[field])) errors.push(`data.${field} precisa ser um array.`);
 		}
-		this.validateNotes(data['notes'], errors);
-		this.validateConditions(data['conditions'], errors);
-		this.validateSlots(data.totalSpellSlots, 'totalSpellSlots', errors);
-		this.validateSlots(data.usedSpellSlots, 'usedSpellSlots', errors);
+		this.validateSlots(data.spellSlots, errors);
 		this.validateSpells(data.spells, errors);
 		this.validateAbilities(data.specialAbilities, errors);
-		this.validateFeatures(data.sheetFeatures, errors);
-		if (data.rawFiveETools !== undefined && (!data.rawFiveETools || typeof data.rawFiveETools !== 'object' || Array.isArray(data.rawFiveETools))) {
+		this.validateFeatures(data.features, errors);
+		if (
+			data.rawFiveETools !== undefined &&
+			(!data.rawFiveETools ||
+				typeof data.rawFiveETools !== 'object' ||
+				Array.isArray(data.rawFiveETools))
+		) {
 			errors.push('data.rawFiveETools precisa ser um objeto.');
+		}
+		if (
+			data.fiveEToolsIdentity !== undefined &&
+			(!data.fiveEToolsIdentity ||
+				typeof data.fiveEToolsIdentity !== 'object' ||
+				Array.isArray(data.fiveEToolsIdentity))
+		) {
+			errors.push('data.fiveEToolsIdentity precisa ser um objeto.');
 		}
 	}
 
-	private validateSlots(value: unknown, field: string, errors: string[]): void {
-		if (value === null || value === undefined) return;
-		if (typeof value !== 'object' || Array.isArray(value)) {
-			errors.push(`data.${field} precisa ser um objeto ou null.`);
-			return;
-		}
-		for (const [level, slot] of Object.entries(value as Record<string, unknown>)) {
-			if (!this.isFiniteNumeric(slot)) errors.push(`data.${field}.${level} precisa ser um número finito.`);
+	private validateSlots(value: unknown, errors: string[]): void {
+		if (!Array.isArray(value)) return;
+		for (const [index, slot] of value.entries()) {
+			const field = `data.spellSlots[${index}]`;
+			if (!slot || typeof slot !== 'object' || Array.isArray(slot)) {
+				errors.push(`${field} precisa ser um objeto.`);
+				continue;
+			}
+			const record = slot as Record<string, unknown>;
+			if (
+				!Number.isInteger(record['level']) ||
+				Number(record['level']) < 1 ||
+				Number(record['level']) > 9
+			)
+				errors.push(`${field}.level precisa estar entre 1 e 9.`);
+			if (!this.isFiniteNumeric(record['max']))
+				errors.push(`${field}.max precisa ser um número finito.`);
 		}
 	}
 
 	private validateSpells(value: unknown, errors: string[]): void {
-		if (value === undefined || value === null) return;
-		if (Array.isArray(value)) {
-			for (const [index, spell] of value.entries()) this.validateSpell(spell, `data.spells[${index}]`, errors);
-			return;
-		}
-		if (typeof value !== 'object') {
-			errors.push('data.spells precisa ser um objeto ou array.');
-			return;
-		}
-		for (const [key, spell] of Object.entries(value as Record<string, unknown>)) this.validateSpell(spell, `data.spells.${key}`, errors);
+		if (!Array.isArray(value)) return;
+		for (const [index, spell] of value.entries())
+			this.validateSpell(spell, `data.spells[${index}]`, errors);
 	}
 
 	private validateSpell(value: unknown, field: string, errors: string[]): void {
@@ -371,8 +399,19 @@ export class HomebrewSheetImportService {
 			return;
 		}
 		const spell = value as Record<string, unknown>;
-		if (spell['total'] !== undefined && !this.isFiniteNumeric(spell['total'])) errors.push(`${field}.total precisa ser um número finito.`);
-		if (spell['label'] !== undefined && typeof spell['label'] !== 'string') errors.push(`${field}.label tem tipo inválido.`);
+		if (typeof spell['id'] !== 'string' || !spell['id'].trim())
+			errors.push(`${field}.id é obrigatório.`);
+		if (typeof spell['name'] !== 'string' || !spell['name'].trim())
+			errors.push(`${field}.name é obrigatório.`);
+		if (spell['uses'] !== undefined && !this.isFiniteNumeric(spell['uses']))
+			errors.push(`${field}.uses precisa ser um número finito.`);
+		if (
+			spell['level'] !== undefined &&
+			(!Number.isInteger(spell['level']) ||
+				Number(spell['level']) < 0 ||
+				Number(spell['level']) > 9)
+		)
+			errors.push(`${field}.level precisa estar entre 0 e 9.`);
 	}
 
 	private validateAbilities(value: unknown, errors: string[]): void {
@@ -384,54 +423,39 @@ export class HomebrewSheetImportService {
 				continue;
 			}
 			const ability = item as Partial<CreatureSpecialAbility>;
-			if (typeof ability.name !== 'string' || !ability.name.trim()) errors.push(`${field}.name é obrigatório.`);
-			if (ability.id !== undefined && typeof ability.id !== 'string') errors.push(`${field}.id tem tipo inválido.`);
+			if (typeof ability.name !== 'string' || !ability.name.trim())
+				errors.push(`${field}.name é obrigatório.`);
+			if (ability.id !== undefined && typeof ability.id !== 'string')
+				errors.push(`${field}.id tem tipo inválido.`);
+			if (!RECOVERY_TYPES.includes(ability.recoveryType as CreatureAbilityRecoveryType))
+				errors.push(`${field}.recoveryType tem tipo inválido.`);
 			for (const numeric of ['maxUses', 'cooldownTurns', 'cooldownRounds'] as const) {
-				if (ability[numeric] !== undefined && !this.isFiniteNumeric(ability[numeric])) errors.push(`${field}.${numeric} tem tipo inválido.`);
+				if (ability[numeric] !== undefined && !this.isFiniteNumeric(ability[numeric]))
+					errors.push(`${field}.${numeric} tem tipo inválido.`);
 			}
-			if (ability.rechargeOn !== undefined && (!Array.isArray(ability.rechargeOn) || ability.rechargeOn.some((entry) => !this.isFiniteNumeric(entry)))) {
+			if (
+				ability.rechargeOn !== undefined &&
+				(!Array.isArray(ability.rechargeOn) ||
+					ability.rechargeOn.some((entry) => !this.isFiniteNumeric(entry)))
+			) {
 				errors.push(`${field}.rechargeOn tem tipo inválido.`);
 			}
-		}
-	}
-
-	private validateNotes(value: unknown, errors: string[]): void {
-		if (!Array.isArray(value)) return;
-		for (const [index, item] of value.entries()) {
-			if (!item || typeof item !== 'object' || Array.isArray(item)) {
-				errors.push(`data.notes[${index}] precisa ser um objeto.`);
-				continue;
-			}
-			const id = (item as Record<string, unknown>)['id'];
-			if (id !== undefined && (!this.isFiniteNumber(id) || !Number.isInteger(id))) {
-				errors.push(`data.notes[${index}].id tem tipo inválido.`);
-			}
-		}
-	}
-
-	private validateConditions(value: unknown, errors: string[]): void {
-		if (!Array.isArray(value)) return;
-		for (const [index, item] of value.entries()) {
-			if (!item || typeof item !== 'object' || Array.isArray(item)) {
-				errors.push(`data.conditions[${index}] precisa ser um objeto.`);
-				continue;
-			}
-			const id = (item as Record<string, unknown>)['id'];
-			if (id !== undefined && typeof id !== 'string') errors.push(`data.conditions[${index}].id tem tipo inválido.`);
 		}
 	}
 
 	private validateFeatures(value: unknown, errors: string[]): void {
 		if (!Array.isArray(value)) return;
 		for (const [index, item] of value.entries()) {
-			const field = `data.sheetFeatures[${index}]`;
+			const field = `data.features[${index}]`;
 			if (!item || typeof item !== 'object' || Array.isArray(item)) {
 				errors.push(`${field} precisa ser um objeto com nome.`);
 				continue;
 			}
 			const feature = item as Partial<CreatureFeature>;
-			if (typeof feature.name !== 'string' || !feature.name.trim()) errors.push(`${field}.name é obrigatório.`);
-			if (feature.id !== undefined && typeof feature.id !== 'string') errors.push(`${field}.id tem tipo inválido.`);
+			if (typeof feature.name !== 'string' || !feature.name.trim())
+				errors.push(`${field}.name é obrigatório.`);
+			if (feature.id !== undefined && typeof feature.id !== 'string')
+				errors.push(`${field}.id tem tipo inválido.`);
 		}
 	}
 
@@ -440,21 +464,29 @@ export class HomebrewSheetImportService {
 		const conflicts: HomebrewSheetImportConflict[] = [];
 		for (const candidate of candidates) {
 			const existingMatch = this.findMatch(candidate, existing);
-			const previous = candidates.find((other) => other.index < candidate.index && this.sameIdentity(other, candidate));
+			const previous = candidates.find(
+				(other) => other.index < candidate.index && this.sameIdentity(other, candidate),
+			);
 			if (!existingMatch && !previous) continue;
 			conflicts.push({
 				index: candidate.index,
 				candidate,
 				existing: existingMatch,
 				otherCandidateIndex: previous?.index,
-				matchedBy: existingMatch && candidate.externalId === existingMatch.externalId ? 'externalId' : 'name',
+				matchedBy:
+					existingMatch && candidate.externalId === existingMatch.externalId
+						? 'externalId'
+						: 'name',
 				resolution: 'replace',
 			});
 		}
 		return conflicts;
 	}
 
-	private findMatch(candidate: HomebrewSheetImportCandidate, sheets: SavedSheetInterface[]): SavedSheetInterface | null {
+	private findMatch(
+		candidate: HomebrewSheetImportCandidate,
+		sheets: SavedSheetInterface[],
+	): SavedSheetInterface | null {
 		if (candidate.externalId) {
 			const byExternalId = sheets.find((sheet) => sheet.externalId === candidate.externalId);
 			if (byExternalId) return byExternalId;
@@ -462,15 +494,24 @@ export class HomebrewSheetImportService {
 		return sheets.find((sheet) => this.sameIdentity(candidate, sheet)) ?? null;
 	}
 
-	private sameIdentity(left: HomebrewSheetImportCandidate | SavedSheetInterface, right: HomebrewSheetImportCandidate | SavedSheetInterface): boolean {
-		return this.identityKey(left.source, left.title, left.data?.name) === this.identityKey(right.source, right.title, right.data?.name);
+	private sameIdentity(
+		left: HomebrewSheetImportCandidate | SavedSheetInterface,
+		right: HomebrewSheetImportCandidate | SavedSheetInterface,
+	): boolean {
+		return (
+			this.identityKey(left.source, left.title, left.data?.name) ===
+			this.identityKey(right.source, right.title, right.data?.name)
+		);
 	}
 
 	private identityKey(source: unknown, title: unknown, name: unknown): string {
 		return [source, title, name].map((value) => this.normalizeText(value)).join('|');
 	}
 
-	private buildNewSheet(candidate: HomebrewSheetImportCandidate, externalId?: string): SavedSheetInterface {
+	private buildNewSheet(
+		candidate: HomebrewSheetImportCandidate,
+		externalId?: string,
+	): SavedSheetInterface {
 		return this.storage.buildSheet({
 			...candidate,
 			externalId: externalId ?? candidate.externalId,
@@ -478,7 +519,10 @@ export class HomebrewSheetImportService {
 		});
 	}
 
-	private buildReplacement(existing: SavedSheetInterface, candidate: HomebrewSheetImportCandidate): SavedSheetInterface {
+	private buildReplacement(
+		existing: SavedSheetInterface,
+		candidate: HomebrewSheetImportCandidate,
+	): SavedSheetInterface {
 		const next = this.buildNewSheet(candidate);
 		return {
 			...next,
@@ -492,20 +536,41 @@ export class HomebrewSheetImportService {
 	}
 
 	private knownFields(sheet: SavedSheetInterface): Record<string, unknown> {
-		const known = new Set(['id', 'externalId', 'title', 'createdAt', 'updatedAt', 'data', 'category', 'tags', 'source']);
+		const known = new Set([
+			'id',
+			'externalId',
+			'title',
+			'createdAt',
+			'updatedAt',
+			'data',
+			'category',
+			'tags',
+			'source',
+		]);
 		return Object.fromEntries(Object.entries(sheet).filter(([key]) => !known.has(key)));
 	}
 
-	private findConflict(conflicts: HomebrewSheetImportConflict[], index: number): HomebrewSheetImportConflict | undefined {
+	private findConflict(
+		conflicts: HomebrewSheetImportConflict[],
+		index: number,
+	): HomebrewSheetImportConflict | undefined {
 		return conflicts.find((conflict) => conflict.index === index);
 	}
 
 	private rejectBackup(candidate: RawEnvelope): void {
 		const data = candidate.data;
-		const dataObject = data && typeof data === 'object' && !Array.isArray(data) ? (data as Record<string, unknown>) : null;
+		const dataObject =
+			data && typeof data === 'object' && !Array.isArray(data)
+				? (data as Record<string, unknown>)
+				: null;
 		const backupKeys = ['homebrewSheets', 'encounters', 'battleEncounters', 'rawLocalStorage'];
-		if (candidate.type === 'campaign-backup' || backupKeys.some((key) => dataObject && key in dataObject)) {
-			throw new Error('Este arquivo pertence ao importador de backup completo, não ao importador de fichas.');
+		if (
+			candidate.type === 'campaign-backup' ||
+			backupKeys.some((key) => dataObject && key in dataObject)
+		) {
+			throw new Error(
+				'Este arquivo pertence ao importador de backup completo, não ao importador de fichas.',
+			);
 		}
 	}
 
@@ -554,20 +619,27 @@ export class HomebrewSheetImportService {
 	}
 
 	private unknownFields(sheet: Record<string, unknown>): Record<string, unknown> {
-		return Object.fromEntries(Object.entries(sheet).filter(([key]) => !SHEET_FIELDS.has(key) && key !== 'id' && key !== 'createdAt' && key !== 'updatedAt'));
+		return Object.fromEntries(
+			Object.entries(sheet).filter(
+				([key]) =>
+					!SHEET_FIELDS.has(key) && key !== 'id' && key !== 'createdAt' && key !== 'updatedAt',
+			),
+		);
 	}
 
 	private unknownDataFields(data: Record<string, unknown>): string[] {
 		const known = new Set([
-			'name', 'initiative', 'healthPoints', 'maxHealthPoints', 'armorClass', 'temporaryHealthPoints', 'id', 'alive',
-			'conditions', 'notes', 'shared', 'hitPointsShared', 'totalSpellSlots', 'usedSpellSlots', 'spells',
-			'specialAbilities', 'sheetFeatures', 'category', 'rawFiveETools', 'sourceSheetId',
+			'name',
+			'armorClass',
+			'maxHp',
+			'spellSlots',
+			'spells',
+			'specialAbilities',
+			'features',
+			'rawFiveETools',
+			'fiveEToolsIdentity',
 		]);
 		return Object.keys(data).filter((key) => !known.has(key));
-	}
-
-	private isFiniteNumber(value: unknown): value is number {
-		return typeof value === 'number' && Number.isFinite(value);
 	}
 
 	private isFiniteNumeric(value: unknown): boolean {
@@ -578,7 +650,8 @@ export class HomebrewSheetImportService {
 
 	private normalizeExportedAt(value: unknown): string | null {
 		if (typeof value === 'number' && Number.isFinite(value)) return new Date(value).toISOString();
-		if (typeof value === 'string' && !Number.isNaN(Date.parse(value))) return new Date(value).toISOString();
+		if (typeof value === 'string' && !Number.isNaN(Date.parse(value)))
+			return new Date(value).toISOString();
 		return null;
 	}
 
@@ -595,6 +668,9 @@ export class HomebrewSheetImportService {
 	}
 
 	private slugify(value: string): string {
-		return this.normalizeText(value).replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 32);
+		return this.normalizeText(value)
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/(^-|-$)/g, '')
+			.slice(0, 32);
 	}
 }

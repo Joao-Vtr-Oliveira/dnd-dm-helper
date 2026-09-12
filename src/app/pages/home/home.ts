@@ -21,6 +21,10 @@ import {
 } from '@lucide/angular';
 import { environment } from '../../../environments/environment';
 import {
+	APP_LEGACY_PRIMARY_STORAGE_KEYS,
+	APP_STORAGE_KEYS,
+} from '../../constants/app-storage-keys';
+import {
 	AppBackupService,
 	type AppBackup,
 	type AppBackupSummary,
@@ -173,7 +177,21 @@ export class Home {
 		const postSyncToast = this.appBackupService.consumePostSyncToast();
 		if (postSyncToast) {
 			this.showToast('success', postSyncToast);
+		} else if (this.hasUnmigratedLocalData()) {
+			this.showToast(
+				'error',
+				'Dados locais antigos detectados. Use Sincronizar para restaurar o backup V2 antes de editar.',
+				7000,
+			);
 		}
+	}
+
+	private hasUnmigratedLocalData(): boolean {
+		const hasLegacyData = APP_LEGACY_PRIMARY_STORAGE_KEYS.some((key) => localStorage.getItem(key));
+		const hasCanonicalData = [APP_STORAGE_KEYS.encounters, APP_STORAGE_KEYS.sheets].some((key) =>
+			localStorage.getItem(key),
+		);
+		return hasLegacyData && !hasCanonicalData;
 	}
 
 	onClickTitle() {

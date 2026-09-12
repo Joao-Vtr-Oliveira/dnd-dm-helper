@@ -1,1288 +1,650 @@
 <div class="mx-auto w-full max-w-[1480px] space-y-6 pb-24 pt-1 sm:py-2 md:pb-2">
 	<header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 		<div class="min-w-0 flex-1">
-			<div class="flex flex-wrap items-center gap-2"><span class="app-eyebrow">{{ savedId() ? 'Encounter em edição' : 'Novo encounter' }}</span>@if (hasUnsavedChanges()) { <span class="app-status border border-amber-400/30 bg-amber-500/10 text-amber-100">Alterações pendentes</span> } @else { <span class="app-status border border-emerald-400/30 bg-emerald-500/10 text-emerald-100">Tudo salvo</span> }</div>
-			<label class="mt-2 block max-w-2xl"><span class="sr-only">Título do encounter</span><input class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xl font-semibold text-app-text placeholder:text-app-muted" [ngModel]="title()" (ngModelChange)="title.set($event)" placeholder="Ex: Sessão 12 - Cemitério" /></label>
-			<p class="mt-2 text-sm text-app-muted">Monte participantes e eventos antes de iniciar a batalha.</p>
+			<div class="flex flex-wrap items-center gap-2">
+				<span class="app-eyebrow">{{ savedId() ? 'Encounter em edição' : 'Novo encounter' }}</span>
+				@if (hasUnsavedChanges()) {
+					<span class="app-status border border-amber-400/30 bg-amber-500/10 text-amber-100"
+						>Alterações pendentes</span
+					>
+				}
+			</div>
+			<label class="mt-2 block max-w-2xl"
+				><span class="sr-only">Título</span
+				><input
+					class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xl font-semibold text-app-text"
+					[ngModel]="encounter().title"
+					(ngModelChange)="updateTitle($event)"
+					placeholder="Ex: Sessão 12 - Cemitério"
+			/></label>
+			<div class="mt-3 grid max-w-4xl gap-2 md:grid-cols-2">
+				<label class="text-sm text-app-muted"
+					><span class="mb-1 block">Descrição</span
+					><input
+						class="app-field w-full px-3 py-2"
+						[ngModel]="encounter().description ?? ''"
+						(ngModelChange)="updateDescription($event)"
+						placeholder="Contexto ou objetivo"
+				/></label>
+				<label class="text-sm text-app-muted"
+					><span class="mb-1 block">Tags</span
+					><input
+						class="app-field w-full px-3 py-2"
+						[ngModel]="encounter().tags.join(', ')"
+						(ngModelChange)="updateTags($event)"
+						placeholder="ruínas, sessão 12"
+				/></label>
+			</div>
 		</div>
-		<div class="app-action-group"><button type="button" class="app-button app-button-ghost" (click)="backToHub()">Voltar ao Hub</button><button type="button" class="app-button app-button-ghost" (click)="save()">Salvar</button><button type="button" class="app-button app-button-primary" (click)="saveAndStartBattle()">{{ saveAndBattleLabel() }}</button></div>
+		<div class="app-action-group">
+			<button type="button" class="app-button app-button-ghost" (click)="backToHub()">
+				Voltar ao Hub</button
+			><button type="button" class="app-button app-button-ghost" (click)="save()">Salvar</button
+			><button type="button" class="app-button app-button-primary" (click)="saveAndStartBattle()">
+				{{ saveAndBattleLabel() }}
+			</button>
+		</div>
 	</header>
+
 	<section class="app-panel p-4">
-		<div class="flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-end lg:justify-between">
-			<div><div class="app-eyebrow">Participantes</div><h3 class="mt-1 text-lg font-semibold text-app-text">Adicionar fichas ao encounter</h3><p class="mt-1 text-sm text-app-muted">Crie uma ficha rápida ou importe uma ficha existente para compor a iniciativa.</p></div>
-			<div class="flex flex-wrap gap-2"><button type="button" class="app-button border border-violet-400/40 bg-violet-500/20 text-violet-50 shadow-lg shadow-violet-950/30 transition hover:bg-violet-500/30" (click)="openHomebrewModal()"><svg lucideBookOpen [size]="18" [strokeWidth]="2.25" aria-hidden="true"></svg>Importar Homebrew</button><button type="button" class="app-button border border-sky-400/30 bg-sky-500/10 text-sky-50 shadow-lg shadow-sky-950/20 transition hover:bg-sky-500/20" (click)="openApiModal()"><svg lucideSearch [size]="18" [strokeWidth]="2.25" aria-hidden="true"></svg>Buscar na API</button></div>
+		<div
+			class="flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-end lg:justify-between"
+		>
+			<div>
+				<div class="app-eyebrow">Participantes</div>
+				<h3 class="mt-1 text-lg font-semibold text-app-text">Adicionar fichas ao encounter</h3>
+				<p class="mt-1 text-sm text-app-muted">
+					Cada unidade adicionada é um participante independente com UUID próprio.
+				</p>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<button type="button" class="app-button app-button-secondary" (click)="openHomebrewModal()">
+					<svg lucideBookOpen [size]="18"></svg>Importar Homebrew</button
+				><button type="button" class="app-button app-button-secondary" (click)="openApiModal()">
+					<svg lucideSearch [size]="18"></svg>Buscar na API
+				</button>
+			</div>
 		</div>
-		<div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-			<label class="block md:col-span-5">
-				<span class="text-xs text-app-muted">Nome da criatura</span>
-				<input
-					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+		<div class="mt-4 grid items-end gap-3 md:grid-cols-12">
+			<label class="md:col-span-4"
+				><span class="text-xs text-app-muted">Nome</span
+				><input
+					class="app-field mt-1 w-full px-3 py-2"
 					[ngModel]="draft().name"
 					(ngModelChange)="setDraftName($event)"
-				/>
-			</label>
-
-			<label class="block md:col-span-2">
-				<span class="text-xs text-app-muted">Iniciativa</span>
-				<input
+			/></label>
+			<label class="md:col-span-2"
+				><span class="text-xs text-app-muted">Categoria</span
+				><select
+					class="app-field mt-1 w-full px-3 py-2"
+					[ngModel]="draft().category"
+					(ngModelChange)="setDraftCategory($event)"
+				>
+					<option value="monster">Monstro</option>
+					<option value="npc">NPC</option>
+					<option value="pc">PC</option>
+					<option value="other">Outro</option>
+				</select></label
+			>
+			<label class="md:col-span-1"
+				><span class="text-xs text-app-muted">Iniciativa</span
+				><input
 					type="number"
-					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					class="app-field mt-1 w-full px-3 py-2"
 					[ngModel]="draft().initiative"
 					(ngModelChange)="setDraftInitiative($event)"
-				/>
-			</label>
-
-			<label class="block md:col-span-2">
-				<span class="text-xs text-app-muted">PV</span>
-				<input
+			/></label>
+			<label class="md:col-span-1"
+				><span class="text-xs text-app-muted">PV máx.</span
+				><input
 					type="number"
-					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					class="app-field mt-1 w-full px-3 py-2"
 					[ngModel]="draft().hp"
 					(ngModelChange)="setDraftHp($event)"
-				/>
-			</label>
-
-			<label class="block md:col-span-1">
-				<span class="text-xs text-app-muted">CA</span>
-				<input
-					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
-					[ngModel]="draft().ac"
-					(ngModelChange)="setDraftAc($event)"
-				/>
-			</label>
-
-			<label class="block md:col-span-1">
-				<span class="text-xs text-app-muted">Qtd.</span>
-				<input
+			/></label>
+			<label class="md:col-span-1"
+				><span class="text-xs text-app-muted">CA</span
+				><input
+					class="app-field mt-1 w-full px-3 py-2"
+					[ngModel]="draft().armorClass"
+					(ngModelChange)="setDraftArmorClass($event)"
+			/></label>
+			<label class="md:col-span-1"
+				><span class="text-xs text-app-muted">Qtd.</span
+				><input
 					type="number"
 					min="1"
-					class="w-full mt-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2"
+					class="app-field mt-1 w-full px-3 py-2"
 					[ngModel]="draft().quantity"
-					(ngModelChange)="setDraftQty($event)"
-				/>
-			</label>
-
+					(ngModelChange)="setDraftQuantity($event)"
+			/></label>
 			<button
-				class="app-action-button md:col-span-1 cursor-pointer rounded-2xl border border-white/10 bg-white/10 text-sm hover:bg-white/15"
-				(click)="addCreatures()"
+				type="button"
+				class="app-button app-button-primary md:col-span-2"
+				(click)="addParticipants()"
 			>
 				Adicionar
 			</button>
 		</div>
 	</section>
 
-	<section class="app-panel overflow-hidden p-0">
-		<div class="flex flex-col gap-2 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-end sm:justify-between"><div><div class="app-eyebrow">Configuração de combate</div><h3 class="mt-1 text-lg font-semibold text-app-text">Eventos do encounter</h3><p class="mt-1 text-sm text-app-muted">Ações ambientais configuradas agora entram prontas na battle session.</p></div><span class="app-status border border-violet-400/30 bg-violet-500/10 text-violet-100">{{ (encounter().lairActions?.length ?? 0) + (encounter().traps?.length ?? 0) }} eventos</span></div>
-		<div class="grid xl:grid-cols-2">
-		<section class="p-5 xl:border-r xl:border-white/10">
-			<div class="flex items-center justify-between gap-3">
-				<div><h3 class="text-sm font-semibold text-app-text">Lair actions</h3><p class="mt-1 text-sm text-app-muted">Efeitos ligados à iniciativa ou ao round.</p></div>
-				<span class="app-status border border-white/10 bg-white/5 text-app-muted">
-					{{ encounter().lairActions?.length ?? 0 }} ativa(s)
-				</span>
-			</div>
-
-			<div class="mt-4 space-y-2">
-				@for (action of encounter().lairActions ?? []; track action.id) {
-					<div class="rounded-2xl border border-white/10 bg-black/20 p-3">
-						<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-							<div class="min-w-0 flex-1 space-y-2">
-								<input
-									class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-semibold"
-									[ngModel]="action.name"
-									(ngModelChange)="updateEncounterLairAction(action.id, { name: $event })"
-								/>
-								<div class="grid gap-3 md:grid-cols-2">
-									<label class="text-sm">
-										<span class="mb-1 block opacity-70">Iniciativa</span>
-										<input
+	<section class="space-y-3">
+		@for (participant of participants(); track participant.id) {
+			<article class="app-panel p-4">
+				<div class="flex flex-wrap items-center gap-3">
+					<input
+						class="app-field min-w-48 flex-1 px-3 py-2 text-lg font-semibold"
+						[ngModel]="participant.name"
+						(ngModelChange)="updateParticipant(participant.id, { name: $event })"
+					/><span class="app-status border border-app-divider bg-app-inset">{{
+						participant.category
+					}}</span
+					><button
+						type="button"
+						class="app-button app-button-ghost"
+						(click)="toggleExpanded(participant.id)"
+					>
+						@if (isExpanded(participant.id)) {
+							Recolher
+						} @else {
+							Editar ficha
+						}</button
+					><button
+						type="button"
+						class="app-button app-button-danger"
+						(click)="removeParticipant(participant.id)"
+					>
+						Remover
+					</button>
+				</div>
+				<div class="mt-3 grid gap-3 border-t border-white/10 pt-3 md:grid-cols-3">
+					<label class="text-sm text-app-muted"
+						><span class="mb-1 block">Iniciativa</span
+						><input
+							type="number"
+							class="app-field w-full px-3 py-2"
+							[ngModel]="participant.initiative"
+							(ngModelChange)="
+								updateParticipant(participant.id, {
+									initiative: $event === '' ? undefined : +$event,
+								})
+							"
+					/></label>
+					<label class="text-sm text-app-muted"
+						><span class="mb-1 block">CA</span
+						><input
+							class="app-field w-full px-3 py-2"
+							[ngModel]="participant.sheet.armorClass"
+							(ngModelChange)="updateSheet(participant.id, { armorClass: $event })"
+					/></label>
+					<label class="text-sm text-app-muted"
+						><span class="mb-1 block">PV máximo</span
+						><input
+							type="number"
+							min="0"
+							class="app-field w-full px-3 py-2"
+							[ngModel]="participant.sheet.maxHp"
+							(ngModelChange)="updateSheet(participant.id, { maxHp: +$event || 0 })"
+					/></label>
+				</div>
+				@if (isExpanded(participant.id)) {
+					<div class="mt-4 grid gap-5 border-t border-white/10 pt-4 xl:grid-cols-2">
+						<section>
+							<h3 class="font-semibold text-app-text">Notas do participante</h3>
+							<textarea
+								class="app-field mt-2 min-h-24 w-full px-3 py-2"
+								[ngModel]="participant.notes ?? ''"
+								(ngModelChange)="
+									updateParticipant(participant.id, { notes: $event.trim() || undefined })
+								"
+								placeholder="Informações privadas ou lembretes"
+							></textarea>
+						</section>
+						<section>
+							<h3 class="font-semibold text-app-text">Espaços de magia</h3>
+							<div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+								@for (level of spellLevels; track level) {
+									<label class="text-xs text-app-muted"
+										><span class="mb-1 block">Nível {{ level }}</span
+										><input
 											type="number"
-											class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="action.initiative"
-											(ngModelChange)="updateEncounterLairAction(action.id, { initiative: +$event || 20 })"
-										/>
-									</label>
-									<label class="text-sm">
-										<span class="mb-1 block opacity-70">Frequência</span>
-										<select
-											class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="action.frequency"
-											(ngModelChange)="updateEncounterLairAction(action.id, { frequency: $event, cooldownRounds: $event === 'cooldown-rounds' ? action.cooldownRounds ?? 1 : undefined })"
-										>
-											<option value="every-round">Todo round</option>
-											<option value="manual">Manual</option>
-											<option value="cooldown-rounds">Cooldown por rounds</option>
-										</select>
-									</label>
-								</div>
-								@if (action.frequency === 'cooldown-rounds') {
-									<label class="block text-sm">
-										<span class="mb-1 block opacity-70">Cooldown em rounds</span>
-										<input
-											type="number"
-											min="1"
-											class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="action.cooldownRounds ?? 1"
-											(ngModelChange)="updateEncounterLairAction(action.id, { cooldownRounds: +$event || 1 })"
-										/>
-									</label>
+											min="0"
+											class="app-field w-full px-2 py-2"
+											[ngModel]="spellSlot(participant, level)"
+											(ngModelChange)="setSpellSlot(participant.id, level, $event)"
+									/></label>
 								}
-								<textarea
-									class="min-h-20 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
-									placeholder="Descrição ou notas"
-									[ngModel]="action.description ?? ''"
-									(ngModelChange)="updateEncounterLairAction(action.id, { description: ($event || '').trim() ? $event : undefined })"
-								></textarea>
-								<div class="text-xs opacity-65">{{ lairActionScheduleLabel(action) }}</div>
 							</div>
-							<button
-								class="app-action-button cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 hover:bg-red-500/20"
-								(click)="removeEncounterLairAction(action.id)"
-							>
-								Remover
-							</button>
-						</div>
-					</div>
-				} @empty {
-					<div class="rounded-2xl border border-dashed border-white/10 bg-black/10 p-4 text-sm opacity-70">
-						Nenhuma lair action configurada.
-					</div>
-				}
-			</div>
-
-			<div class="mt-4 space-y-3 border-t border-white/10 pt-4">
-				<div class="grid gap-3 md:grid-cols-2">
-					<label class="text-sm">
-						<span class="mb-1 block opacity-70">Nome</span>
-						<input
-							class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-							[ngModel]="lairActionDraft().name"
-							(ngModelChange)="setLairActionDraft({ name: $event })"
-							placeholder="Ex: Olho do Covil"
-						/>
-					</label>
-					<label class="text-sm">
-						<span class="mb-1 block opacity-70">Iniciativa</span>
-						<input
-							type="number"
-							class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-							[ngModel]="lairActionDraft().initiative"
-							(ngModelChange)="setLairActionDraft({ initiative: $event })"
-						/>
-					</label>
-				</div>
-				<label class="block text-sm">
-					<span class="mb-1 block opacity-70">Descrição / notas</span>
-					<textarea
-						class="min-h-20 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-						[ngModel]="lairActionDraft().description"
-						(ngModelChange)="setLairActionDraft({ description: $event })"
-					></textarea>
-				</label>
-				<div class="grid gap-3 md:grid-cols-2">
-					<label class="text-sm">
-						<span class="mb-1 block opacity-70">Frequência</span>
-						<select
-							class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-							[ngModel]="lairActionDraft().frequency"
-							(ngModelChange)="setLairActionDraft({ frequency: $event })"
-						>
-							<option value="every-round">Todo round</option>
-							<option value="manual">Manual</option>
-							<option value="cooldown-rounds">Cooldown por rounds</option>
-						</select>
-					</label>
-					@if (lairActionDraft().frequency === 'cooldown-rounds') {
-						<label class="text-sm">
-							<span class="mb-1 block opacity-70">Cooldown em rounds</span>
-							<input
-								type="number"
-								min="1"
-								class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-								[ngModel]="lairActionDraft().cooldownRounds"
-								(ngModelChange)="setLairActionDraft({ cooldownRounds: $event })"
-							/>
-						</label>
-					}
-				</div>
-				<div class="flex justify-end">
-					<button
-						class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15"
-						(click)="addLairAction()"
-					>
-						Adicionar lair action
-					</button>
-				</div>
-			</div>
-		</section>
-
-		<section class="border-t border-white/10 p-5 xl:border-t-0">
-			<div class="flex items-center justify-between gap-3">
-				<div><h3 class="text-sm font-semibold text-app-text">Armadilhas e ambiente</h3><p class="mt-1 text-sm text-app-muted">Disparos manuais, de round ou por iniciativa.</p></div>
-				<span class="app-status border border-white/10 bg-white/5 text-app-muted">
-					{{ encounter().traps?.length ?? 0 }} ativa(s)
-				</span>
-			</div>
-
-			<div class="mt-4 space-y-2">
-				@for (trap of encounter().traps ?? []; track trap.id) {
-					<div class="rounded-2xl border border-white/10 bg-black/20 p-3">
-						<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-							<div class="min-w-0 flex-1 space-y-2">
-								<input
-									class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-semibold"
-									[ngModel]="trap.name"
-									(ngModelChange)="updateEncounterTrap(trap.id, { name: $event })"
-								/>
-								<div class="grid gap-3 md:grid-cols-2">
-									<label class="text-sm">
-										<span class="mb-1 block opacity-70">Trigger</span>
-										<select
-											class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="trap.triggerType"
-											(ngModelChange)="updateEncounterTrap(trap.id, { triggerType: $event, initiative: $event === 'initiative' ? trap.initiative ?? 20 : undefined })"
-										>
-											<option value="initiative">Na iniciativa</option>
-											<option value="round-start">Início do round</option>
-											<option value="round-end">Fim do round</option>
-											<option value="manual">Manual</option>
-										</select>
-									</label>
-									@if (trap.triggerType === 'initiative') {
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Iniciativa</span>
-											<input
-												type="number"
-												class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="trap.initiative ?? 20"
-												(ngModelChange)="updateEncounterTrap(trap.id, { initiative: +$event || 20 })"
-											/>
-										</label>
-									}
-								</div>
-								<div class="grid gap-3 md:grid-cols-2">
-									<label class="text-sm">
-										<span class="mb-1 block opacity-70">Frequência</span>
-										<select
-											class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="trap.frequency"
-											(ngModelChange)="updateEncounterTrap(trap.id, { frequency: $event, cooldownRounds: $event === 'cooldown-rounds' ? trap.cooldownRounds ?? 1 : undefined })"
-										>
-											<option value="once">Uma vez</option>
-											<option value="every-round">Todo round</option>
-											<option value="manual">Manual</option>
-											<option value="cooldown-rounds">Cooldown por rounds</option>
-										</select>
-									</label>
-									@if (trap.frequency === 'cooldown-rounds') {
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Cooldown em rounds</span>
-											<input
-												type="number"
-												min="1"
-												class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="trap.cooldownRounds ?? 1"
-												(ngModelChange)="updateEncounterTrap(trap.id, { cooldownRounds: +$event || 1 })"
-											/>
-										</label>
-									}
-								</div>
-								<textarea
-									class="min-h-20 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
-									placeholder="Descrição ou notas"
-									[ngModel]="trap.description ?? ''"
-									(ngModelChange)="updateEncounterTrap(trap.id, { description: ($event || '').trim() ? $event : undefined })"
-								></textarea>
-								<div class="text-xs opacity-65">{{ trapScheduleLabel(trap) }}</div>
-							</div>
-							<button
-								class="app-action-button cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 hover:bg-red-500/20"
-								(click)="removeEncounterTrap(trap.id)"
-							>
-								Remover
-							</button>
-						</div>
-					</div>
-				} @empty {
-					<div class="rounded-2xl border border-dashed border-white/10 bg-black/10 p-4 text-sm opacity-70">
-						Nenhuma armadilha configurada.
-					</div>
-				}
-			</div>
-
-			<div class="mt-4 space-y-3 border-t border-white/10 pt-4">
-				<div class="grid gap-3 md:grid-cols-2">
-					<label class="text-sm">
-						<span class="mb-1 block opacity-70">Nome</span>
-						<input
-							class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-							[ngModel]="trapDraft().name"
-							(ngModelChange)="setTrapDraft({ name: $event })"
-							placeholder="Ex: Dardos da Parede"
-						/>
-					</label>
-					<label class="text-sm">
-						<span class="mb-1 block opacity-70">Trigger</span>
-						<select
-							class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-							[ngModel]="trapDraft().triggerType"
-							(ngModelChange)="setTrapDraftTriggerType($event)"
-						>
-							<option value="initiative">Na iniciativa</option>
-							<option value="round-start">Início do round</option>
-							<option value="round-end">Fim do round</option>
-							<option value="manual">Manual</option>
-						</select>
-					</label>
-				</div>
-				@if (trapDraft().triggerType === 'initiative') {
-					<label class="block text-sm">
-						<span class="mb-1 block opacity-70">Iniciativa</span>
-						<input
-							type="number"
-							class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-							[ngModel]="trapDraft().initiative"
-							(ngModelChange)="setTrapDraft({ initiative: $event })"
-						/>
-					</label>
-				}
-				<label class="block text-sm">
-					<span class="mb-1 block opacity-70">Descrição / notas</span>
-					<textarea
-						class="min-h-20 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-						[ngModel]="trapDraft().description"
-						(ngModelChange)="setTrapDraft({ description: $event })"
-					></textarea>
-				</label>
-				<div class="grid gap-3 md:grid-cols-2">
-					<label class="text-sm">
-						<span class="mb-1 block opacity-70">Frequência</span>
-						<select
-							class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-							[ngModel]="trapDraft().frequency"
-							(ngModelChange)="setTrapDraft({ frequency: $event })"
-						>
-							<option value="once">Uma vez</option>
-							<option value="every-round">Todo round</option>
-							<option value="manual">Manual</option>
-							<option value="cooldown-rounds">Cooldown por rounds</option>
-						</select>
-					</label>
-					@if (trapDraft().frequency === 'cooldown-rounds') {
-						<label class="text-sm">
-							<span class="mb-1 block opacity-70">Cooldown em rounds</span>
-							<input
-								type="number"
-								min="1"
-								class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-								[ngModel]="trapDraft().cooldownRounds"
-								(ngModelChange)="setTrapDraft({ cooldownRounds: $event })"
-							/>
-						</label>
-					}
-				</div>
-				<div class="flex justify-end">
-					<button
-						class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15"
-						(click)="addTrap()"
-					>
-						Adicionar armadilha
-					</button>
-				</div>
-			</div>
-		</section>
-		</div>
-	</section>
-
-	<div class="space-y-3">
-		@for (c of creatures(); track c.id) {
-		<div class="app-panel p-4">
-			<div class="flex items-center gap-3">
-				<input
-					class="flex-1 text-lg font-semibold rounded-xl bg-black/20 border border-white/10 px-3 py-2"
-					[ngModel]="c.name"
-					(ngModelChange)="updateCreature(c.id, { name: $event })"
-				/>
-
-				<button
-					class="px-3 py-2 rounded-xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
-					(click)="toggleExpanded(c.id)"
-				>
-					@if (isExpanded(c.id)) { Recolher } @else { Editar ficha }
-				</button>
-
-				<button
-					class="px-3 py-2 rounded-xl cursor-pointer bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 text-sm"
-					(click)="removeCreature(c.id)"
-				>
-				Remover
-				</button>
-			</div>
-
-			<div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-white/10 pt-3 md:grid-cols-12">
-				<label class="md:col-span-2">
-					<div class="text-[10px] uppercase tracking-wider text-app-muted">Iniciativa</div>
-					<input
-						type="number"
-						class="mt-2 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
-						[ngModel]="c.initiative"
-						(ngModelChange)="updateCreature(c.id, { initiative: $event === '' ? null : +$event })"
-					/>
-				</label>
-
-				<label class="md:col-span-2">
-					<div class="text-[10px] uppercase tracking-wider text-app-muted">CA</div>
-					<input
-						class="mt-2 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
-						[ngModel]="c.armorClass"
-						(ngModelChange)="updateCreature(c.id, { armorClass: $event })"
-					/>
-				</label>
-
-				<div class="col-span-2 md:col-span-5">
-					<div class="text-[10px] uppercase tracking-wider text-app-muted">PV atual / máximo</div>
-					<div class="mt-2 flex items-center gap-2">
-						<input
-							type="number"
-							class="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
-							[ngModel]="c.healthPoints"
-							(ngModelChange)="updateCreature(c.id, { healthPoints: +$event })"
-						/>
-						<span class="opacity-60">/</span>
-						<input
-							type="number"
-							class="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
-							[ngModel]="c.maxHealthPoints"
-							(ngModelChange)="updateCreature(c.id, { maxHealthPoints: +$event })"
-						/>
-					</div>
-				</div>
-
-				<label class="col-span-2 md:col-span-3">
-					<div class="text-[10px] uppercase tracking-wider text-app-muted">PV temporário</div>
-					<input
-						type="number"
-						class="mt-2 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2"
-						[ngModel]="c.temporaryHealthPoints"
-						(ngModelChange)="
-							updateCreature(c.id, { temporaryHealthPoints: $event === '' ? null : +$event })
-						"
-					/>
-				</label>
-			</div>
-
-			@if (isExpanded(c.id)) {
-			<div class="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4">
-				<section class="md:col-span-5 border-b border-white/10 pb-5 md:border-b-0 md:border-r md:pr-5 md:pb-0">
-					<div class="flex items-center justify-between gap-2">
-					<h3 class="text-sm font-semibold text-app-text">Notas</h3>
-					<span class="text-xs text-app-muted">{{ c.notes.length }} item(s)</span>
-					</div>
-
-					<textarea
-						class="mt-3 w-full h-24 rounded-xl bg-black/20 border border-white/10 p-3 text-sm"
-						placeholder="Adicionar uma nota..."
-						[ngModel]="getNoteDraft(c.id)"
-						(ngModelChange)="setNoteDraft(c.id, $event)"
-					></textarea>
-
-					<button
-						class="mt-2 px-3 py-2 rounded-xl cursor-pointer bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
-						(click)="addNote(c.id)"
-					>
-						Adicionar nota
-					</button>
-
-					<div class="mt-3 space-y-2">
-						@for (n of c.notes; track n.id) {
-						<div class="flex gap-2">
-							<input
-								class="flex-1 rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm"
-								[ngModel]="n.text"
-								(ngModelChange)="updateNote(c.id, n.id, { text: $event })"
-							/>
-							<button
-								class="px-3 py-2 rounded-xl cursor-pointer bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 text-sm"
-								(click)="removeNote(c.id, n.id)"
-							>
-								X
-							</button>
-						</div>
-						}
-					</div>
-				</section>
-
-				<section class="md:col-span-7 md:pl-1">
-					<div class="flex items-center justify-between gap-2">
-					<h3 class="text-sm font-semibold text-app-text">Magias e espaços</h3>
-					<span class="text-xs text-app-muted"> {{ spellEntries(c.spells).length }} magias </span>
-					</div>
-
-					@if (c.totalSpellSlots === null || c.usedSpellSlots === null) {
-					<button
-						class="mt-3 px-3 py-2 cursor-pointer rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
-						(click)="enableSpellcasting(c.id)"
-					>
-						Ativar espaços de magia
-					</button>
-					} @else {
-					<div class="mt-3 grid grid-cols-1 gap-2">
-						@for (lvl of SPELL_LEVELS; track lvl) {
-						<div
-							class="grid grid-cols-12 items-center gap-2 border-b border-white/10 py-2 last:border-b-0"
-						>
-							<div class="col-span-2 text-xs opacity-80 font-semibold">{{ lvl }}</div>
-
-							<div class="col-span-5">
-								<div class="text-[10px] uppercase tracking-wider opacity-60">Total</div>
-								<input
-									type="number"
-									class="mt-1 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-sm"
-									[ngModel]="slotValue(c.totalSpellSlots, lvl)"
-									(ngModelChange)="setSpellSlot(c.id, 'total', lvl, $event)"
-								/>
-							</div>
-
-							<div class="col-span-5">
-								<div class="text-[10px] uppercase tracking-wider opacity-60">Used</div>
-								<input
-									type="number"
-									class="mt-1 w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-sm"
-									[ngModel]="slotValue(c.usedSpellSlots, lvl)"
-									(ngModelChange)="setSpellSlot(c.id, 'used', lvl, $event)"
-								/>
-							</div>
-						</div>
-						}
-					</div>
-					}
-
-					<div class="mt-4 border-t border-white/10 pt-4">
-						<div class="text-xs font-semibold text-app-text">Magias conhecidas</div>
-
-						<div class="mt-2 grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
-							<input
-								class="md:col-span-8 rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm"
-								placeholder="Label (e.g. Dispel Magic)"
-								[ngModel]="getSpellDraft(c.id).label"
-								(ngModelChange)="setSpellDraft(c.id, { label: $event })"
-							/>
-							<input
-								type="number"
-								min="1"
-								class="md:col-span-2 rounded-xl bg-black/20 border border-white/10 px-4 py-2 text-sm text-center!"
-								placeholder="Total"
-								[ngModel]="getSpellDraft(c.id).total"
-								(ngModelChange)="setSpellDraft(c.id, { total: +$event })"
-							/>
-							<button
-								class="md:col-span-2 h-10 cursor-pointer w-10 place-self-center inline-flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 shadow-sm shadow-black/20 active:scale-95 transition"
-								(click)="addSpell(c.id)"
-								aria-label="Add spell"
-								title="Add spell"
-							>
-								<span class="text-lg leading-none">+</span>
-							</button>
-						</div>
-						<div class="mt-3 space-y-2">
-							@for (s of spellEntries(c.spells); track s.key) {
-							<div class="grid grid-cols-12 gap-2 items-center">
-								<input
-									class="col-span-9 rounded-2xl bg-black/20 border border-white/10 px-4 py-2 text-sm"
-									[ngModel]="s.value.label"
-									(ngModelChange)="updateSpell(c.id, s.key, { label: $event })"
-								/>
-
-								<input
-									type="number"
-									min="1"
-									class="col-span-2 rounded-2xl cursor-pointer bg-black/20 border border-white/10 px-4 py-2 text-sm text-center"
-									[ngModel]="s.value.total"
-									(ngModelChange)="updateSpell(c.id, s.key, { total: +$event })"
-								/>
-
-								<button
-									class="col-span-1 h-10 w-10 cursor-pointer place-self-center inline-flex items-center justify-center rounded-2xl bg-red-500/15 hover:bg-red-500/20 border border-red-400/20 active:scale-95 transition"
-									(click)="removeSpell(c.id, s.key)"
-									aria-label="Remove spell"
-									title="Remove"
+						</section>
+						<section class="xl:col-span-2">
+							<div class="flex items-center justify-between">
+								<h3 class="font-semibold text-app-text">Magias</h3>
+								<span class="text-sm text-app-muted"
+									>{{ participant.sheet.spells.length }} cadastrada(s)</span
 								>
-									✕
+							</div>
+							<div class="mt-3 space-y-2">
+								@for (spell of participant.sheet.spells; track spell.id) {
+									<div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_100px_100px_120px_auto]">
+										<input
+											class="app-field px-3 py-2"
+											[ngModel]="spell.name"
+											(ngModelChange)="updateSpell(participant.id, spell.id, { name: $event })"
+										/><input
+											type="number"
+											class="app-field px-3 py-2"
+											placeholder="Nível"
+											[ngModel]="spell.level"
+											(ngModelChange)="
+												updateSpell(participant.id, spell.id, {
+													level: $event === '' ? undefined : +$event,
+												})
+											"
+										/><input
+											type="number"
+											class="app-field px-3 py-2"
+											placeholder="Usos"
+											[ngModel]="spell.uses"
+											(ngModelChange)="
+												updateSpell(participant.id, spell.id, {
+													uses: $event === '' ? undefined : +$event,
+												})
+											"
+										/><input
+											class="app-field px-3 py-2"
+											placeholder="Fonte"
+											[ngModel]="spell.source ?? ''"
+											(ngModelChange)="
+												updateSpell(participant.id, spell.id, { source: $event || undefined })
+											"
+										/><button
+											type="button"
+											class="app-button app-button-danger"
+											(click)="removeSpell(participant.id, spell.id)"
+										>
+											X
+										</button>
+									</div>
+								}
+							</div>
+							<div class="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_100px_100px_120px_auto]">
+								<input
+									class="app-field px-3 py-2"
+									placeholder="Nome da magia"
+									[ngModel]="getSpellDraft(participant.id).name"
+									(ngModelChange)="setSpellDraft(participant.id, { name: $event })"
+								/><input
+									type="number"
+									class="app-field px-3 py-2"
+									placeholder="Nível"
+									[ngModel]="getSpellDraft(participant.id).level"
+									(ngModelChange)="
+										setSpellDraft(participant.id, { level: $event === '' ? null : +$event })
+									"
+								/><input
+									type="number"
+									class="app-field px-3 py-2"
+									placeholder="Usos"
+									[ngModel]="getSpellDraft(participant.id).uses"
+									(ngModelChange)="
+										setSpellDraft(participant.id, { uses: $event === '' ? null : +$event })
+									"
+								/><input
+									class="app-field px-3 py-2"
+									placeholder="Fonte"
+									[ngModel]="getSpellDraft(participant.id).source"
+									(ngModelChange)="setSpellDraft(participant.id, { source: $event })"
+								/><button
+									type="button"
+									class="app-button app-button-secondary"
+									(click)="addSpell(participant.id)"
+								>
+									Adicionar
 								</button>
 							</div>
-							}
-						</div>
-					</div>
-				</section>
-
-				<section class="md:col-span-12 border-t border-white/10 pt-5">
-					<div>
-						<h3 class="text-sm font-semibold text-app-text">Habilidades especiais</h3>
-						<p class="mt-1 text-sm text-app-muted">
-							Edite aqui antes da batalha para a criatura já entrar pronta no tracker.
-						</p>
-					</div>
-
-					<div class="mt-4 space-y-3">
-						@for (ability of c.specialAbilities; track ability.id) {
-							<div class="border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
-								<div class="space-y-3">
-									<div class="flex flex-wrap items-center justify-between gap-3"><div class="rounded-xl border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm text-app-muted">{{ abilityStatusPreview(ability) }}</div><button type="button" class="app-button app-button-danger h-10 shrink-0" (click)="removeSpecialAbility(c.id, ability.id)">Remover</button></div>
-									<div class="grid gap-3 md:grid-cols-2">
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Nome</span>
+						</section>
+						<section class="xl:col-span-2">
+							<h3 class="font-semibold text-app-text">Habilidades especiais</h3>
+							<div class="mt-3 space-y-3">
+								@for (ability of participant.sheet.specialAbilities; track ability.id) {
+									<div class="rounded-xl border border-white/10 p-3">
+										<div class="grid gap-2 md:grid-cols-3">
 											<input
-												class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+												class="app-field px-3 py-2"
 												[ngModel]="ability.name"
-												(ngModelChange)="updateSpecialAbility(c.id, ability.id, { name: $event })"
-											/>
-										</label>
-
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Recarga</span>
-											<select
-												class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="ability.rechargeType"
 												(ngModelChange)="
-													updateSpecialAbility(c.id, ability.id, {
-														rechargeType: $event,
-														cooldownTurns: $event === 'turns' ? ability.cooldownTurns ?? 1 : undefined,
-														cooldownRounds: $event === 'rounds' ? ability.cooldownRounds ?? 1 : undefined,
-														rechargeDice: $event === 'dice' ? 'd6' : undefined,
-														rechargeOn: $event === 'dice' ? ability.rechargeOn ?? [5, 6] : undefined
-													})
+													updateSpecialAbility(participant.id, ability.id, { name: $event })
+												"
+											/><select
+												class="app-field px-3 py-2"
+												[ngModel]="ability.recoveryType"
+												(ngModelChange)="
+													updateSpecialAbility(participant.id, ability.id, { recoveryType: $event })
 												"
 											>
-											<option value="manual">Manual</option>
-											<option value="turns">Por turnos</option>
-											<option value="rounds">Por rounds</option>
-											<option value="dice">Recharge por dado</option>
-											<option value="per-day">Usos por dia</option>
-											<option value="short-rest">Descanso curto</option>
-											<option value="long-rest">Descanso longo</option>
-										</select>
-									</label>
-
-										<label class="text-sm md:col-span-2">
-											<span class="mb-1 block opacity-70">Descrição</span>
-											<input
-												class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="ability.description ?? ''"
-												(ngModelChange)="
-													updateSpecialAbility(c.id, ability.id, {
-														description: ($event || '').trim() ? $event : undefined
-													})
-												"
-											/>
-										</label>
-
-										@if (ability.rechargeType === 'turns') {
-											<label class="text-sm">
-												<span class="mb-1 block opacity-70">Volta em turnos</span>
-												<input
-													type="number"
-													min="1"
-													class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="ability.cooldownTurns ?? 1"
-													(ngModelChange)="updateSpecialAbility(c.id, ability.id, { cooldownTurns: $event === '' ? 1 : +$event })"
-												/>
-										</label>
-									}
-
-									@if (ability.rechargeType === 'per-day' || ability.rechargeType === 'short-rest' || ability.rechargeType === 'long-rest') {
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Usos máximos</span>
-											<input
-												type="number"
-												min="1"
-												class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="ability.maxUses ?? 1"
-												(ngModelChange)="updateSpecialAbility(c.id, ability.id, { maxUses: +$event || 1 })"
-											/>
-										</label>
-									}
-
-										@if (ability.rechargeType === 'rounds') {
-											<label class="text-sm">
-												<span class="mb-1 block opacity-70">Volta em rounds</span>
-												<input
-													type="number"
-													min="1"
-													class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="ability.cooldownRounds ?? 1"
-													(ngModelChange)="updateSpecialAbility(c.id, ability.id, { cooldownRounds: $event === '' ? 1 : +$event })"
-												/>
-											</label>
-										}
-
-										@if (ability.rechargeType === 'dice') {
-											<label class="text-sm">
-												<span class="mb-1 block opacity-70">Resultados que recarregam</span>
-												<input
-													class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="(ability.rechargeOn ?? [5, 6]).join(',')"
-													(ngModelChange)="updateSpecialAbility(c.id, ability.id, { rechargeOn: parseRechargeOnInput($event) })"
-												/>
-											</label>
-										}
+												<option value="manual">Manual</option>
+												<option value="turn-cooldown">Por turnos</option>
+												<option value="round-cooldown">Por rounds</option>
+												<option value="uses-per-day">Usos por dia</option>
+												<option value="short-rest">Descanso curto</option>
+												<option value="long-rest">Descanso longo</option>
+												<option value="dice-recharge">Recharge por dado</option></select
+											><button
+												type="button"
+												class="app-button app-button-danger"
+												(click)="removeSpecialAbility(participant.id, ability.id)"
+											>
+												Remover
+											</button>
+										</div>
+										<textarea
+											class="app-field mt-2 min-h-16 w-full px-3 py-2"
+											[ngModel]="ability.description ?? ''"
+											(ngModelChange)="
+												updateSpecialAbility(participant.id, ability.id, {
+													description: $event || undefined,
+												})
+											"
+											placeholder="Descrição"
+										></textarea>
 									</div>
-
-								</div>
+								}
 							</div>
-						} @empty {
-							<div class="border-y border-dashed border-white/10 py-4 text-sm text-app-muted">
-								Nenhuma habilidade especial cadastrada.
-							</div>
-						}
-					</div>
-
-					<div class="mt-4 border-t border-white/10 pt-4">
-						<div class="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,0.9fr)]">
-							<label class="text-sm">
-								<span class="mb-1 block opacity-70">Nome</span>
+							<div class="mt-3 grid gap-2 md:grid-cols-3">
 								<input
-									class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-									placeholder="Ex: Teleporte"
-									[ngModel]="getAbilityDraft(c.id).name"
-									(ngModelChange)="setAbilityDraft(c.id, { name: $event })"
-								/>
-							</label>
-
-							<label class="text-sm">
-								<span class="mb-1 block opacity-70">Descrição</span>
-								<input
-									class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-									placeholder="Opcional"
-									[ngModel]="getAbilityDraft(c.id).description"
-									(ngModelChange)="setAbilityDraft(c.id, { description: $event })"
-								/>
-							</label>
-
-							<label class="text-sm">
-								<span class="mb-1 block opacity-70">Recarga</span>
-								<select
-									class="w-full cursor-pointer rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-									[ngModel]="getAbilityDraft(c.id).rechargeType"
-									(ngModelChange)="setAbilityDraft(c.id, { rechargeType: $event })"
+									class="app-field px-3 py-2"
+									placeholder="Nova habilidade"
+									[ngModel]="getAbilityDraft(participant.id).name"
+									(ngModelChange)="setAbilityDraft(participant.id, { name: $event })"
+								/><select
+									class="app-field px-3 py-2"
+									[ngModel]="getAbilityDraft(participant.id).recoveryType"
+									(ngModelChange)="setAbilityDraft(participant.id, { recoveryType: $event })"
 								>
 									<option value="manual">Manual</option>
-									<option value="turns">Por turnos</option>
-									<option value="rounds">Por rounds</option>
-									<option value="dice">Recharge por dado</option>
-									<option value="per-day">Usos por dia</option>
+									<option value="turn-cooldown">Por turnos</option>
+									<option value="round-cooldown">Por rounds</option>
+									<option value="uses-per-day">Usos por dia</option>
 									<option value="short-rest">Descanso curto</option>
 									<option value="long-rest">Descanso longo</option>
-								</select>
-							</label>
-						</div>
-
-						@if (getAbilityDraft(c.id).rechargeType === 'turns' || getAbilityDraft(c.id).rechargeType === 'rounds') {
-							<label class="mt-3 block text-sm">
-								<span class="mb-1 block opacity-70">
-									@if (getAbilityDraft(c.id).rechargeType === 'turns') { Volta em quantos turnos? } @else { Volta em quantos rounds? }
-								</span>
-								<input
-									type="number"
-									min="1"
-									class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-									[ngModel]="getAbilityDraft(c.id).cooldownValue"
-									(ngModelChange)="setAbilityDraft(c.id, { cooldownValue: +$event || 1 })"
-								/>
-							</label>
-						}
-
-						@if (getAbilityDraft(c.id).rechargeType === 'dice') {
-							<label class="mt-3 block text-sm">
-								<span class="mb-1 block opacity-70">Resultados que recarregam</span>
-								<input
-									class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-									placeholder="Ex: 5,6"
-									[ngModel]="getAbilityDraft(c.id).rechargeOn"
-									(ngModelChange)="setAbilityDraft(c.id, { rechargeOn: $event })"
-								/>
-							</label>
-						}
-
-						@if (getAbilityDraft(c.id).rechargeType === 'per-day' || getAbilityDraft(c.id).rechargeType === 'short-rest' || getAbilityDraft(c.id).rechargeType === 'long-rest') {
-							<label class="mt-3 block text-sm">
-								<span class="mb-1 block opacity-70">Usos máximos</span>
-								<input
-									type="number"
-									min="1"
-									class="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-									[ngModel]="getAbilityDraft(c.id).maxUses"
-									(ngModelChange)="setAbilityDraft(c.id, { maxUses: +$event || 1 })"
-								/>
-							</label>
-						}
-
-						<div class="mt-4 flex justify-end">
-							<button
-								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-								(click)="addSpecialAbility(c.id)"
-							>
-								Adicionar habilidade
-							</button>
-						</div>
+									<option value="dice-recharge">Recharge por dado</option></select
+								><button
+									type="button"
+									class="app-button app-button-secondary"
+									(click)="addSpecialAbility(participant.id)"
+								>
+									Adicionar
+								</button>
+							</div>
+							<textarea
+								class="app-field mt-2 min-h-16 w-full px-3 py-2"
+								placeholder="Descrição"
+								[ngModel]="getAbilityDraft(participant.id).description"
+								(ngModelChange)="setAbilityDraft(participant.id, { description: $event })"
+							></textarea>
+						</section>
 					</div>
-				</section>
-			</div>
-			}
-		</div>
-		}
-	</div>
-
-	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-		<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
-		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-			<div class="min-w-0">
-					<div class="text-sm font-semibold opacity-90">Importar encounter legado</div>
-					<div class="text-xs opacity-60">Use apenas para um encounter isolado. O backup completo fica na sidebar.</div>
-				</div>
-
-			<button
-				class="app-action-button shrink-0 cursor-pointer rounded-2xl border border-white/10 bg-white/10 transition hover:bg-white/15"
-					(click)="importOpen.set(!importOpen())"
-				>
-					@if (importOpen()) { Hide } @else { Open }
-				</button>
-			</div>
-
-			@if (importOpen()) {
-			<div class="mt-3 space-y-3">
-				<input
-					type="file"
-					accept="application/json,.json"
-					class="block w-full text-sm opacity-90 file:mr-3 file:h-10 file:px-4 file:rounded-2xl file:bg-white/10 file:hover:bg-white/15 file:border file:border-white/10 file:text-sm file:cursor-pointer"
-					(change)="onFileSelected($event)"
-				/>
-
-				<textarea
-					class="w-full h-40 rounded-2xl bg-black/20 border border-white/10 p-3 font-mono text-xs"
-					placeholder="Cole aqui o JSON do dndbattletracker..."
-					[ngModel]="importText()"
-					(ngModelChange)="importText.set($event)"
-				></textarea>
-
-				<div class="app-action-group">
-					<button
-						class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 transition hover:bg-white/15"
-						(click)="importFromTextarea()"
-					>
-						Importar encounter
-					</button>
-
-					<button
-						class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 transition hover:bg-white/15"
-						(click)="clearImport()"
-					>
-						Clear
-					</button>
-				</div>
-
-				@if (ioMsg()) {
-				<div
-					class="rounded-2xl border p-3 text-sm"
-					[ngClass]="{
-						'border-emerald-400/30': ioMsg()!.type === 'success',
-						'bg-emerald-500/10': ioMsg()!.type === 'success',
-						'border-red-400/30': ioMsg()!.type === 'error',
-						'bg-red-500/10': ioMsg()!.type === 'error',
-						'border-yellow-400/30': ioMsg()!.type === 'warn',
-						'bg-yellow-500/10': ioMsg()!.type === 'warn'
-					}"
-				>
-					{{ ioMsg()!.text }}
-				</div>
 				}
+			</article>
+		} @empty {
+			<div class="app-panel border-dashed p-6 text-center text-app-muted">
+				Nenhum participante adicionado.
 			</div>
-			}
-		</div>
+		}
+	</section>
 
-		<div class="rounded-2xl bg-white/5 border border-white/10 p-4">
-			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<div class="min-w-0">
-					<div class="text-sm font-semibold opacity-90">Exportar encounter</div>
-					<div class="text-xs opacity-60">Ação específica deste encounter. Para o projeto inteiro, use Exportar tudo.</div>
-				</div>
-
-				<div class="app-action-group w-full shrink-0 sm:w-auto sm:justify-end">
-					<button
-						class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 transition hover:bg-white/15"
-						(click)="downloadExport()"
-					>
-						Baixar JSON
-					</button>
-
-					<button
-						class="h-10 w-10 inline-flex cursor-pointer items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
-						(click)="copyExportJson()"
-						title="Copy JSON"
-						aria-label="Copy JSON"
-					>
-						⧉
-					</button>
-
-					<button
-						class="app-action-button cursor-pointer rounded-2xl border border-white/10 bg-white/10 transition hover:bg-white/15"
-						(click)="exportOpen.set(!exportOpen())"
-					>
-						@if (exportOpen()) { Fechar preview } @else { Ver preview }
-					</button>
-				</div>
+	<section class="app-panel p-5">
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<div>
+				<div class="app-eyebrow">Configuração de combate</div>
+				<h3 class="mt-1 text-lg font-semibold text-app-text">Eventos do encounter</h3>
 			</div>
-
-			@if (exportOpen()) {
-			<textarea
-				class="mt-3 w-full h-64 rounded-2xl bg-black/20 border border-white/10 p-3 font-mono text-xs"
-				readonly
-				>{{ exportJson() }}</textarea
+			<span class="app-status border border-app-divider bg-app-inset"
+				>{{ encounter().lairActions.length + encounter().traps.length }} eventos</span
 			>
-			}
 		</div>
-	</div>
+		<div class="mt-4 grid gap-6 xl:grid-cols-2">
+			<section>
+				<h4 class="font-semibold text-app-text">Lair actions</h4>
+				<div class="mt-3 space-y-2">
+					@for (action of encounter().lairActions; track action.id) {
+						<div class="rounded-xl border border-white/10 p-3">
+							<div class="grid gap-2 md:grid-cols-3">
+								<input
+									class="app-field px-3 py-2"
+									[ngModel]="action.name"
+									(ngModelChange)="updateLairAction(action.id, { name: $event })"
+								/><input
+									type="number"
+									class="app-field px-3 py-2"
+									[ngModel]="action.initiative"
+									(ngModelChange)="updateLairAction(action.id, { initiative: +$event || 20 })"
+								/><button
+									type="button"
+									class="app-button app-button-danger"
+									(click)="removeLairAction(action.id)"
+								>
+									Remover
+								</button>
+							</div>
+							<textarea
+								class="app-field mt-2 min-h-16 w-full px-3 py-2"
+								[ngModel]="action.description ?? ''"
+								(ngModelChange)="updateLairAction(action.id, { description: $event || undefined })"
+							></textarea>
+						</div>
+					}
+				</div>
+				<div class="mt-3 grid gap-2 md:grid-cols-3">
+					<input
+						class="app-field px-3 py-2"
+						placeholder="Nome"
+						[ngModel]="lairActionDraft().name"
+						(ngModelChange)="setLairActionDraft({ name: $event })"
+					/><input
+						type="number"
+						class="app-field px-3 py-2"
+						placeholder="Iniciativa"
+						[ngModel]="lairActionDraft().initiative"
+						(ngModelChange)="setLairActionDraft({ initiative: $event })"
+					/><button type="button" class="app-button app-button-secondary" (click)="addLairAction()">
+						Adicionar
+					</button>
+				</div>
+			</section>
+			<section>
+				<h4 class="font-semibold text-app-text">Armadilhas</h4>
+				<div class="mt-3 space-y-2">
+					@for (trap of encounter().traps; track trap.id) {
+						<div class="rounded-xl border border-white/10 p-3">
+							<div class="grid gap-2 md:grid-cols-3">
+								<input
+									class="app-field px-3 py-2"
+									[ngModel]="trap.name"
+									(ngModelChange)="updateTrap(trap.id, { name: $event })"
+								/><select
+									class="app-field px-3 py-2"
+									[ngModel]="trap.triggerType"
+									(ngModelChange)="updateTrap(trap.id, { triggerType: $event })"
+								>
+									<option value="manual">Manual</option>
+									<option value="initiative">Iniciativa</option>
+									<option value="round-start">Início do round</option>
+									<option value="round-end">Fim do round</option></select
+								><button
+									type="button"
+									class="app-button app-button-danger"
+									(click)="removeTrap(trap.id)"
+								>
+									Remover
+								</button>
+							</div>
+							<textarea
+								class="app-field mt-2 min-h-16 w-full px-3 py-2"
+								[ngModel]="trap.description ?? ''"
+								(ngModelChange)="updateTrap(trap.id, { description: $event || undefined })"
+							></textarea>
+						</div>
+					}
+				</div>
+				<div class="mt-3 grid gap-2 md:grid-cols-3">
+					<input
+						class="app-field px-3 py-2"
+						placeholder="Nome"
+						[ngModel]="trapDraft().name"
+						(ngModelChange)="setTrapDraft({ name: $event })"
+					/><select
+						class="app-field px-3 py-2"
+						[ngModel]="trapDraft().triggerType"
+						(ngModelChange)="setTrapDraft({ triggerType: $event })"
+					>
+						<option value="manual">Manual</option>
+						<option value="initiative">Iniciativa</option>
+						<option value="round-start">Início do round</option>
+						<option value="round-end">Fim do round</option></select
+					><button type="button" class="app-button app-button-secondary" (click)="addTrap()">
+						Adicionar
+					</button>
+				</div>
+			</section>
+		</div>
+	</section>
 </div>
 
 @if (homebrewModalOpen()) {
-<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeHomebrewModal()">
+	<div
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-center justify-center bg-black/70 p-4"
+		(click)="closeHomebrewModal()"
+	>
 		<section
 			role="dialog"
 			aria-modal="true"
-			aria-labelledby="homebrew-import-title"
 			[appDialogFocus]="true"
 			(appDialogEscape)="closeHomebrewModal()"
-			class="app-dialog w-full max-w-4xl bg-app-surface-raised"
+			class="app-dialog w-full max-w-3xl p-5"
 			(click)="$event.stopPropagation()"
 		>
-			<!-- Header -->
-			<div class="p-4 border-b border-white/10 flex items-start justify-between gap-3">
-				<div class="min-w-0">
-					<h2 id="homebrew-import-title" class="text-lg font-semibold">Import Homebrew Sheets</h2>
-					<div class="text-xs opacity-70">
-						Use <b>Use</b> pra preencher o draft • <b>Add</b> adiciona direto (usa o Qty do draft).
-					</div>
-				</div>
-
-				<div class="flex gap-2 shrink-0">
-					<button
-						class="h-10 px-3 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
-						(click)="clearHomebrewFilters()"
-						title="Clear filters"
-					>
-						Clear
-					</button>
-					<button
-						class="h-10 w-10 inline-flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
-						data-dialog-initial-focus
-						(click)="closeHomebrewModal()"
-						aria-label="Close"
-						title="Close"
-					>
-						✕
-					</button>
-				</div>
-			</div>
-
-			<!-- Body -->
-			<div class="p-4 space-y-4">
-				<!-- Search -->
-				<input
-					class="w-full rounded-2xl bg-black/20 border border-white/10 px-4 py-3"
-					placeholder="Search (title, name, tags, category, source)..."
-					[value]="sheetQ()"
-					(input)="sheetQ.set($any($event.target).value || '')"
-				/>
-
-				<!-- Filters row -->
-				<div class="flex flex-col gap-3">
-					<!-- Category chips -->
-					<div class="flex flex-wrap items-center gap-2">
-						<span class="text-xs opacity-60 mr-1">Category:</span>
-
-						<button
-							type="button"
-							class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] border transition"
-							[ngClass]="{
-								'bg-white/15': sheetCategoryFilter() === 'all',
-								'border-white/25': sheetCategoryFilter() === 'all',
-								'bg-white/5': sheetCategoryFilter() !== 'all',
-								'border-white/10': sheetCategoryFilter() !== 'all'
-							}"
-							(click)="setCategoryFilter('all')"
-						>
-							ALL
-						</button>
-
-						<button
-							type="button"
-							[class]="categoryChipClass('monster', sheetCategoryFilter() === 'monster')"
-							(click)="setCategoryFilter('monster')"
-						>
-							MONSTER
-						</button>
-
-						<button
-							type="button"
-							[class]="categoryChipClass('npc', sheetCategoryFilter() === 'npc')"
-							(click)="setCategoryFilter('npc')"
-						>
-							NPC
-						</button>
-
-						<button
-							type="button"
-							[class]="categoryChipClass('pc', sheetCategoryFilter() === 'pc')"
-							(click)="setCategoryFilter('pc')"
-						>
-							PC
-						</button>
-
-						<button
-							type="button"
-							[class]="categoryChipClass('other', sheetCategoryFilter() === 'other')"
-							(click)="setCategoryFilter('other')"
-						>
-							OTHER
-						</button>
-					</div>
-
-					<!-- Source chips -->
-					@if (availableSources().length) {
-					<div class="flex flex-wrap items-center gap-2">
-						<span class="text-xs opacity-60 mr-1">Source:</span>
-
-						@for (src of availableSources(); track src) {
-						<button
-							type="button"
-							[class]="chipNeutralClass(sheetSourceFilter() === src)"
-							(click)="toggleSourceFilter(src)"
-							title="Filtrar por source"
-						>
-							SRC: <span class="font-semibold ml-1">{{ src }}</span>
-						</button>
-						}
-					</div>
-					}
-
-					<!-- Top tags -->
-					@if (topTags().length) {
-					<div class="flex flex-wrap items-center gap-2">
-						<span class="text-xs opacity-60 mr-1">Tags:</span>
-
-						@for (t of topTags(); track t) {
-						<button
-							type="button"
-							[class]="tagChipClass(sheetTagFilter() === t)"
-							(click)="toggleTagFilter(t)"
-							title="Filtrar por tag"
-						>
-							#{{ t }}
-						</button>
-						}
-					</div>
-					}
-				</div>
-
-				<!-- Results -->
-				<div class="flex items-center justify-between">
-					<div class="text-xs opacity-70">
-						Showing <b>{{ filteredHomebrewSheets().length }}</b> of
-						<b>{{ homebrewSheets().length }}</b>
-					</div>
-				</div>
-
-				<div class="max-h-[55vh] overflow-auto pr-1 space-y-2">
-					@if (filteredHomebrewSheets().length === 0) {
-					<div class="rounded-2xl bg-white/5 border border-white/10 p-4 opacity-80">
-						Nenhuma ficha encontrada.
-					</div>
-					} @else { @for (s of filteredHomebrewSheets(); track s.id) {
-					<div
-						class="rounded-2xl bg-white/5 border border-white/10 p-3 flex items-start justify-between gap-3"
-					>
-						<div class="min-w-0">
-							<div class="font-semibold truncate">{{ s.title }}</div>
-							<div class="text-xs opacity-70 truncate">{{ s.data.name }}</div>
-
-							<div class="mt-2 flex flex-wrap gap-2 items-center">
-								<span [class]="categoryChipClass(sheetCategory(s))">
-									{{ sheetCategory(s) | uppercase }}
-								</span>
-
-								@if (sheetSource(s)) {
-								<span [class]="chipNeutralClass(sheetSourceFilter() === sheetSource(s))">
-									SRC: <span class="font-semibold ml-1">{{ sheetSource(s) }}</span>
-								</span>
-								}
-
-								<span
-									class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] border border-white/10 bg-black/20 text-white/70"
-								>
-									Updated: {{ s.updatedAt | date : 'short' }}
-								</span>
-							</div>
-
-							@if (sheetTags(s).length) {
-							<div class="mt-2 flex flex-wrap gap-2">
-								@for (t of sheetTags(s); track t) {
-								<button
-									type="button"
-									[class]="tagChipClass(sheetTagFilter() === t)"
-									(click)="toggleTagFilter(t)"
-									title="Filtrar por tag"
-								>
-									#{{ t }}
-								</button>
-								}
-							</div>
-							}
-						</div>
-
-						<div class="flex gap-2 shrink-0">
-							<button
-								class="h-10 px-3 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
-								(click)="useSheetInDraft(s.id)"
-								title="Preenche o draft"
-							>
-								Use
-							</button>
-
-							<button
-								class="h-10 px-3 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
-								(click)="addFromSheet(s.id)"
-								title="Adiciona direto no encounter (usa Qty do draft)"
-							>
-								Add
-							</button>
-						</div>
-					</div>
-					} }
-				</div>
-			</div>
-
-			<!-- Footer -->
-			<div class="p-4 border-t border-white/10 flex items-center justify-between">
-				<div class="text-xs opacity-60">Dica: clique em tags/source pra filtrar rapidão.</div>
-
-				<button
-					class="h-10 px-4 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
-					(click)="closeHomebrewModal()"
-				>
-					Done
+			<div class="flex items-center justify-between">
+				<h2 class="text-xl font-semibold">Importar Homebrew</h2>
+				<button type="button" class="app-button app-button-ghost" (click)="closeHomebrewModal()">
+					Fechar
 				</button>
 			</div>
+			<input
+				class="app-field mt-4 w-full px-3 py-2"
+				placeholder="Buscar ficha"
+				[ngModel]="sheetQ()"
+				(ngModelChange)="sheetQ.set($event)"
+			/>
+			<div class="mt-4 max-h-[55vh] space-y-2 overflow-auto">
+				@for (sheet of filteredHomebrewSheets(); track sheet.id) {
+					<div
+						class="flex items-center justify-between gap-3 rounded-xl border border-white/10 p-3"
+					>
+						<div>
+							<div class="font-semibold">{{ sheet.title }}</div>
+							<div class="text-sm text-app-muted">{{ sheet.data.name }} · {{ sheet.category }}</div>
+						</div>
+						<div class="flex gap-2">
+							<button
+								type="button"
+								class="app-button app-button-ghost"
+								(click)="useSheetInDraft(sheet.id)"
+							>
+								Usar</button
+							><button
+								type="button"
+								class="app-button app-button-primary"
+								(click)="addFromSheet(sheet.id)"
+							>
+								Adicionar
+							</button>
+						</div>
+					</div>
+				} @empty {
+					<p class="text-app-muted">Nenhuma ficha encontrada.</p>
+				}
+			</div>
 		</section>
-</div>
-<div class="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-app-surface/95 p-3 backdrop-blur md:hidden"><div class="mx-auto flex max-w-[1480px] gap-2"><button type="button" class="app-button app-button-ghost flex-1" (click)="save()">Salvar</button><button type="button" class="app-button app-button-primary flex-1" (click)="saveAndStartBattle()">Iniciar batalha</button></div></div>
-} @if (unsavedChangesModal()) {
-<div class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="stayOnPage()"><section role="dialog" aria-modal="true" aria-labelledby="encounter-unsaved-title" class="w-full max-w-lg rounded-app-shell border border-amber-400/25 bg-app-surface-raised p-5 shadow-app-modal sm:p-6" (click)="$event.stopPropagation()"><div class="flex items-start justify-between gap-3"><div><div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100">Alterações pendentes</div><h2 id="encounter-unsaved-title" class="mt-1 text-xl font-semibold text-app-text">Descartar alterações?</h2></div><button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" (click)="stayOnPage()" aria-label="Fechar confirmação"><svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg></button></div><p class="mt-3 text-sm leading-6 text-app-muted">As alterações deste encounter não foram salvas e serão perdidas ao sair.</p><div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" class="app-button app-button-ghost w-full sm:w-auto" (click)="stayOnPage()">Continuar editando</button><button type="button" class="app-button app-button-danger w-full sm:w-auto" (click)="discardChanges()">Descartar alterações</button></div></section></div>
-} @if (toast(); as t) {
-<div class="pointer-events-none fixed right-4 top-4 z-[55]"><div class="app-toast pointer-events-auto max-w-sm border px-4 py-3" [class.border-emerald-400/30]="t.type === 'success'" [class.border-red-400/30]="t.type === 'error'" [class.border-amber-400/30]="t.type === 'warn'" role="status" aria-live="polite"><div class="flex items-start gap-3"><div class="app-toast-icon shrink-0" [class.bg-emerald-500/15]="t.type === 'success'" [class.text-emerald-200]="t.type === 'success'" [class.bg-red-500/15]="t.type === 'error'" [class.text-rose-200]="t.type === 'error'" [class.bg-amber-500/15]="t.type === 'warn'" [class.text-amber-100]="t.type === 'warn'">@if (t.type === 'success') { <svg lucideCircleCheck [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else if (t.type === 'error') { <svg lucideCircleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else { <svg lucideTriangleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> }</div><div class="min-w-0 flex-1"><div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">@if (t.type === 'success') { Concluído } @else if (t.type === 'error') { Não foi possível concluir } @else { Atenção }</div><div class="mt-1 text-sm leading-5 text-app-text">{{ t.text }}</div></div><button type="button" class="app-toast-dismiss shrink-0" (click)="toast.set(null)" aria-label="Fechar mensagem"><svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg></button></div></div></div>
-} @if (apiModalOpen()) {
-<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeApiModal()">
+	</div>
+}
+
+@if (apiModalOpen()) {
+	<div
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-center justify-center bg-black/70 p-4"
+		(click)="closeApiModal()"
+	>
 		<section
 			role="dialog"
 			aria-modal="true"
-			aria-labelledby="api-import-title"
 			[appDialogFocus]="true"
 			(appDialogEscape)="closeApiModal()"
-			class="app-dialog w-full max-w-4xl bg-app-surface-raised"
+			class="app-dialog w-full max-w-3xl p-5"
 			(click)="$event.stopPropagation()"
 		>
-			<!-- Header -->
-			<div class="p-4 border-b border-white/10 flex items-start justify-between gap-3">
-				<div class="min-w-0">
-					<h2 id="api-import-title" class="text-lg font-semibold">Import API Bestiary</h2>
-					<div class="text-xs opacity-70">
-						Lista vem com <b>name/index</b> • detalhes carregam ao clicar em <b>Use/Add</b>.
-					</div>
-				</div>
-
-				<button
-					class="h-10 w-10 inline-flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
-					data-dialog-initial-focus
-					(click)="closeApiModal()"
-					aria-label="Close"
-					title="Close"
-				>
-					✕
+			<div class="flex items-center justify-between">
+				<h2 class="text-xl font-semibold">Bestiário da API</h2>
+				<button type="button" class="app-button app-button-ghost" (click)="closeApiModal()">
+					Fechar
 				</button>
 			</div>
-
-			<!-- Body -->
-			<div class="p-4 space-y-4">
-				<input
-					class="w-full rounded-2xl bg-black/20 border border-white/10 px-4 py-3"
-					placeholder="Search monster (name or index)..."
-					[value]="apiQ()"
-					(input)="apiQ.set($any($event.target).value || '')"
-				/>
-
-				@if (apiLoading()) {
-				<div class="rounded-2xl bg-white/5 border border-white/10 p-4 opacity-80">
-					Carregando bestiário...
-				</div>
-				} @else if (apiError()) {
-				<div class="rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm">
-					{{ apiError() }}
-				</div>
-				} @else {
-				<div class="flex items-center justify-between">
-					<div class="text-xs opacity-70">
-						Showing <b>{{ filteredApiMonsters().length }}</b> of <b>{{ apiMonsters().length }}</b>
-					</div>
-				</div>
-
-				<div class="max-h-[55vh] overflow-auto pr-1 space-y-2">
-					@if (filteredApiMonsters().length === 0) {
-					<div class="rounded-2xl bg-white/5 border border-white/10 p-4 opacity-80">
-						Nenhum monstro encontrado.
-					</div>
-					} @else { @for (m of filteredApiMonsters(); track m.index) {
-					<div
-						class="rounded-2xl bg-white/5 border border-white/10 p-3 flex items-start justify-between gap-3"
-					>
-						<div class="min-w-0">
-							<div class="font-semibold truncate">{{ m.name }}</div>
-							<div class="text-xs opacity-70 truncate">Index: {{ m.index }}</div>
+			<input
+				class="app-field mt-4 w-full px-3 py-2"
+				placeholder="Buscar monstro"
+				[ngModel]="apiQ()"
+				(ngModelChange)="apiQ.set($event)"
+			/>
+			@if (apiLoading()) {
+				<p class="mt-4 text-app-muted">Carregando bestiário...</p>
+			} @else if (apiError()) {
+				<p class="mt-4 text-rose-200">{{ apiError() }}</p>
+			} @else {
+				<div class="mt-4 max-h-[55vh] space-y-2 overflow-auto">
+					@for (monster of filteredApiMonsters(); track monster.index) {
+						<div
+							class="flex items-center justify-between gap-3 rounded-xl border border-white/10 p-3"
+						>
+							<span class="font-semibold">{{ monster.name }}</span>
+							<div class="flex gap-2">
+								<button
+									type="button"
+									class="app-button app-button-ghost"
+									(click)="useApiInDraft(monster)"
+								>
+									Usar</button
+								><button
+									type="button"
+									class="app-button app-button-primary"
+									(click)="addFromApi(monster)"
+								>
+									Adicionar
+								</button>
+							</div>
 						</div>
-
-						<div class="flex gap-2 shrink-0">
-							<button
-								class="h-10 px-3 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
-								(click)="useApiInDraft(m)"
-								title="Preenche o draft"
-							>
-								Use
-							</button>
-
-							<button
-								class="h-10 px-3 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm"
-								(click)="addFromApi(m)"
-								title="Adiciona direto no encounter (usa Qty do draft)"
-							>
-								Add
-							</button>
-						</div>
-					</div>
-					} }
+					}
 				</div>
-				}
-			</div>
+			}
+		</section>
+	</div>
+}
 
-			<!-- Footer -->
-			<div class="p-4 border-t border-white/10 flex items-center justify-between">
-				<div class="text-xs opacity-60">
-					Dica: “Use” já preenche HP/AC e tenta puxar slots de Spellcasting.
-				</div>
-
-				<button
-					class="h-10 px-4 cursor-pointer rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10"
-					(click)="closeApiModal()"
-				>
-					Done
+@if (unsavedChangesModal()) {
+	<div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+		<section class="app-dialog w-full max-w-lg p-5">
+			<h2 class="text-xl font-semibold">Descartar alterações?</h2>
+			<p class="mt-2 text-app-muted">As alterações não salvas serão perdidas.</p>
+			<div class="mt-5 flex justify-end gap-2">
+				<button type="button" class="app-button app-button-ghost" (click)="stayOnPage()">
+					Continuar editando</button
+				><button type="button" class="app-button app-button-danger" (click)="discardChanges()">
+					Descartar
 				</button>
 			</div>
 		</section>
-</div>
+	</div>
+}
+@if (toast(); as message) {
+	<div class="fixed right-4 top-4 z-[55] app-toast border px-4 py-3" role="status">
+		{{ message.text }}
+	</div>
 }

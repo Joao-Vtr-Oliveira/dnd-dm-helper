@@ -387,7 +387,7 @@ export class HomebrewSheets {
 		const payload = {
 			app: 'dnd-dm-helper',
 			type: 'homebrew-sheets',
-			schemaVersion: 1,
+			schemaVersion: 2,
 			exportedAt: new Date().toISOString(),
 			sheets: [
 				{

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import type { EncounterTemplate } from '../../models/battle-encounter-model';
+import type { Encounter } from '../../models/encounter-model';
 import { BattleEncounterService } from '../battle-encounter-service/battle-encounter-service';
 import { BattleUpcomingEventsService } from './battle-upcoming-events-service';
 
@@ -8,78 +8,39 @@ describe('BattleUpcomingEventsService', () => {
 	let battleService: BattleEncounterService;
 	let service: BattleUpcomingEventsService;
 
-	const template: EncounterTemplate = {
+	const encounter: Encounter = {
+		schemaVersion: 1,
+		type: 'dnd-dm-helper-encounter',
 		id: 'enc-timeline',
-		name: 'Timeline Test',
-		data: {
-			creatures: [
+		title: 'Timeline Test',
+		createdAt: Date.parse('2026-01-01T10:00:00.000Z'),
+		updatedAt: Date.parse('2026-01-01T10:00:00.000Z'),
+		tags: [],
+		participants: [
 				{
-					id: 1,
+					id: 'participant-chief',
 					name: 'Goblin Chefe',
 					initiative: 18,
-					healthPoints: 20,
-					maxHealthPoints: 20,
-					armorClass: 14,
-					temporaryHealthPoints: 0,
-					alive: true,
-					conditions: [],
-					notes: [],
-					shared: true,
-					hitPointsShared: true,
-					totalSpellSlots: null,
-					usedSpellSlots: null,
-					spells: {},
-					specialAbilities: [],
-					sheetFeatures: [],
+					category: 'monster',
+					sheet: { name: 'Goblin Chefe', armorClass: 14, maxHp: 20, spellSlots: [], spells: [], specialAbilities: [], features: [] },
 				},
 				{
-					id: 2,
+					id: 'participant-rosa',
 					name: 'Rosa',
 					initiative: 14,
-					healthPoints: 24,
-					maxHealthPoints: 24,
-					armorClass: 15,
-					temporaryHealthPoints: 0,
-					alive: true,
-					conditions: [],
-					notes: [],
-					shared: true,
-					hitPointsShared: true,
-					totalSpellSlots: null,
-					usedSpellSlots: null,
-					spells: {},
-					specialAbilities: [],
-					sheetFeatures: [],
 					category: 'pc',
+					sheet: { name: 'Rosa', armorClass: 15, maxHp: 24, spellSlots: [], spells: [], specialAbilities: [], features: [] },
 				},
 				{
-					id: 3,
+					id: 'participant-orc',
 					name: 'Orc Bruto',
 					initiative: 10,
-					healthPoints: 30,
-					maxHealthPoints: 30,
-					armorClass: 13,
-					temporaryHealthPoints: 0,
-					alive: true,
-					conditions: [],
-					notes: [],
-					shared: true,
-					hitPointsShared: true,
-					totalSpellSlots: null,
-					usedSpellSlots: null,
-					spells: {},
-					specialAbilities: [],
-					sheetFeatures: [],
+					category: 'monster',
+					sheet: { name: 'Orc Bruto', armorClass: 13, maxHp: 30, spellSlots: [], spells: [], specialAbilities: [], features: [] },
 				},
 			],
-			creatureIdCount: 3,
-			round: 0,
-			battleCreated: false,
-			shareEnabled: false,
-			battleTrackerVersion: '5.123.0',
-			sharedTimestamp: null,
-			loaded: true,
-		},
+		lairActions: [],
+		traps: [],
 	};
 
 	beforeEach(() => {
@@ -91,7 +52,7 @@ describe('BattleUpcomingEventsService', () => {
 	});
 
 	it('ignores defeated combatants in upcoming turn events', () => {
-		const battle = battleService.createBattleFromEncounter(template);
+		const battle = battleService.createBattleFromEncounter(encounter);
 		const defeated = battleService.setCombatantDefeated(battle, battle.combatants[1].id, true);
 		const events = service.buildUpcomingBattleEvents(defeated, 6);
 
@@ -100,7 +61,7 @@ describe('BattleUpcomingEventsService', () => {
 	});
 
 	it('projects the three turns after the current combatant across round boundaries', () => {
-		const battle = battleService.createBattleFromEncounter(template);
+		const battle = battleService.createBattleFromEncounter(encounter);
 		const turns = service.buildUpcomingTurnEvents(battle, 3);
 
 		expect(turns.map((event) => event.combatantId)).toEqual([
@@ -112,25 +73,13 @@ describe('BattleUpcomingEventsService', () => {
 	});
 
 	it('includes pending combatants when they join on the next round', () => {
-		const battle = battleService.createBattleFromEncounter(template);
-		const withPending = battleService.addCombatantFromCreature(battle, {
-			id: 4,
+		const battle = battleService.createBattleFromEncounter(encounter);
+		const withPending = battleService.addCombatantFromParticipant(battle, {
+			id: 'participant-dodman',
 			name: 'Dodman',
 			initiative: 16,
-			healthPoints: 20,
-			maxHealthPoints: 20,
-			armorClass: 14,
-			temporaryHealthPoints: 0,
-			alive: true,
-			conditions: [],
-			notes: [],
-			shared: true,
-			hitPointsShared: true,
-			totalSpellSlots: null,
-			usedSpellSlots: null,
-			spells: {},
-			specialAbilities: [],
-			sheetFeatures: [],
+			category: 'monster',
+			sheet: { name: 'Dodman', armorClass: 14, maxHp: 20, spellSlots: [], spells: [], specialAbilities: [], features: [] },
 		});
 
 		const turns = service.buildUpcomingTurnEvents(withPending, 4);
@@ -138,7 +87,7 @@ describe('BattleUpcomingEventsService', () => {
 	});
 
 	it('shows conditions that are about to expire', () => {
-		const battle = battleService.createBattleFromEncounter(template);
+		const battle = battleService.createBattleFromEncounter(encounter);
 		const withCondition = battleService.addCondition(battle, battle.combatants[0].id, {
 			name: 'blessed',
 			label: 'Abençoado',
@@ -151,7 +100,7 @@ describe('BattleUpcomingEventsService', () => {
 	});
 
 	it('shows ability cooldown recovery in the timeline', () => {
-		const battle = battleService.createBattleFromEncounter(template);
+		const battle = battleService.createBattleFromEncounter(encounter);
 		const withAbility = battleService.addSpecialAbility(battle, battle.combatants[0].id, {
 			name: 'Sopro Flamejante',
 			recoveryType: 'turn-cooldown',
@@ -165,7 +114,7 @@ describe('BattleUpcomingEventsService', () => {
 	});
 
 	it('shows lair actions without treating them as combatants', () => {
-		const battle = battleService.createBattleFromEncounter(template);
+		const battle = battleService.createBattleFromEncounter(encounter);
 		const withLairAction = battleService.addLairAction(battle, {
 			name: 'Olho do Covil',
 			initiative: 20,
@@ -179,10 +128,8 @@ describe('BattleUpcomingEventsService', () => {
 
 	it('does not show manual traps as upcoming automatic events', () => {
 		const battle = battleService.createBattleFromEncounter({
-			...template,
-			data: {
-				...template.data,
-				traps: [
+			...encounter,
+			traps: [
 					{
 						id: 'manual-trap',
 						name: 'Pressure Plate',
@@ -199,8 +146,7 @@ describe('BattleUpcomingEventsService', () => {
 						active: true,
 						frequency: 'every-round',
 					},
-				],
-			},
+			],
 		});
 		const events = service.buildUpcomingBattleEvents(battle, 8);
 

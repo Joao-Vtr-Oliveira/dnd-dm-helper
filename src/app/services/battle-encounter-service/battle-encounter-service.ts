@@ -17,19 +17,20 @@ import type {
 	BattleTurnLogEntry,
 	BattleTurnSnapshot,
 	BattleTurnSnapshotState,
-	EncounterTemplate,
 } from '../../models/battle-encounter-model';
 import type {
-	ConditionInterface,
 	CreatureCategory,
 	CreatureFeature,
-	CreatureInterface,
-	EncounterLairAction,
-	EncounterTrap,
 	CreatureSpecialAbility,
-	SpellInterface,
-	SpellsByKey,
-} from '../../models/battleTracker-model';
+	CreatureSpell,
+	CreatureSpellSlot,
+} from '../../models/creature-sheet-model';
+import type {
+	Encounter,
+	EncounterLairAction,
+	EncounterParticipant,
+	EncounterTrap,
+} from '../../models/encounter-model';
 import {
 	BattleConditionService,
 	type CreateBattleConditionInput,
@@ -59,6 +60,7 @@ type AddCombatantOverrides = {
 	category?: CreatureCategory;
 	pendingAdd?: boolean;
 	joinsAtRound?: number;
+	sourceParticipantId?: string;
 	sourceSheetId?: string;
 };
 
@@ -112,14 +114,14 @@ export class BattleEncounterService {
 	private readonly spellSlotService = inject(BattleSpellSlotService);
 
 	createBattleFromEncounter(
-		template: EncounterTemplate,
+		encounter: Encounter,
 		options?: BattleEncounterCreateOptions,
 		now = new Date(),
 	): BattleEncounter {
 		const timestamp = this.toIso(now);
 		const combatants = this.orderCombatants(
-			(template.data.creatures ?? []).map((creature, index) => ({
-				...this.createCombatantFromCreature(creature, index, options),
+			encounter.participants.map((participant, index) => ({
+				...this.createCombatantFromParticipant(participant, index, options),
 				collapsed: true,
 			})),
 		);
@@ -127,9 +129,9 @@ export class BattleEncounterService {
 
 		return {
 			id: this.createId(),
-			sourceEncounterId: template.id,
-			name: options?.name?.trim() || template.name,
-			description: template.description,
+			sourceEncounterId: encounter.id,
+			name: options?.name?.trim() || encounter.title,
+			description: encounter.description,
 			status: 'active',
 			round: 1,
 			activeTurnIndex: initialTurnIndex,
@@ -140,8 +142,8 @@ export class BattleEncounterService {
 			currentTurnElapsedSeconds: 0,
 			combatants,
 			pendingCombatants: [],
-			lairActions: this.mapEncounterLairActions(template.data.lairActions),
-			traps: this.mapEncounterTraps(template.data.traps),
+			lairActions: this.mapEncounterLairActions(encounter.lairActions),
+			traps: this.mapEncounterTraps(encounter.traps),
 			turnHistory: [],
 			dmNotes: '',
 			pendingActions: [],
@@ -149,7 +151,7 @@ export class BattleEncounterService {
 		};
 	}
 
-		normalizeBattleEncounter(raw: Partial<BattleEncounter>): BattleEncounter {
+	normalizeBattleEncounter(raw: Partial<BattleEncounter>): BattleEncounter {
 		const createdAt = this.normalizeIso(raw.createdAt);
 		const updatedAt = this.normalizeIso(raw.updatedAt ?? raw.createdAt);
 		const combatants = this.orderCombatants(
@@ -195,8 +197,8 @@ export class BattleEncounterService {
 			createdAt,
 			startedAt: this.normalizeIso(raw.startedAt ?? raw.createdAt),
 			updatedAt,
-			completedAt: typeof raw.completedAt === 'string' ? raw.completedAt : undefined,
-			turnStartedAt: typeof raw.turnStartedAt === 'string' ? raw.turnStartedAt : undefined,
+			...(typeof raw.completedAt === 'string' ? { completedAt: raw.completedAt } : {}),
+			...(typeof raw.turnStartedAt === 'string' ? { turnStartedAt: raw.turnStartedAt } : {}),
 			currentTurnElapsedSeconds: this.toNonNegativeInt(raw.currentTurnElapsedSeconds),
 			combatants,
 			pendingCombatants,
@@ -515,17 +517,17 @@ export class BattleEncounterService {
 		return this.reconcilePendingActions(resolvedBattle);
 	}
 
-	addCombatantFromCreature(
+	addCombatantFromParticipant(
 		battle: BattleEncounter,
-		creature: CreatureInterface,
+		participant: EncounterParticipant,
 		overrides?: AddCombatantOverrides,
 		now = new Date(),
 	): BattleEncounter {
 		const joinsAtRound = this.shouldQueueCombatantForNextRound(battle)
 			? battle.round + 1
 			: undefined;
-		const combatant = this.createCombatantFromCreature(
-			creature,
+		const combatant = this.createCombatantFromParticipant(
+			participant,
 			battle.combatants.length,
 			undefined,
 			{
@@ -1515,7 +1517,8 @@ export class BattleEncounterService {
 			: undefined;
 		return {
 			id: typeof raw.id === 'string' ? raw.id : this.createId(),
-			sourceCreatureId: typeof raw.sourceCreatureId === 'number' ? raw.sourceCreatureId : undefined,
+			sourceParticipantId:
+				typeof raw.sourceParticipantId === 'string' ? raw.sourceParticipantId : undefined,
 			sourceSheetId: typeof raw.sourceSheetId === 'string' ? raw.sourceSheetId : undefined,
 			name: typeof raw.name === 'string' ? raw.name : `Combatente ${sourceIndex + 1}`,
 			displayName: typeof raw.displayName === 'string' ? raw.displayName : undefined,
@@ -1555,13 +1558,13 @@ export class BattleEncounterService {
 			conditions: Array.isArray(raw.conditions)
 				? raw.conditions.map((condition) => this.conditionService.normalizeCondition(condition))
 				: [],
-			deathSaves,
+			...(deathSaves ? { deathSaves } : {}),
 			specialAbilities: Array.isArray(raw.specialAbilities)
 				? raw.specialAbilities.map((ability) => this.abilityService.normalizeAbility(ability))
 				: [],
 			spellSlots: this.spellSlotService.normalizeSpellSlots(raw.spellSlots),
-			spells: this.mapSpells(raw.spells),
-			sheetFeatures: this.mapSheetFeatures(raw.sheetFeatures),
+			spells: this.normalizeSpells(raw.spells),
+			features: this.normalizeFeatures(raw.features),
 			privateNotes: typeof raw.privateNotes === 'string' ? raw.privateNotes : undefined,
 		};
 	}
@@ -1647,40 +1650,35 @@ export class BattleEncounterService {
 		);
 	}
 
-	private createCombatantFromCreature(
-		creature: CreatureInterface,
+	private createCombatantFromParticipant(
+		participant: EncounterParticipant,
 		sourceIndex: number,
 		options?: BattleEncounterCreateOptions,
 		overrides?: AddCombatantOverrides,
 	): BattleCombatant {
-		const category = this.normalizeCreatureCategory(overrides?.category ?? creature.category);
-		const maxHp = this.toNonNegativeInt(
-			overrides?.maxHp ?? creature.maxHealthPoints ?? creature.healthPoints,
-		);
-		const currentHp = Math.min(
-			this.toNonNegativeInt(overrides?.currentHp ?? creature.healthPoints),
-			maxHp,
-		);
-		const temporaryHp = this.toNonNegativeInt(
-			overrides?.temporaryHp ?? creature.temporaryHealthPoints,
-		);
+		const sheet = participant.sheet;
+		const category = this.normalizeCreatureCategory(overrides?.category ?? participant.category);
+		const maxHp = this.toNonNegativeInt(overrides?.maxHp ?? sheet.maxHp);
+		const currentHp = Math.min(this.toNonNegativeInt(overrides?.currentHp ?? maxHp), maxHp);
+		const temporaryHp = this.toNonNegativeInt(overrides?.temporaryHp ?? 0);
 		const side =
 			overrides?.side ??
-			options?.combatantSides?.[creature.id] ??
-			this.inferSideFromCategory(category, creature.category);
+			options?.combatantSides?.[participant.id] ??
+			participant.side ??
+			this.inferSideFromCategory(category);
 		const autoDefeat = this.shouldAutoDefeatCombatant({ category, side });
-		const initiativeOverride = options?.initiativeOverrides?.[creature.id];
+		const initiativeOverride = options?.initiativeOverrides?.[participant.id];
 		const initiativeTieBreaker =
-			overrides?.initiativeTieBreaker ?? options?.initiativeTieBreakerOverrides?.[creature.id];
+			overrides?.initiativeTieBreaker ?? options?.initiativeTieBreakerOverrides?.[participant.id];
 		const initiative =
 			overrides?.initiative ??
-			(initiativeOverride == null ? creature.initiative : initiativeOverride);
+			(initiativeOverride == null ? participant.initiative : initiativeOverride);
 
 		return {
 			id: this.createId(),
-			sourceCreatureId: creature.id,
-			sourceSheetId: overrides?.sourceSheetId ?? creature.sourceSheetId,
-			name: overrides?.name?.trim() || creature.name || `Combatente ${sourceIndex + 1}`,
+			sourceParticipantId: overrides?.sourceParticipantId ?? participant.id,
+			sourceSheetId: overrides?.sourceSheetId ?? participant.sourceSheetId,
+			name: overrides?.name?.trim() || participant.name || `Combatente ${sourceIndex + 1}`,
 			displayName: overrides?.displayName?.trim() || undefined,
 			category,
 			side,
@@ -1690,23 +1688,23 @@ export class BattleEncounterService {
 				initiativeTieBreaker == null ? undefined : this.toFiniteNumber(initiativeTieBreaker),
 			nextRoundInitiativeTieBreaker: undefined,
 			turnOrder: sourceIndex,
-			armorClass: this.toArmorClass(overrides?.armorClass ?? creature.armorClass),
+			armorClass: this.toArmorClass(overrides?.armorClass ?? sheet.armorClass),
 			maxHp,
 			currentHp,
 			temporaryHp,
-			defeated: creature.alive === false || (autoDefeat && currentHp <= 0),
+			defeated: autoDefeat && currentHp <= 0,
 			hidden: false,
 			inactiveUntilRound: undefined,
 			collapsed: false,
 			spellSlotsCollapsed: true,
 			pendingAdd: overrides?.pendingAdd === true,
 			joinsAtRound: overrides?.joinsAtRound,
-			conditions: this.mapConditions(creature.conditions ?? []),
-			specialAbilities: this.mapSpecialAbilities(creature.specialAbilities ?? []),
-			spellSlots: this.mapSpellSlots(creature.totalSpellSlots, creature.usedSpellSlots),
-			spells: this.mapSpells(creature.spells),
-			sheetFeatures: this.mapSheetFeatures(creature.sheetFeatures),
-			privateNotes: this.joinNotes(creature.notes?.map((note) => note.text)),
+			conditions: [],
+			specialAbilities: this.createRuntimeAbilities(sheet.specialAbilities),
+			spellSlots: this.createRuntimeSpellSlots(sheet.spellSlots),
+			spells: structuredClone(sheet.spells),
+			features: structuredClone(sheet.features),
+			privateNotes: participant.notes?.trim() || undefined,
 		};
 	}
 
@@ -2035,107 +2033,47 @@ export class BattleEncounterService {
 		return [...(battle.turnSnapshots ?? []), snapshot].slice(-MAX_BATTLE_TURN_SNAPSHOTS);
 	}
 
-	private mapConditions(conditions: ConditionInterface[]): BattleCondition[] {
-		return conditions.map((condition, index) =>
-			this.conditionService.normalizeCondition({
-				id: this.createId(),
-				name: this.slugify(condition.text) || `condition-${index + 1}`,
-				label: condition.text || `Condicao ${index + 1}`,
-				description: condition.url || undefined,
-				appliedAtRound: Math.max(1, this.toNonNegativeInt(condition.appliedAtRound) || 1),
-				appliedAtTurnIndex: 0,
-				durationType: 'manual',
-			}),
-		);
-	}
-
-	private mapSpecialAbilities(abilities: CreatureSpecialAbility[]): BattleSpecialAbility[] {
+	private createRuntimeAbilities(abilities: CreatureSpecialAbility[]): BattleSpecialAbility[] {
 		return abilities.map((ability, index) =>
 			this.abilityService.normalizeAbility({
+				...this.abilityService.createAbility({
+					name: ability.name,
+					description: ability.description,
+					recoveryType: ability.recoveryType,
+					maxUses: ability.maxUses,
+					cooldownTurns: ability.cooldownTurns,
+					cooldownRounds: ability.cooldownRounds,
+					rechargeDice: ability.rechargeDice,
+					rechargeOn: ability.rechargeOn,
+				}),
 				id: ability.id || `creature-ability-${index + 1}`,
-				name: ability.name || `Habilidade ${index + 1}`,
-				description: ability.description,
-				recoveryType:
-					ability.rechargeType === 'turns'
-						? 'turn-cooldown'
-						: ability.rechargeType === 'rounds'
-							? 'round-cooldown'
-							: ability.rechargeType === 'dice'
-								? 'dice-recharge'
-								: ability.rechargeType === 'per-day'
-									? 'uses-per-day'
-									: ability.rechargeType === 'short-rest'
-										? 'short-rest'
-									: ability.rechargeType === 'long-rest'
-											? 'long-rest'
-										: 'manual',
-				rechargeType:
-					ability.rechargeType === 'turns'
-						? 'turns'
-						: ability.rechargeType === 'rounds'
-							? 'rounds'
-							: ability.rechargeType === 'dice'
-								? 'dice'
-								: 'manual',
-				maxUses: ability.maxUses,
-				cooldownTurns: ability.cooldownTurns,
-				cooldownRounds: ability.cooldownRounds,
-				rechargeDice: ability.rechargeType === 'dice' ? 'd6' : undefined,
-				rechargeOn: ability.rechargeOn,
-				isAvailable: true,
-				currentCooldownRounds: 0,
-				currentCooldownTurns: 0,
 			}),
 		);
 	}
 
-	private mapSpellSlots(
-		totalSpellSlots: CreatureInterface['totalSpellSlots'],
-		usedSpellSlots: CreatureInterface['usedSpellSlots'],
-	): BattleSpellSlotLevel[] {
-		if (!totalSpellSlots && !usedSpellSlots) return [];
+	private createRuntimeSpellSlots(slots: CreatureSpellSlot[]): BattleSpellSlotLevel[] {
+		return slots.map((slot) => ({
+			level: Math.max(1, this.toNonNegativeInt(slot.level) || 1),
+			max: this.toNonNegativeInt(slot.max),
+			used: 0,
+		}));
+	}
 
-		return this.spellSlotService.createDefaultSpellSlots().map((slot) => {
-			const key = `${slot.level}${this.ordinalSuffix(slot.level)}` as keyof NonNullable<
-				CreatureInterface['totalSpellSlots']
-			>;
-			const max = this.toNonNegativeInt(totalSpellSlots?.[key]);
-			const used = Math.min(max, this.toNonNegativeInt(usedSpellSlots?.[key]));
-
-			return {
-				level: slot.level,
-				max,
-				used,
-			};
+	private normalizeSpells(raw: unknown): CreatureSpell[] {
+		if (!Array.isArray(raw)) return [];
+		return raw.flatMap((spell, index) => {
+			if (!spell || typeof spell !== 'object') return [];
+			const candidate = spell as Partial<CreatureSpell>;
+			const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
+			if (!name) return [];
+			return [{
+				id: typeof candidate.id === 'string' && candidate.id ? candidate.id : `spell-${index + 1}`,
+				name,
+				source: typeof candidate.source === 'string' ? candidate.source : undefined,
+				level: candidate.level == null ? undefined : this.toNonNegativeInt(candidate.level),
+				uses: candidate.uses == null ? undefined : this.toNonNegativeInt(candidate.uses),
+			}];
 		});
-	}
-
-	private mapSpells(spells: unknown): SpellsByKey {
-		if (!spells || typeof spells !== 'object') return {};
-
-		return Object.entries(spells as Record<string, unknown>).reduce<SpellsByKey>(
-			(result, [key, value], index) => {
-				if (!value || typeof value !== 'object') return result;
-				const candidate = value as Partial<SpellInterface>;
-				const label = typeof candidate.label === 'string' ? candidate.label.trim() : '';
-				if (!label) return result;
-
-				result[key || `spell-${index + 1}`] = {
-					label,
-					total: Math.max(1, this.toNonNegativeInt(candidate.total) || 1),
-				};
-				return result;
-			},
-			{},
-		);
-	}
-
-	private joinNotes(notes: Array<string | undefined> | undefined): string | undefined {
-		const text = (notes ?? [])
-			.map((note) => (note || '').trim())
-			.filter(Boolean)
-			.join('\n');
-		return text || undefined;
 	}
 
 	private normalizeSide(value: unknown): BattleCombatantSide {
@@ -2154,11 +2092,7 @@ export class BattleEncounterService {
 		return DEFAULT_CREATURE_CATEGORY;
 	}
 
-	private inferSideFromCategory(
-		category: CreatureCategory | undefined,
-		rawCategory?: unknown,
-	): BattleCombatantSide {
-		if (rawCategory === 'ally' || rawCategory === 'pet') return 'ally';
+	private inferSideFromCategory(category: CreatureCategory | undefined): BattleCombatantSide {
 		if (category === 'pc') return 'player';
 		if (category === 'npc') return 'neutral';
 		if (category === 'other') return 'neutral';
@@ -2258,7 +2192,7 @@ export class BattleEncounterService {
 		return !this.canUseDeathSaves(combatant) && combatant.side !== 'player';
 	}
 
-	private mapSheetFeatures(features: unknown): CreatureFeature[] {
+	private normalizeFeatures(features: unknown): CreatureFeature[] {
 		if (!Array.isArray(features)) return [];
 		const mapped = features
 			.map((feature, index) => {
@@ -2272,6 +2206,7 @@ export class BattleEncounterService {
 					kind:
 						candidate.kind === 'trait' ||
 						candidate.kind === 'action' ||
+						candidate.kind === 'bonus' ||
 						candidate.kind === 'reaction' ||
 						candidate.kind === 'legendary' ||
 						candidate.kind === 'spellcasting' ||
@@ -2493,20 +2428,4 @@ export class BattleEncounterService {
 		return Number.isFinite(numeric) ? numeric : 0;
 	}
 
-	private ordinalSuffix(level: number): 'st' | 'nd' | 'rd' | 'th' {
-		if (level === 1) return 'st';
-		if (level === 2) return 'nd';
-		if (level === 3) return 'rd';
-		return 'th';
-	}
-
-	private slugify(value: string): string {
-		return (value || '')
-			.trim()
-			.toLowerCase()
-			.normalize('NFKD')
-			.replace(/[\u0300-\u036f]/g, '')
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/(^-|-$)/g, '');
-	}
 }

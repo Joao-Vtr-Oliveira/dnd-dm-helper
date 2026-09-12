@@ -36,24 +36,13 @@ describe('HomebrewSheets', () => {
 			source: 'Notion',
 			externalId: 'npc-zhang-huang',
 			data: {
-				id: 0,
 				name: 'Zhang Huang',
-				initiative: null,
-				healthPoints: 10,
-				maxHealthPoints: 10,
+				maxHp: 10,
 				armorClass: 12,
-				temporaryHealthPoints: null,
-				alive: true,
-				conditions: [],
-				notes: [],
-				shared: true,
-				hitPointsShared: true,
-				totalSpellSlots: null,
-				usedSpellSlots: null,
-				spells: {},
+				spellSlots: [],
+				spells: [],
 				specialAbilities: [],
-				sheetFeatures: [],
-				category: 'npc',
+				features: [],
 			},
 		});
 		component.sheets.set(storage.listSheets());
@@ -72,7 +61,7 @@ describe('HomebrewSheets', () => {
 		const exported = JSON.parse(await blob.text());
 		expect(exported.app).toBe('dnd-dm-helper');
 		expect(exported.type).toBe('homebrew-sheets');
-		expect(exported.schemaVersion).toBe(1);
+		expect(exported.schemaVersion).toBe(2);
 		expect(exported.sheets[0].externalId).toBe('npc-zhang-huang');
 	});
 
@@ -82,7 +71,15 @@ describe('HomebrewSheets', () => {
 			title: 'Sheet to delete',
 			category: 'monster',
 			source: 'HB',
-			data: { name: 'Sheet to delete' } as any,
+			data: {
+				name: 'Sheet to delete',
+				armorClass: 13,
+				maxHp: 20,
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+				features: [],
+			},
 		});
 		component.sheets.set(storage.listSheets());
 
@@ -111,7 +108,15 @@ describe('HomebrewSheets', () => {
 			title: 'Prepared monster',
 			category: 'monster',
 			source: 'HB',
-			data: { name: 'Prepared monster' } as any,
+			data: {
+				name: 'Prepared monster',
+				armorClass: 14,
+				maxHp: 30,
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+				features: [],
+			},
 		});
 		component.sheets.set(storage.listSheets());
 		const file = { _meta: { sources: [{ json: 'HB' }] }, monster: [] } as any;

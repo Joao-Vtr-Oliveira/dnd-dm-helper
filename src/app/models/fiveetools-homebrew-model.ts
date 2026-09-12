@@ -1,4 +1,8 @@
-import type { CreatureCategory, CreatureFeature, CreatureSpecialAbility } from './battleTracker-model';
+import type {
+	CreatureCategory,
+	CreatureFeature,
+	CreatureSpecialAbility,
+} from './creature-sheet-model';
 
 export type FiveEToolsEntityType = 'monster' | 'trap';
 export type FiveEToolsConflictResolution = 'replace' | 'keep-existing' | 'duplicate' | 'cancel';

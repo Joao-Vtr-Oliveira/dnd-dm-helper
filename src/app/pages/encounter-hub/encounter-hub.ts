@@ -2,12 +2,19 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, effect, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LucideCircleAlert, LucideCircleCheck, LucideEllipsis, LucideTriangleAlert, LucideX } from '@lucide/angular';
+import {
+	LucideCircleAlert,
+	LucideCircleCheck,
+	LucideEllipsis,
+	LucideTriangleAlert,
+	LucideX,
+} from '@lucide/angular';
 import type {
 	BattleCombatantSide,
 	BattleEncounter,
 	BattleEncounterCreateOptions,
 } from '../../models/battle-encounter-model';
+import type { EncounterParticipant } from '../../models/encounter-model';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 import { BattleEncounterService } from '../../services/battle-encounter-service/battle-encounter-service';
 import {
@@ -17,7 +24,6 @@ import {
 	type EncounterHubSortOption,
 	type EncounterHubStatusFilter,
 } from '../../services/encounter-hub-filter-service/encounter-hub-filter-service';
-import { EncounterIoService } from '../../services/encounter-io-service/encounter-io-service';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import {
 	LocalStorageService,
@@ -36,9 +42,9 @@ type BattleSetupModalState = {
 	encounterId: string;
 	mode: 'start' | 'new';
 	battleName: string;
-	sides: Record<number, BattleCombatantSide>;
-	initiatives: Record<number, number>;
-	initiativeTieBreakers: Record<number, number>;
+	sides: Record<string, BattleCombatantSide>;
+	initiatives: Record<string, number>;
+	initiativeTieBreakers: Record<string, number>;
 };
 
 @Component({
@@ -58,7 +64,6 @@ type BattleSetupModalState = {
 })
 export class EncounterHub {
 	private readonly ls = inject(LocalStorageService);
-	private readonly io = inject(EncounterIoService);
 	private readonly router = inject(Router);
 	private readonly battleStorage = inject(BattleEncounterStorageService);
 	private readonly battleService = inject(BattleEncounterService);
@@ -67,9 +72,6 @@ export class EncounterHub {
 	private readonly initialFilters = this.hubFilterService.loadFilters();
 
 	readonly filters = signal<EncounterHubFilters>(this.initialFilters);
-	readonly importOpen = signal(false);
-	readonly importText = signal('');
-	readonly msg = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
 	readonly encounters = signal<SavedEncounter[]>(this.ls.listEncounters());
 	readonly battles = signal<BattleEncounter[]>(this.battleStorage.getBattleEncounters());
 	readonly toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
@@ -80,20 +82,20 @@ export class EncounterHub {
 	private toastTimer: number | null = null;
 
 	readonly items = computed(() =>
-		this.hubFilterService.buildItems(this.encounters(), this.battles())
+		this.hubFilterService.buildItems(this.encounters(), this.battles()),
 	);
 
 	readonly filteredItems = computed(() =>
 		this.hubFilterService.sortItems(
 			this.hubFilterService.filterItems(this.items(), this.filters()),
-			this.filters().sort
-		)
+			this.filters().sort,
+		),
 	);
 
 	readonly groupedItems = computed(() => this.hubFilterService.groupItems(this.filteredItems()));
 
 	readonly ongoingBattles = computed(() =>
-		this.battles().filter((battle) => battle.status === 'active' || battle.status === 'paused')
+		this.battles().filter((battle) => battle.status === 'active' || battle.status === 'paused'),
 	);
 
 	constructor() {
@@ -129,17 +131,6 @@ export class EncounterHub {
 
 	edit(id: string) {
 		this.router.navigate(['/home/encounter-builder', id]);
-	}
-
-	export(id: string) {
-		const item = this.ls.getEncounter(id);
-		if (!item) return;
-
-		this.io.download(item.data, item.title, {
-			includeDate: false,
-			suffix: id.slice(0, 6),
-		});
-		this.showToast({ type: 'success', text: 'Encounter exportado.' });
 	}
 
 	duplicate(id: string) {
@@ -225,13 +216,16 @@ export class EncounterHub {
 
 	openBattleSetup(encounter: SavedEncounter, mode: 'start' | 'new') {
 		const sides = Object.fromEntries(
-			encounter.data.creatures.map((creature) => [
-				creature.id,
-				this.defaultBattleSetupSide(creature.category),
-			])
+			encounter.participants.map((participant) => [
+				participant.id,
+				participant.side ?? this.defaultBattleSetupSide(participant.category),
+			]),
 		);
 		const initiatives = Object.fromEntries(
-			encounter.data.creatures.map((creature) => [creature.id, Number(creature.initiative ?? 0)])
+			encounter.participants.map((participant) => [
+				participant.id,
+				Number(participant.initiative ?? 0),
+			]),
 		);
 
 		this.battleSetupModal.set({
@@ -252,21 +246,21 @@ export class EncounterHub {
 		this.battleSetupModal.update((modal) => (modal ? { ...modal, battleName: value } : modal));
 	}
 
-	setBattleSetupSide(creatureId: number, side: BattleCombatantSide) {
+	setBattleSetupSide(participantId: string, side: BattleCombatantSide) {
 		this.battleSetupModal.update((modal) =>
 			modal
 				? {
 						...modal,
 						sides: {
 							...modal.sides,
-							[creatureId]: side,
+							[participantId]: side,
 						},
-				  }
-				: modal
+					}
+				: modal,
 		);
 	}
 
-	setBattleSetupInitiative(creatureId: number, value: unknown) {
+	setBattleSetupInitiative(participantId: string, value: unknown) {
 		const numeric = Number(value);
 		this.battleSetupModal.update((modal) =>
 			modal
@@ -274,21 +268,21 @@ export class EncounterHub {
 						...modal,
 						initiatives: {
 							...modal.initiatives,
-							[creatureId]: Number.isFinite(numeric) ? numeric : 0,
+							[participantId]: Number.isFinite(numeric) ? numeric : 0,
 						},
-				  }
-				: modal
+					}
+				: modal,
 		);
 	}
 
-	setBattleSetupInitiativeTieBreaker(creatureId: number, value: unknown) {
+	setBattleSetupInitiativeTieBreaker(participantId: string, value: unknown) {
 		const text = String(value ?? '').trim();
 		const numeric = Number(text);
 		this.battleSetupModal.update((modal) => {
 			if (!modal) return modal;
 			const initiativeTieBreakers = { ...modal.initiativeTieBreakers };
-			if (!text || !Number.isFinite(numeric)) delete initiativeTieBreakers[creatureId];
-			else initiativeTieBreakers[creatureId] = numeric;
+			if (!text || !Number.isFinite(numeric)) delete initiativeTieBreakers[participantId];
+			else initiativeTieBreakers[participantId] = numeric;
 			return { ...modal, initiativeTieBreakers };
 		});
 	}
@@ -381,7 +375,8 @@ export class EncounterHub {
 	itemStatusClasses(item: EncounterHubItem): string {
 		if (item.status === 'active') return 'border-amber-400/30 bg-amber-500/15 text-amber-100';
 		if (item.status === 'paused') return 'border-amber-400/30 bg-amber-500/15 text-amber-100';
-		if (item.status === 'completed') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
+		if (item.status === 'completed')
+			return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
 		return 'border-sky-400/30 bg-sky-500/15 text-sky-100';
 	}
 
@@ -443,53 +438,53 @@ export class EncounterHub {
 		return this.ls.getEncounter(modal.encounterId);
 	}
 
-	isBattleSetupInitiativeTied(creatureId: number): boolean {
-		return this.getBattleSetupTieGroup(creatureId).length > 1;
+	isBattleSetupInitiativeTied(participantId: string): boolean {
+		return this.getBattleSetupTieGroup(participantId).length > 1;
 	}
 
-	isBattleSetupTieResolved(creatureId: number): boolean {
-		const group = this.getBattleSetupTieGroup(creatureId);
+	isBattleSetupTieResolved(participantId: string): boolean {
+		const group = this.getBattleSetupTieGroup(participantId);
 		if (group.length < 2) return false;
 		const tieBreakers = this.battleSetupModal()?.initiativeTieBreakers ?? {};
-		const values = group.map((creature) => tieBreakers[creature.id]);
+		const values = group.map((participant) => tieBreakers[participant.id]);
 		return values.every((value) => value != null) && new Set(values).size === group.length;
 	}
 
-	battleSetupTieLabel(creatureId: number): string | null {
-		if (!this.isBattleSetupInitiativeTied(creatureId)) return null;
-		return this.isBattleSetupTieResolved(creatureId) ? 'Empate resolvido por DES' : 'Empate';
+	battleSetupTieLabel(participantId: string): string | null {
+		if (!this.isBattleSetupInitiativeTied(participantId)) return null;
+		return this.isBattleSetupTieResolved(participantId) ? 'Empate resolvido por DES' : 'Empate';
 	}
 
-	battleSetupRowClasses(creatureId: number): string {
+	battleSetupRowClasses(participantId: string): string {
 		const base = 'app-inset grid gap-3 p-3 md:grid-cols-4 md:items-end';
-		if (!this.isBattleSetupInitiativeTied(creatureId)) return base;
-		return this.isBattleSetupTieResolved(creatureId)
+		if (!this.isBattleSetupInitiativeTied(participantId)) return base;
+		return this.isBattleSetupTieResolved(participantId)
 			? `${base} border-amber-300/25 bg-amber-500/5`
 			: `${base} border-rose-400/35 bg-rose-500/10`;
 	}
 
-	battleSetupTieBreakerInputClasses(creatureId: number): string {
+	battleSetupTieBreakerInputClasses(participantId: string): string {
 		const base = 'app-field w-full px-3 py-2';
-		if (!this.isBattleSetupInitiativeTied(creatureId)) return base;
-		return this.isBattleSetupTieResolved(creatureId)
+		if (!this.isBattleSetupInitiativeTied(participantId)) return base;
+		return this.isBattleSetupTieResolved(participantId)
 			? `${base} border-amber-300/30`
 			: `${base} border-rose-400/45`;
 	}
 
-	battleSetupTieBadgeClasses(creatureId: number): string {
+	battleSetupTieBadgeClasses(participantId: string): string {
 		const base = 'mt-2 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold';
-		return this.isBattleSetupTieResolved(creatureId)
+		return this.isBattleSetupTieResolved(participantId)
 			? `${base} border-amber-300/25 bg-amber-500/10 text-amber-100`
 			: `${base} border-rose-400/35 bg-rose-500/15 text-rose-100`;
 	}
 
-	private getBattleSetupTieGroup(creatureId: number) {
+	private getBattleSetupTieGroup(participantId: string): EncounterParticipant[] {
 		const modal = this.battleSetupModal();
-		const creatures = this.getBattleSetupEncounter()?.data.creatures ?? [];
+		const participants = this.getBattleSetupEncounter()?.participants ?? [];
 		if (!modal) return [];
-		const initiative = modal.initiatives[creatureId];
+		const initiative = modal.initiatives[participantId];
 		if (initiative === 0) return [];
-		return creatures.filter((creature) => modal.initiatives[creature.id] === initiative);
+		return participants.filter((participant) => modal.initiatives[participant.id] === initiative);
 	}
 
 	updateQuery(value: string) {
@@ -502,37 +497,6 @@ export class EncounterHub {
 
 	updateSort(sort: EncounterHubSortOption) {
 		this.filters.update((filters) => ({ ...filters, sort }));
-	}
-
-	importAndSave() {
-		try {
-			const { encounter, warnings } = this.io.fromJsonText(this.importText());
-			const saved = this.ls.createEncounter('Imported Encounter', encounter);
-			this.refresh();
-
-			if (warnings.length) this.msg.set({ type: 'warn', text: warnings.join(' ') });
-			else this.showToast({ type: 'success', text: 'Encounter importado e salvo.' });
-
-			this.router.navigate(['/home/encounter-builder', saved.id]);
-		} catch (err: any) {
-			this.showToast({ type: 'error', text: err?.message ?? 'Erro ao importar.' });
-		}
-	}
-
-	async onFileSelected(ev: Event) {
-		const input = ev.target as HTMLInputElement;
-		const file = input.files?.[0];
-		if (!file) return;
-
-		try {
-			const text = await file.text();
-			this.importText.set(text);
-			this.importAndSave();
-		} catch {
-			this.msg.set({ type: 'error', text: 'Não foi possível ler o arquivo.' });
-		} finally {
-			input.value = '';
-		}
 	}
 
 	private refresh() {

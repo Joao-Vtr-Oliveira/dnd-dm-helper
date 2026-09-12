@@ -20,10 +20,17 @@ Ferramenta para mesa de D&D com foco em uso local durante a sessão.
 - O app salva os dados no `localStorage`
 - O arquivo canonico de homebrew 5eTools do projeto e `rpg_files/homebrew.json`
 - Os arquivos `rpg_files/Notion_updated.json` e `rpg_files/Notion_updated_Nagawoods_FULL.json` ficam apenas como legado por enquanto
+- O backup remoto canônico é `rpg_files/dnd-dm-helper-backup-v2.json` (campaign backup schema `2`)
 - O fluxo principal de backup fica na sidebar:
   - `Sincronizar`
   - `Exportar tudo`
-- Import/export específicos continuam apenas como ações legadas ou por item
+- Encounters não possuem import/export individual: backup e sync são os fluxos de transferência de dados
+
+## Modelo de dados
+
+`CreatureSheet` é uma ficha reutilizável e imutável para fins de encounter. Um `Encounter` mantém participantes com referência opcional à ficha e um snapshot estável. Ao iniciar, o app cria um `BattleEncounter` separado com HP atual, condições, recursos e histórico.
+
+Veja `docs/data-model.md` para o contrato e a política de migração.
 
 ## Homebrew canonico
 

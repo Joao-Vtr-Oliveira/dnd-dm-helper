@@ -3,12 +3,10 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, shareReplay, map, catchError, throwError } from 'rxjs';
 import type {
 	CreatureFeature,
-	CreatureInterface,
 	CreatureSpecialAbility,
-	SpellLevel,
-	SpellSlots,
-	SpellsByKey,
-} from '../../models/battleTracker-model';
+	CreatureSheet,
+	CreatureSpellSlot,
+} from '../../models/creature-sheet-model';
 
 export type ApiResourceListItem = { index: string; name: string; url: string };
 
@@ -65,8 +63,6 @@ export type ApiMonster = {
 	legendary_actions?: ApiMonsterAction[];
 };
 
-const SPELL_LEVELS: SpellLevel[] = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
-
 @Injectable({ providedIn: 'root' })
 export class Dnd5eApiService {
 	private http = inject(HttpClient);
@@ -122,38 +118,21 @@ export class Dnd5eApiService {
 		return req$;
 	}
 
-	/** Converte o monstro da API no teu CreatureInterface (bestiário -> battle tracker). */
-	toCreature(
-		monster: ApiMonster,
-		args: { id: number; initiative?: number | null } // initiative opcional (você decide)
-	): CreatureInterface {
+	/** Converts an API monster into reusable sheet data. */
+	toCreatureSheet(monster: ApiMonster): CreatureSheet {
 		const hp = Math.max(0, Math.floor(Number(monster.hit_points ?? 0) || 0));
 		const ac = this.pickArmorClass(monster);
 		const totalSlots = this.extractSpellSlots(monster);
-		const usedSlots = totalSlots ? this.zeroUsedSlots(totalSlots) : null;
 
-		const creature: CreatureInterface = {
+		return {
 			name: monster.name || 'Unknown Monster',
-			initiative: args.initiative ?? null,
-			healthPoints: hp,
-			maxHealthPoints: hp,
+			maxHp: hp,
 			armorClass: ac,
-			temporaryHealthPoints: null,
-			id: args.id,
-			alive: true,
-			conditions: [],
-			notes: [],
-			shared: true,
-			hitPointsShared: true,
-			totalSpellSlots: totalSlots,
-			usedSpellSlots: usedSlots,
-			spells: {} as SpellsByKey,
+			spellSlots: totalSlots,
+			spells: [],
 			specialAbilities: this.extractSpecialAbilities(monster),
-			sheetFeatures: this.extractSheetFeatures(monster),
-			category: 'monster',
+			features: this.extractSheetFeatures(monster),
 		};
-
-		return creature;
 	}
 
 	/** DEX mod (se você quiser preencher initiative automático no draft). */
@@ -179,9 +158,9 @@ export class Dnd5eApiService {
 	 *   "1st level (4 slots): ..."
 	 *   "2nd level (3 slots): ..."
 	 */
-	private extractSpellSlots(monster: ApiMonster): SpellSlots | null {
+	private extractSpellSlots(monster: ApiMonster): CreatureSpellSlot[] {
 		const abilities = this.getTraitEntries(monster);
-		if (!Array.isArray(abilities) || !abilities.length) return null;
+		if (!Array.isArray(abilities) || !abilities.length) return [];
 
 		const spellTexts = abilities
 			.filter((a) => {
@@ -191,26 +170,24 @@ export class Dnd5eApiService {
 			.map((a) => a.desc || '')
 			.filter(Boolean);
 
-		if (!spellTexts.length) return null;
+		if (!spellTexts.length) return [];
 
 		const text = spellTexts.join('\n');
 
 		const re = /\b(1st|2nd|3rd|4th|5th|6th|7th|8th|9th)\s+level\s*\((\d+)\s*slots?\)/gi;
 
-		const slots: SpellSlots = {};
-		let matched = false;
+		const slots: CreatureSpellSlot[] = [];
 
 		for (const m of text.matchAll(re)) {
-			const lvl = (m[1] || '').toLowerCase() as SpellLevel;
+			const level = Number((m[1] || '').charAt(0));
 			const n = Math.max(0, Math.floor(Number(m[2] || 0)));
 
-			if (SPELL_LEVELS.includes(lvl)) {
-				slots[lvl] = n;
-				matched = true;
+			if (level >= 1 && level <= 9) {
+				slots.push({ level, max: n });
 			}
 		}
 
-		return matched ? slots : null;
+		return slots;
 	}
 
 	private extractSpecialAbilities(monster: ApiMonster): CreatureSpecialAbility[] {
@@ -298,11 +275,11 @@ export class Dnd5eApiService {
 			id: `api-ability-${monster.index}-${source}-${index + 1}`,
 			name: entry.name?.trim() || `Habilidade ${index + 1}`,
 			description: entry.desc?.trim() || undefined,
-			rechargeType: recovery?.type ?? 'manual',
+			recoveryType: recovery?.type ?? 'manual',
 			maxUses: recovery?.maxUses,
 			cooldownTurns: recovery?.cooldownTurns,
 			cooldownRounds: recovery?.cooldownRounds,
-			rechargeDice: recovery?.rechargeDice,
+			rechargeDice: recovery?.rechargeDice === 'd6' ? 'd6' : undefined,
 			rechargeOn: recovery?.rechargeOn,
 		};
 	}
@@ -310,7 +287,7 @@ export class Dnd5eApiService {
 	private getAbilityRecovery(
 		entry: ApiMonsterSpecialAbility | ApiMonsterAction,
 	): {
-		type: CreatureSpecialAbility['rechargeType'];
+		type: CreatureSpecialAbility['recoveryType'];
 		maxUses?: number;
 		cooldownTurns?: number;
 		cooldownRounds?: number;
@@ -324,7 +301,7 @@ export class Dnd5eApiService {
 		if (usageType === 'recharge on roll') {
 			const minimum = Math.max(1, Math.floor(Number(usage?.min_value ?? 5) || 5));
 			return {
-				type: 'dice',
+				type: 'dice-recharge',
 				rechargeDice: usage?.dice?.trim() || 'd6',
 				rechargeOn: this.buildRechargeTargets(minimum),
 			};
@@ -332,7 +309,7 @@ export class Dnd5eApiService {
 
 		if (usageType === 'per day') {
 			return {
-				type: 'per-day',
+				type: 'uses-per-day',
 				maxUses: Math.max(1, Math.floor(Number(usage?.times ?? 1) || 1)),
 			};
 		}
@@ -356,7 +333,7 @@ export class Dnd5eApiService {
 		if (rechargeMatch) {
 			const minimum = Math.max(1, Number(rechargeMatch[1] || 5));
 			return {
-				type: 'dice',
+				type: 'dice-recharge',
 				rechargeDice: 'd6',
 				rechargeOn: this.buildRechargeTargets(minimum),
 			};
@@ -365,7 +342,7 @@ export class Dnd5eApiService {
 		const perDayMatch = text.match(/(\d+)\s*\/\s*day/i);
 		if (perDayMatch) {
 			return {
-				type: 'per-day',
+				type: 'uses-per-day',
 				maxUses: Math.max(1, Number(perDayMatch[1] || 1)),
 			};
 		}
@@ -382,14 +359,6 @@ export class Dnd5eApiService {
 		const targets: number[] = [];
 		for (let value = minimum; value <= 6; value += 1) targets.push(value);
 		return targets.length ? targets : [5, 6];
-	}
-
-	private zeroUsedSlots(total: SpellSlots): SpellSlots {
-		const used: SpellSlots = {};
-		for (const k of SPELL_LEVELS) {
-			if (typeof total[k] === 'number') used[k] = 0;
-		}
-		return used;
 	}
 
 	private errToMsg(err: any): string {

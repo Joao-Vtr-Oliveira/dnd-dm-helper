@@ -1,9 +1,8 @@
 import type {
-	BattleTracker,
 	CreatureCategory,
 	CreatureFeature,
-	SpellsByKey,
-} from './battleTracker-model';
+	CreatureSpell,
+} from './creature-sheet-model';
 
 export type BattleEncounterStatus = 'active' | 'paused' | 'completed';
 export type BattleCombatantSide = 'player' | 'ally' | 'enemy' | 'neutral';
@@ -37,13 +36,6 @@ export type BattleUpcomingEventType =
 	| 'lair-action'
 	| 'trap'
 	| 'pending-combatant';
-
-export interface EncounterTemplate {
-	id: string;
-	name: string;
-	description?: string;
-	data: BattleTracker;
-}
 
 export interface BattleCondition {
 	id: string;
@@ -165,7 +157,7 @@ export interface BattleDeathSaveState {
 
 export interface BattleCombatant {
 	id: string;
-	sourceCreatureId?: number;
+	sourceParticipantId?: string;
 	sourceSheetId?: string;
 	name: string;
 	displayName?: string;
@@ -191,8 +183,8 @@ export interface BattleCombatant {
 	deathSaves?: BattleDeathSaveState;
 	specialAbilities: BattleSpecialAbility[];
 	spellSlots: BattleSpellSlotLevel[];
-	spells: SpellsByKey;
-	sheetFeatures: CreatureFeature[];
+	spells: CreatureSpell[];
+	features: CreatureFeature[];
 	privateNotes?: string;
 }
 
@@ -265,7 +257,7 @@ export interface BattleConditionPreset {
 
 export interface BattleEncounterCreateOptions {
 	name?: string;
-	combatantSides?: Record<number, BattleCombatantSide>;
-	initiativeOverrides?: Record<number, number>;
-	initiativeTieBreakerOverrides?: Record<number, number>;
+	combatantSides?: Record<string, BattleCombatantSide>;
+	initiativeOverrides?: Record<string, number>;
+	initiativeTieBreakerOverrides?: Record<string, number>;
 }

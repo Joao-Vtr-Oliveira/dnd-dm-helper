@@ -1,25 +1,12 @@
 import { Injectable } from '@angular/core';
-import type { BattleTracker, CreatureInterface } from '../../models/battleTracker-model';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
+import type { Encounter } from '../../models/encounter-model';
+import type { CreatureCategory, CreatureSheet } from '../../models/creature-sheet-model';
 
-export type SavedEncounter = {
-	id: string;
-	title: string;
-	createdAt: number;
-	updatedAt: number;
-	data: BattleTracker;
-};
+export type SavedEncounter = Encounter;
 
-export type HomebrewCategory = 'monster' | 'npc' | 'pc' | 'other';
-type LegacyHomebrewCategory =
-	| HomebrewCategory
-	| 'ally'
-	| 'boss'
-	| 'PC'
-	| 'player'
-	| 'pet'
-	| 'item';
+export type HomebrewCategory = CreatureCategory;
 
 export interface SavedSheetInterface {
 	id: string;
@@ -27,7 +14,7 @@ export interface SavedSheetInterface {
 	title: string;
 	createdAt: number;
 	updatedAt: number;
-	data: CreatureInterface;
+	data: CreatureSheet;
 
 	category: HomebrewCategory;
 	tags: string[];
@@ -47,7 +34,7 @@ export class LocalStorageService {
 		if (!raw) return [];
 		try {
 			const parsed = JSON.parse(raw);
-			return Array.isArray(parsed) ? parsed : [];
+			return Array.isArray(parsed) ? parsed.filter((encounter) => this.isEncounter(encounter)) : [];
 		} catch {
 			return [];
 		}
@@ -65,20 +52,26 @@ export class LocalStorageService {
 		localStorage.setItem(this.KEYEncounters, JSON.stringify(all));
 	}
 
-	createEncounter(title: string, data: BattleTracker): SavedEncounter {
+	createEncounter(title: string, draft: Omit<Encounter, 'id' | 'title' | 'createdAt' | 'updatedAt'>): SavedEncounter {
 		const now = Date.now();
 		const item: SavedEncounter = {
+			...structuredClone(draft),
+			schemaVersion: 1,
+			type: 'dnd-dm-helper-encounter',
 			id: crypto.randomUUID(),
 			title: (title || '').trim() || 'Untitled Encounter',
 			createdAt: now,
 			updatedAt: now,
-			data: structuredClone(data),
+			tags: Array.isArray(draft.tags) ? draft.tags : [],
+			participants: Array.isArray(draft.participants) ? structuredClone(draft.participants) : [],
+			lairActions: Array.isArray(draft.lairActions) ? structuredClone(draft.lairActions) : [],
+			traps: Array.isArray(draft.traps) ? structuredClone(draft.traps) : [],
 		};
 		this.upsertEncounter(item);
 		return item;
 	}
 
-	updateEncounter(id: string, patch: Partial<Omit<SavedEncounter, 'id'>>): SavedEncounter | null {
+	updateEncounter(id: string, patch: Partial<Omit<SavedEncounter, 'id' | 'createdAt'>>): SavedEncounter | null {
 		const curr = this.getEncounter(id);
 		if (!curr) return null;
 		const updated = {
@@ -98,7 +91,19 @@ export class LocalStorageService {
 	duplicateEncounter(id: string): SavedEncounter | null {
 		const curr = this.getEncounter(id);
 		if (!curr) return null;
-		return this.createEncounter(`${curr.title} (copy)`, curr.data);
+		return this.createEncounter(`${curr.title} (copy)`, {
+			schemaVersion: 1,
+			type: 'dnd-dm-helper-encounter',
+			tags: curr.tags,
+			description: curr.description,
+			notes: curr.notes,
+			participants: curr.participants.map((participant) => ({
+				...structuredClone(participant),
+				id: crypto.randomUUID(),
+			})),
+			lairActions: structuredClone(curr.lairActions),
+			traps: structuredClone(curr.traps),
+		});
 	}
 
 	// HOMEBREW SHEETS:
@@ -134,7 +139,7 @@ export class LocalStorageService {
 
 	createSheet(params: {
 		title: string;
-		data: CreatureInterface;
+		data: CreatureSheet;
 		category: HomebrewCategory;
 		tags?: string[];
 		source?: string;
@@ -148,7 +153,7 @@ export class LocalStorageService {
 
 	buildSheet(params: {
 		title: string;
-		data: CreatureInterface;
+		data: CreatureSheet;
 		category: HomebrewCategory;
 		tags?: string[];
 		source?: string;
@@ -179,7 +184,7 @@ export class LocalStorageService {
 			updatedAt: Date.now(),
 		});
 		this.upsertSheet(nextSheet);
-		this.syncSheetNameReferences(curr, nextSheet);
+		void curr;
 	}
 
 	deleteSheet(id: string) {
@@ -208,9 +213,7 @@ export class LocalStorageService {
 		const normalized = sheets.map((sheet) => this.normalizeSheet(sheet));
 		localStorage.setItem(this.KEYSheets, JSON.stringify(normalized));
 
-		for (const replacement of replacements) {
-			this.syncSheetNameReferences(replacement.previous, replacement.next);
-		}
+		void replacements;
 
 		return normalized;
 	}
@@ -225,7 +228,7 @@ export class LocalStorageService {
 			title: (sheet.title || '').trim() || 'Untitled Homebrew',
 			createdAt: typeof sheet.createdAt === 'number' ? sheet.createdAt : now,
 			updatedAt: typeof sheet.updatedAt === 'number' ? sheet.updatedAt : now,
-			data: structuredClone(sheet.data ?? ({} as CreatureInterface)),
+			data: this.normalizeCreatureSheet(sheet.data),
 			category: this.normalizeHomebrewCategory(sheet.category),
 			tags: Array.isArray(sheet.tags) ? sheet.tags.map((tag) => tag.trim()).filter(Boolean) : [],
 			source: (sheet.source || '').trim(),
@@ -248,189 +251,49 @@ export class LocalStorageService {
 	}
 
 	private normalizeHomebrewCategory(value: unknown): HomebrewCategory {
-		const category = value as LegacyHomebrewCategory | undefined;
-		if (category === 'pc' || category === 'PC' || category === 'player') return 'pc';
-		if (category === 'npc' || category === 'ally' || category === 'pet') return 'npc';
-		if (category === 'other' || category === 'item') return 'other';
+		if (value === 'pc') return 'pc';
+		if (value === 'npc') return 'npc';
+		if (value === 'other') return 'other';
 		return 'monster';
 	}
 
-	private syncSheetNameReferences(previous: SavedSheetInterface, next: SavedSheetInterface) {
-		const previousName = previous.data?.name?.trim();
-		const nextName = next.data?.name?.trim();
-		if (!previousName || !nextName || previousName === nextName) return;
-
-		this.syncEncounterSheetNames(next.id, previousName, nextName);
-		this.syncBattleSheetNames(next.id, previousName, nextName);
+	private normalizeCreatureSheet(raw: Partial<CreatureSheet> | undefined): CreatureSheet {
+		const sheet = raw ?? {};
+		return {
+			name: typeof sheet.name === 'string' ? sheet.name.trim() || 'Creature' : 'Creature',
+			armorClass:
+				typeof sheet.armorClass === 'number' || typeof sheet.armorClass === 'string'
+					? sheet.armorClass
+					: '',
+			maxHp: Number.isFinite(Number(sheet.maxHp)) ? Math.max(0, Math.floor(Number(sheet.maxHp))) : 0,
+			spellSlots: Array.isArray(sheet.spellSlots) ? structuredClone(sheet.spellSlots) : [],
+			spells: Array.isArray(sheet.spells) ? structuredClone(sheet.spells) : [],
+			specialAbilities: Array.isArray(sheet.specialAbilities)
+				? structuredClone(sheet.specialAbilities)
+				: [],
+			features: Array.isArray(sheet.features) ? structuredClone(sheet.features) : [],
+			rawFiveETools: sheet.rawFiveETools ? structuredClone(sheet.rawFiveETools) : undefined,
+			fiveEToolsIdentity: sheet.fiveEToolsIdentity
+				? structuredClone(sheet.fiveEToolsIdentity)
+				: undefined,
+		};
 	}
 
-	private syncEncounterSheetNames(sheetId: string, previousName: string, nextName: string) {
-		const encounters = this.listEncounters();
-		let changed = false;
-
-		const updated = encounters.map((encounter) => {
-			const creatures = encounter.data?.creatures ?? [];
-			let encounterChanged = false;
-			const nextCreatures = creatures.map((creature) => {
-				if (creature.sourceSheetId !== sheetId) return creature;
-				const renamed = this.renameDefaultSheetName(creature.name, previousName, nextName);
-				if (!renamed) return creature;
-				changed = true;
-				encounterChanged = true;
-				return {
-					...creature,
-					name: renamed,
-				};
-			});
-
-			if (!encounterChanged) return encounter;
-			return {
-				...encounter,
-				updatedAt: Date.now(),
-				data: {
-					...encounter.data,
-					creatures: nextCreatures,
-				},
-			};
-		});
-
-		if (changed) {
-			localStorage.setItem(this.KEYEncounters, JSON.stringify(updated));
-		}
+	private isEncounter(value: unknown): value is SavedEncounter {
+		if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+		const encounter = value as Partial<Encounter>;
+		return (
+			encounter.schemaVersion === 1 &&
+			encounter.type === 'dnd-dm-helper-encounter' &&
+			typeof encounter.id === 'string' &&
+			typeof encounter.title === 'string' &&
+			typeof encounter.createdAt === 'number' &&
+			typeof encounter.updatedAt === 'number' &&
+			Array.isArray(encounter.tags) &&
+			Array.isArray(encounter.participants) &&
+			Array.isArray(encounter.lairActions) &&
+			Array.isArray(encounter.traps)
+		);
 	}
 
-	private syncBattleSheetNames(sheetId: string, previousName: string, nextName: string) {
-		const raw = localStorage.getItem(this.KEYBattleEncounters);
-		if (!raw) return;
-
-		try {
-			const parsed = JSON.parse(raw);
-			if (!Array.isArray(parsed)) return;
-
-			let changed = false;
-			const updated = parsed.map((entry) => {
-				if (!entry || typeof entry !== 'object') return entry;
-				const battle = entry as Partial<BattleEncounter>;
-				const combatantsChanged = this.renameBattleCombatants(
-					battle.combatants,
-					sheetId,
-					previousName,
-					nextName,
-				);
-				const pendingChanged = this.renameBattleCombatants(
-					battle.pendingCombatants,
-					sheetId,
-					previousName,
-					nextName,
-				);
-				const snapshotsChanged = this.renameBattleSnapshots(
-					battle.turnSnapshots,
-					sheetId,
-					previousName,
-					nextName,
-				);
-
-				if (
-					combatantsChanged === battle.combatants &&
-					pendingChanged === battle.pendingCombatants &&
-					snapshotsChanged === battle.turnSnapshots
-				) {
-					return entry;
-				}
-
-				changed = true;
-				return {
-					...entry,
-					updatedAt: new Date().toISOString(),
-					combatants: combatantsChanged,
-					pendingCombatants: pendingChanged,
-					turnSnapshots: snapshotsChanged,
-				};
-			});
-
-			if (changed) {
-				localStorage.setItem(this.KEYBattleEncounters, JSON.stringify(updated));
-			}
-		} catch {
-			return;
-		}
-	}
-
-	private renameBattleCombatants(
-		combatants: BattleEncounter['combatants'] | BattleEncounter['pendingCombatants'] | undefined,
-		sheetId: string,
-		previousName: string,
-		nextName: string,
-	) {
-		if (!Array.isArray(combatants)) return combatants;
-
-		let changed = false;
-		const renamed = combatants.map((combatant) => {
-			if (!combatant || combatant.sourceSheetId !== sheetId) return combatant;
-			if ((combatant.displayName || '').trim()) return combatant;
-			const nextCombatantName = this.renameDefaultSheetName(combatant.name, previousName, nextName);
-			if (!nextCombatantName) return combatant;
-			changed = true;
-			return {
-				...combatant,
-				name: nextCombatantName,
-			};
-		});
-
-		return changed ? renamed : combatants;
-	}
-
-	private renameBattleSnapshots(
-		snapshots: BattleEncounter['turnSnapshots'] | undefined,
-		sheetId: string,
-		previousName: string,
-		nextName: string,
-	) {
-		if (!Array.isArray(snapshots)) return snapshots;
-
-		let changed = false;
-		const renamed = snapshots.map((snapshot) => {
-			if (!snapshot?.state) return snapshot;
-			const combatants = this.renameBattleCombatants(
-				snapshot.state.combatants,
-				sheetId,
-				previousName,
-				nextName,
-			);
-			const pendingCombatants = this.renameBattleCombatants(
-				snapshot.state.pendingCombatants,
-				sheetId,
-				previousName,
-				nextName,
-			);
-			if (
-				combatants === snapshot.state.combatants &&
-				pendingCombatants === snapshot.state.pendingCombatants
-			) {
-				return snapshot;
-			}
-
-			changed = true;
-			return {
-				...snapshot,
-				state: {
-					...snapshot.state,
-					combatants,
-					pendingCombatants,
-				},
-			};
-		});
-
-		return changed ? renamed : snapshots;
-	}
-
-	private renameDefaultSheetName(currentName: string, previousName: string, nextName: string): string | null {
-		const trimmedCurrentName = (currentName || '').trim();
-		if (!trimmedCurrentName) return null;
-		if (trimmedCurrentName === previousName) return nextName;
-		if (trimmedCurrentName.startsWith(`${previousName} #`)) {
-			return `${nextName}${trimmedCurrentName.slice(previousName.length)}`;
-		}
-		return null;
-	}
 }

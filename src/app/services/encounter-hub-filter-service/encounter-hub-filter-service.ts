@@ -72,7 +72,7 @@ export class EncounterHubFilterService {
 				latestBattle,
 				status,
 				referenceTimestamp,
-				combatantCount: activeBattle?.combatants.length ?? encounter.data.creatures.length ?? 0,
+				combatantCount: activeBattle?.combatants.length ?? encounter.participants.length,
 			};
 		});
 	}
@@ -84,12 +84,9 @@ export class EncounterHubFilterService {
 			if (filters.status !== 'all' && item.status !== filters.status) return false;
 			if (!query) return true;
 
-			const tags = Array.isArray((item.encounter as any).tags) ? ((item.encounter as any).tags as string[]) : [];
-			const description =
-				typeof (item.encounter as any).description === 'string'
-					? String((item.encounter as any).description)
-					: '';
-			const creatureNames = item.encounter.data.creatures.map((creature) => creature.name).join(' ');
+			const tags = item.encounter.tags;
+			const description = item.encounter.description ?? '';
+			const creatureNames = item.encounter.participants.map((participant) => participant.name).join(' ');
 
 			const haystack = [
 				item.encounter.title,

@@ -13,6 +13,7 @@
 - `src/app/pages/*` holds standalone page components. Most state and business logic lives in `src/app/services/*`.
 - Campaign data is local-first. `src/app/constants/app-storage-keys.ts` is the source of truth for project `localStorage` and `sessionStorage` keys.
 - Global backup/sync flow is centered in `src/app/services/app-backup-service/app-backup-service.ts`.
+- Canonical data is split into `models/creature-sheet-model.ts`, `models/encounter-model.ts`, and `models/battle-encounter-model.ts`: sheets are reusable data, encounters are preparation snapshots, and battles are runtime state.
 - Battle Tracker: `src/app/pages/battle-tracker/` owns the current-turn cockpit; encounter and ability rules stay in `src/app/services/battle-encounter-service/` and `src/app/services/battle-ability-service/`. Dice recharge is physical/manual: prompt the owner on their next turn, accept one result per round, and never auto-roll from the UI.
 - 5etools work is centered in `src/app/pages/fiveetools-homebrew/`, `src/app/services/fiveetools-homebrew-service/`, and `src/app/services/fiveetools-reference-data-service/`.
 - Path quirk: `src/app/services/WorldClockService/` uses a capitalized directory name.
@@ -27,6 +28,7 @@
 - `src/environments/environment.ts` and `src/environments/environment.prod.ts` define the default remote sync URLs.
 - The canonical 5etools campaign homebrew file is `rpg_files/homebrew.json`. The legacy `Notion_updated.json` and `Notion_updated_Nagawoods_FULL.json` files are not current runtime defaults.
 - Those URLs point to raw GitHub copies of files committed under `rpg_files/`. If you change the default backup or default 5etools JSON, update both the file in `rpg_files/` and the environment URL target.
+- The app accepts campaign backup schema `2` only. `scripts/migrate-data-model-v2.mjs` is an offline one-shot converter for archived schema `1` backups; it is not runtime code. Validate the tracked V2 backup with `npm run validate:backup-v2`.
 - `showDmCalendar` differs by env: `true` in dev, `false` in prod.
 
 ## Formatting
@@ -35,5 +37,5 @@
 - Tailwind CSS v4 is loaded through `@import 'tailwindcss'` in `src/styles.css`; the global theme tokens also live there.
 
 ## Current Verification Baseline
-- `npm test -- --watch=false --browsers=ChromeHeadless` passes all 115 specs.
-- `npm run build` currently succeeds but emits an initial bundle budget warning (`500 kB` budget vs `989.92 kB`) and two selector warnings. Treat those as the current baseline unless your change makes them worse.
+- `npm test -- --watch=false --browsers=ChromeHeadless` passes all 145 specs.
+- `npm run build` currently succeeds.

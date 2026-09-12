@@ -102,7 +102,7 @@
 							<div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-app-muted">
 								@if (sheet.source) { <span>Origem: {{ sheet.source }}</span><span aria-hidden="true">·</span> }
 								@if (sheet.externalId) { <span class="break-all">ID: {{ sheet.externalId }}</span><span aria-hidden="true">·</span> }
-								<span>CA {{ sheet.data.armorClass || '-' }} · HP {{ sheet.data.maxHealthPoints || '-' }}</span><span aria-hidden="true">·</span>
+								<span>CA {{ sheet.data.armorClass || '-' }} · HP {{ sheet.data.maxHp || '-' }}</span><span aria-hidden="true">·</span>
 								<span>Atualizada em {{ sheet.updatedAt | date:'short' }}</span>
 							</div>
 							@if (sheet.tags.length) {

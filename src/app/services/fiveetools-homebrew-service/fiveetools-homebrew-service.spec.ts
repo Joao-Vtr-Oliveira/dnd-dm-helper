@@ -21,8 +21,17 @@ describe('FiveEToolsHomebrewService', () => {
 			_meta: {
 				sources: [{ json: 'Notion', abbreviation: 'NT', full: 'Notion', version: '1.0.0' }],
 			},
-			monster: [{ name: 'Mage Test', source: 'Notion', ac: [12], hp: { average: 22, formula: '5d8' } }],
-			trap: [{ name: 'Arcane Pulse', source: 'Notion', trapHazType: 'MAG', entries: ['Pulse on initiative 20.'] }],
+			monster: [
+				{ name: 'Mage Test', source: 'Notion', ac: [12], hp: { average: 22, formula: '5d8' } },
+			],
+			trap: [
+				{
+					name: 'Arcane Pulse',
+					source: 'Notion',
+					trapHazType: 'MAG',
+					entries: ['Pulse on initiative 20.'],
+				},
+			],
 			hazard: [{ name: 'Extra Hazard' }],
 		});
 
@@ -33,7 +42,9 @@ describe('FiveEToolsHomebrewService', () => {
 
 	it('lists monsters and traps in a unified summary', () => {
 		const file = service.parseHomebrewJson({
-			_meta: { sources: [{ json: 'Notion', abbreviation: 'NT', full: 'Notion', version: '1.0.0' }] },
+			_meta: {
+				sources: [{ json: 'Notion', abbreviation: 'NT', full: 'Notion', version: '1.0.0' }],
+			},
 			monster: [{ name: 'Elyra', source: 'Notion', group: ['Nagawoods'], type: 'humanoid' }],
 			trap: [{ name: 'Arcane Pulse', source: 'Notion', trapHazType: 'MAG', entries: ['Pulse'] }],
 		});
@@ -41,8 +52,12 @@ describe('FiveEToolsHomebrewService', () => {
 		const entities = service.listEntities(file);
 
 		expect(entities).toHaveSize(2);
-		expect(entities.some((entity) => entity.type === 'monster' && entity.name === 'Elyra')).toBeTrue();
-		expect(entities.some((entity) => entity.type === 'trap' && entity.name === 'Arcane Pulse')).toBeTrue();
+		expect(
+			entities.some((entity) => entity.type === 'monster' && entity.name === 'Elyra'),
+		).toBeTrue();
+		expect(
+			entities.some((entity) => entity.type === 'trap' && entity.name === 'Arcane Pulse'),
+		).toBeTrue();
 	});
 
 	it('converts traps without explicit scheduling to manual controls', () => {
@@ -55,6 +70,7 @@ describe('FiveEToolsHomebrewService', () => {
 		expect(trap.triggerType).toBe('manual');
 		expect(trap.frequency).toBe('manual');
 		expect(trap.initiative).toBeUndefined();
+		expect('currentCooldownRounds' in trap).toBeFalse();
 	});
 
 	it('preserves explicit initiative and recurring trap text', () => {
@@ -71,7 +87,9 @@ describe('FiveEToolsHomebrewService', () => {
 
 	it('merges a partial file and resolves conflicts by duplication', () => {
 		const file = service.parseHomebrewJson({
-			_meta: { sources: [{ json: 'Notion', abbreviation: 'NT', full: 'Notion', version: '1.0.0' }] },
+			_meta: {
+				sources: [{ json: 'Notion', abbreviation: 'NT', full: 'Notion', version: '1.0.0' }],
+			},
 			monster: [{ name: 'Breath Test', source: 'Notion', ac: [15] }],
 			trap: [],
 		});
@@ -113,7 +131,7 @@ describe('FiveEToolsHomebrewService', () => {
 		service.downloadFullJson(file);
 
 		expect(anchor.download).toBe('homebrew.json');
-		expect((anchor.click as jasmine.Spy)).toHaveBeenCalled();
+		expect(anchor.click as jasmine.Spy).toHaveBeenCalled();
 		expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
 	});
 
@@ -142,7 +160,9 @@ describe('FiveEToolsHomebrewService', () => {
 	it('saves and reapplies local composition packages', () => {
 		const monster = service.createEmptyMonster('Notion');
 		monster.trait = [{ name: 'Pack Tactics', entries: ['Advantage near allies.'] }];
-		monster.spellcasting = [{ name: 'Innate Spellcasting', type: 'spellcasting', headerEntries: ['Magic.'], spells: {} }];
+		monster.spellcasting = [
+			{ name: 'Innate Spellcasting', type: 'spellcasting', headerEntries: ['Magic.'], spells: {} },
+		];
 
 		const pkg = service.saveCompositionPackage(
 			service.createCompositionPackageFromMonster(monster, { name: 'Wolf Package' }),
@@ -162,9 +182,7 @@ describe('FiveEToolsHomebrewService', () => {
 			ac: [15],
 			hp: { average: 85, formula: '10d10 + 30' },
 			dex: 12,
-			action: [
-				{ name: 'Fire Breath (Recharge 5–6)', entries: ['{@damage 6d6} fire damage.'] },
-			],
+			action: [{ name: 'Fire Breath (Recharge 5–6)', entries: ['{@damage 6d6} fire damage.'] }],
 			spellcasting: [
 				{
 					name: 'Spellcasting',
@@ -178,9 +196,32 @@ describe('FiveEToolsHomebrewService', () => {
 		});
 
 		expect(creature.armorClass).toBe(15);
-		expect(creature.maxHealthPoints).toBe(85);
-		expect(creature.totalSpellSlots?.['1st']).toBe(4);
-		expect(Object.values(creature.spells).some((spell) => spell.label === 'Fire Bolt')).toBeTrue();
-		expect(creature.specialAbilities[0].rechargeType).toBe('dice');
+		expect(creature.maxHp).toBe(85);
+		expect(creature.spellSlots).toContain(jasmine.objectContaining({ level: 1, max: 4 }));
+		expect(creature.spells.some((spell) => spell.name === 'Fire Bolt')).toBeTrue();
+		expect(creature.specialAbilities[0].recoveryType).toBe('dice-recharge');
+		expect(creature.features.some((feature) => feature.name === 'Fire Breath (Recharge 5–6)')).toBeTrue();
+	});
+
+	it('preserves raw 5etools data when a converted sheet is exported again', () => {
+		const monster = {
+			name: 'Arcane Warden',
+			source: 'Notion',
+			ac: [18],
+			hp: { average: 110, formula: '13d8 + 52' },
+			trait: [{ name: 'Magic Resistance', entries: ['Advantage on saving throws against spells.'] }],
+		};
+		const saved = {
+			...service.convertMonsterToSheet(monster),
+			id: 'sheet-1',
+			createdAt: 0,
+			updatedAt: 0,
+		};
+
+		const exported = service.convertSheetToMonster(saved);
+
+		expect(exported.name).toBe('Arcane Warden');
+		expect(exported.source).toBe('Notion');
+		expect(exported.trait?.[0].name).toBe('Magic Resistance');
 	});
 });

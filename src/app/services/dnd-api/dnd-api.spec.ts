@@ -19,8 +19,7 @@ describe('Dnd5eApiService', () => {
   });
 
 	it('keeps passive traits as sheet features and promotes recharge actions to special abilities', () => {
-		const creature = service.toCreature(
-			{
+		const sheet = service.toCreatureSheet({
 				index: 'chimera',
 				name: 'Chimera',
 				hit_points: 114,
@@ -37,20 +36,24 @@ describe('Dnd5eApiService', () => {
 						desc: 'Advantage on saving throws against spells.',
 					},
 				],
-			},
-			{ id: 1 },
-		);
+			});
 
-		expect(creature.specialAbilities).toHaveSize(1);
-		expect(creature.specialAbilities[0].name).toBe('Fire Breath');
-		expect(creature.specialAbilities[0].rechargeType).toBe('dice');
-		expect(creature.specialAbilities[0].rechargeOn).toEqual([5, 6]);
-		expect((creature.sheetFeatures ?? []).some((feature) => feature.name === 'Magic Resistance')).toBeTrue();
+		expect(sheet.maxHp).toBe(114);
+		expect(sheet.specialAbilities).toHaveSize(1);
+		expect(sheet.specialAbilities[0]).toEqual(jasmine.objectContaining({
+			name: 'Fire Breath',
+			description: 'The dragon head exhales fire.',
+			recoveryType: 'dice-recharge',
+			rechargeOn: [5, 6],
+		}));
+		expect(sheet.features).toContain(jasmine.objectContaining({
+			name: 'Magic Resistance',
+			kind: 'trait',
+		}));
 	});
 
 	it('maps per-day actions to controllable special abilities without duplicating spellcasting traits', () => {
-		const creature = service.toCreature(
-			{
+		const sheet = service.toCreatureSheet({
 				index: 'unicorn',
 				name: 'Unicorn',
 				hit_points: 67,
@@ -72,18 +75,17 @@ describe('Dnd5eApiService', () => {
 						usage: { type: 'per day', times: 3 },
 					},
 				],
-			},
-			{ id: 2 },
-		);
+			});
 
-		expect(creature.specialAbilities).toHaveSize(1);
-		expect(creature.specialAbilities[0].name).toBe('Healing Touch');
-		expect(creature.specialAbilities[0].rechargeType).toBe('per-day');
-		expect(creature.specialAbilities[0].maxUses).toBe(3);
-		expect(
-			(creature.sheetFeatures ?? []).some(
-				(feature) => feature.name === 'Innate Spellcasting' && feature.kind === 'spellcasting',
-			),
-		).toBeTrue();
+		expect(sheet.specialAbilities).toHaveSize(1);
+		expect(sheet.specialAbilities[0]).toEqual(jasmine.objectContaining({
+			name: 'Healing Touch',
+			recoveryType: 'uses-per-day',
+			maxUses: 3,
+		}));
+		expect(sheet.features).toContain(jasmine.objectContaining({
+			name: 'Innate Spellcasting',
+			kind: 'spellcasting',
+		}));
 	});
 });

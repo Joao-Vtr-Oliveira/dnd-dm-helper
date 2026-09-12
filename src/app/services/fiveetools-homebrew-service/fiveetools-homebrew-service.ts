@@ -1,15 +1,15 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type {
+	CreatureCategory,
 	CreatureFeature,
-	CreatureInterface,
+	CreatureSheet,
+	CreatureSpell,
+	CreatureSpellSlot,
 	CreatureSpecialAbility,
-	EncounterTrap,
-	SpellLevel,
-	SpellSlots,
-	SpellsByKey,
-} from '../../models/battleTracker-model';
+} from '../../models/creature-sheet-model';
+import type { EncounterTrap } from '../../models/encounter-model';
 import type {
 	FiveEToolsConflictComparisonRow,
 	FiveEToolsConflictResolution,
@@ -35,15 +35,11 @@ import type {
 	FiveEToolsLegendaryGroup,
 	FiveEToolsMonsterTemplate,
 } from '../../models/fiveetools-homebrew-model';
-import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
 import type { SavedSheetInterface } from '../local-storage-service/local-storage-service';
 
 const DEFAULT_FILE_NAME = 'homebrew.json';
-const SPELL_LEVEL_KEYS: SpellLevel[] = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
-
 @Injectable({ providedIn: 'root' })
 export class FiveEToolsHomebrewService {
-	private readonly creatureTemplateService = inject(CreatureTemplateService);
 	private readonly storageKey = APP_STORAGE_KEYS.fiveEToolsHomebrew;
 	private readonly backupKey = APP_STORAGE_KEYS.fiveEToolsHomebrewBackups;
 	private readonly compositionPackagesKey = APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages;
@@ -94,7 +90,8 @@ export class FiveEToolsHomebrewService {
 						id: typeof candidate.id === 'string' ? candidate.id : `backup-${index + 1}`,
 						label: typeof candidate.label === 'string' ? candidate.label : 'Backup local',
 						createdAt:
-							typeof candidate.createdAt === 'string' && !Number.isNaN(Date.parse(candidate.createdAt))
+							typeof candidate.createdAt === 'string' &&
+							!Number.isNaN(Date.parse(candidate.createdAt))
 								? candidate.createdAt
 								: new Date().toISOString(),
 						file: this.parseHomebrewJson(candidate.file ?? this.createEmptyFile()),
@@ -150,7 +147,9 @@ export class FiveEToolsHomebrewService {
 		}
 
 		const hasKnownCollection =
-			Array.isArray(candidate.monster) || Array.isArray(candidate.trap) || this.findOtherCollections(candidate).length > 0;
+			Array.isArray(candidate.monster) ||
+			Array.isArray(candidate.trap) ||
+			this.findOtherCollections(candidate).length > 0;
 		if (!hasKnownCollection) {
 			warnings.push('O arquivo nao possui arrays conhecidos de homebrew ainda.');
 		}
@@ -159,20 +158,24 @@ export class FiveEToolsHomebrewService {
 			...candidate,
 			_meta: meta,
 			monster: Array.isArray(candidate.monster)
-				? candidate.monster.map((monster: unknown, index: number) => this.normalizeMonster(monster, index, meta.sources[0]?.json, warnings))
+				? candidate.monster.map((monster: unknown, index: number) =>
+						this.normalizeMonster(monster, index, meta.sources[0]?.json, warnings),
+					)
 				: [],
 			trap: Array.isArray(candidate.trap)
-				? candidate.trap.map((trap: unknown, index: number) => this.normalizeTrap(trap, index, meta.sources[0]?.json, warnings))
+				? candidate.trap.map((trap: unknown, index: number) =>
+						this.normalizeTrap(trap, index, meta.sources[0]?.json, warnings),
+					)
 				: [],
 			monsterTemplate: Array.isArray(candidate.monsterTemplate)
 				? candidate.monsterTemplate.map((template: unknown, index: number) =>
-					this.normalizeMonsterTemplate(template, index, meta.sources[0]?.json, warnings),
-				)
+						this.normalizeMonsterTemplate(template, index, meta.sources[0]?.json, warnings),
+					)
 				: [],
 			legendaryGroup: Array.isArray(candidate.legendaryGroup)
 				? candidate.legendaryGroup.map((group: unknown, index: number) =>
-					this.normalizeLegendaryGroup(group, index, meta.sources[0]?.json, warnings),
-				)
+						this.normalizeLegendaryGroup(group, index, meta.sources[0]?.json, warnings),
+					)
 				: [],
 		};
 
@@ -194,10 +197,18 @@ export class FiveEToolsHomebrewService {
 			trapCount: file.trap?.length ?? 0,
 			otherCollections: this.findOtherCollections(file),
 			availableSources: Array.from(
-				new Set(this.listEntities(file).map((entity) => entity.source).filter(Boolean)),
+				new Set(
+					this.listEntities(file)
+						.map((entity) => entity.source)
+						.filter(Boolean),
+				),
 			).sort((left, right) => left.localeCompare(right)),
 			availableGroups: Array.from(
-				new Set(this.listEntities(file).flatMap((entity) => entity.groups).filter(Boolean)),
+				new Set(
+					this.listEntities(file)
+						.flatMap((entity) => entity.groups)
+						.filter(Boolean),
+				),
 			).sort((left, right) => left.localeCompare(right)),
 			availableCreatureTypes: Array.from(
 				new Set(
@@ -224,7 +235,9 @@ export class FiveEToolsHomebrewService {
 			acLabel: this.describeMonsterAc(monster),
 			hpAverage: monster.hp?.average,
 			firstDetailTitle: this.getFirstBlock(monster)?.name,
-			firstDetailText: this.getFirstBlock(monster) ? this.flattenEntries(this.getFirstBlock(monster)?.entries) : undefined,
+			firstDetailText: this.getFirstBlock(monster)
+				? this.flattenEntries(this.getFirstBlock(monster)?.entries)
+				: undefined,
 			searchText: this.buildMonsterSearchText(monster),
 		}));
 		const traps = (file.trap ?? []).map<FiveEToolsEntitySummary>((trap) => ({
@@ -248,7 +261,9 @@ export class FiveEToolsHomebrewService {
 	}
 
 	getMonster(file: FiveEToolsHomebrewFile, name: string, source: string): FiveEToolsMonster | null {
-		return file.monster?.find((monster) => monster.name === name && monster.source === source) ?? null;
+		return (
+			file.monster?.find((monster) => monster.name === name && monster.source === source) ?? null
+		);
 	}
 
 	getTrap(file: FiveEToolsHomebrewFile, name: string, source: string): FiveEToolsTrap | null {
@@ -269,15 +284,32 @@ export class FiveEToolsHomebrewService {
 		});
 	}
 
-	getMonsterTemplate(file: FiveEToolsHomebrewFile, name: string, source: string): FiveEToolsMonsterTemplate | null {
-		return file.monsterTemplate?.find((template) => template.name === name && template.source === source) ?? null;
+	getMonsterTemplate(
+		file: FiveEToolsHomebrewFile,
+		name: string,
+		source: string,
+	): FiveEToolsMonsterTemplate | null {
+		return (
+			file.monsterTemplate?.find(
+				(template) => template.name === name && template.source === source,
+			) ?? null
+		);
 	}
 
-	getLegendaryGroup(file: FiveEToolsHomebrewFile, name: string, source: string): FiveEToolsLegendaryGroup | null {
-		return file.legendaryGroup?.find((group) => group.name === name && group.source === source) ?? null;
+	getLegendaryGroup(
+		file: FiveEToolsHomebrewFile,
+		name: string,
+		source: string,
+	): FiveEToolsLegendaryGroup | null {
+		return (
+			file.legendaryGroup?.find((group) => group.name === name && group.source === source) ?? null
+		);
 	}
 
-	getEntityById(file: FiveEToolsHomebrewFile, entityId: string): FiveEToolsMonster | FiveEToolsTrap | null {
+	getEntityById(
+		file: FiveEToolsHomebrewFile,
+		entityId: string,
+	): FiveEToolsMonster | FiveEToolsTrap | null {
 		const [type, source, ...nameParts] = entityId.split('::');
 		const name = nameParts.join('::');
 		if (type === 'monster') return this.getMonster(file, name, source);
@@ -345,9 +377,10 @@ export class FiveEToolsHomebrewService {
 	): FiveEToolsHomebrewFile {
 		return this.touchFile({
 			...structuredClone(file),
-			[collection]: (file[collection] as Array<{ name: string; source: string }> | undefined)?.filter(
-				(item) => !(item.name === name && item.source === source),
-			) ?? [],
+			[collection]:
+				(file[collection] as Array<{ name: string; source: string }> | undefined)?.filter(
+					(item) => !(item.name === name && item.source === source),
+				) ?? [],
 		});
 	}
 
@@ -375,7 +408,9 @@ export class FiveEToolsHomebrewService {
 		if (type === 'monster') {
 			return this.touchFile({
 				...structuredClone(file),
-				monster: (file.monster ?? []).filter((monster) => !(monster.name === name && monster.source === source)),
+				monster: (file.monster ?? []).filter(
+					(monster) => !(monster.name === name && monster.source === source),
+				),
 			});
 		}
 
@@ -402,23 +437,23 @@ export class FiveEToolsHomebrewService {
 
 		partial.monster = Array.isArray(candidate.monster)
 			? candidate.monster.map((monster: unknown, index: number) => {
-				const normalized = this.normalizeMonster(monster, index, primarySource, warnings);
-				if (coerceSourcesToPrimary && normalized.source !== primarySource) {
-					warnings.push(`Source de ${normalized.name} convertido para ${primarySource}.`);
-					normalized.source = primarySource;
-				}
-				return normalized;
-			})
+					const normalized = this.normalizeMonster(monster, index, primarySource, warnings);
+					if (coerceSourcesToPrimary && normalized.source !== primarySource) {
+						warnings.push(`Source de ${normalized.name} convertido para ${primarySource}.`);
+						normalized.source = primarySource;
+					}
+					return normalized;
+				})
 			: [];
 		partial.trap = Array.isArray(candidate.trap)
 			? candidate.trap.map((trap: unknown, index: number) => {
-				const normalized = this.normalizeTrap(trap, index, primarySource, warnings);
-				if (coerceSourcesToPrimary && normalized.source !== primarySource) {
-					warnings.push(`Source de ${normalized.name} convertido para ${primarySource}.`);
-					normalized.source = primarySource;
-				}
-				return normalized;
-			})
+					const normalized = this.normalizeTrap(trap, index, primarySource, warnings);
+					if (coerceSourcesToPrimary && normalized.source !== primarySource) {
+						warnings.push(`Source de ${normalized.name} convertido para ${primarySource}.`);
+						normalized.source = primarySource;
+					}
+					return normalized;
+				})
 			: [];
 
 		const importedSources =
@@ -453,8 +488,14 @@ export class FiveEToolsHomebrewService {
 			throw new Error('O trecho nao contem arrays monster ou trap para importar.');
 		}
 
-		if (!coerceSourcesToPrimary && importedSources.length && options?.addMissingSourcesToMeta !== true) {
-			warnings.push('O trecho possui sources proprios. Eles serao preservados, mas exigem inclusao no _meta ao mesclar.');
+		if (
+			!coerceSourcesToPrimary &&
+			importedSources.length &&
+			options?.addMissingSourcesToMeta !== true
+		) {
+			warnings.push(
+				'O trecho possui sources proprios. Eles serao preservados, mas exigem inclusao no _meta ao mesclar.',
+			);
 		}
 
 		return {
@@ -485,13 +526,19 @@ export class FiveEToolsHomebrewService {
 
 		for (const monster of preview.partial.monster ?? []) {
 			const conflictId = this.createEntityId('monster', monster.name, monster.source);
-			const resolution = resolutions?.[conflictId] ?? preview.conflicts.find((conflict) => conflict.id === conflictId)?.resolution ?? 'replace';
+			const resolution =
+				resolutions?.[conflictId] ??
+				preview.conflicts.find((conflict) => conflict.id === conflictId)?.resolution ??
+				'replace';
 			nextFile = this.applyImportEntity(nextFile, 'monster', monster, resolution);
 		}
 
 		for (const trap of preview.partial.trap ?? []) {
 			const conflictId = this.createEntityId('trap', trap.name, trap.source);
-			const resolution = resolutions?.[conflictId] ?? preview.conflicts.find((conflict) => conflict.id === conflictId)?.resolution ?? 'replace';
+			const resolution =
+				resolutions?.[conflictId] ??
+				preview.conflicts.find((conflict) => conflict.id === conflictId)?.resolution ??
+				'replace';
 			nextFile = this.applyImportEntity(nextFile, 'trap', trap, resolution);
 		}
 
@@ -511,11 +558,7 @@ export class FiveEToolsHomebrewService {
 		this.downloadJson(this.exportFullJson(file), filename);
 	}
 
-	downloadEntityJson(
-		file: FiveEToolsHomebrewFile,
-		entityId: string,
-		filename?: string,
-	): void {
+	downloadEntityJson(file: FiveEToolsHomebrewFile, entityId: string, filename?: string): void {
 		const entity = this.getEntityById(file, entityId);
 		if (!entity) throw new Error('Entidade 5etools nao encontrada.');
 		const payload: Partial<FiveEToolsHomebrewFile> = {
@@ -574,7 +617,10 @@ export class FiveEToolsHomebrewService {
 				return numeric >= 0 ? `+${numeric}` : String(numeric);
 			})
 			.replace(/\{@dice\s+([^}]+)\}/gi, '$1')
-			.replace(/\{@actSave\s+([^}]+)\}/gi, (_all, ability: string) => `${this.prettyAbility(ability)} Save`)
+			.replace(
+				/\{@actSave\s+([^}]+)\}/gi,
+				(_all, ability: string) => `${this.prettyAbility(ability)} Save`,
+			)
 			.replace(/\{@actTrigger\}/gi, 'Gatilho:')
 			.replace(/\{@actResponse\}/gi, 'Resposta:')
 			.replace(/\{@actSaveFail\}/gi, 'Falha:')
@@ -602,15 +648,28 @@ export class FiveEToolsHomebrewService {
 
 	validateMonster(monster: FiveEToolsMonster, primarySource?: string): FiveEToolsValidationIssue[] {
 		const issues: FiveEToolsValidationIssue[] = [];
-		if (!monster.name.trim()) issues.push({ level: 'error', field: 'name', message: 'Monster sem nome.' });
-		if (!monster.source.trim()) issues.push({ level: 'error', field: 'source', message: 'Monster sem source.' });
+		if (!monster.name.trim())
+			issues.push({ level: 'error', field: 'name', message: 'Monster sem nome.' });
+		if (!monster.source.trim())
+			issues.push({ level: 'error', field: 'source', message: 'Monster sem source.' });
 		if (primarySource && monster.source.trim() && monster.source !== primarySource) {
-			issues.push({ level: 'warning', field: 'source', message: `Source diferente do principal: ${monster.source}.` });
+			issues.push({
+				level: 'warning',
+				field: 'source',
+				message: `Source diferente do principal: ${monster.source}.`,
+			});
 		}
-		if (!(monster.ac?.length ?? 0)) issues.push({ level: 'warning', field: 'ac', message: 'Monster sem AC definida.' });
-		if (!monster.hp?.average && !monster.hp?.formula) issues.push({ level: 'warning', field: 'hp', message: 'Monster sem HP definido.' });
+		if (!(monster.ac?.length ?? 0))
+			issues.push({ level: 'warning', field: 'ac', message: 'Monster sem AC definida.' });
+		if (!monster.hp?.average && !monster.hp?.formula)
+			issues.push({ level: 'warning', field: 'hp', message: 'Monster sem HP definido.' });
 		for (const ability of ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const) {
-			if (monster[ability] == null) issues.push({ level: 'warning', field: ability, message: `Atributo ${ability.toUpperCase()} ausente.` });
+			if (monster[ability] == null)
+				issues.push({
+					level: 'warning',
+					field: ability,
+					message: `Atributo ${ability.toUpperCase()} ausente.`,
+				});
 		}
 		for (const section of [
 			{ key: 'trait', blocks: monster.trait },
@@ -621,11 +680,19 @@ export class FiveEToolsHomebrewService {
 		]) {
 			for (const [index, block] of (section.blocks ?? []).entries()) {
 				if (!block.entries?.length) {
-					issues.push({ level: 'warning', field: `${section.key}[${index}]`, message: `${section.key} sem entries.` });
+					issues.push({
+						level: 'warning',
+						field: `${section.key}[${index}]`,
+						message: `${section.key} sem entries.`,
+					});
 				}
 				for (const line of this.flattenEntries(block.entries).split('\n')) {
 					if (line.includes('{@spell') && !/^.*\{@spell\s+[^|}]+(?:\|[^}]+)?\}.*$/i.test(line)) {
-						issues.push({ level: 'warning', field: `${section.key}[${index}]`, message: 'Tag de spell potencialmente malformada.' });
+						issues.push({
+							level: 'warning',
+							field: `${section.key}[${index}]`,
+							message: 'Tag de spell potencialmente malformada.',
+						});
 					}
 				}
 			}
@@ -635,16 +702,28 @@ export class FiveEToolsHomebrewService {
 
 	validateTrap(trap: FiveEToolsTrap, primarySource?: string): FiveEToolsValidationIssue[] {
 		const issues: FiveEToolsValidationIssue[] = [];
-		if (!trap.name.trim()) issues.push({ level: 'error', field: 'name', message: 'Trap sem nome.' });
-		if (!trap.source.trim()) issues.push({ level: 'error', field: 'source', message: 'Trap sem source.' });
+		if (!trap.name.trim())
+			issues.push({ level: 'error', field: 'name', message: 'Trap sem nome.' });
+		if (!trap.source.trim())
+			issues.push({ level: 'error', field: 'source', message: 'Trap sem source.' });
 		if (primarySource && trap.source.trim() && trap.source !== primarySource) {
-			issues.push({ level: 'warning', field: 'source', message: `Source diferente do principal: ${trap.source}.` });
+			issues.push({
+				level: 'warning',
+				field: 'source',
+				message: `Source diferente do principal: ${trap.source}.`,
+			});
 		}
-		if (!trap.trapHazType?.trim()) issues.push({ level: 'warning', field: 'trapHazType', message: 'trapHazType vazio.' });
-		if (!trap.entries.length) issues.push({ level: 'warning', field: 'entries', message: 'Trap sem entries.' });
+		if (!trap.trapHazType?.trim())
+			issues.push({ level: 'warning', field: 'trapHazType', message: 'trapHazType vazio.' });
+		if (!trap.entries.length)
+			issues.push({ level: 'warning', field: 'entries', message: 'Trap sem entries.' });
 		for (const [index, line] of this.renderEntries(trap.entries).entries()) {
 			if (line.includes('{@spell') && !/^.*\{@spell\s+[^|}]+(?:\|[^}]+)?\}.*$/i.test(line)) {
-				issues.push({ level: 'warning', field: `entries[${index}]`, message: 'Tag de spell potencialmente malformada.' });
+				issues.push({
+					level: 'warning',
+					field: `entries[${index}]`,
+					message: 'Tag de spell potencialmente malformada.',
+				});
 			}
 		}
 		return issues;
@@ -655,9 +734,10 @@ export class FiveEToolsHomebrewService {
 		incoming: FiveEToolsMonster | FiveEToolsTrap,
 		type: FiveEToolsEntityType,
 	): FiveEToolsConflictComparisonRow[] {
-		const existing = type === 'monster'
-			? this.getMonster(file, incoming.name, incoming.source)
-			: this.getTrap(file, incoming.name, incoming.source);
+		const existing =
+			type === 'monster'
+				? this.getMonster(file, incoming.name, incoming.source)
+				: this.getTrap(file, incoming.name, incoming.source);
 		if (!existing) return [];
 
 		if (type === 'monster') {
@@ -672,7 +752,11 @@ export class FiveEToolsHomebrewService {
 				['HP', String(current.hp?.average ?? '-'), String(next.hp?.average ?? '-')],
 				['Traits', String(current.trait?.length ?? 0), String(next.trait?.length ?? 0)],
 				['Actions', String(current.action?.length ?? 0), String(next.action?.length ?? 0)],
-				['Spellcasting', String(current.spellcasting?.length ?? 0), String(next.spellcasting?.length ?? 0)],
+				[
+					'Spellcasting',
+					String(current.spellcasting?.length ?? 0),
+					String(next.spellcasting?.length ?? 0),
+				],
 			]);
 		}
 
@@ -683,40 +767,36 @@ export class FiveEToolsHomebrewService {
 			['Source', current.source, next.source],
 			['trapHazType', current.trapHazType ?? '-', next.trapHazType ?? '-'],
 			['Entries', String(current.entries.length), String(next.entries.length)],
-			['Resumo', this.renderEntries(current.entries)[0] ?? '-', this.renderEntries(next.entries)[0] ?? '-'],
+			[
+				'Resumo',
+				this.renderEntries(current.entries)[0] ?? '-',
+				this.renderEntries(next.entries)[0] ?? '-',
+			],
 		]);
 	}
 
-	convertMonsterToCreature(monster: FiveEToolsMonster, id = 0): CreatureInterface {
+	convertMonsterToCreature(monster: FiveEToolsMonster, _id = 0): CreatureSheet {
+		void _id;
 		const spellData = this.extractSpellData(monster.spellcasting ?? []);
 		const specialAbilities = this.extractSpecialAbilitiesFromMonster(monster);
-		const creature = this.creatureTemplateService.normalizeCreature({
-			id,
+		return {
 			name: monster.name,
-			initiative: this.dexMod(monster.dex),
-			healthPoints: this.getMonsterHpAverage(monster),
-			maxHealthPoints: this.getMonsterHpAverage(monster),
+			maxHp: this.getMonsterHpAverage(monster),
 			armorClass: this.getMonsterAcValue(monster),
-			temporaryHealthPoints: null,
-			alive: true,
-			conditions: [],
-			notes: [],
-			shared: true,
-			hitPointsShared: true,
-			totalSpellSlots: spellData.totalSpellSlots,
-			usedSpellSlots: spellData.usedSpellSlots,
+			spellSlots: spellData.spellSlots,
 			spells: spellData.spells,
 			specialAbilities,
-			sheetFeatures: this.extractCreatureFeatures(monster),
-			category: this.inferCreatureCategory(monster),
+			features: this.extractCreatureFeatures(monster),
 			rawFiveETools: structuredClone(monster),
-		});
-		return creature;
+			fiveEToolsIdentity: { name: monster.name, source: monster.source },
+		};
 	}
 
-	convertMonsterToSheet(monster: FiveEToolsMonster): Omit<SavedSheetInterface, 'id' | 'createdAt' | 'updatedAt'> {
+	convertMonsterToSheet(
+		monster: FiveEToolsMonster,
+	): Omit<SavedSheetInterface, 'id' | 'createdAt' | 'updatedAt'> {
 		const creature = this.convertMonsterToCreature(monster);
-		const category = creature.category ?? 'monster';
+		const category = this.inferCreatureCategory(monster);
 		return {
 			title: monster.name,
 			data: creature,
@@ -727,9 +807,21 @@ export class FiveEToolsHomebrewService {
 	}
 
 	convertSheetToMonster(sheet: SavedSheetInterface, preferredSource?: string): FiveEToolsMonster {
-		const existingRaw = this.isMonster(sheet.data.rawFiveETools) ? structuredClone(sheet.data.rawFiveETools) : null;
-		const source = preferredSource?.trim() || existingRaw?.source || sheet.source || 'Notion';
-		const name = sheet.data.name.trim() || sheet.title.trim() || existingRaw?.name || 'Nova Ficha';
+		const existingRaw = this.isMonster(sheet.data.rawFiveETools)
+			? structuredClone(sheet.data.rawFiveETools)
+			: null;
+		const source =
+			preferredSource?.trim() ||
+			existingRaw?.source ||
+			sheet.data.fiveEToolsIdentity?.source ||
+			sheet.source ||
+			'Notion';
+		const name =
+			sheet.data.name.trim() ||
+			sheet.title.trim() ||
+			existingRaw?.name ||
+			sheet.data.fiveEToolsIdentity?.name ||
+			'Nova Ficha';
 		const base: FiveEToolsMonster = existingRaw ?? {
 			name,
 			source,
@@ -737,7 +829,7 @@ export class FiveEToolsHomebrewService {
 			type: sheet.category === 'other' ? 'object' : 'humanoid',
 			alignment: ['U'],
 			ac: [12],
-			hp: { average: Math.max(0, sheet.data.maxHealthPoints ?? sheet.data.healthPoints ?? 0), formula: String(Math.max(0, sheet.data.maxHealthPoints ?? sheet.data.healthPoints ?? 0)) },
+			hp: { average: sheet.data.maxHp, formula: String(sheet.data.maxHp) },
 			speed: { walk: 30 },
 			str: 10,
 			dex: 10,
@@ -753,33 +845,45 @@ export class FiveEToolsHomebrewService {
 			legendary: [],
 		};
 
-		const speed = typeof base.speed === 'object' && base.speed != null ? structuredClone(base.speed) : { walk: 30 };
+		const speed =
+			typeof base.speed === 'object' && base.speed != null
+				? structuredClone(base.speed)
+				: { walk: 30 };
 		const nextMonster: FiveEToolsMonster = {
 			...base,
 			name,
 			source,
-			alias: this.uniqueStrings(this.mergeArrays(base.alias, sheet.title && sheet.title !== name ? [sheet.title] : [])),
+			alias: this.uniqueStrings(
+				this.mergeArrays(base.alias, sheet.title && sheet.title !== name ? [sheet.title] : []),
+			),
 			group: this.uniqueStrings(this.mergeArrays(base.group, sheet.tags ?? [])),
-			type: sheet.category === 'other' ? 'object' : base.type ?? 'humanoid',
+			type: sheet.category === 'other' ? 'object' : (base.type ?? 'humanoid'),
 			ac: [this.toNonNegativeInt(sheet.data.armorClass) || this.getMonsterAcValue(base)],
 			hp: {
 				...(base.hp ?? {}),
-				average: Math.max(0, sheet.data.maxHealthPoints ?? sheet.data.healthPoints ?? 0),
-				formula:
-					typeof base.hp?.formula === 'string'
-						? base.hp.formula
-						: String(Math.max(0, sheet.data.maxHealthPoints ?? sheet.data.healthPoints ?? 0)),
+				average: sheet.data.maxHp,
+				formula: typeof base.hp?.formula === 'string' ? base.hp.formula : String(sheet.data.maxHp),
 			},
 			speed,
 			spellcasting: this.createSpellcastingFromCreature(sheet.data, base.spellcasting ?? []),
 		};
 
-		const groupedFeatures = this.groupCreatureFeatures(sheet.data.sheetFeatures ?? []);
-		nextMonster.trait = this.mergeFeatureBlocks(base.trait ?? [], groupedFeatures.trait, sheet.data.specialAbilities ?? []);
-		nextMonster.action = groupedFeatures.action.length ? groupedFeatures.action : base.action ?? [];
-		nextMonster.bonus = groupedFeatures.bonus.length ? groupedFeatures.bonus : base.bonus ?? [];
-		nextMonster.reaction = groupedFeatures.reaction.length ? groupedFeatures.reaction : base.reaction ?? [];
-		nextMonster.legendary = groupedFeatures.legendary.length ? groupedFeatures.legendary : base.legendary ?? [];
+		const groupedFeatures = this.groupCreatureFeatures(sheet.data.features);
+		nextMonster.trait = this.mergeFeatureBlocks(
+			base.trait ?? [],
+			groupedFeatures.trait,
+			sheet.data.specialAbilities ?? [],
+		);
+		nextMonster.action = groupedFeatures.action.length
+			? groupedFeatures.action
+			: (base.action ?? []);
+		nextMonster.bonus = groupedFeatures.bonus.length ? groupedFeatures.bonus : (base.bonus ?? []);
+		nextMonster.reaction = groupedFeatures.reaction.length
+			? groupedFeatures.reaction
+			: (base.reaction ?? []);
+		nextMonster.legendary = groupedFeatures.legendary.length
+			? groupedFeatures.legendary
+			: (base.legendary ?? []);
 
 		return nextMonster;
 	}
@@ -792,30 +896,21 @@ export class FiveEToolsHomebrewService {
 			description,
 			active: true,
 			...this.getExplicitTrapSchedule(description),
-			currentCooldownRounds: 0,
 		};
 	}
 
-	private getExplicitTrapSchedule(description: string): Pick<
-		EncounterTrap,
-		'triggerType' | 'initiative' | 'frequency' | 'cooldownRounds'
-	> {
+	private getExplicitTrapSchedule(
+		description: string,
+	): Pick<EncounterTrap, 'triggerType' | 'initiative' | 'frequency' | 'cooldownRounds'> {
 		const initiative = description.match(/\binitiative(?:\s+count)?\s*(?:of|at)?\s*(\d+)\b/i);
-		const hasRoundStart = /\b(?:at|on)\s+(?:the\s+)?start\s+of\s+(?:each|every|the)\s+round\b/i.test(
-			description,
-		);
+		const hasRoundStart =
+			/\b(?:at|on)\s+(?:the\s+)?start\s+of\s+(?:each|every|the)\s+round\b/i.test(description);
 		const hasRoundEnd = /\b(?:at|on)\s+(?:the\s+)?end\s+of\s+(?:each|every|the)\s+round\b/i.test(
 			description,
 		);
-		const isRecurring = /\b(?:once|one time)\s+per\s+round\b|\bevery\s+round\b/i.test(
-			description,
-		);
+		const isRecurring = /\b(?:once|one time)\s+per\s+round\b|\bevery\s+round\b/i.test(description);
 		const cooldown = description.match(/\bcooldown(?:\s+of)?\s+(\d+)\s+rounds?\b/i);
-		const frequency = cooldown
-			? 'cooldown-rounds'
-			: isRecurring
-				? 'every-round'
-				: 'once';
+		const frequency = cooldown ? 'cooldown-rounds' : isRecurring ? 'every-round' : 'once';
 
 		if (initiative) {
 			return {
@@ -932,27 +1027,45 @@ export class FiveEToolsHomebrewService {
 	}
 
 	parseMonsterTemplate(raw: unknown, primarySource = 'Notion'): FiveEToolsMonsterTemplate {
-		return this.parseHomebrewJson({
-			_meta: {
-				sources: [{ json: primarySource, abbreviation: primarySource.slice(0, 3).toUpperCase(), full: primarySource, version: '1.0.0' }],
-			},
-			monster: [],
-			trap: [],
-			monsterTemplate: [raw],
-			legendaryGroup: [],
-		}).monsterTemplate?.[0] ?? this.createEmptyMonsterTemplate(primarySource);
+		return (
+			this.parseHomebrewJson({
+				_meta: {
+					sources: [
+						{
+							json: primarySource,
+							abbreviation: primarySource.slice(0, 3).toUpperCase(),
+							full: primarySource,
+							version: '1.0.0',
+						},
+					],
+				},
+				monster: [],
+				trap: [],
+				monsterTemplate: [raw],
+				legendaryGroup: [],
+			}).monsterTemplate?.[0] ?? this.createEmptyMonsterTemplate(primarySource)
+		);
 	}
 
 	parseLegendaryGroup(raw: unknown, primarySource = 'Notion'): FiveEToolsLegendaryGroup {
-		return this.parseHomebrewJson({
-			_meta: {
-				sources: [{ json: primarySource, abbreviation: primarySource.slice(0, 3).toUpperCase(), full: primarySource, version: '1.0.0' }],
-			},
-			monster: [],
-			trap: [],
-			monsterTemplate: [],
-			legendaryGroup: [raw],
-		}).legendaryGroup?.[0] ?? this.createEmptyLegendaryGroup(primarySource);
+		return (
+			this.parseHomebrewJson({
+				_meta: {
+					sources: [
+						{
+							json: primarySource,
+							abbreviation: primarySource.slice(0, 3).toUpperCase(),
+							full: primarySource,
+							version: '1.0.0',
+						},
+					],
+				},
+				monster: [],
+				trap: [],
+				monsterTemplate: [],
+				legendaryGroup: [raw],
+			}).legendaryGroup?.[0] ?? this.createEmptyLegendaryGroup(primarySource)
+		);
 	}
 
 	listCompositionPackages(): FiveEToolsCompositionPackage[] {
@@ -1013,7 +1126,10 @@ export class FiveEToolsHomebrewService {
 		};
 	}
 
-	applyCompositionPackage(monster: FiveEToolsMonster, pkg: FiveEToolsCompositionPackage): FiveEToolsMonster {
+	applyCompositionPackage(
+		monster: FiveEToolsMonster,
+		pkg: FiveEToolsCompositionPackage,
+	): FiveEToolsMonster {
 		return {
 			...structuredClone(monster),
 			trait: [...(monster.trait ?? []), ...structuredClone(pkg.trait ?? [])],
@@ -1036,13 +1152,20 @@ export class FiveEToolsHomebrewService {
 	}
 
 	private normalizeMeta(raw: unknown, warnings: string[]): FiveEToolsMeta {
-		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
-		const sources = this.extractMetaSources(candidate.sources).map((source, index) => this.normalizeSource(source, index, warnings));
+		const candidate =
+			raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const sources = this.extractMetaSources(candidate.sources).map((source, index) =>
+			this.normalizeSource(source, index, warnings),
+		);
 		return {
 			...candidate,
 			sources,
 			dateAdded:
-				typeof candidate.dateAdded === 'number' ? candidate.dateAdded : typeof candidate.dateModified === 'number' ? candidate.dateModified : undefined,
+				typeof candidate.dateAdded === 'number'
+					? candidate.dateAdded
+					: typeof candidate.dateModified === 'number'
+						? candidate.dateModified
+						: undefined,
 			dateLastModified:
 				typeof candidate.dateLastModified === 'number' ? candidate.dateLastModified : undefined,
 			edition: typeof candidate.edition === 'string' ? candidate.edition : undefined,
@@ -1050,9 +1173,14 @@ export class FiveEToolsHomebrewService {
 	}
 
 	private normalizeSource(raw: unknown, index: number, warnings: string[]): FiveEToolsSource {
-		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
-		const json = typeof candidate.json === 'string' && candidate.json.trim() ? candidate.json.trim() : `Source${index + 1}`;
-		if (typeof candidate.json !== 'string') warnings.push(`Source ${index + 1} sem campo json; valor padrao aplicado.`);
+		const candidate =
+			raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const json =
+			typeof candidate.json === 'string' && candidate.json.trim()
+				? candidate.json.trim()
+				: `Source${index + 1}`;
+		if (typeof candidate.json !== 'string')
+			warnings.push(`Source ${index + 1} sem campo json; valor padrao aplicado.`);
 		return {
 			...candidate,
 			json,
@@ -1060,21 +1188,34 @@ export class FiveEToolsHomebrewService {
 				typeof candidate.abbreviation === 'string' && candidate.abbreviation.trim()
 					? candidate.abbreviation.trim()
 					: json.slice(0, 3).toUpperCase(),
-			full: typeof candidate.full === 'string' && candidate.full.trim() ? candidate.full.trim() : json,
+			full:
+				typeof candidate.full === 'string' && candidate.full.trim() ? candidate.full.trim() : json,
 			version:
 				typeof candidate.version === 'string' && candidate.version.trim()
 					? candidate.version.trim()
 					: '1.0.0',
-			authors: Array.isArray(candidate.authors) ? candidate.authors.filter((author: unknown) => typeof author === 'string') : [],
+			authors: Array.isArray(candidate.authors)
+				? candidate.authors.filter((author: unknown) => typeof author === 'string')
+				: [],
 			color: typeof candidate.color === 'string' ? candidate.color : undefined,
 			edition: typeof candidate.edition === 'string' ? candidate.edition : undefined,
 		};
 	}
 
-	private normalizeMonster(raw: unknown, index: number, primarySource: string | undefined, warnings: string[]): FiveEToolsMonster {
-		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
-		const name = typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim() : `Monster ${index + 1}`;
-		if (typeof candidate.name !== 'string') warnings.push(`Monster ${index + 1} sem nome; nome padrao aplicado.`);
+	private normalizeMonster(
+		raw: unknown,
+		index: number,
+		primarySource: string | undefined,
+		warnings: string[],
+	): FiveEToolsMonster {
+		const candidate =
+			raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const name =
+			typeof candidate.name === 'string' && candidate.name.trim()
+				? candidate.name.trim()
+				: `Monster ${index + 1}`;
+		if (typeof candidate.name !== 'string')
+			warnings.push(`Monster ${index + 1} sem nome; nome padrao aplicado.`);
 		return {
 			...candidate,
 			name,
@@ -1082,10 +1223,18 @@ export class FiveEToolsHomebrewService {
 				typeof candidate.source === 'string' && candidate.source.trim()
 					? candidate.source.trim()
 					: primarySource || 'Notion',
-			alias: Array.isArray(candidate.alias) ? candidate.alias.filter((value: unknown) => typeof value === 'string') : undefined,
-			group: Array.isArray(candidate.group) ? candidate.group.filter((value: unknown) => typeof value === 'string') : undefined,
-			size: Array.isArray(candidate.size) ? candidate.size.filter((value: unknown) => typeof value === 'string') : undefined,
-			alignment: Array.isArray(candidate.alignment) ? candidate.alignment.filter((value: unknown) => typeof value === 'string') : undefined,
+			alias: Array.isArray(candidate.alias)
+				? candidate.alias.filter((value: unknown) => typeof value === 'string')
+				: undefined,
+			group: Array.isArray(candidate.group)
+				? candidate.group.filter((value: unknown) => typeof value === 'string')
+				: undefined,
+			size: Array.isArray(candidate.size)
+				? candidate.size.filter((value: unknown) => typeof value === 'string')
+				: undefined,
+			alignment: Array.isArray(candidate.alignment)
+				? candidate.alignment.filter((value: unknown) => typeof value === 'string')
+				: undefined,
 			ac: Array.isArray(candidate.ac) ? candidate.ac : undefined,
 			hp:
 				candidate.hp && typeof candidate.hp === 'object' && !Array.isArray(candidate.hp)
@@ -1103,21 +1252,35 @@ export class FiveEToolsHomebrewService {
 			cha: this.toOptionalNumber(candidate.cha),
 			save:
 				candidate.save && typeof candidate.save === 'object' && !Array.isArray(candidate.save)
-					? (Object.fromEntries(Object.entries(candidate.save as Record<string, unknown>).filter(([, value]) => typeof value === 'string')) as Record<string, string>)
+					? (Object.fromEntries(
+							Object.entries(candidate.save as Record<string, unknown>).filter(
+								([, value]) => typeof value === 'string',
+							),
+						) as Record<string, string>)
 					: undefined,
 			skill:
 				candidate.skill && typeof candidate.skill === 'object' && !Array.isArray(candidate.skill)
-					? (Object.fromEntries(Object.entries(candidate.skill as Record<string, unknown>).filter(([, value]) => typeof value === 'string')) as Record<string, string>)
+					? (Object.fromEntries(
+							Object.entries(candidate.skill as Record<string, unknown>).filter(
+								([, value]) => typeof value === 'string',
+							),
+						) as Record<string, string>)
 					: undefined,
-			senses: Array.isArray(candidate.senses) ? candidate.senses.filter((value: unknown) => typeof value === 'string') : undefined,
+			senses: Array.isArray(candidate.senses)
+				? candidate.senses.filter((value: unknown) => typeof value === 'string')
+				: undefined,
 			passive: this.toOptionalNumber(candidate.passive),
-			languages: Array.isArray(candidate.languages) ? candidate.languages.filter((value: unknown) => typeof value === 'string') : undefined,
+			languages: Array.isArray(candidate.languages)
+				? candidate.languages.filter((value: unknown) => typeof value === 'string')
+				: undefined,
 			cr: typeof candidate.cr === 'string' ? candidate.cr : undefined,
 			level: this.toOptionalNumber(candidate.level),
 			resist: Array.isArray(candidate.resist) ? candidate.resist : undefined,
 			immune: Array.isArray(candidate.immune) ? candidate.immune : undefined,
 			vulnerable: Array.isArray(candidate.vulnerable) ? candidate.vulnerable : undefined,
-			conditionImmune: Array.isArray(candidate.conditionImmune) ? candidate.conditionImmune : undefined,
+			conditionImmune: Array.isArray(candidate.conditionImmune)
+				? candidate.conditionImmune
+				: undefined,
 			trait: this.normalizeFeatureBlocks(candidate.trait),
 			action: this.normalizeFeatureBlocks(candidate.action),
 			bonus: this.normalizeFeatureBlocks(candidate.bonus),
@@ -1127,10 +1290,20 @@ export class FiveEToolsHomebrewService {
 		};
 	}
 
-	private normalizeTrap(raw: unknown, index: number, primarySource: string | undefined, warnings: string[]): FiveEToolsTrap {
-		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
-		const name = typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim() : `Trap ${index + 1}`;
-		if (typeof candidate.name !== 'string') warnings.push(`Trap ${index + 1} sem nome; nome padrao aplicado.`);
+	private normalizeTrap(
+		raw: unknown,
+		index: number,
+		primarySource: string | undefined,
+		warnings: string[],
+	): FiveEToolsTrap {
+		const candidate =
+			raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const name =
+			typeof candidate.name === 'string' && candidate.name.trim()
+				? candidate.name.trim()
+				: `Trap ${index + 1}`;
+		if (typeof candidate.name !== 'string')
+			warnings.push(`Trap ${index + 1} sem nome; nome padrao aplicado.`);
 		return {
 			...candidate,
 			name,
@@ -1139,7 +1312,9 @@ export class FiveEToolsHomebrewService {
 					? candidate.source.trim()
 					: primarySource || 'Notion',
 			trapHazType: typeof candidate.trapHazType === 'string' ? candidate.trapHazType : undefined,
-			entries: Array.isArray(candidate.entries) ? candidate.entries.map((entry: unknown) => this.normalizeEntry(entry)) : [],
+			entries: Array.isArray(candidate.entries)
+				? candidate.entries.map((entry: unknown) => this.normalizeEntry(entry))
+				: [],
 		};
 	}
 
@@ -1149,9 +1324,14 @@ export class FiveEToolsHomebrewService {
 		primarySource: string | undefined,
 		warnings: string[],
 	): FiveEToolsMonsterTemplate {
-		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
-		const name = typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim() : `Template ${index + 1}`;
-		if (typeof candidate.name !== 'string') warnings.push(`Template ${index + 1} sem nome; nome padrao aplicado.`);
+		const candidate =
+			raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const name =
+			typeof candidate.name === 'string' && candidate.name.trim()
+				? candidate.name.trim()
+				: `Template ${index + 1}`;
+		if (typeof candidate.name !== 'string')
+			warnings.push(`Template ${index + 1} sem nome; nome padrao aplicado.`);
 		return {
 			...candidate,
 			name,
@@ -1165,7 +1345,9 @@ export class FiveEToolsHomebrewService {
 					: undefined,
 			ref: typeof candidate.ref === 'string' ? candidate.ref : undefined,
 			prerequisite:
-				candidate.prerequisite && typeof candidate.prerequisite === 'object' && !Array.isArray(candidate.prerequisite)
+				candidate.prerequisite &&
+				typeof candidate.prerequisite === 'object' &&
+				!Array.isArray(candidate.prerequisite)
 					? structuredClone(candidate.prerequisite)
 					: undefined,
 		};
@@ -1177,9 +1359,14 @@ export class FiveEToolsHomebrewService {
 		primarySource: string | undefined,
 		warnings: string[],
 	): FiveEToolsLegendaryGroup {
-		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
-		const name = typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim() : `Legendary Group ${index + 1}`;
-		if (typeof candidate.name !== 'string') warnings.push(`Legendary Group ${index + 1} sem nome; nome padrao aplicado.`);
+		const candidate =
+			raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const name =
+			typeof candidate.name === 'string' && candidate.name.trim()
+				? candidate.name.trim()
+				: `Legendary Group ${index + 1}`;
+		if (typeof candidate.name !== 'string')
+			warnings.push(`Legendary Group ${index + 1} sem nome; nome padrao aplicado.`);
 		return {
 			...candidate,
 			name,
@@ -1208,7 +1395,9 @@ export class FiveEToolsHomebrewService {
 				return {
 					...candidate,
 					name: typeof candidate.name === 'string' ? candidate.name : undefined,
-					entries: Array.isArray(candidate.entries) ? candidate.entries.map((entry: unknown) => this.normalizeEntry(entry)) : [],
+					entries: Array.isArray(candidate.entries)
+						? candidate.entries.map((entry: unknown) => this.normalizeEntry(entry))
+						: [],
 				};
 			});
 	}
@@ -1219,20 +1408,27 @@ export class FiveEToolsHomebrewService {
 			.filter((item) => item && typeof item === 'object' && !Array.isArray(item))
 			.map((item) => {
 				const candidate = structuredClone(item as any);
-				const spells = candidate.spells && typeof candidate.spells === 'object' && !Array.isArray(candidate.spells)
-					? Object.fromEntries(
-						Object.entries(candidate.spells as Record<string, unknown>).map(([key, value]) => [
-							key,
-							this.normalizeSpellcastingLevelBlock(value),
-						]),
-					)
-					: undefined;
+				const spells =
+					candidate.spells &&
+					typeof candidate.spells === 'object' &&
+					!Array.isArray(candidate.spells)
+						? Object.fromEntries(
+								Object.entries(candidate.spells as Record<string, unknown>).map(([key, value]) => [
+									key,
+									this.normalizeSpellcastingLevelBlock(value),
+								]),
+							)
+						: undefined;
 				return {
 					...candidate,
 					name: typeof candidate.name === 'string' ? candidate.name : undefined,
 					type: typeof candidate.type === 'string' ? candidate.type : undefined,
-					headerEntries: Array.isArray(candidate.headerEntries) ? candidate.headerEntries.map((entry: unknown) => this.normalizeEntry(entry)) : undefined,
-					footerEntries: Array.isArray(candidate.footerEntries) ? candidate.footerEntries.map((entry: unknown) => this.normalizeEntry(entry)) : undefined,
+					headerEntries: Array.isArray(candidate.headerEntries)
+						? candidate.headerEntries.map((entry: unknown) => this.normalizeEntry(entry))
+						: undefined,
+					footerEntries: Array.isArray(candidate.footerEntries)
+						? candidate.footerEntries.map((entry: unknown) => this.normalizeEntry(entry))
+						: undefined,
 					spells,
 					displayAs: typeof candidate.displayAs === 'string' ? candidate.displayAs : undefined,
 				};
@@ -1240,10 +1436,13 @@ export class FiveEToolsHomebrewService {
 	}
 
 	private normalizeSpellcastingLevelBlock(raw: unknown): FiveEToolsSpellcastingLevelBlock {
-		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const candidate =
+			raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
 		return {
 			...candidate,
-			spells: Array.isArray(candidate.spells) ? candidate.spells.filter((spell: unknown) => typeof spell === 'string') : [],
+			spells: Array.isArray(candidate.spells)
+				? candidate.spells.filter((spell: unknown) => typeof spell === 'string')
+				: [],
 			slots: this.toOptionalNumber(candidate.slots),
 		};
 	}
@@ -1256,7 +1455,9 @@ export class FiveEToolsHomebrewService {
 			...candidate,
 			type: typeof candidate.type === 'string' ? candidate.type : undefined,
 			name: typeof candidate.name === 'string' ? candidate.name : undefined,
-			entries: Array.isArray(candidate.entries) ? candidate.entries.map((item: unknown) => this.normalizeEntry(item)) : undefined,
+			entries: Array.isArray(candidate.entries)
+				? candidate.entries.map((item: unknown) => this.normalizeEntry(item))
+				: undefined,
 		} as FiveEToolsEntryObject;
 	}
 
@@ -1288,12 +1489,19 @@ export class FiveEToolsHomebrewService {
 
 	private extractMetaSources(raw: unknown): FiveEToolsSource[] {
 		if (!Array.isArray(raw)) return [];
-		return raw.filter((item) => item && typeof item === 'object' && !Array.isArray(item)) as FiveEToolsSource[];
+		return raw.filter(
+			(item) => item && typeof item === 'object' && !Array.isArray(item),
+		) as FiveEToolsSource[];
 	}
 
-	private findOtherCollections(file: Record<string, unknown>): Array<{ key: string; count: number }> {
+	private findOtherCollections(
+		file: Record<string, unknown>,
+	): Array<{ key: string; count: number }> {
 		return Object.entries(file)
-			.filter(([key, value]) => key !== '_meta' && key !== 'monster' && key !== 'trap' && Array.isArray(value))
+			.filter(
+				([key, value]) =>
+					key !== '_meta' && key !== 'monster' && key !== 'trap' && Array.isArray(value),
+			)
 			.map(([key, value]) => ({ key, count: (value as unknown[]).length }))
 			.sort((left, right) => left.key.localeCompare(right.key));
 	}
@@ -1319,7 +1527,9 @@ export class FiveEToolsHomebrewService {
 		);
 
 		if (index >= 0 && conflictingIndex >= 0 && conflictingIndex !== index) {
-			throw new Error(`Ja existe um ${type === 'monster' ? 'monster' : 'trap'} com o mesmo nome e source.`);
+			throw new Error(
+				`Ja existe um ${type === 'monster' ? 'monster' : 'trap'} com o mesmo nome e source.`,
+			);
 		}
 
 		if (index >= 0) collection[index] = structuredClone(entity) as never;
@@ -1340,8 +1550,12 @@ export class FiveEToolsHomebrewService {
 		const collection = [...((nextFile[collectionKey] as T[] | undefined) ?? [])];
 		const matchBy = options?.matchBy;
 		const index = matchBy
-			? collection.findIndex((candidate) => candidate.name === matchBy.name && candidate.source === matchBy.source)
-			: collection.findIndex((candidate) => candidate.name === item.name && candidate.source === item.source);
+			? collection.findIndex(
+					(candidate) => candidate.name === matchBy.name && candidate.source === matchBy.source,
+				)
+			: collection.findIndex(
+					(candidate) => candidate.name === item.name && candidate.source === item.source,
+				);
 		const conflictingIndex = collection.findIndex(
 			(candidate) => candidate.name === item.name && candidate.source === item.source,
 		);
@@ -1378,7 +1592,10 @@ export class FiveEToolsHomebrewService {
 		return this.upsertEntity(file, type, entity);
 	}
 
-	private mergeOtherCollections(file: FiveEToolsHomebrewFile, partial: Partial<FiveEToolsHomebrewFile>): FiveEToolsHomebrewFile {
+	private mergeOtherCollections(
+		file: FiveEToolsHomebrewFile,
+		partial: Partial<FiveEToolsHomebrewFile>,
+	): FiveEToolsHomebrewFile {
 		const nextFile = structuredClone(file) as Record<string, unknown>;
 		for (const [key, value] of Object.entries(partial)) {
 			if (key === '_meta' || key === 'monster' || key === 'trap') continue;
@@ -1394,7 +1611,10 @@ export class FiveEToolsHomebrewService {
 		return nextFile as FiveEToolsHomebrewFile;
 	}
 
-	private mergeMetaSources(file: FiveEToolsHomebrewFile, meta: FiveEToolsMeta | undefined): FiveEToolsHomebrewFile {
+	private mergeMetaSources(
+		file: FiveEToolsHomebrewFile,
+		meta: FiveEToolsMeta | undefined,
+	): FiveEToolsHomebrewFile {
 		if (!meta?.sources?.length) return file;
 		const seen = new Set(file._meta.sources.map((source) => source.json));
 		const nextSources = [...file._meta.sources];
@@ -1413,7 +1633,8 @@ export class FiveEToolsHomebrewService {
 	}
 
 	private normalizeCompositionPackage(raw: unknown, index: number): FiveEToolsCompositionPackage {
-		const candidate = raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
+		const candidate =
+			raw && typeof raw === 'object' && !Array.isArray(raw) ? (structuredClone(raw) as any) : {};
 		const createdAt =
 			typeof candidate.createdAt === 'string' && !Number.isNaN(Date.parse(candidate.createdAt))
 				? candidate.createdAt
@@ -1423,9 +1644,18 @@ export class FiveEToolsHomebrewService {
 				? candidate.updatedAt
 				: createdAt;
 		return {
-			id: typeof candidate.id === 'string' && candidate.id.trim() ? candidate.id : `composition-package-${index + 1}`,
-			name: typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim() : `Pacote ${index + 1}`,
-			source: typeof candidate.source === 'string' && candidate.source.trim() ? candidate.source.trim() : undefined,
+			id:
+				typeof candidate.id === 'string' && candidate.id.trim()
+					? candidate.id
+					: `composition-package-${index + 1}`,
+			name:
+				typeof candidate.name === 'string' && candidate.name.trim()
+					? candidate.name.trim()
+					: `Pacote ${index + 1}`,
+			source:
+				typeof candidate.source === 'string' && candidate.source.trim()
+					? candidate.source.trim()
+					: undefined,
 			description:
 				typeof candidate.description === 'string' && candidate.description.trim()
 					? candidate.description.trim()
@@ -1455,9 +1685,14 @@ export class FiveEToolsHomebrewService {
 		return `${type}::${source}::${name}`;
 	}
 
-	private createUniqueEntityName<T extends { name: string; source: string }>(collection: T[], baseName: string, source: string): string {
+	private createUniqueEntityName<T extends { name: string; source: string }>(
+		collection: T[],
+		baseName: string,
+		source: string,
+	): string {
 		const plainBaseName = baseName.replace(/\s+\(\d+\)$/, '').trim() || 'Novo Item';
-		if (!collection.some((item) => item.name === plainBaseName && item.source === source)) return plainBaseName;
+		if (!collection.some((item) => item.name === plainBaseName && item.source === source))
+			return plainBaseName;
 		let index = 1;
 		let candidate = `${plainBaseName} (${index})`;
 		while (collection.some((item) => item.name === candidate && item.source === source)) {
@@ -1468,46 +1703,67 @@ export class FiveEToolsHomebrewService {
 	}
 
 	private isMonster(value: unknown): value is FiveEToolsMonster {
-		return !!value && typeof value === 'object' && !Array.isArray(value) && typeof (value as FiveEToolsMonster).name === 'string' && typeof (value as FiveEToolsMonster).source === 'string' && (Object.prototype.hasOwnProperty.call(value, 'action') || Object.prototype.hasOwnProperty.call(value, 'trait') || Object.prototype.hasOwnProperty.call(value, 'spellcasting') || Object.prototype.hasOwnProperty.call(value, 'hp'));
+		return (
+			!!value &&
+			typeof value === 'object' &&
+			!Array.isArray(value) &&
+			typeof (value as FiveEToolsMonster).name === 'string' &&
+			typeof (value as FiveEToolsMonster).source === 'string' &&
+			(Object.prototype.hasOwnProperty.call(value, 'action') ||
+				Object.prototype.hasOwnProperty.call(value, 'trait') ||
+				Object.prototype.hasOwnProperty.call(value, 'spellcasting') ||
+				Object.prototype.hasOwnProperty.call(value, 'hp'))
+		);
 	}
 
 	private flattenEntry(entry: FiveEToolsEntry | undefined): string {
 		if (typeof entry === 'string') return entry;
 		if (!entry || typeof entry !== 'object') return '';
 		const prefix = entry.name ? `${entry.name}: ` : '';
-		const nested = Array.isArray(entry.entries) ? entry.entries.map((item) => this.flattenEntry(item)).filter(Boolean).join(' ') : '';
+		const nested = Array.isArray(entry.entries)
+			? entry.entries
+					.map((item) => this.flattenEntry(item))
+					.filter(Boolean)
+					.join(' ')
+			: '';
 		return `${prefix}${nested}`.trim();
 	}
 
 	private extractSpellData(blocks: FiveEToolsSpellcastingBlock[]): {
-		totalSpellSlots: SpellSlots | null;
-		usedSpellSlots: SpellSlots | null;
-		spells: SpellsByKey;
+		spellSlots: CreatureSpellSlot[];
+		spells: CreatureSpell[];
 	} {
-		const totalSpellSlots: SpellSlots = {};
-		const usedSpellSlots: SpellSlots = {};
-		const spells: SpellsByKey = {};
+		const spellSlots: CreatureSpellSlot[] = [];
+		const spells: CreatureSpell[] = [];
 		let spellIndex = 0;
 
 		for (const block of blocks) {
 			for (const [levelKey, levelData] of Object.entries(block.spells ?? {})) {
-				const slotKey = this.toSpellLevelKey(levelKey);
-				if (slotKey && typeof levelData.slots === 'number') {
-					totalSpellSlots[slotKey] = Math.max(0, Math.floor(levelData.slots));
-					usedSpellSlots[slotKey] = 0;
+				const level = Number(levelKey);
+				if (
+					Number.isInteger(level) &&
+					level >= 1 &&
+					level <= 9 &&
+					typeof levelData.slots === 'number'
+				) {
+					spellSlots.push({ level, max: Math.max(0, Math.floor(levelData.slots)) });
 				}
 				for (const spellTag of levelData.spells ?? []) {
 					const label = this.extractSpellLabel(spellTag);
 					if (!label) continue;
 					spellIndex += 1;
-					spells[`spell-${spellIndex}`] = { label, total: 1 };
+					spells.push({
+						id: `spell-${spellIndex}`,
+						name: label,
+						level: Number.isInteger(level) ? level : 0,
+						uses: 1,
+					});
 				}
 			}
 		}
 
 		return {
-			totalSpellSlots: Object.keys(totalSpellSlots).length ? totalSpellSlots : null,
-			usedSpellSlots: Object.keys(usedSpellSlots).length ? usedSpellSlots : null,
+			spellSlots,
 			spells,
 		};
 	}
@@ -1526,7 +1782,10 @@ export class FiveEToolsHomebrewService {
 			.filter((ability): ability is CreatureSpecialAbility => ability !== null);
 	}
 
-	private toSpecialAbility(block: FiveEToolsMonsterFeatureBlock, index: number): CreatureSpecialAbility | null {
+	private toSpecialAbility(
+		block: FiveEToolsMonsterFeatureBlock,
+		index: number,
+	): CreatureSpecialAbility | null {
 		const name = (block.name || '').trim();
 		if (!name) return null;
 		const recharge = name.match(/Recharge\s*(\d)\s*[\-\u2013]\s*(\d)/i);
@@ -1536,7 +1795,7 @@ export class FiveEToolsHomebrewService {
 				id: `5etools-ability-${index + 1}`,
 				name,
 				description: this.flattenEntries(block.entries),
-				rechargeType: 'dice',
+				recoveryType: 'dice-recharge',
 				rechargeDice: 'd6',
 				rechargeOn: this.range(min, 6),
 			};
@@ -1548,7 +1807,7 @@ export class FiveEToolsHomebrewService {
 				id: `5etools-ability-${index + 1}`,
 				name,
 				description: this.flattenEntries(block.entries),
-				rechargeType: 'per-day',
+				recoveryType: 'uses-per-day',
 				maxUses: Math.max(1, Number(perDay[1] || 1)),
 			};
 		}
@@ -1559,7 +1818,7 @@ export class FiveEToolsHomebrewService {
 				id: `5etools-ability-${index + 1}`,
 				name,
 				description: this.flattenEntries(block.entries),
-				rechargeType: 'manual',
+				recoveryType: 'manual',
 			};
 		}
 
@@ -1568,7 +1827,10 @@ export class FiveEToolsHomebrewService {
 
 	private extractCreatureFeatures(monster: FiveEToolsMonster): CreatureFeature[] {
 		const features: CreatureFeature[] = [];
-		const push = (blocks: FiveEToolsMonsterFeatureBlock[] | undefined, kind: CreatureFeature['kind']) => {
+		const push = (
+			blocks: FiveEToolsMonsterFeatureBlock[] | undefined,
+			kind: CreatureFeature['kind'],
+		) => {
 			for (const [index, block] of (blocks ?? []).entries()) {
 				if (!block.name?.trim()) continue;
 				features.push({
@@ -1581,6 +1843,7 @@ export class FiveEToolsHomebrewService {
 		};
 		push(monster.trait, 'trait');
 		push(monster.action, 'action');
+		push(monster.bonus, 'bonus');
 		push(monster.reaction, 'reaction');
 		push(monster.legendary, 'legendary');
 		for (const [index, block] of (monster.spellcasting ?? []).entries()) {
@@ -1600,15 +1863,10 @@ export class FiveEToolsHomebrewService {
 		return features;
 	}
 
-	private inferCreatureCategory(monster: FiveEToolsMonster): CreatureInterface['category'] {
+	private inferCreatureCategory(monster: FiveEToolsMonster): CreatureCategory {
 		if (monster.type === 'object') return 'other';
 		if (monster.level != null && monster.type === 'humanoid') return 'npc';
 		return 'monster';
-	}
-
-	private dexMod(dex: number | undefined): number | null {
-		if (dex == null || !Number.isFinite(dex)) return null;
-		return Math.floor((dex - 10) / 2);
 	}
 
 	private getMonsterHpAverage(monster: FiveEToolsMonster): number {
@@ -1647,6 +1905,7 @@ export class FiveEToolsHomebrewService {
 				entries: feature.description ? feature.description.split('\n').filter(Boolean) : [],
 			};
 			if (feature.kind === 'action') grouped.action.push(block);
+			else if (feature.kind === 'bonus') grouped.bonus.push(block);
 			else if (feature.kind === 'reaction') grouped.reaction.push(block);
 			else if (feature.kind === 'legendary') grouped.legendary.push(block);
 			else grouped.trait.push(block);
@@ -1672,36 +1931,40 @@ export class FiveEToolsHomebrewService {
 	}
 
 	private toAbilityBlockName(ability: CreatureSpecialAbility): string {
-		if (ability.rechargeType === 'dice') {
+		if (ability.recoveryType === 'dice-recharge') {
 			const min = ability.rechargeOn?.length ? Math.min(...ability.rechargeOn) : 5;
 			return `${ability.name} (Recharge ${min}\u20136)`;
 		}
-		if (ability.rechargeType === 'per-day' && ability.maxUses) {
+		if (ability.recoveryType === 'uses-per-day' && ability.maxUses) {
 			return `${ability.name} (${ability.maxUses}/Day)`;
 		}
 		return ability.name;
 	}
 
 	private createSpellcastingFromCreature(
-		creature: CreatureInterface,
+		creature: CreatureSheet,
 		existing: FiveEToolsSpellcastingBlock[],
 	): FiveEToolsSpellcastingBlock[] {
-		const headerBlocks = existing.filter((block) => !(block.spells && Object.keys(block.spells).length));
+		const headerBlocks = existing.filter(
+			(block) => !(block.spells && Object.keys(block.spells).length),
+		);
 		const levels: Record<string, FiveEToolsSpellcastingLevelBlock> = {};
-		for (const [key, spell] of Object.entries(creature.spells ?? {})) {
-			const match = key.match(/(\d)(?:st|nd|rd|th)?$/i);
-			void match;
-			const spellTag = spell.label.startsWith('{@spell ') ? spell.label : this.toSpellTag(spell.label, 'XPHB');
-			levels['0'] = levels['0'] ?? { spells: [] };
-			levels['0'].spells = [...(levels['0'].spells ?? []), spellTag];
+		for (const spell of creature.spells) {
+			const spellTag = spell.name.startsWith('{@spell ')
+				? spell.name
+				: this.toSpellTag(spell.name, spell.source ?? 'XPHB');
+			const level =
+				Number.isInteger(spell.level) && spell.level! >= 0 && spell.level! <= 9
+					? String(spell.level)
+					: '0';
+			levels[level] = levels[level] ?? { spells: [] };
+			levels[level].spells = [...(levels[level].spells ?? []), spellTag];
 		}
 
-		for (const slotKey of SPELL_LEVEL_KEYS) {
-			const slots = creature.totalSpellSlots?.[slotKey];
-			if (slots == null) continue;
-			const level = String(SPELL_LEVEL_KEYS.indexOf(slotKey) + 1);
+		for (const slot of creature.spellSlots) {
+			const level = String(slot.level);
 			levels[level] = levels[level] ?? { spells: [] };
-			levels[level].slots = slots;
+			levels[level].slots = slot.max;
 		}
 
 		const spellBlocks = Object.keys(levels).length
@@ -1716,13 +1979,17 @@ export class FiveEToolsHomebrewService {
 		return [...headerBlocks, ...spellBlocks];
 	}
 
-	private describeSpellcastingLevels(spells: Record<string, FiveEToolsSpellcastingLevelBlock> | undefined): string {
+	private describeSpellcastingLevels(
+		spells: Record<string, FiveEToolsSpellcastingLevelBlock> | undefined,
+	): string {
 		if (!spells) return '';
 		return Object.entries(spells)
 			.sort((left, right) => Number(left[0]) - Number(right[0]))
 			.map(([level, data]) => {
 				const label = level === '0' ? 'Truques' : `${level}o nível`;
-				const spellNames = (data.spells ?? []).map((spell) => this.extractSpellLabel(spell)).filter(Boolean);
+				const spellNames = (data.spells ?? [])
+					.map((spell) => this.extractSpellLabel(spell))
+					.filter(Boolean);
 				const slots = data.slots != null ? ` (${data.slots} slots)` : '';
 				return `${label}${slots}: ${spellNames.join(', ')}`;
 			})
@@ -1733,12 +2000,6 @@ export class FiveEToolsHomebrewService {
 	private extractSpellLabel(tag: string): string {
 		const match = tag.match(/^\{@spell\s+([^|}]+)(?:\|[^}]+)?\}$/i);
 		return match?.[1]?.trim() || tag.trim();
-	}
-
-	private toSpellLevelKey(level: string): SpellLevel | null {
-		const index = Number(level);
-		if (!Number.isFinite(index) || index < 1 || index > 9) return null;
-		return SPELL_LEVEL_KEYS[index - 1];
 	}
 
 	private mergeArrays(base: string[] | undefined, incoming: string[] | undefined): string[] {
@@ -1769,7 +2030,14 @@ export class FiveEToolsHomebrewService {
 	}
 
 	private getFirstBlock(monster: FiveEToolsMonster): FiveEToolsMonsterFeatureBlock | null {
-		return monster.trait?.[0] ?? monster.action?.[0] ?? monster.bonus?.[0] ?? monster.reaction?.[0] ?? monster.legendary?.[0] ?? null;
+		return (
+			monster.trait?.[0] ??
+			monster.action?.[0] ??
+			monster.bonus?.[0] ??
+			monster.reaction?.[0] ??
+			monster.legendary?.[0] ??
+			null
+		);
 	}
 
 	private buildMonsterSearchText(monster: FiveEToolsMonster): string {
@@ -1785,20 +2053,29 @@ export class FiveEToolsHomebrewService {
 			...(monster.bonus ?? []).map((block) => block.name ?? ''),
 			...(monster.reaction ?? []).map((block) => block.name ?? ''),
 			...(monster.legendary ?? []).map((block) => block.name ?? ''),
-			this.flattenEntries(monster.trait?.flatMap((block) => block.entries ?? []) ?? []).slice(0, 220),
-			this.flattenEntries(monster.action?.flatMap((block) => block.entries ?? []) ?? []).slice(0, 220),
+			this.flattenEntries(monster.trait?.flatMap((block) => block.entries ?? []) ?? []).slice(
+				0,
+				220,
+			),
+			this.flattenEntries(monster.action?.flatMap((block) => block.entries ?? []) ?? []).slice(
+				0,
+				220,
+			),
 		]
 			.filter(Boolean)
 			.join(' ');
 	}
 
 	private buildTrapSearchText(trap: FiveEToolsTrap): string {
-		return [trap.name, trap.source, trap.trapHazType ?? '', this.flattenEntries(trap.entries)].filter(Boolean).join(' ');
+		return [trap.name, trap.source, trap.trapHazType ?? '', this.flattenEntries(trap.entries)]
+			.filter(Boolean)
+			.join(' ');
 	}
 
 	private detectInitiativeHint(trap: FiveEToolsTrap): string | undefined {
 		const text = this.flattenEntries(trap.entries).toLowerCase();
-		if (text.includes('initiative count 20') || text.includes('initiative 20')) return 'Parece agir na iniciativa 20';
+		if (text.includes('initiative count 20') || text.includes('initiative 20'))
+			return 'Parece agir na iniciativa 20';
 		return undefined;
 	}
 
@@ -1875,4 +2152,4 @@ export class FiveEToolsHomebrewService {
 		if (!Number.isFinite(numeric)) return 0;
 		return Math.max(0, Math.floor(numeric));
 	}
-	}
+}

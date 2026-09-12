@@ -1128,11 +1128,13 @@
 									</div>
 
 									<div class="grid gap-2 md:grid-cols-2">
-										@for (spell of spellEntries(combatant.spells); track spell.key) {
+										@for (spell of combatant.spells; track spell.id) {
 											<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-												<div class="font-semibold">{{ spell.value.label }}</div>
+												<div class="font-semibold">{{ spell.name }}</div>
 												<div class="mt-1 text-sm opacity-75">
-													Preparada / usos base: {{ spell.value.total }}
+													@if (spell.level != null) { Nível {{ spell.level }} }
+													@if (spell.source) { · {{ spell.source }} }
+													@if (spell.uses != null) { · Usos base: {{ spell.uses }} }
 												</div>
 											</div>
 										}
@@ -1150,7 +1152,7 @@
 									</div>
 
 									<div class="space-y-2">
-										@for (feature of combatant.sheetFeatures; track feature.id) {
+										@for (feature of combatant.features; track feature.id) {
 											<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
 												<div class="flex flex-wrap items-center gap-2">
 													<div class="font-semibold">{{ feature.name }}</div>
@@ -1780,7 +1782,7 @@
 								<div class="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
 									<div class="text-xs uppercase tracking-[0.18em] opacity-60">HP</div>
 									<div class="mt-1 text-lg font-semibold">
-										{{ creature.healthPoints }}/{{ creature.maxHealthPoints }}
+										{{ creature.maxHp }}/{{ creature.maxHp }}
 									</div>
 								</div>
 
@@ -1792,7 +1794,7 @@
 								<div class="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
 									<div class="text-xs uppercase tracking-[0.18em] opacity-60">Magias</div>
 									<div class="mt-1 text-lg font-semibold">
-										{{ spellEntries(creature.spells).length }}
+										{{ creature.spells.length }}
 									</div>
 								</div>
 
@@ -1812,7 +1814,7 @@
 
 								<div class="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
 									<div class="text-xs uppercase tracking-[0.18em] opacity-60">Traits e ações</div>
-									<div class="mt-1 text-lg font-semibold">{{ creature.sheetFeatures?.length ?? 0 }}</div>
+									<div class="mt-1 text-lg font-semibold">{{ creature.features.length }}</div>
 								</div>
 							</div>
 						</div>

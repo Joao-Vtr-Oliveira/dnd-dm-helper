@@ -69,14 +69,7 @@ export class BattleEncounterStorageService {
 		encounter: SavedEncounter,
 		options?: BattleEncounterCreateOptions
 	): BattleEncounter {
-		const battle = this.battleEncounterService.createBattleFromEncounter(
-			{
-				id: encounter.id,
-				name: encounter.title,
-				data: encounter.data,
-			},
-			options
-		);
+		const battle = this.battleEncounterService.createBattleFromEncounter(encounter, options);
 
 		this.saveBattleEncounter(battle);
 		return battle;
