@@ -4,6 +4,7 @@ import type {
 	CreatureFeature,
 	CreatureSheet,
 } from '../../models/creature-sheet-model';
+import { normalizeArmorClass } from '../../models/creature-sheet-model';
 import { Dnd5eApiService, type ApiMonster } from '../dnd-api/dnd-api';
 import type { SavedSheetInterface } from '../local-storage-service/local-storage-service';
 
@@ -22,7 +23,7 @@ export class CreatureTemplateService {
 	createManualCreature(args: {
 		name: string;
 		hp?: number | null;
-		armorClass?: string | number;
+		armorClass?: unknown;
 		category?: CreatureCategory;
 	}): CreatureSheet {
 		void args.category;
@@ -30,7 +31,7 @@ export class CreatureTemplateService {
 		return {
 			name: args.name.trim() || 'Creature',
 			maxHp: hp,
-			armorClass: args.armorClass ?? '',
+			armorClass: normalizeArmorClass(args.armorClass),
 			spellSlots: [],
 			spells: [],
 			specialAbilities: [],
@@ -46,12 +47,7 @@ export class CreatureTemplateService {
 		return {
 			name: typeof raw.name === 'string' ? raw.name.trim() || 'Creature' : 'Creature',
 			maxHp: this.toNonNegativeInt(raw.maxHp),
-			armorClass:
-				raw.armorClass == null || raw.armorClass === ''
-					? ''
-					: typeof raw.armorClass === 'number'
-						? raw.armorClass
-						: String(raw.armorClass),
+			armorClass: normalizeArmorClass(raw.armorClass),
 			spellSlots: this.normalizeSlots(raw.spellSlots),
 			spells: this.normalizeSpells(raw.spells),
 			specialAbilities: this.normalizeAbilities(raw.specialAbilities),

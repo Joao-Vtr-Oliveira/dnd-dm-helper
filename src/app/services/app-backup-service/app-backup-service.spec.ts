@@ -77,7 +77,7 @@ describe('AppBackupService', () => {
 					initiative: 12,
 					sheet: {
 						name: 'Cultista',
-						armorClass: '12',
+						armorClass: 12,
 						maxHp: 10,
 						spellSlots: [],
 						spells: [],
@@ -96,7 +96,7 @@ describe('AppBackupService', () => {
 			source: 'Mesa',
 			data: {
 				name: 'Cultista',
-				armorClass: '12',
+				armorClass: 12,
 				maxHp: 10,
 				spellSlots: [],
 				spells: [],
@@ -121,7 +121,7 @@ describe('AppBackupService', () => {
 		}));
 		expect(backup.data.encounters[0].participants[0].id).toBe('participant-cultist');
 		expect(backup.data.calendar?.season).toBe('winter');
-		expect(backup.data.rawLocalStorage[APP_STORAGE_KEYS.encounters]).toBeTruthy();
+		expect(backup.data.rawLocalStorage).toEqual({});
 		expect(backup.data.campaignContext).toEqual({ currentLocation: null });
 	});
 
@@ -329,7 +329,7 @@ describe('AppBackupService', () => {
 		expect(campaignContext.locationError()).toContain('não encontrada');
 	});
 
-	it('exports parsed composition packages and restores them with arbitrary project storage', () => {
+	it('exports parsed composition packages without duplicating formal project storage', () => {
 		const compositionPackages = [
 			{
 				id: 'package-1',
@@ -349,20 +349,18 @@ describe('AppBackupService', () => {
 			APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages,
 			JSON.stringify(compositionPackages),
 		);
-		localStorage.setItem('dnd-dm-helper.custom-setting.v1', 'preserve-me');
 		const backup = service.exportAll();
 
 		expect(backup.data.fiveEToolsHomebrewCompositionPackages).toEqual(compositionPackages);
-		expect(backup.data.rawLocalStorage['dnd-dm-helper.custom-setting.v1']).toBe('preserve-me');
+		expect(backup.data.rawLocalStorage).toEqual({});
 
 		localStorage.removeItem(APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages);
-		localStorage.removeItem('dnd-dm-helper.custom-setting.v1');
 		service.applyBackup(backup);
 
 		expect(JSON.parse(localStorage.getItem(APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages) ?? '[]')).toEqual(
 			compositionPackages,
 		);
-		expect(localStorage.getItem('dnd-dm-helper.custom-setting.v1')).toBe('preserve-me');
+		expect(localStorage.getItem('dnd-dm-helper.custom-setting.v1')).toBeNull();
 	});
 
 	it('does not export or restore legacy encounter and sheet storage keys', () => {
@@ -404,5 +402,19 @@ describe('AppBackupService', () => {
 		});
 		service.applyBackup(backup);
 		expect(campaignContext.currentLocationRef()).toBeNull();
+	});
+
+	it('exports the same formal data after restore without reintroducing raw duplicates', () => {
+		localStorageService.createSheet({
+			title: 'Guard', category: 'npc', tags: [], source: 'Mesa',
+			data: { name: 'Guard', armorClass: 15, maxHp: 11, spellSlots: [], spells: [], specialAbilities: [], features: [] },
+		});
+		const backup = service.exportAll();
+
+		service.applyBackup(backup);
+		const reexported = service.exportAll();
+
+		expect(reexported.data).toEqual(backup.data);
+		expect(reexported.data.rawLocalStorage).toEqual({});
 	});
 });

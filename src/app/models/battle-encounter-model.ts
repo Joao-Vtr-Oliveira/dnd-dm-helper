@@ -168,7 +168,7 @@ export interface BattleCombatant {
 	initiativeTieBreaker?: number;
 	nextRoundInitiativeTieBreaker?: number | null;
 	turnOrder: number;
-	armorClass?: number;
+	armorClass: number | null;
 	maxHp: number;
 	currentHp: number;
 	temporaryHp: number;
@@ -227,7 +227,8 @@ export interface BattleTurnSnapshot {
 
 export interface BattleEncounter {
 	id: string;
-	sourceEncounterId: string;
+	/** Optional provenance. Historical battles remain valid after their encounter is deleted. */
+	sourceEncounterId?: string;
 	name: string;
 	description?: string;
 	status: BattleEncounterStatus;
@@ -258,6 +259,6 @@ export interface BattleConditionPreset {
 export interface BattleEncounterCreateOptions {
 	name?: string;
 	combatantSides?: Record<string, BattleCombatantSide>;
-	initiativeOverrides?: Record<string, number>;
+	initiativeOverrides?: Record<string, number | null>;
 	initiativeTieBreakerOverrides?: Record<string, number>;
 }

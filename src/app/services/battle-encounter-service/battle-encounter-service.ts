@@ -25,6 +25,7 @@ import type {
 	CreatureSpell,
 	CreatureSpellSlot,
 } from '../../models/creature-sheet-model';
+import { normalizeArmorClass } from '../../models/creature-sheet-model';
 import type {
 	Encounter,
 	EncounterLairAction,
@@ -53,7 +54,7 @@ type AddCombatantOverrides = {
 	side?: BattleCombatantSide;
 	initiative?: number;
 	initiativeTieBreaker?: number;
-	armorClass?: number;
+	armorClass?: number | null;
 	maxHp?: number;
 	currentHp?: number;
 	temporaryHp?: number;
@@ -180,8 +181,9 @@ export class BattleEncounterService {
 
 		return {
 			id: typeof raw.id === 'string' ? raw.id : this.createId(),
-			sourceEncounterId:
-				typeof raw.sourceEncounterId === 'string' ? raw.sourceEncounterId : 'unknown-encounter',
+			...(typeof raw.sourceEncounterId === 'string' && raw.sourceEncounterId.trim()
+				? { sourceEncounterId: raw.sourceEncounterId }
+				: {}),
 			name: typeof raw.name === 'string' ? raw.name : 'Batalha local',
 			description: typeof raw.description === 'string' ? raw.description : undefined,
 			status:
@@ -2394,9 +2396,8 @@ export class BattleEncounterService {
 		return candidate;
 	}
 
-	private toArmorClass(value: unknown): number | undefined {
-		const numeric = Number(value);
-		return Number.isFinite(numeric) ? numeric : undefined;
+	private toArmorClass(value: unknown): number | null {
+		return normalizeArmorClass(value);
 	}
 
 	private createId(): string {

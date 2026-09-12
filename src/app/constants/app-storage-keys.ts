@@ -24,8 +24,25 @@ export const APP_PRIMARY_STORAGE_KEYS = [
 	APP_STORAGE_KEYS.encounterHubFilters,
 	APP_STORAGE_KEYS.campaignContext,
 	APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages,
+	APP_STORAGE_KEYS.fiveEToolsHomebrew,
+	APP_STORAGE_KEYS.fiveEToolsHomebrewBackups,
 ] as const;
 
+/** Known project keys which have no formal campaign-backup section yet. */
+export const APP_RAW_BACKUP_STORAGE_KEYS = [] as const;
+
 export function isProjectStorageKey(key: string): boolean {
-	return key.startsWith('dnd-dm-helper.') || key === APP_STORAGE_KEYS.worldDate;
+	return (
+		APP_PRIMARY_STORAGE_KEYS.includes(key as (typeof APP_PRIMARY_STORAGE_KEYS)[number]) ||
+		APP_LEGACY_PRIMARY_STORAGE_KEYS.includes(
+			key as (typeof APP_LEGACY_PRIMARY_STORAGE_KEYS)[number],
+		) ||
+		key === APP_STORAGE_KEYS.safetyBackupBeforeSync
+	);
+}
+
+export function isRawBackupStorageKey(key: string): boolean {
+	return APP_RAW_BACKUP_STORAGE_KEYS.includes(
+		key as (typeof APP_RAW_BACKUP_STORAGE_KEYS)[number],
+	);
 }

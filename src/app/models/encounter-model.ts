@@ -36,7 +36,8 @@ export interface EncounterParticipant {
 	name: string;
 	category: CreatureCategory;
 	side?: BattleCombatantSide;
-	initiative?: number;
+	/** null means this prepared participant has not received an initiative yet. */
+	initiative: number | null;
 	sheet: CreatureSheet;
 	notes?: string;
 }

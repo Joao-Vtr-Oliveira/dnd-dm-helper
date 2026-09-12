@@ -66,9 +66,10 @@ describe('EncounterHubFilterService', () => {
 					tags: ['forest', 'ambush'],
 					participants: [
 						{
-							id: 'participant-scout',
-							name: 'Goblin Scout',
-							category: 'monster',
+								id: 'participant-scout',
+								name: 'Goblin Scout',
+								category: 'monster',
+								initiative: null,
 							sheet: {
 								name: 'Goblin Scout', armorClass: 13, maxHp: 7, spellSlots: [], spells: [],
 								specialAbilities: [], features: [],

@@ -2,11 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import type { WorldDate } from '../../models/calendar-model';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
 import type { FiveEToolsCompositionPackage } from '../../models/fiveetools-homebrew-model';
+import type {
+	FiveEToolsHomebrewFile,
+	FiveEToolsStoredBackup,
+} from '../../models/fiveetools-homebrew-model';
 import {
 	APP_LEGACY_PRIMARY_STORAGE_KEYS,
 	APP_PRIMARY_STORAGE_KEYS,
 	APP_STORAGE_KEYS,
-	isProjectStorageKey,
+	isRawBackupStorageKey,
 } from '../../constants/app-storage-keys';
 import { environment } from '../../../environments/environment';
 import { BattleEncounterStorageService } from '../battle-encounter-storage-service/battle-encounter-storage-service';
@@ -25,6 +29,7 @@ import {
 	type CampaignContextState,
 } from '../../models/campaign-context-model';
 import { CampaignContextService } from '../campaign-context-service/campaign-context-service';
+import { FiveEToolsHomebrewService } from '../fiveetools-homebrew-service/fiveetools-homebrew-service';
 
 export interface AppBackup {
 	app: 'dnd-dm-helper';
@@ -37,6 +42,8 @@ export interface AppBackup {
 		homebrewSheets: SavedSheetInterface[];
 		calendar: WorldDate | null;
 		campaignContext?: CampaignContextState | null;
+		fiveEToolsHomebrew: FiveEToolsHomebrewFile | null;
+		fiveEToolsHomebrewBackups: FiveEToolsStoredBackup[];
 		fiveEToolsHomebrewCompositionPackages: FiveEToolsCompositionPackage[];
 		settings: {
 			encounterHubFilters?: EncounterHubFilters | null;
@@ -70,6 +77,7 @@ export class AppBackupService {
 	private readonly worldClock = inject(WorldClockService);
 	private readonly encounterHubFilterService = inject(EncounterHubFilterService);
 	private readonly campaignContext = inject(CampaignContextService);
+	private readonly fiveEToolsHomebrew = inject(FiveEToolsHomebrewService);
 
 	exportAll(): AppBackup {
 		return {
@@ -83,6 +91,8 @@ export class AppBackupService {
 				homebrewSheets: this.localStorageService.listSheets(),
 				calendar: this.readStoredCalendar(),
 				campaignContext: this.campaignContext.getState(),
+				fiveEToolsHomebrew: this.fiveEToolsHomebrew.getStoredHomebrewFile(),
+				fiveEToolsHomebrewBackups: this.fiveEToolsHomebrew.listBackups(),
 				fiveEToolsHomebrewCompositionPackages: this.readStoredCompositionPackages(),
 				settings: {
 					encounterHubFilters: this.encounterHubFilterService.loadFilters(),
@@ -183,6 +193,18 @@ export class AppBackupService {
 			return invalid('JSON inválido ou incompatível.');
 		}
 		if (
+			data.fiveEToolsHomebrew != null &&
+			!this.fiveEToolsHomebrew.validateHomebrewJson(data.fiveEToolsHomebrew).valid
+		) {
+			return invalid('JSON inválido ou incompatível.');
+		}
+		if (
+			!Array.isArray(data.fiveEToolsHomebrewBackups) ||
+			!data.fiveEToolsHomebrewBackups.every((item) => this.isFiveEToolsStoredBackup(item))
+		) {
+			return invalid('JSON inválido ou incompatível.');
+		}
+		if (
 			!Array.isArray(data.fiveEToolsHomebrewCompositionPackages) ||
 			!data.fiveEToolsHomebrewCompositionPackages.every((item) => this.isCompositionPackage(item))
 		) {
@@ -219,10 +241,7 @@ export class AppBackupService {
 			(result, [key, value]) => {
 				if (
 					typeof value === 'string' &&
-					isProjectStorageKey(key) &&
-					!APP_LEGACY_PRIMARY_STORAGE_KEYS.includes(
-						key as (typeof APP_LEGACY_PRIMARY_STORAGE_KEYS)[number],
-					)
+					isRawBackupStorageKey(key)
 				) {
 					result[key] = value;
 				}
@@ -242,6 +261,8 @@ export class AppBackupService {
 				homebrewSheets: data.homebrewSheets,
 				calendar: this.normalizeCalendar(data.calendar),
 				campaignContext: data.campaignContext === null ? null : normalizeCampaignContext(data.campaignContext),
+				fiveEToolsHomebrew: data.fiveEToolsHomebrew ?? null,
+				fiveEToolsHomebrewBackups: data.fiveEToolsHomebrewBackups,
 				fiveEToolsHomebrewCompositionPackages: data.fiveEToolsHomebrewCompositionPackages,
 				settings: {
 					encounterHubFilters:
@@ -270,6 +291,10 @@ export class AppBackupService {
 		localStorage.setItem(
 			APP_STORAGE_KEYS.encounters,
 			JSON.stringify(normalizedBackup.data.encounters),
+		);
+		this.fiveEToolsHomebrew.restoreStoredState(
+			normalizedBackup.data.fiveEToolsHomebrew,
+			normalizedBackup.data.fiveEToolsHomebrewBackups,
 		);
 		localStorage.setItem(
 			APP_STORAGE_KEYS.battleEncounters,
@@ -305,13 +330,7 @@ export class AppBackupService {
 		}
 
 		for (const [key, value] of Object.entries(normalizedBackup.data.rawLocalStorage)) {
-			if (!isProjectStorageKey(key)) continue;
-			if (APP_LEGACY_PRIMARY_STORAGE_KEYS.includes(key as (typeof APP_LEGACY_PRIMARY_STORAGE_KEYS)[number])) {
-				continue;
-			}
-			if (APP_PRIMARY_STORAGE_KEYS.includes(key as (typeof APP_PRIMARY_STORAGE_KEYS)[number]))
-				continue;
-			if (key === APP_STORAGE_KEYS.safetyBackupBeforeSync) continue;
+			if (!isRawBackupStorageKey(key)) continue;
 			localStorage.setItem(key, value);
 		}
 
@@ -342,11 +361,7 @@ export class AppBackupService {
 		const entries: Record<string, string> = {};
 		for (let index = 0; index < localStorage.length; index += 1) {
 			const key = localStorage.key(index);
-			if (!key || !isProjectStorageKey(key)) continue;
-			if (key === APP_STORAGE_KEYS.safetyBackupBeforeSync) continue;
-			if (APP_LEGACY_PRIMARY_STORAGE_KEYS.includes(key as (typeof APP_LEGACY_PRIMARY_STORAGE_KEYS)[number])) {
-				continue;
-			}
+			if (!key || !isRawBackupStorageKey(key)) continue;
 			const value = localStorage.getItem(key);
 			if (value != null) entries[key] = value;
 		}
@@ -404,7 +419,10 @@ export class AppBackupService {
 			typeof value['id'] === 'string' &&
 			typeof value['name'] === 'string' &&
 			(value['category'] === 'monster' || value['category'] === 'npc' || value['category'] === 'pc' || value['category'] === 'other') &&
+			(value['initiative'] === null || this.isFiniteNumber(value['initiative'])) &&
+			(value['sourceSheetId'] === undefined || typeof value['sourceSheetId'] === 'string') &&
 			typeof sheet['name'] === 'string' &&
+			(sheet['armorClass'] === null || this.isFiniteNumber(sheet['armorClass'])) &&
 			this.isFiniteNumber(sheet['maxHp']) &&
 			Array.isArray(sheet['spellSlots']) &&
 			Array.isArray(sheet['spells']) &&
@@ -417,7 +435,7 @@ export class AppBackupService {
 		if (!this.isRecord(value)) return false;
 		return (
 			typeof value['id'] === 'string' &&
-			typeof value['sourceEncounterId'] === 'string' &&
+			(value['sourceEncounterId'] === undefined || typeof value['sourceEncounterId'] === 'string') &&
 			typeof value['name'] === 'string' &&
 			(value['status'] === 'active' ||
 				value['status'] === 'paused' ||
@@ -454,6 +472,7 @@ export class AppBackupService {
 			value['tags'].every((tag) => typeof tag === 'string') &&
 			typeof value['source'] === 'string' &&
 			typeof data['name'] === 'string' &&
+			(data['armorClass'] === null || this.isFiniteNumber(data['armorClass'])) &&
 			this.isFiniteNumber(data['maxHp']) &&
 			Array.isArray(data['spellSlots']) &&
 			Array.isArray(data['spells']) &&
@@ -474,6 +493,16 @@ export class AppBackupService {
 			['trait', 'action', 'bonus', 'reaction', 'legendary', 'spellcasting'].every(
 				(key) => value[key] === undefined || Array.isArray(value[key]),
 			)
+		);
+	}
+
+	private isFiveEToolsStoredBackup(value: unknown): value is FiveEToolsStoredBackup {
+		if (!this.isRecord(value)) return false;
+		return (
+			typeof value['id'] === 'string' &&
+			typeof value['label'] === 'string' &&
+			typeof value['createdAt'] === 'string' &&
+			this.fiveEToolsHomebrew.validateHomebrewJson(value['file']).valid
 		);
 	}
 

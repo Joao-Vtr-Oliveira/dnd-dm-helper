@@ -1013,7 +1013,7 @@ export class BattleTrackerPage {
 			side: this.defaultSideForSheet(sheet),
 			maxHp: String(creature.maxHp),
 			armorClass:
-				creature.armorClass == null || creature.armorClass === ''
+				creature.armorClass == null
 					? ''
 					: String(creature.armorClass),
 			initiative: '0',

@@ -57,6 +57,25 @@ export class FiveEToolsHomebrewService {
 		return this.readStoredFile();
 	}
 
+	restoreStoredState(
+		file: FiveEToolsHomebrewFile | null,
+		backups: FiveEToolsStoredBackup[],
+	): void {
+		if (file) this.saveHomebrewFile(file);
+		else localStorage.removeItem(this.storageKey);
+
+		const normalizedBackups = backups.slice(0, 20).map((backup, index) => ({
+			id: typeof backup.id === 'string' && backup.id.trim() ? backup.id : `backup-${index + 1}`,
+			label: typeof backup.label === 'string' ? backup.label : 'Backup local',
+			createdAt:
+				typeof backup.createdAt === 'string' && !Number.isNaN(Date.parse(backup.createdAt))
+					? backup.createdAt
+					: new Date().toISOString(),
+			file: this.parseHomebrewJson(backup.file),
+		}));
+		localStorage.setItem(this.backupKey, JSON.stringify(normalizedBackups));
+	}
+
 	saveHomebrewFile(file: FiveEToolsHomebrewFile): FiveEToolsHomebrewFile {
 		const normalized = this.parseHomebrewJson(file);
 		localStorage.setItem(this.storageKey, JSON.stringify(normalized));
@@ -858,7 +877,7 @@ export class FiveEToolsHomebrewService {
 			),
 			group: this.uniqueStrings(this.mergeArrays(base.group, sheet.tags ?? [])),
 			type: sheet.category === 'other' ? 'object' : (base.type ?? 'humanoid'),
-			ac: [this.toNonNegativeInt(sheet.data.armorClass) || this.getMonsterAcValue(base)],
+			ac: [sheet.data.armorClass ?? this.getMonsterAcValue(base)],
 			hp: {
 				...(base.hp ?? {}),
 				average: sheet.data.maxHp,
@@ -1874,14 +1893,14 @@ export class FiveEToolsHomebrewService {
 		return Number.isFinite(hp) ? Math.max(0, Math.floor(hp)) : 0;
 	}
 
-	private getMonsterAcValue(monster: FiveEToolsMonster): number | string {
+	private getMonsterAcValue(monster: FiveEToolsMonster): number | null {
 		const first = monster.ac?.[0];
 		if (typeof first === 'number') return first;
 		if (first && typeof first === 'object' && !Array.isArray(first)) {
 			const ac = (first as any).ac;
 			if (typeof ac === 'number') return ac;
 		}
-		return '';
+		return null;
 	}
 
 	private groupCreatureFeatures(features: CreatureFeature[]): {

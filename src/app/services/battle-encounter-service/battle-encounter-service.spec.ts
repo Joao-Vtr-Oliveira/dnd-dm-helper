@@ -205,7 +205,7 @@ describe('BattleEncounterService', () => {
 			updatedAt: '2026-01-01T10:00:00Z',
 			combatants: [{
 				id: 'combatant-1', sourceParticipantId: 'participant-1', name: 'Mage', side: 'enemy',
-				initiative: 10, turnOrder: 0, maxHp: 12, currentHp: 12, temporaryHp: 0,
+				initiative: 10, turnOrder: 0, armorClass: null, maxHp: 12, currentHp: 12, temporaryHp: 0,
 				defeated: false, hidden: false, collapsed: false, spellSlotsCollapsed: true,
 				pendingAdd: false, conditions: [],
 				specialAbilities: [], spellSlots: [],

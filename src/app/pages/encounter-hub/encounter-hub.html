@@ -441,9 +441,7 @@
 			[appDialogFocus]="true"
 			(appDialogEscape)="closeConfirmModal()"
 			class="app-dialog w-full max-w-lg p-5 sm:p-6"
-			[class.border-rose-400/30]="
-				modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'
-			"
+				[class.border-rose-400/30]="modal.action === 'delete-encounter'"
 			(click)="$event.stopPropagation()"
 		>
 			<div class="flex items-start justify-between gap-3">
@@ -451,12 +449,12 @@
 					<div
 						class="text-[11px] font-semibold uppercase tracking-[0.16em]"
 						[class.text-rose-200]="
-							modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'
+							modal.action === 'delete-encounter'
 						"
 						[class.text-app-subtle]="modal.action === 'new-battle'"
 					>
 						@if (
-							modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'
+							modal.action === 'delete-encounter'
 						) {
 							Ação irreversível
 						} @else {
@@ -478,7 +476,7 @@
 				</button>
 			</div>
 			<p class="mt-3 text-sm leading-6 text-app-muted">{{ modal.description }}</p>
-			@if (modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles') {
+			@if (modal.action === 'delete-encounter') {
 				<div
 					class="app-inset mt-4 border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
 				>
@@ -498,7 +496,7 @@
 					type="button"
 					class="app-button w-full sm:w-auto"
 					[class.app-button-danger]="
-						modal.action === 'delete-encounter' || modal.action === 'delete-encounter-and-battles'
+						modal.action === 'delete-encounter'
 					"
 					[class.app-button-secondary]="modal.action === 'new-battle'"
 					(click)="confirmNewBattle()"

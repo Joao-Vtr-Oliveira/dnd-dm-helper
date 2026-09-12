@@ -5,6 +5,7 @@ import type {
 	CreatureSheet,
 	CreatureSpecialAbility,
 } from '../../models/creature-sheet-model';
+import { normalizeArmorClass } from '../../models/creature-sheet-model';
 import {
 	LocalStorageService,
 	type HomebrewCategory,
@@ -318,7 +319,7 @@ export class HomebrewSheetImportService {
 		return this.creatureTemplate.normalizeCreature({
 			name: raw.name as string,
 			maxHp: raw.maxHp as number,
-			armorClass: raw.armorClass as string | number,
+			armorClass: normalizeArmorClass(raw.armorClass),
 			spellSlots: raw.spellSlots as CreatureSheet['spellSlots'],
 			spells: raw.spells as CreatureSheet['spells'],
 			specialAbilities: raw.specialAbilities as CreatureSheet['specialAbilities'],

@@ -28,7 +28,7 @@ Ferramenta para mesa de D&D com foco em uso local durante a sessão.
 
 ## Modelo de dados
 
-`CreatureSheet` é uma ficha reutilizável e imutável para fins de encounter. Um `Encounter` mantém participantes com referência opcional à ficha e um snapshot estável. Ao iniciar, o app cria um `BattleEncounter` separado com HP atual, condições, recursos e histórico.
+`CreatureSheet` é uma ficha reutilizável. Um `EncounterParticipant` mantém referência opcional à ficha, snapshot estável e configuração de preparação. Lair actions e traps são entidades próprias do encounter, não monsters. Ao iniciar, o app cria um `BattleEncounter` separado com HP atual, condições, recursos, eventos runtime e histórico.
 
 Veja `docs/data-model.md` para o contrato e a política de migração.
 
@@ -47,7 +47,9 @@ Veja `docs/data-model.md` para o contrato e a política de migração.
 - fichas homebrew
 - calendário
 - configurações úteis de UI
-- chaves do projeto no `localStorage`
+- estado atual e backups do homebrew 5eTools
+
+`rawLocalStorage` não é fonte de verdade para dados formais. O Backup V2 é o contrato canônico estabilizado do projeto.
 
 ## Sincronização
 

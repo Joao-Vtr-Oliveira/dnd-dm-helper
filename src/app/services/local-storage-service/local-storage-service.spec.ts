@@ -58,4 +58,31 @@ describe('LocalStorageService', () => {
 		expect(encounter.participants[0].id).toBe('participant-shaman');
 		expect(encounter.participants[0].sheet).toEqual(sheet.data);
 	});
+
+	it('normalizes legacy armor class values and preserves an explicit zero initiative', () => {
+		localStorage.setItem(
+			'dnd-dm-helper.sheets.v2',
+			JSON.stringify([
+				{
+					id: 'sheet-string-ac', title: 'String AC', createdAt: 1, updatedAt: 1, category: 'monster', tags: [], source: '',
+					data: { name: 'String AC', armorClass: '15', maxHp: 1, spellSlots: [], spells: [], specialAbilities: [], features: [] },
+				},
+				{
+					id: 'sheet-invalid-ac', title: 'Invalid AC', createdAt: 1, updatedAt: 1, category: 'monster', tags: [], source: '',
+					data: { name: 'Invalid AC', armorClass: 'unknown', maxHp: 1, spellSlots: [], spells: [], specialAbilities: [], features: [] },
+				},
+			]),
+		);
+		localStorage.setItem(
+			'dnd-dm-helper.encounters.v2',
+			JSON.stringify([{
+				schemaVersion: 1, type: 'dnd-dm-helper-encounter', id: 'enc', title: 'Encounter', createdAt: 1, updatedAt: 1, tags: [], lairActions: [], traps: [],
+				participants: [{ id: 'participant', name: 'Zero', category: 'monster', initiative: 0, sheet: { name: 'Zero', armorClass: '', maxHp: 1, spellSlots: [], spells: [], specialAbilities: [], features: [] } }],
+			}]),
+		);
+
+		expect(service.listSheets().map((sheet) => sheet.data.armorClass)).toEqual([15, null]);
+		expect(service.listEncounters()[0].participants[0].initiative).toBe(0);
+		expect(service.listEncounters()[0].participants[0].sheet.armorClass).toBeNull();
+	});
 });

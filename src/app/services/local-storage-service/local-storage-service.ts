@@ -1,8 +1,12 @@
 import { Injectable } from '@angular/core';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
-import type { Encounter } from '../../models/encounter-model';
-import type { CreatureCategory, CreatureSheet } from '../../models/creature-sheet-model';
+import type { Encounter, EncounterLairAction, EncounterParticipant, EncounterTrap } from '../../models/encounter-model';
+import {
+	normalizeArmorClass,
+	type CreatureCategory,
+	type CreatureSheet,
+} from '../../models/creature-sheet-model';
 
 export type SavedEncounter = Encounter;
 
@@ -34,7 +38,14 @@ export class LocalStorageService {
 		if (!raw) return [];
 		try {
 			const parsed = JSON.parse(raw);
-			return Array.isArray(parsed) ? parsed.filter((encounter) => this.isEncounter(encounter)) : [];
+			if (!Array.isArray(parsed)) return [];
+			const normalized = parsed
+				.filter((encounter) => this.isEncounter(encounter))
+				.map((encounter) => this.normalizeEncounter(encounter));
+			if (JSON.stringify(normalized) !== JSON.stringify(parsed)) {
+				localStorage.setItem(this.KEYEncounters, JSON.stringify(normalized));
+			}
+			return normalized;
 		} catch {
 			return [];
 		}
@@ -47,8 +58,9 @@ export class LocalStorageService {
 	upsertEncounter(enc: SavedEncounter) {
 		const all = this.listEncounters();
 		const idx = all.findIndex((x) => x.id === enc.id);
-		if (idx === -1) all.unshift(enc);
-		else all[idx] = enc;
+		const normalized = this.normalizeEncounter(enc);
+		if (idx === -1) all.unshift(normalized);
+		else all[idx] = normalized;
 		localStorage.setItem(this.KEYEncounters, JSON.stringify(all));
 	}
 
@@ -261,10 +273,7 @@ export class LocalStorageService {
 		const sheet = raw ?? {};
 		return {
 			name: typeof sheet.name === 'string' ? sheet.name.trim() || 'Creature' : 'Creature',
-			armorClass:
-				typeof sheet.armorClass === 'number' || typeof sheet.armorClass === 'string'
-					? sheet.armorClass
-					: '',
+			armorClass: normalizeArmorClass(sheet.armorClass),
 			maxHp: Number.isFinite(Number(sheet.maxHp)) ? Math.max(0, Math.floor(Number(sheet.maxHp))) : 0,
 			spellSlots: Array.isArray(sheet.spellSlots) ? structuredClone(sheet.spellSlots) : [],
 			spells: Array.isArray(sheet.spells) ? structuredClone(sheet.spells) : [],
@@ -276,6 +285,82 @@ export class LocalStorageService {
 			fiveEToolsIdentity: sheet.fiveEToolsIdentity
 				? structuredClone(sheet.fiveEToolsIdentity)
 				: undefined,
+		};
+	}
+
+	private normalizeEncounter(encounter: Encounter): SavedEncounter {
+		return {
+			...structuredClone(encounter),
+			participants: encounter.participants.map((participant, index) =>
+				this.normalizeParticipant(participant, index),
+			),
+			lairActions: encounter.lairActions.map((action, index) => this.normalizeLairAction(action, index)),
+			traps: encounter.traps.map((trap, index) => this.normalizeTrap(trap, index)),
+		};
+	}
+
+	private normalizeParticipant(raw: EncounterParticipant, index: number): EncounterParticipant {
+		const initiative = Number(raw.initiative);
+		return {
+			id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : crypto.randomUUID(),
+			...(typeof raw.sourceSheetId === 'string' && raw.sourceSheetId.trim()
+				? { sourceSheetId: raw.sourceSheetId.trim() }
+				: {}),
+			name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : `Creature ${index + 1}`,
+			category: this.normalizeHomebrewCategory(raw.category),
+			...(raw.side === 'player' || raw.side === 'ally' || raw.side === 'enemy' || raw.side === 'neutral'
+				? { side: raw.side }
+				: {}),
+			initiative: raw.initiative == null || !Number.isFinite(initiative) ? null : initiative,
+			sheet: this.normalizeCreatureSheet(raw.sheet),
+			...(typeof raw.notes === 'string' && raw.notes.trim() ? { notes: raw.notes.trim() } : {}),
+		};
+	}
+
+	private normalizeLairAction(raw: EncounterLairAction, index: number): EncounterLairAction {
+		const frequency =
+			raw.frequency === 'cooldown-rounds' || raw.frequency === 'manual' ? raw.frequency : 'every-round';
+		const initiative = Number(raw.initiative);
+		return {
+			id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : `lair-action-${index + 1}`,
+			name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : `Lair Action ${index + 1}`,
+			...(typeof raw.description === 'string' && raw.description.trim()
+				? { description: raw.description.trim() }
+				: {}),
+			initiative: Number.isFinite(initiative) ? initiative : 20,
+			active: raw.active !== false,
+			frequency,
+			...(frequency === 'cooldown-rounds'
+				? { cooldownRounds: Math.max(1, Math.floor(Number(raw.cooldownRounds) || 1)) }
+				: {}),
+		};
+	}
+
+	private normalizeTrap(raw: EncounterTrap, index: number): EncounterTrap {
+		const triggerType =
+			raw.triggerType === 'initiative' || raw.triggerType === 'round-start' || raw.triggerType === 'round-end'
+				? raw.triggerType
+				: 'manual';
+		const frequency =
+			raw.frequency === 'once' || raw.frequency === 'every-round' || raw.frequency === 'cooldown-rounds'
+				? raw.frequency
+				: 'manual';
+		const initiative = Number(raw.initiative);
+		return {
+			id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : `trap-${index + 1}`,
+			name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : `Armadilha ${index + 1}`,
+			...(typeof raw.description === 'string' && raw.description.trim()
+				? { description: raw.description.trim() }
+				: {}),
+			triggerType,
+			...(triggerType === 'initiative'
+				? { initiative: Number.isFinite(initiative) ? initiative : 20 }
+				: {}),
+			active: raw.active !== false,
+			frequency,
+			...(frequency === 'cooldown-rounds'
+				? { cooldownRounds: Math.max(1, Math.floor(Number(raw.cooldownRounds) || 1)) }
+				: {}),
 		};
 	}
 

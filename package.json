@@ -9,7 +9,8 @@
 		"watch": "ng build --watch --configuration development",
 		"test": "ng test",
 		"validate:campaign-world": "node scripts/validate-campaign-world.mjs",
-		"test:migration": "node --test scripts/migrate-data-model-v2.test.mjs",
+		"test:migration": "node --test scripts/migrate-data-model-v2.test.mjs scripts/sanitize-data-model-v2.test.mjs",
+		"sanitize:backup-v2": "node scripts/sanitize-data-model-v2.mjs rpg_files/dnd-dm-helper-backup-v2.json /tmp/dnd-dm-helper-backup-v2-sanitized.json",
 		"validate:backup-v2": "node scripts/validate-backup-v2.mjs rpg_files/dnd-dm-helper-backup-v2.json"
 	},
 	"prettier": {

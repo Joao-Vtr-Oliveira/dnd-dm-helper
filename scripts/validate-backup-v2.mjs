@@ -4,20 +4,27 @@ import { resolve } from 'node:path';
 
 const isRecord = (value) => !!value && typeof value === 'object' && !Array.isArray(value);
 const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const isFiniteNumberOrNull = (value) => value === null || (typeof value === 'number' && Number.isFinite(value));
+const categories = new Set(['monster', 'npc', 'pc', 'other']);
 
 function assert(condition, message) {
 	if (!condition) throw new Error(message);
 }
 
-function validateConfig(config, field) {
+function validateConfig(config, field, { runtime = false } = {}) {
 	assert(Array.isArray(config), `${field} must be an array.`);
+	const ids = new Set();
 	for (const item of config) {
 		assert(
 			isRecord(item) && hasText(item.id) && hasText(item.name),
 			`${field} contains an invalid item.`,
 		);
-		assert(!('currentCooldownRounds' in item), `${field} must not retain currentCooldownRounds.`);
-		assert(!('lastTriggeredAtRound' in item), `${field} must not retain lastTriggeredAtRound.`);
+		if (!runtime) {
+			assert(!('currentCooldownRounds' in item), `${field} must not retain currentCooldownRounds.`);
+			assert(!('lastTriggeredAtRound' in item), `${field} must not retain lastTriggeredAtRound.`);
+		}
+		assert(!ids.has(item.id), `${field} contains duplicate id ${item.id}.`);
+		ids.add(item.id);
 	}
 }
 
@@ -37,18 +44,28 @@ function validateCombatant(combatant, field) {
 	assert(!('sheetFeatures' in combatant), `${field} must not retain sheetFeatures.`);
 	validateSpells(combatant.spells, `${field}.spells`);
 	assert(Array.isArray(combatant.features), `${field}.features must be an array.`);
+	assert(isFiniteNumberOrNull(combatant.armorClass), `${field}.armorClass must be number|null.`);
+	assert(typeof combatant.initiative === 'number' && Number.isFinite(combatant.initiative), `${field}.initiative must be a number.`);
+	assert(
+		combatant.sourceParticipantId === undefined || hasText(combatant.sourceParticipantId),
+		`${field}.sourceParticipantId must be optional non-empty text.`,
+	);
 }
 
 function validateBattle(battle, field) {
 	assert(isRecord(battle), `${field} must be an object.`);
+	assert(battle.sourceEncounterId === undefined || hasText(battle.sourceEncounterId), `${field}.sourceEncounterId is invalid.`);
+	const combatantIds = new Set();
 	for (const collection of ['combatants', 'pendingCombatants']) {
 		assert(Array.isArray(battle[collection]), `${field}.${collection} must be an array.`);
-		battle[collection].forEach((combatant, index) =>
-			validateCombatant(combatant, `${field}.${collection}[${index}]`),
-		);
+		battle[collection].forEach((combatant, index) => {
+			validateCombatant(combatant, `${field}.${collection}[${index}]`);
+			assert(!combatantIds.has(combatant.id), `${field} contains duplicate combatant id ${combatant.id}.`);
+			combatantIds.add(combatant.id);
+		});
 	}
-	validateConfig(battle.lairActions, `${field}.lairActions`);
-	validateConfig(battle.traps, `${field}.traps`);
+	validateConfig(battle.lairActions, `${field}.lairActions`, { runtime: true });
+	validateConfig(battle.traps, `${field}.traps`, { runtime: true });
 	if (battle.turnSnapshots !== undefined) {
 		assert(Array.isArray(battle.turnSnapshots), `${field}.turnSnapshots must be an array.`);
 		battle.turnSnapshots.forEach((snapshot, index) => {
@@ -63,6 +80,14 @@ export function validateBackupV2(input) {
 	assert(input.app === 'dnd-dm-helper', 'Backup app must be dnd-dm-helper.');
 	assert(input.type === 'campaign-backup', 'Backup type must be campaign-backup.');
 	assert(input.schemaVersion === 2, 'Backup schemaVersion must be 2.');
+	assert(
+		input.data.fiveEToolsHomebrew === null || isRecord(input.data.fiveEToolsHomebrew),
+		'Backup data.fiveEToolsHomebrew must be object|null.',
+	);
+	assert(
+		Array.isArray(input.data.fiveEToolsHomebrewBackups),
+		'Backup data.fiveEToolsHomebrewBackups must be an array.',
+	);
 	assert(
 		hasText(input.exportedAt) && !Number.isNaN(Date.parse(input.exportedAt)),
 		'Backup exportedAt must be an ISO date string.',
@@ -79,6 +104,11 @@ export function validateBackupV2(input) {
 		'Backup data.battleEncounters must be an array.',
 	);
 	assert(isRecord(input.data.rawLocalStorage), 'Backup data.rawLocalStorage must be an object.');
+	assert(
+		Object.keys(input.data.rawLocalStorage).length === 0,
+		'Backup data.rawLocalStorage must not contain formal or unknown project data.',
+	);
+	const encounterIds = new Set();
 	for (const [index, encounter] of input.data.encounters.entries()) {
 		const field = `data.encounters[${index}]`;
 		assert(isRecord(encounter), `${field} must be an object.`);
@@ -87,12 +117,15 @@ export function validateBackupV2(input) {
 			`${field} has an invalid encounter schema.`,
 		);
 		assert(hasText(encounter.id) && hasText(encounter.title), `${field} must have id and title.`);
+		assert(!encounterIds.has(encounter.id), `${field} has duplicate id ${encounter.id}.`);
+		encounterIds.add(encounter.id);
 		assert(
 			Array.isArray(encounter.tags) && Array.isArray(encounter.participants),
 			`${field} has invalid collections.`,
 		);
 		validateConfig(encounter.lairActions, `${field}.lairActions`);
 		validateConfig(encounter.traps, `${field}.traps`);
+		const participantIds = new Set();
 		encounter.participants.forEach((participant, participantIndex) => {
 			const participantField = `${field}.participants[${participantIndex}]`;
 			assert(
@@ -100,6 +133,15 @@ export function validateBackupV2(input) {
 				`${participantField} is invalid.`,
 			);
 			assert(isRecord(participant.sheet), `${participantField}.sheet must be an object.`);
+			assert(!participantIds.has(participant.id), `${participantField} has duplicate id.`);
+			participantIds.add(participant.id);
+			assert(categories.has(participant.category), `${participantField}.category is invalid.`);
+			assert(isFiniteNumberOrNull(participant.initiative), `${participantField}.initiative must be number|null.`);
+			assert(isFiniteNumberOrNull(participant.sheet.armorClass), `${participantField}.sheet.armorClass must be number|null.`);
+			assert(
+				participant.sourceSheetId === undefined || hasText(participant.sourceSheetId),
+				`${participantField}.sourceSheetId must be optional non-empty text.`,
+			);
 			validateSpells(participant.sheet.spells, `${participantField}.sheet.spells`);
 			assert(
 				Array.isArray(participant.sheet.spellSlots),
@@ -122,6 +164,8 @@ export function validateBackupV2(input) {
 			`${field} is invalid.`,
 		);
 		assert(isRecord(sheet.data), `${field}.data must be an object.`);
+		assert(categories.has(sheet.category), `${field}.category is invalid.`);
+		assert(isFiniteNumberOrNull(sheet.data.armorClass), `${field}.data.armorClass must be number|null.`);
 		validateSpells(sheet.data.spells, `${field}.data.spells`);
 	}
 	input.data.battleEncounters.forEach((battle, index) =>

@@ -17,6 +17,11 @@ const numberOr = (value, fallback = 0) => {
 	return Number.isFinite(numeric) ? numeric : fallback;
 };
 const nonNegativeInt = (value, fallback = 0) => Math.max(0, Math.floor(numberOr(value, fallback)));
+const armorClassOrNull = (value) => {
+	if (value == null || value === '') return null;
+	const numeric = Number(value);
+	return Number.isFinite(numeric) ? numeric : null;
+};
 
 function requiredText(value, field) {
 	if (!hasText(value)) throw new Error(`${field} must be a non-empty string.`);
@@ -209,7 +214,7 @@ export function migrateCreatureSheet(raw, report, fallbackName = 'Creature') {
 		: undefined;
 	const sheet = {
 		name: optionalText(creature.name) ?? fallbackName,
-		armorClass: creature.armorClass ?? '',
+		armorClass: armorClassOrNull(creature.armorClass),
 		maxHp: nonNegativeInt(creature.maxHealthPoints ?? creature.healthPoints),
 		spellSlots: migrateSpellSlots(creature.totalSpellSlots, report),
 		spells: migrateSpells(creature.spells, report),
@@ -279,9 +284,10 @@ function migrateEncounter(raw, report) {
 						: {}),
 					name: optionalText(creature.name) ?? `Creature ${index + 1}`,
 					category: legacyCategory(creature.category),
-					...(Number.isFinite(Number(creature.initiative))
-						? { initiative: Number(creature.initiative) }
-						: {}),
+					initiative:
+						creature.initiative == null || !Number.isFinite(Number(creature.initiative))
+							? null
+							: Number(creature.initiative),
 					sheet: migrateCreatureSheet(
 						creature,
 						report,
@@ -344,6 +350,8 @@ function migrateCombatant(raw, participantIds, report, context) {
 		return raw;
 	}
 	const combatant = clone(raw);
+	combatant.armorClass = armorClassOrNull(raw.armorClass);
+	combatant.initiative = numberOr(raw.initiative);
 	if (typeof raw.sourceCreatureId === 'number') {
 		const sourceParticipantId = participantIds?.get(raw.sourceCreatureId);
 		delete combatant.sourceCreatureId;
@@ -444,6 +452,17 @@ function compositionPackages(rawLocalStorage, directValue, report) {
 	}
 }
 
+function storedJson(rawLocalStorage, key, fallback, report) {
+	const stored = rawLocalStorage?.[key];
+	if (typeof stored !== 'string') return fallback;
+	try {
+		return JSON.parse(stored);
+	} catch {
+		warn(report, `Could not parse ${key} from rawLocalStorage.`);
+		return fallback;
+	}
+}
+
 function migrateRawStorage(rawStorage, encounters, sheets, battles, report) {
 	const raw = isRecord(rawStorage) ? clone(rawStorage) : {};
 	if (!isRecord(rawStorage))
@@ -484,10 +503,10 @@ function migrateRawStorage(rawStorage, encounters, sheets, battles, report) {
 	}
 	delete raw[V1_ENCOUNTERS_KEY];
 	delete raw[V1_SHEETS_KEY];
-	raw[V2_ENCOUNTERS_KEY] = JSON.stringify(migratedRawEncounters);
-	raw[V2_SHEETS_KEY] = JSON.stringify(migratedRawSheets);
-	raw[BATTLE_ENCOUNTERS_KEY] = JSON.stringify(battles);
-	return raw;
+	void migratedRawEncounters;
+	void migratedRawSheets;
+	void battles;
+	return {};
 }
 
 export function validateLegacyBackupV1(input) {
@@ -545,11 +564,22 @@ export function migrateBackupV1(input) {
 		input.data.fiveEToolsHomebrewCompositionPackages,
 		report,
 	);
+	const fiveEToolsHomebrew =
+		isRecord(input.data.fiveEToolsHomebrew)
+			? clone(input.data.fiveEToolsHomebrew)
+			: storedJson(input.data.rawLocalStorage, 'dnd-dm-helper.5etools-homebrew.v1', null, report);
+	const fiveEToolsHomebrewBackups = Array.isArray(input.data.fiveEToolsHomebrewBackups)
+		? clone(input.data.fiveEToolsHomebrewBackups)
+		: storedJson(input.data.rawLocalStorage, 'dnd-dm-helper.5etools-homebrew.backups.v1', [], report);
 	const data = {
 		...clone(input.data),
 		encounters,
 		battleEncounters,
 		homebrewSheets,
+		fiveEToolsHomebrew: isRecord(fiveEToolsHomebrew) ? fiveEToolsHomebrew : null,
+		fiveEToolsHomebrewBackups: Array.isArray(fiveEToolsHomebrewBackups)
+			? fiveEToolsHomebrewBackups
+			: [],
 		rawLocalStorage,
 	};
 	data.fiveEToolsHomebrewCompositionPackages = Array.isArray(packages) ? packages : [];

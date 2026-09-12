@@ -20,6 +20,7 @@ import type {
 	CreatureSpecialAbility,
 	CreatureSpell,
 } from '../../models/creature-sheet-model';
+import { normalizeArmorClass } from '../../models/creature-sheet-model';
 import type {
 	Encounter,
 	EncounterLairAction,
@@ -84,6 +85,7 @@ type TrapDraft = {
 	templateUrl: './encounter-builder.html',
 })
 export class EncounterBuilder {
+	readonly normalizeArmorClass = normalizeArmorClass;
 	readonly encounter = signal<Encounter>(this.createDefaultEncounter());
 	readonly participants = computed(() => this.encounter().participants);
 	readonly savedId = signal<string | null>(null);
@@ -258,7 +260,7 @@ export class EncounterBuilder {
 			...draft,
 			name: saved.data.name || saved.title,
 			hp: saved.data.maxHp,
-			armorClass: String(saved.data.armorClass),
+			armorClass: saved.data.armorClass == null ? '' : String(saved.data.armorClass),
 			category: saved.category,
 		}));
 	}
@@ -629,7 +631,7 @@ export class EncounterBuilder {
 					sourceSheetId,
 					name: sheet.name,
 					category,
-					initiative: initiative ?? undefined,
+					initiative: initiative ?? null,
 					sheet: structuredClone(sheet),
 				}) satisfies EncounterParticipant,
 		);

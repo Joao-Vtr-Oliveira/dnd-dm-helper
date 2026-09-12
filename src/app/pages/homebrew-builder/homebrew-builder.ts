@@ -18,6 +18,7 @@ import type {
 	CreatureSheet,
 	CreatureSpecialAbility,
 } from '../../models/creature-sheet-model';
+import { normalizeArmorClass } from '../../models/creature-sheet-model';
 
 type SpellDraft = { name: string; uses: number; level: number };
 type AbilityDraft = {
@@ -33,7 +34,7 @@ function createEmptyCreature(): CreatureSheet {
 	return {
 		name: '',
 		maxHp: 0,
-		armorClass: '',
+		armorClass: null,
 		spellSlots: [],
 		spells: [],
 		specialAbilities: [],
@@ -226,7 +227,7 @@ export class HomebrewBuilder {
 	}
 
 	setAc(v: string) {
-		this.creature.update((c) => ({ ...c, armorClass: v }));
+		this.creature.update((c) => ({ ...c, armorClass: normalizeArmorClass(v) }));
 	}
 
 	// -------- spellcasting --------

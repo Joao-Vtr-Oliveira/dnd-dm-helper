@@ -1,6 +1,7 @@
 import type { FiveEToolsMonster } from './fiveetools-homebrew-model';
 
 export type CreatureCategory = 'monster' | 'npc' | 'pc' | 'other';
+export type ArmorClass = number | null;
 export type CreatureFeatureKind =
 	| 'trait'
 	| 'action'
@@ -58,7 +59,7 @@ export interface FiveEToolsIdentity {
 /** Reusable, immutable combat-sheet data. Runtime state belongs to BattleCombatant. */
 export interface CreatureSheet {
 	name: string;
-	armorClass: string | number;
+	armorClass: ArmorClass;
 	maxHp: number;
 	spellSlots: CreatureSpellSlot[];
 	spells: CreatureSpell[];
@@ -66,4 +67,11 @@ export interface CreatureSheet {
 	features: CreatureFeature[];
 	rawFiveETools?: FiveEToolsMonster;
 	fiveEToolsIdentity?: FiveEToolsIdentity;
+}
+
+/** Converts UI/import values into the internal AC contract. */
+export function normalizeArmorClass(value: unknown): ArmorClass {
+	if (value == null || value === '') return null;
+	const numeric = typeof value === 'number' ? value : Number(String(value).trim());
+	return Number.isFinite(numeric) ? numeric : null;
 }

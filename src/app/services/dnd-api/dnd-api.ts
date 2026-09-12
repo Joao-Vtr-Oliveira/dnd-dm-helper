@@ -7,6 +7,7 @@ import type {
 	CreatureSheet,
 	CreatureSpellSlot,
 } from '../../models/creature-sheet-model';
+import { normalizeArmorClass } from '../../models/creature-sheet-model';
 
 export type ApiResourceListItem = { index: string; name: string; url: string };
 
@@ -127,7 +128,7 @@ export class Dnd5eApiService {
 		return {
 			name: monster.name || 'Unknown Monster',
 			maxHp: hp,
-			armorClass: ac,
+			armorClass: normalizeArmorClass(ac),
 			spellSlots: totalSlots,
 			spells: [],
 			specialAbilities: this.extractSpecialAbilities(monster),

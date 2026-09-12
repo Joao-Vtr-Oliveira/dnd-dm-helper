@@ -166,7 +166,7 @@
 							[ngModel]="participant.initiative"
 							(ngModelChange)="
 								updateParticipant(participant.id, {
-									initiative: $event === '' ? undefined : +$event,
+							initiative: $event === '' ? null : +$event,
 								})
 							"
 					/></label>
@@ -175,7 +175,7 @@
 						><input
 							class="app-field w-full px-3 py-2"
 							[ngModel]="participant.sheet.armorClass"
-							(ngModelChange)="updateSheet(participant.id, { armorClass: $event })"
+						(ngModelChange)="updateSheet(participant.id, { armorClass: normalizeArmorClass($event) })"
 					/></label>
 					<label class="text-sm text-app-muted"
 						><span class="mb-1 block">PV máximo</span
@@ -432,10 +432,31 @@
 								[ngModel]="action.description ?? ''"
 								(ngModelChange)="updateLairAction(action.id, { description: $event || undefined })"
 							></textarea>
+							<div class="mt-2 grid gap-2 md:grid-cols-2">
+								<select
+									class="app-field px-3 py-2"
+									[ngModel]="action.frequency"
+									(ngModelChange)="updateLairAction(action.id, { frequency: $event })"
+								>
+									<option value="every-round">Todo round</option>
+									<option value="cooldown-rounds">Cooldown</option>
+									<option value="manual">Manual</option>
+								</select>
+								@if (action.frequency === 'cooldown-rounds') {
+									<input
+										type="number"
+										min="1"
+										class="app-field px-3 py-2"
+										placeholder="Cooldown em rounds"
+										[ngModel]="action.cooldownRounds ?? 1"
+										(ngModelChange)="updateLairAction(action.id, { cooldownRounds: +$event || 1 })"
+									/>
+								}
+							</div>
 						</div>
 					}
 				</div>
-				<div class="mt-3 grid gap-2 md:grid-cols-3">
+				<div class="mt-3 grid gap-2 md:grid-cols-5">
 					<input
 						class="app-field px-3 py-2"
 						placeholder="Nome"
@@ -446,8 +467,23 @@
 						class="app-field px-3 py-2"
 						placeholder="Iniciativa"
 						[ngModel]="lairActionDraft().initiative"
-						(ngModelChange)="setLairActionDraft({ initiative: $event })"
-					/><button type="button" class="app-button app-button-secondary" (click)="addLairAction()">
+					(ngModelChange)="setLairActionDraft({ initiative: $event })"
+				/><select
+					class="app-field px-3 py-2"
+					[ngModel]="lairActionDraft().frequency"
+					(ngModelChange)="setLairActionDraft({ frequency: $event })"
+				>
+					<option value="every-round">Todo round</option>
+					<option value="cooldown-rounds">Cooldown</option>
+					<option value="manual">Manual</option></select
+				><input
+					type="number"
+					min="1"
+					class="app-field px-3 py-2"
+					placeholder="Cooldown"
+					[ngModel]="lairActionDraft().cooldownRounds"
+					(ngModelChange)="setLairActionDraft({ cooldownRounds: $event })"
+				/><button type="button" class="app-button app-button-secondary" (click)="addLairAction()">
 						Adicionar
 					</button>
 				</div>
@@ -484,10 +520,39 @@
 								[ngModel]="trap.description ?? ''"
 								(ngModelChange)="updateTrap(trap.id, { description: $event || undefined })"
 							></textarea>
+							<div class="mt-2 grid gap-2 md:grid-cols-3">
+								<select
+									class="app-field px-3 py-2"
+									[ngModel]="trap.frequency"
+									(ngModelChange)="updateTrap(trap.id, { frequency: $event })"
+								>
+									<option value="once">Uma vez</option>
+									<option value="every-round">Todo round</option>
+									<option value="cooldown-rounds">Cooldown</option>
+									<option value="manual">Manual</option></select
+								>@if (trap.triggerType === 'initiative') {
+									<input
+										type="number"
+										class="app-field px-3 py-2"
+										placeholder="Iniciativa"
+										[ngModel]="trap.initiative ?? 20"
+										(ngModelChange)="updateTrap(trap.id, { initiative: +$event || 20 })"
+									/>
+								}@if (trap.frequency === 'cooldown-rounds') {
+									<input
+										type="number"
+										min="1"
+										class="app-field px-3 py-2"
+										placeholder="Cooldown"
+										[ngModel]="trap.cooldownRounds ?? 1"
+										(ngModelChange)="updateTrap(trap.id, { cooldownRounds: +$event || 1 })"
+									/>
+								}
+							</div>
 						</div>
 					}
 				</div>
-				<div class="mt-3 grid gap-2 md:grid-cols-3">
+				<div class="mt-3 grid gap-2 md:grid-cols-6">
 					<input
 						class="app-field px-3 py-2"
 						placeholder="Nome"
@@ -501,8 +566,30 @@
 						<option value="manual">Manual</option>
 						<option value="initiative">Iniciativa</option>
 						<option value="round-start">Início do round</option>
-						<option value="round-end">Fim do round</option></select
-					><button type="button" class="app-button app-button-secondary" (click)="addTrap()">
+					<option value="round-end">Fim do round</option></select
+				><input
+					type="number"
+					class="app-field px-3 py-2"
+					placeholder="Iniciativa"
+					[ngModel]="trapDraft().initiative"
+					(ngModelChange)="setTrapDraft({ initiative: $event })"
+				/><select
+					class="app-field px-3 py-2"
+					[ngModel]="trapDraft().frequency"
+					(ngModelChange)="setTrapDraft({ frequency: $event })"
+				>
+					<option value="once">Uma vez</option>
+					<option value="every-round">Todo round</option>
+					<option value="cooldown-rounds">Cooldown</option>
+					<option value="manual">Manual</option></select
+				><input
+					type="number"
+					min="1"
+					class="app-field px-3 py-2"
+					placeholder="Cooldown"
+					[ngModel]="trapDraft().cooldownRounds"
+					(ngModelChange)="setTrapDraft({ cooldownRounds: $event })"
+				/><button type="button" class="app-button app-button-secondary" (click)="addTrap()">
 						Adicionar
 					</button>
 				</div>

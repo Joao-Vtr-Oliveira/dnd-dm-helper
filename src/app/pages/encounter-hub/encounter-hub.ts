@@ -35,7 +35,7 @@ type ConfirmModalState = {
 	description: string;
 	confirmLabel: string;
 	encounterId: string;
-	action: 'new-battle' | 'delete-encounter' | 'delete-encounter-and-battles';
+	action: 'new-battle' | 'delete-encounter';
 };
 
 type BattleSetupModalState = {
@@ -43,7 +43,7 @@ type BattleSetupModalState = {
 	mode: 'start' | 'new';
 	battleName: string;
 	sides: Record<string, BattleCombatantSide>;
-	initiatives: Record<string, number>;
+	initiatives: Record<string, number | null>;
 	initiativeTieBreakers: Record<string, number>;
 };
 
@@ -143,12 +143,12 @@ export class EncounterHub {
 		const battles = this.battleStorage.getBattlesByEncounterId(id);
 		if (battles.length > 0) {
 			this.confirmModal.set({
-				title: 'Deletar encontro e batalhas associadas?',
+				title: 'Deletar encounter e preservar batalhas?',
 				description:
-					'Esse encounter possui batalhas salvas. Ao confirmar, o encontro e todas as battle sessions relacionadas serão removidos.',
-				confirmLabel: 'Deletar encontro e batalhas associadas',
+					'Esse encounter possui batalhas salvas. Elas permanecerão como histórico com a referência de origem preservada.',
+				confirmLabel: 'Deletar encounter e preservar histórico',
 				encounterId: id,
-				action: 'delete-encounter-and-battles',
+				action: 'delete-encounter',
 			});
 			return;
 		}
@@ -224,7 +224,7 @@ export class EncounterHub {
 		const initiatives = Object.fromEntries(
 			encounter.participants.map((participant) => [
 				participant.id,
-				Number(participant.initiative ?? 0),
+				participant.initiative,
 			]),
 		);
 
@@ -261,14 +261,15 @@ export class EncounterHub {
 	}
 
 	setBattleSetupInitiative(participantId: string, value: unknown) {
-		const numeric = Number(value);
+		const text = String(value ?? '').trim();
+		const numeric = Number(text);
 		this.battleSetupModal.update((modal) =>
 			modal
 				? {
 						...modal,
 						initiatives: {
 							...modal.initiatives,
-							[participantId]: Number.isFinite(numeric) ? numeric : 0,
+						[participantId]: text && Number.isFinite(numeric) ? numeric : null,
 						},
 					}
 				: modal,
@@ -327,19 +328,11 @@ export class EncounterHub {
 		const modal = this.confirmModal();
 		if (!modal) return;
 
-		if (modal.action === 'delete-encounter-and-battles') {
-			this.battleStorage.deleteBattlesByEncounterId(modal.encounterId);
-			this.ls.deleteEncounter(modal.encounterId);
-			this.closeConfirmModal();
-			this.refresh();
-			this.showToast({ type: 'success', text: 'Encontro e batalhas associadas removidos.' });
-			return;
-		}
 		if (modal.action === 'delete-encounter') {
 			this.ls.deleteEncounter(modal.encounterId);
 			this.closeConfirmModal();
 			this.refresh();
-			this.showToast({ type: 'success', text: 'Encounter removido.' });
+			this.showToast({ type: 'success', text: 'Encounter removido. Batalhas históricas foram preservadas.' });
 			return;
 		}
 
@@ -483,7 +476,7 @@ export class EncounterHub {
 		const participants = this.getBattleSetupEncounter()?.participants ?? [];
 		if (!modal) return [];
 		const initiative = modal.initiatives[participantId];
-		if (initiative === 0) return [];
+		if (initiative == null) return [];
 		return participants.filter((participant) => modal.initiatives[participant.id] === initiative);
 	}
 

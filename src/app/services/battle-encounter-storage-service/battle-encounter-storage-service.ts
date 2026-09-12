@@ -144,7 +144,7 @@ export class BattleEncounterStorageService {
 		const candidate = value as Partial<BattleEncounter>;
 		return (
 			typeof candidate.id === 'string' &&
-			typeof candidate.sourceEncounterId === 'string' &&
+			(candidate.sourceEncounterId === undefined || typeof candidate.sourceEncounterId === 'string') &&
 			typeof candidate.name === 'string' &&
 			typeof candidate.round === 'number' &&
 			Array.isArray(candidate.combatants)

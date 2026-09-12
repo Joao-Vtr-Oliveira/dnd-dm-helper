@@ -52,9 +52,7 @@ test('migrates representative v1 encounters, battle references, sheets, and raw 
 	const sheet = backup.data.homebrewSheets[0];
 	assert.equal(sheet.externalId, 'sheet-wolf');
 	assert.deepEqual(sheet.data.fiveEToolsIdentity, { name: 'Moon Wolf', source: 'LUN' });
-	assert.equal(backup.data.rawLocalStorage['dnd-dm-helper.encounters.v1'], undefined);
-	assert.equal(backup.data.rawLocalStorage['dnd-dm-helper.sheets.v1'], undefined);
-	assert.equal(backup.data.rawLocalStorage['unrelated.key'], 'preserve-me');
+	assert.deepEqual(backup.data.rawLocalStorage, {});
 	assert.deepEqual(backup.data.fiveEToolsHomebrewCompositionPackages, [
 		{ id: 'package-1', name: 'Moon Pack' },
 	]);
