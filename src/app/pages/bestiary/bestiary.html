@@ -169,8 +169,8 @@
 					@for (monster of monsters(); track monster.id) {
 						<button
 							type="button"
-							class="relative grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-app-divider border-l-2 border-l-transparent px-4 py-3 text-left transition duration-150 hover:bg-white/[0.045]"
-							[class.bg-violet-500/10]="isSelected(monster.source, monster.name)"
+							class="relative grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-app-divider border-l-[3px] border-l-transparent px-4 py-3.5 text-left transition duration-150 hover:bg-violet-500/[0.055]"
+							[class.bg-violet-500/15]="isSelected(monster.source, monster.name)"
 							[class.ring-1]="isSelected(monster.source, monster.name)"
 							[class.ring-inset]="isSelected(monster.source, monster.name)"
 							[class.ring-violet-400/55]="isSelected(monster.source, monster.name)"
@@ -180,34 +180,53 @@
 							[class.border-l-amber-300]="
 								!isSelected(monster.source, monster.name) &&
 								!monster.hasSpellcasting &&
-								(monster.hasLegendaryActions || monster.hasLairActions)
+								monster.hasLegendaryActions
+							"
+							[class.border-l-emerald-300]="
+								!isSelected(monster.source, monster.name) &&
+								!monster.hasSpellcasting &&
+								!monster.hasLegendaryActions &&
+								monster.hasLairActions
 							"
 							[attr.aria-current]="isSelected(monster.source, monster.name) ? 'true' : null"
 							(click)="select(monster.source, monster.name)"
 						>
-							<span class="min-w-0"
-								><span class="flex flex-wrap items-center gap-2"
-									><span class="truncate font-semibold tracking-tight text-app-text">{{
-										monster.name
-									}}</span>
+							<span class="min-w-0">
+								<span
+									class="block truncate font-semibold tracking-tight text-app-text"
+									[class.text-violet-50]="isSelected(monster.source, monster.name)"
+									>{{ monster.name }}</span
+								>
+								<span class="mt-1 block text-xs text-app-muted"
+									>CR {{ monster.challengeRating ?? '-' }} ·
+									{{ monster.type ?? 'Tipo não informado' }} · {{ monster.size ?? '-' }}</span
+								>
+								<span class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs"
+									><span class="font-medium text-app-text">CA {{ monster.armorClass ?? '-' }}</span
+									><span class="text-app-subtle">·</span
+									><span class="font-medium text-emerald-100"
+										>PV {{ monster.averageHp ?? '-' }}</span
+									>
 									@if (monster.hasSpellcasting) {
 										<span
 											class="rounded-full border border-violet-300/25 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-100"
 											>Conjurador</span
 										>
 									}
-									@if (monster.hasLegendaryActions || monster.hasLairActions) {
+									@if (monster.hasLegendaryActions) {
 										<span
 											class="rounded-full border border-amber-300/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-100"
 											>Lendário</span
 										>
-									}</span
-								><span class="mt-1.5 block text-xs text-app-muted"
-									>CR {{ monster.challengeRating ?? '-' }} ·
-									{{ monster.type ?? 'Tipo não informado' }} · {{ monster.size ?? '-' }} · CA
-									{{ monster.armorClass ?? '-' }} · PV {{ monster.averageHp ?? '-' }}</span
-								></span
-							>
+									}
+									@if (monster.hasLairActions) {
+										<span
+											class="rounded-full border border-emerald-300/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-100"
+											>Lair</span
+										>
+									}
+								</span>
+							</span>
 							<span
 								class="app-status self-start border-white/10 bg-app-inset text-app-muted"
 								[class.border-violet-300/25]="isSelected(monster.source, monster.name)"
@@ -237,9 +256,7 @@
 								{{ monster.name }}
 							</h2>
 							<p class="mt-2 text-sm leading-6 text-app-muted">
-								{{ monster.sizes.join('/') }} {{ monster.type ?? 'Criatura'
-								}}{{ monster.subtypes.length ? ` (${monster.subtypes.join(', ')})` : '' }} ·
-								{{ monster.alignment.join(' ') || 'alinhamento não informado' }}
+								{{ formatCreatureMetadata(monster) }}
 							</p>
 						</div>
 						<div class="flex flex-wrap justify-end gap-1.5">
@@ -288,48 +305,71 @@
 					</button>
 				}
 
-				<div class="mt-4 grid grid-cols-3 divide-x divide-app-border border-y border-app-border">
-					<div class="py-3 pr-3">
-						<div class="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-200/75">
-							CR
+				<section class="mt-5 border-y border-violet-300/20 py-3">
+					<div class="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
+						Resumo de combate
+					</div>
+					<div
+						class="mt-2 grid grid-cols-[0.8fr_0.9fr_1.3fr] divide-x divide-app-divider text-center"
+					>
+						<div class="px-2 py-1.5 sm:px-3">
+							<div class="text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200/80">
+								CR
+							</div>
+							<div class="mt-1 text-2xl font-semibold tracking-tight text-rose-200">
+								{{ monster.challengeRating ?? '-' }}
+							</div>
 						</div>
-						<div class="mt-1 text-xl font-semibold text-violet-100">
-							{{ monster.challengeRating ?? '-' }}
+						<div class="px-3 py-1.5">
+							<div
+								class="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-app-subtle"
+							>
+								<svg lucideShield [size]="13" [strokeWidth]="2.25" aria-hidden="true"></svg>CA
+							</div>
+							<div class="mt-1 text-2xl font-semibold tracking-tight text-app-text">
+								{{ monster.armorClass ?? '-' }}
+							</div>
+						</div>
+						<div class="px-3 py-1.5">
+							<div
+								class="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200/75"
+							>
+								<svg lucideHeartPulse [size]="13" [strokeWidth]="2.25" aria-hidden="true"></svg>PV
+							</div>
+							<div class="mt-1 text-2xl font-semibold tracking-tight text-emerald-100">
+								{{ monster.hitPoints }}
+							</div>
+							@if (monster.hitPointFormula) {
+								<div class="mt-0.5 truncate text-xs text-app-muted">
+									{{ monster.hitPointFormula }}
+								</div>
+							}
 						</div>
 					</div>
-					<div class="px-3 py-3">
-						<div class="text-[10px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
-							CA
-						</div>
-						<div class="mt-1 text-xl font-semibold text-app-text">
-							{{ monster.armorClass ?? '-' }}
-						</div>
-					</div>
-					<div class="py-3 pl-3">
-						<div class="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200/75">
-							PV
-						</div>
-						<div class="mt-1 truncate text-xl font-semibold text-emerald-100">
-							{{ monster.hitPoints
-							}}{{ monster.hitPointFormula ? ` (${monster.hitPointFormula})` : '' }}
-						</div>
-					</div>
-				</div>
+				</section>
 
-				<div
-					class="mt-4 grid grid-cols-3 divide-x divide-y divide-app-divider border border-app-divider text-center sm:grid-cols-6 sm:divide-y-0"
-				>
-					@for (ability of abilityKeys; track ability) {
-						<div class="px-2 py-2.5">
-							<div class="text-[10px] font-semibold uppercase tracking-wide text-app-subtle">
-								{{ ability }}
+				<section class="border-b border-app-divider pb-4 pt-4">
+					<div class="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
+						Atributos
+					</div>
+					<div
+						class="mt-2 grid grid-cols-3 divide-x divide-y divide-app-divider sm:grid-cols-6 sm:divide-y-0"
+					>
+						@for (ability of abilityKeys; track ability) {
+							<div class="px-2 py-2.5 text-center">
+								<div class="text-[10px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
+									{{ abilityLabels[ability] }}
+								</div>
+								<div class="mt-1 text-lg font-semibold text-app-text">
+									{{ monster.abilities[ability] ?? '-' }}
+								</div>
+								<div class="text-xs font-medium text-violet-200/85">
+									{{ abilityModifier(monster.abilities[ability]) }}
+								</div>
 							</div>
-							<div class="mt-0.5 font-semibold text-app-text">
-								{{ monster.abilities[ability] ?? '-' }}
-							</div>
-						</div>
-					}
-				</div>
+						}
+					</div>
+				</section>
 
 				<section class="mt-5 border-l-2 border-violet-400/60 pl-3 text-sm leading-6">
 					<div class="app-eyebrow text-violet-200/75">Defesas e sentidos</div>

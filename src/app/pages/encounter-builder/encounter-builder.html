@@ -60,7 +60,11 @@
 			<div class="flex flex-wrap gap-2">
 				<button type="button" class="app-button app-button-secondary" (click)="openHomebrewModal()">
 					<svg lucideBookOpen [size]="18"></svg>Importar Homebrew</button
-				><button type="button" class="app-button app-button-secondary" (click)="openBestiaryModal()">
+				><button
+					type="button"
+					class="app-button app-button-secondary"
+					(click)="openBestiaryModal()"
+				>
 					<svg lucideSearch [size]="18"></svg>Buscar no Bestiário
 				</button>
 			</div>
@@ -166,7 +170,7 @@
 							[ngModel]="participant.initiative"
 							(ngModelChange)="
 								updateParticipant(participant.id, {
-							initiative: $event === '' ? null : +$event,
+									initiative: $event === '' ? null : +$event,
 								})
 							"
 					/></label>
@@ -175,7 +179,9 @@
 						><input
 							class="app-field w-full px-3 py-2"
 							[ngModel]="participant.sheet.armorClass"
-						(ngModelChange)="updateSheet(participant.id, { armorClass: normalizeArmorClass($event) })"
+							(ngModelChange)="
+								updateSheet(participant.id, { armorClass: normalizeArmorClass($event) })
+							"
 					/></label>
 					<label class="text-sm text-app-muted"
 						><span class="mb-1 block">PV máximo</span
@@ -405,7 +411,18 @@
 		</div>
 		<div class="mt-4 grid gap-6 xl:grid-cols-2">
 			<section class="min-w-0 rounded-2xl border border-violet-300/15 bg-violet-500/[0.035] p-4">
-				<div class="flex items-start justify-between gap-3"><div><div class="app-eyebrow text-violet-200/75">Ambiente</div><h4 class="mt-1 font-semibold text-app-text">Lair actions</h4><p class="mt-1 text-sm text-app-muted">Eventos ambientais no turno de iniciativa 20, sem criar combatentes falsos.</p></div><span class="app-status border-violet-300/20 bg-violet-500/10 text-violet-100">{{ encounter().lairActions.length }}</span></div>
+				<div class="flex items-start justify-between gap-3">
+					<div>
+						<div class="app-eyebrow text-violet-200/75">Ambiente</div>
+						<h4 class="mt-1 font-semibold text-app-text">Lair actions</h4>
+						<p class="mt-1 text-sm text-app-muted">
+							Eventos ambientais no turno de iniciativa 20, sem criar combatentes falsos.
+						</p>
+					</div>
+					<span class="app-status border-violet-300/20 bg-violet-500/10 text-violet-100">{{
+						encounter().lairActions.length
+					}}</span>
+				</div>
 				<div class="mt-3 space-y-2">
 					@for (action of encounter().lairActions; track action.id) {
 						<div class="rounded-xl border border-white/10 p-3">
@@ -457,13 +474,73 @@
 					}
 				</div>
 				<div class="app-inset mt-4 p-3">
-					<div class="grid gap-3 md:grid-cols-2"><label><span class="text-xs text-app-muted">Nome da ação</span><input class="app-field mt-1 w-full px-3 py-2" placeholder="Ex: Tremor da cripta" [ngModel]="lairActionDraft().name" (ngModelChange)="setLairActionDraft({ name: $event })" /></label><label><span class="text-xs text-app-muted">Descrição para a mesa</span><input class="app-field mt-1 w-full px-3 py-2" placeholder="O que acontece quando ela dispara?" [ngModel]="lairActionDraft().description" (ngModelChange)="setLairActionDraft({ description: $event })" /></label></div>
-					<div class="mt-3 grid gap-3 sm:grid-cols-3"><label><span class="text-xs text-app-muted">Iniciativa</span><input type="number" class="app-field mt-1 w-full px-3 py-2" [ngModel]="lairActionDraft().initiative" (ngModelChange)="setLairActionDraft({ initiative: $event })" /></label><label><span class="text-xs text-app-muted">Frequência</span><select class="app-field mt-1 w-full px-3 py-2" [ngModel]="lairActionDraft().frequency" (ngModelChange)="setLairActionDraft({ frequency: $event })"><option value="every-round">Todo round</option><option value="cooldown-rounds">Cooldown</option><option value="manual">Manual</option></select></label><label><span class="text-xs text-app-muted">Cooldown (rounds)</span><input type="number" min="1" class="app-field mt-1 w-full px-3 py-2" [disabled]="lairActionDraft().frequency !== 'cooldown-rounds'" [ngModel]="lairActionDraft().cooldownRounds" (ngModelChange)="setLairActionDraft({ cooldownRounds: $event })" /></label></div>
-					<div class="mt-3 flex justify-end"><button type="button" class="app-button app-button-primary" (click)="addLairAction()">Adicionar lair action</button></div>
+					<div class="grid gap-3 md:grid-cols-2">
+						<label
+							><span class="text-xs text-app-muted">Nome da ação</span
+							><input
+								class="app-field mt-1 w-full px-3 py-2"
+								placeholder="Ex: Tremor da cripta"
+								[ngModel]="lairActionDraft().name"
+								(ngModelChange)="setLairActionDraft({ name: $event })" /></label
+						><label
+							><span class="text-xs text-app-muted">Descrição para a mesa</span
+							><input
+								class="app-field mt-1 w-full px-3 py-2"
+								placeholder="O que acontece quando ela dispara?"
+								[ngModel]="lairActionDraft().description"
+								(ngModelChange)="setLairActionDraft({ description: $event })"
+						/></label>
+					</div>
+					<div class="mt-3 grid gap-3 sm:grid-cols-3">
+						<label
+							><span class="text-xs text-app-muted">Iniciativa</span
+							><input
+								type="number"
+								class="app-field mt-1 w-full px-3 py-2"
+								[ngModel]="lairActionDraft().initiative"
+								(ngModelChange)="setLairActionDraft({ initiative: $event })" /></label
+						><label
+							><span class="text-xs text-app-muted">Frequência</span
+							><select
+								class="app-field mt-1 w-full px-3 py-2"
+								[ngModel]="lairActionDraft().frequency"
+								(ngModelChange)="setLairActionDraft({ frequency: $event })"
+							>
+								<option value="every-round">Todo round</option>
+								<option value="cooldown-rounds">Cooldown</option>
+								<option value="manual">Manual</option>
+							</select></label
+						><label
+							><span class="text-xs text-app-muted">Cooldown (rounds)</span
+							><input
+								type="number"
+								min="1"
+								class="app-field mt-1 w-full px-3 py-2"
+								[disabled]="lairActionDraft().frequency !== 'cooldown-rounds'"
+								[ngModel]="lairActionDraft().cooldownRounds"
+								(ngModelChange)="setLairActionDraft({ cooldownRounds: $event })"
+						/></label>
+					</div>
+					<div class="mt-3 flex justify-end">
+						<button type="button" class="app-button app-button-primary" (click)="addLairAction()">
+							Adicionar lair action
+						</button>
+					</div>
 				</div>
 			</section>
 			<section class="min-w-0 rounded-2xl border border-amber-300/15 bg-amber-500/[0.035] p-4">
-				<div class="flex items-start justify-between gap-3"><div><div class="app-eyebrow text-amber-200/75">Perigo</div><h4 class="mt-1 font-semibold text-app-text">Armadilhas</h4><p class="mt-1 text-sm text-app-muted">Disparos manuais, por iniciativa ou pelo ciclo do round.</p></div><span class="app-status border-amber-300/20 bg-amber-500/10 text-amber-100">{{ encounter().traps.length }}</span></div>
+				<div class="flex items-start justify-between gap-3">
+					<div>
+						<div class="app-eyebrow text-amber-200/75">Perigo</div>
+						<h4 class="mt-1 font-semibold text-app-text">Armadilhas</h4>
+						<p class="mt-1 text-sm text-app-muted">
+							Disparos manuais, por iniciativa ou pelo ciclo do round.
+						</p>
+					</div>
+					<span class="app-status border-amber-300/20 bg-amber-500/10 text-amber-100">{{
+						encounter().traps.length
+					}}</span>
+				</div>
 				<div class="mt-3 space-y-2">
 					@for (trap of encounter().traps; track trap.id) {
 						<div class="rounded-xl border border-white/10 p-3">
@@ -503,8 +580,9 @@
 									<option value="once">Uma vez</option>
 									<option value="every-round">Todo round</option>
 									<option value="cooldown-rounds">Cooldown</option>
-									<option value="manual">Manual</option></select
-								>@if (trap.triggerType === 'initiative') {
+									<option value="manual">Manual</option>
+								</select>
+								@if (trap.triggerType === 'initiative') {
 									<input
 										type="number"
 										class="app-field px-3 py-2"
@@ -512,7 +590,8 @@
 										[ngModel]="trap.initiative ?? 20"
 										(ngModelChange)="updateTrap(trap.id, { initiative: +$event || 20 })"
 									/>
-								}@if (trap.frequency === 'cooldown-rounds') {
+								}
+								@if (trap.frequency === 'cooldown-rounds') {
 									<input
 										type="number"
 										min="1"
@@ -527,9 +606,65 @@
 					}
 				</div>
 				<div class="app-inset mt-4 p-3">
-					<div class="grid gap-3 md:grid-cols-2"><label><span class="text-xs text-app-muted">Nome da armadilha</span><input class="app-field mt-1 w-full px-3 py-2" placeholder="Ex: Piso desabando" [ngModel]="trapDraft().name" (ngModelChange)="setTrapDraft({ name: $event })" /></label><label><span class="text-xs text-app-muted">Disparo</span><select class="app-field mt-1 w-full px-3 py-2" [ngModel]="trapDraft().triggerType" (ngModelChange)="setTrapDraft({ triggerType: $event })"><option value="manual">Manual</option><option value="initiative">Iniciativa</option><option value="round-start">Início do round</option><option value="round-end">Fim do round</option></select></label></div>
-					<div class="mt-3 grid gap-3 sm:grid-cols-3"><label><span class="text-xs text-app-muted">Iniciativa</span><input type="number" class="app-field mt-1 w-full px-3 py-2" [disabled]="trapDraft().triggerType !== 'initiative'" [ngModel]="trapDraft().initiative" (ngModelChange)="setTrapDraft({ initiative: $event })" /></label><label><span class="text-xs text-app-muted">Frequência</span><select class="app-field mt-1 w-full px-3 py-2" [ngModel]="trapDraft().frequency" (ngModelChange)="setTrapDraft({ frequency: $event })"><option value="once">Uma vez</option><option value="every-round">Todo round</option><option value="cooldown-rounds">Cooldown</option><option value="manual">Manual</option></select></label><label><span class="text-xs text-app-muted">Cooldown (rounds)</span><input type="number" min="1" class="app-field mt-1 w-full px-3 py-2" [disabled]="trapDraft().frequency !== 'cooldown-rounds'" [ngModel]="trapDraft().cooldownRounds" (ngModelChange)="setTrapDraft({ cooldownRounds: $event })" /></label></div>
-					<div class="mt-3 flex justify-end"><button type="button" class="app-button app-button-primary" (click)="addTrap()">Adicionar armadilha</button></div>
+					<div class="grid gap-3 md:grid-cols-2">
+						<label
+							><span class="text-xs text-app-muted">Nome da armadilha</span
+							><input
+								class="app-field mt-1 w-full px-3 py-2"
+								placeholder="Ex: Piso desabando"
+								[ngModel]="trapDraft().name"
+								(ngModelChange)="setTrapDraft({ name: $event })" /></label
+						><label
+							><span class="text-xs text-app-muted">Disparo</span
+							><select
+								class="app-field mt-1 w-full px-3 py-2"
+								[ngModel]="trapDraft().triggerType"
+								(ngModelChange)="setTrapDraft({ triggerType: $event })"
+							>
+								<option value="manual">Manual</option>
+								<option value="initiative">Iniciativa</option>
+								<option value="round-start">Início do round</option>
+								<option value="round-end">Fim do round</option>
+							</select></label
+						>
+					</div>
+					<div class="mt-3 grid gap-3 sm:grid-cols-3">
+						<label
+							><span class="text-xs text-app-muted">Iniciativa</span
+							><input
+								type="number"
+								class="app-field mt-1 w-full px-3 py-2"
+								[disabled]="trapDraft().triggerType !== 'initiative'"
+								[ngModel]="trapDraft().initiative"
+								(ngModelChange)="setTrapDraft({ initiative: $event })" /></label
+						><label
+							><span class="text-xs text-app-muted">Frequência</span
+							><select
+								class="app-field mt-1 w-full px-3 py-2"
+								[ngModel]="trapDraft().frequency"
+								(ngModelChange)="setTrapDraft({ frequency: $event })"
+							>
+								<option value="once">Uma vez</option>
+								<option value="every-round">Todo round</option>
+								<option value="cooldown-rounds">Cooldown</option>
+								<option value="manual">Manual</option>
+							</select></label
+						><label
+							><span class="text-xs text-app-muted">Cooldown (rounds)</span
+							><input
+								type="number"
+								min="1"
+								class="app-field mt-1 w-full px-3 py-2"
+								[disabled]="trapDraft().frequency !== 'cooldown-rounds'"
+								[ngModel]="trapDraft().cooldownRounds"
+								(ngModelChange)="setTrapDraft({ cooldownRounds: $event })"
+						/></label>
+					</div>
+					<div class="mt-3 flex justify-end">
+						<button type="button" class="app-button app-button-primary" (click)="addTrap()">
+							Adicionar armadilha
+						</button>
+					</div>
 				</div>
 			</section>
 		</div>
@@ -613,31 +748,185 @@
 					Fechar
 				</button>
 			</div>
-			<input
-				class="app-field mt-4 w-full px-3 py-2"
-				placeholder="Buscar monstro"
-				[ngModel]="bestiaryQ()"
-				(ngModelChange)="bestiaryQ.set($event)"
-			/>
-			<div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-				<label><span class="text-xs text-app-muted">CR</span><select class="app-field mt-1 w-full px-2 py-1.5 text-sm" [ngModel]="bestiaryChallengeRating()" (ngModelChange)="bestiaryChallengeRating.set($event)"><option value="">Todos</option>@for (value of bestiaryChallengeRatings(); track value) { <option [value]="value">{{ value }}</option> }</select></label>
-				<label><span class="text-xs text-app-muted">Fonte</span><select class="app-field mt-1 w-full px-2 py-1.5 text-sm" [ngModel]="bestiarySource()" (ngModelChange)="bestiarySource.set($event)"><option value="">Todas</option>@for (value of bestiarySources(); track value) { <option [value]="value">{{ value }}</option> }</select></label>
-				<label><span class="text-xs text-app-muted">Tipo</span><select class="app-field mt-1 w-full px-2 py-1.5 text-sm" [ngModel]="bestiaryType()" (ngModelChange)="bestiaryType.set($event)"><option value="">Todos</option>@for (value of bestiaryTypes(); track value) { <option [value]="value">{{ value }}</option> }</select></label>
-				<label><span class="text-xs text-app-muted">Tamanho</span><select class="app-field mt-1 w-full px-2 py-1.5 text-sm" [ngModel]="bestiarySize()" (ngModelChange)="bestiarySize.set($event)"><option value="">Todos</option>@for (value of bestiarySizes(); track value) { <option [value]="value">{{ value }}</option> }</select></label>
+			<div class="mt-4 border border-violet-300/15 bg-violet-500/[0.035] p-3">
+				<div class="flex items-center justify-between gap-3">
+					<div>
+						<div class="app-eyebrow text-violet-200/70">Refinar consulta</div>
+						<p class="mt-1 text-xs text-app-muted">Encontre a criatura antes de adicioná-la.</p>
+					</div>
+					<span class="text-xs font-medium text-violet-100"
+						>{{ filteredBestiaryMonsters().length }} resultados</span
+					>
+				</div>
+				<label class="relative mt-3 block"
+					><span class="mb-1 block text-xs font-medium text-app-muted">Buscar criatura</span
+					><svg
+						lucideSearch
+						[size]="16"
+						[strokeWidth]="2"
+						aria-hidden="true"
+						class="pointer-events-none absolute bottom-3 left-3 text-violet-200/75"
+					></svg
+					><input
+						class="app-field w-full py-2 pl-9 pr-3"
+						placeholder="Buscar monstro"
+						[ngModel]="bestiaryQ()"
+						(ngModelChange)="bestiaryQ.set($event)"
+				/></label>
+				<div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+					<label
+						><span class="text-xs text-app-muted">CR</span
+						><select
+							class="app-field mt-1 w-full px-2 py-1.5 text-sm"
+							[ngModel]="bestiaryChallengeRating()"
+							(ngModelChange)="bestiaryChallengeRating.set($event)"
+						>
+							<option value="">Todos</option>
+							@for (value of bestiaryChallengeRatings(); track value) {
+								<option [value]="value">{{ value }}</option>
+							}
+						</select></label
+					>
+					<label
+						><span class="text-xs text-app-muted">Fonte</span
+						><select
+							class="app-field mt-1 w-full px-2 py-1.5 text-sm"
+							[ngModel]="bestiarySource()"
+							(ngModelChange)="bestiarySource.set($event)"
+						>
+							<option value="">Todas</option>
+							@for (value of bestiarySources(); track value) {
+								<option [value]="value">{{ value }}</option>
+							}
+						</select></label
+					>
+					<label
+						><span class="text-xs text-app-muted">Tipo</span
+						><select
+							class="app-field mt-1 w-full px-2 py-1.5 text-sm"
+							[ngModel]="bestiaryType()"
+							(ngModelChange)="bestiaryType.set($event)"
+						>
+							<option value="">Todos</option>
+							@for (value of bestiaryTypes(); track value) {
+								<option [value]="value">{{ value }}</option>
+							}
+						</select></label
+					>
+					<label
+						><span class="text-xs text-app-muted">Tamanho</span
+						><select
+							class="app-field mt-1 w-full px-2 py-1.5 text-sm"
+							[ngModel]="bestiarySize()"
+							(ngModelChange)="bestiarySize.set($event)"
+						>
+							<option value="">Todos</option>
+							@for (value of bestiarySizes(); track value) {
+								<option [value]="value">{{ value }}</option>
+							}
+						</select></label
+					>
+				</div>
+				<div class="mt-3 flex flex-wrap gap-2 border-t border-app-divider pt-3">
+					<button
+						type="button"
+						class="inline-flex min-h-9 items-center gap-2 rounded-app-control border px-3 py-1.5 text-sm transition"
+						[class.border-violet-300/45]="bestiarySpellcasterOnly()"
+						[class.bg-violet-500/15]="bestiarySpellcasterOnly()"
+						[class.text-violet-50]="bestiarySpellcasterOnly()"
+						[class.border-app-border]="!bestiarySpellcasterOnly()"
+						[class.bg-app-inset]="!bestiarySpellcasterOnly()"
+						[class.text-app-muted]="!bestiarySpellcasterOnly()"
+						[attr.aria-pressed]="bestiarySpellcasterOnly()"
+						(click)="toggleBestiarySpellcaster()"
+					>
+						<span
+							class="flex h-4 w-4 items-center justify-center rounded border"
+							[class.border-violet-200]="bestiarySpellcasterOnly()"
+							[class.bg-violet-400]="bestiarySpellcasterOnly()"
+							[class.border-app-border]="!bestiarySpellcasterOnly()"
+							><span
+								class="h-1.5 w-1.5 rounded-full bg-app-surface"
+								[class.opacity-100]="bestiarySpellcasterOnly()"
+								[class.opacity-0]="!bestiarySpellcasterOnly()"
+							></span></span
+						>Apenas conjuradores</button
+					><button
+						type="button"
+						class="inline-flex min-h-9 items-center gap-2 rounded-app-control border px-3 py-1.5 text-sm transition"
+						[class.border-amber-300/45]="bestiaryLegendaryOnly()"
+						[class.bg-amber-500/12]="bestiaryLegendaryOnly()"
+						[class.text-amber-50]="bestiaryLegendaryOnly()"
+						[class.border-app-border]="!bestiaryLegendaryOnly()"
+						[class.bg-app-inset]="!bestiaryLegendaryOnly()"
+						[class.text-app-muted]="!bestiaryLegendaryOnly()"
+						[attr.aria-pressed]="bestiaryLegendaryOnly()"
+						(click)="toggleBestiaryLegendary()"
+					>
+						<span
+							class="flex h-4 w-4 items-center justify-center rounded border"
+							[class.border-amber-200]="bestiaryLegendaryOnly()"
+							[class.bg-amber-400]="bestiaryLegendaryOnly()"
+							[class.border-app-border]="!bestiaryLegendaryOnly()"
+							><span
+								class="h-1.5 w-1.5 rounded-full bg-app-surface"
+								[class.opacity-100]="bestiaryLegendaryOnly()"
+								[class.opacity-0]="!bestiaryLegendaryOnly()"
+							></span></span
+						>Lendários / Lair
+					</button>
+				</div>
 			</div>
-			<div class="mt-3 flex flex-wrap gap-2"><button type="button" class="app-button app-button-ghost text-sm" [class.border-violet-300/40]="bestiarySpellcasterOnly()" [class.bg-violet-500/10]="bestiarySpellcasterOnly()" [attr.aria-pressed]="bestiarySpellcasterOnly()" (click)="toggleBestiarySpellcaster()">Spellcaster</button><button type="button" class="app-button app-button-ghost text-sm" [class.border-amber-300/40]="bestiaryLegendaryOnly()" [class.bg-amber-500/10]="bestiaryLegendaryOnly()" [attr.aria-pressed]="bestiaryLegendaryOnly()" (click)="toggleBestiaryLegendary()">Lendário/lair</button></div>
 			@if (bestiaryLoading()) {
 				<p class="mt-4 text-app-muted">Carregando bestiário...</p>
 			} @else if (bestiaryError()) {
 				<p class="mt-4 text-rose-200">{{ bestiaryError() }}</p>
 			} @else {
-				<div class="mt-4 max-h-[55vh] space-y-2 overflow-auto">
+				<div class="mt-4 max-h-[55vh] overflow-hidden rounded-app-panel border border-app-border">
 					@for (monster of filteredBestiaryMonsters(); track monster.id) {
 						<div
-							class="flex items-center justify-between gap-3 rounded-xl border border-white/10 p-3"
+							class="flex items-center justify-between gap-3 border-b border-app-divider border-l-[3px] border-l-transparent px-3 py-3 transition hover:border-l-violet-300 hover:bg-violet-500/[0.055]"
+							[class.border-l-violet-300]="monster.hasSpellcasting"
+							[class.border-l-amber-300]="!monster.hasSpellcasting && monster.hasLegendaryActions"
+							[class.border-l-emerald-300]="
+								!monster.hasSpellcasting && !monster.hasLegendaryActions && monster.hasLairActions
+							"
 						>
-							<span><span class="block font-semibold">{{ monster.name }} · {{ monster.source }}</span><span class="text-xs text-app-muted">CR {{ monster.challengeRating ?? '-' }} · {{ monster.type ?? '-' }} · {{ monster.size ?? '-' }} · CA {{ monster.armorClass ?? '-' }} · PV {{ monster.averageHp ?? '-' }}</span></span>
+							<span class="min-w-0"
+								><span class="block truncate font-semibold text-app-text">{{ monster.name }}</span
+								><span class="mt-1 block text-xs text-app-muted"
+									>CR {{ monster.challengeRating ?? '-' }} · {{ monster.type ?? '-' }} ·
+									{{ monster.size ?? '-' }}</span
+								><span class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs"
+									><span class="font-medium text-app-text">CA {{ monster.armorClass ?? '-' }}</span
+									><span class="text-app-subtle">·</span
+									><span class="font-medium text-emerald-100"
+										>PV {{ monster.averageHp ?? '-' }}</span
+									>
+									@if (monster.hasSpellcasting) {
+										<span
+											class="rounded-full border border-violet-300/25 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-100"
+											>Conjurador</span
+										>
+									}
+									@if (monster.hasLegendaryActions) {
+										<span
+											class="rounded-full border border-amber-300/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-100"
+											>Lendário</span
+										>
+									}
+									@if (monster.hasLairActions) {
+										<span
+											class="rounded-full border border-emerald-300/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-100"
+											>Lair</span
+										>
+									}
+								</span></span
+							>
 							<div class="flex gap-2">
+								<span class="app-status self-start border-white/10 bg-app-inset text-app-muted">{{
+									monster.source
+								}}</span>
 								<button
 									type="button"
 									class="app-button app-button-primary"

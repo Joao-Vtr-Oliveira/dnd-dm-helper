@@ -72,6 +72,17 @@ describe('BestiaryPage', () => {
 		expect(component.isSelected('MM', 'Aboleth')).toBeFalse();
 	});
 
+	it('formats creature metadata and ability modifiers for quick table use', () => {
+		const creature = creatureFixture();
+		creature.sizes = ['H'];
+		creature.type = 'undead';
+		creature.alignment = ['L', 'E'];
+
+		expect(component.formatCreatureMetadata(creature)).toBe('Huge Undead · Lawful Evil');
+		expect(component.abilityModifier(25)).toBe('+7');
+		expect(component.abilityModifier(7)).toBe('-2');
+	});
+
 	it('opens and closes the image lightbox for an available image', () => {
 		component.selected.set(creatureFixture('https://5e.tools/img/bestiary/MM/Aarakocra.webp'));
 

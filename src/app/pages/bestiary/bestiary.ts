@@ -2,7 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LucideSearch, LucideX, LucideZoomIn } from '@lucide/angular';
+import {
+	LucideHeartPulse,
+	LucideSearch,
+	LucideShield,
+	LucideX,
+	LucideZoomIn,
+} from '@lucide/angular';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type { CompendiumMonster } from '../../models/compendium-bestiary-model';
 import { CompendiumBestiaryRendererService } from '../../services/compendium-bestiary-renderer-service/compendium-bestiary-renderer-service';
@@ -13,7 +19,16 @@ import { LocalStorageService } from '../../services/local-storage-service/local-
 @Component({
 	selector: 'app-bestiary',
 	standalone: true,
-	imports: [CommonModule, DialogFocusDirective, FormsModule, LucideSearch, LucideX, LucideZoomIn],
+	imports: [
+		CommonModule,
+		DialogFocusDirective,
+		FormsModule,
+		LucideHeartPulse,
+		LucideSearch,
+		LucideShield,
+		LucideX,
+		LucideZoomIn,
+	],
 	templateUrl: './bestiary.html',
 })
 export class BestiaryPage {
@@ -54,6 +69,14 @@ export class BestiaryPage {
 		this.unique(this.index()?.monsters.map((monster) => monster.challengeRating ?? '') ?? []),
 	);
 	readonly abilityKeys = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
+	readonly abilityLabels = {
+		str: 'FOR',
+		dex: 'DES',
+		con: 'CON',
+		int: 'INT',
+		wis: 'SAB',
+		cha: 'CAR',
+	};
 	readonly monsters = computed(() => {
 		const query = this.query().trim().toLocaleLowerCase();
 		return (this.index()?.monsters ?? []).filter((monster) => {
@@ -113,6 +136,46 @@ export class BestiaryPage {
 	isSelected(source: string, name: string) {
 		const selected = this.selected();
 		return selected?.source === source && selected.name === name;
+	}
+
+	abilityModifier(score: number | undefined) {
+		if (typeof score !== 'number') return '-';
+		const modifier = Math.floor((score - 10) / 2);
+		return modifier >= 0 ? `+${modifier}` : String(modifier);
+	}
+
+	formatCreatureMetadata(monster: CompendiumMonster) {
+		const sizes: Record<string, string> = {
+			T: 'Tiny',
+			S: 'Small',
+			M: 'Medium',
+			L: 'Large',
+			H: 'Huge',
+			G: 'Gargantuan',
+		};
+		const alignments: Record<string, string> = {
+			LG: 'Lawful Good',
+			NG: 'Neutral Good',
+			CG: 'Chaotic Good',
+			LN: 'Lawful Neutral',
+			N: 'Neutral',
+			CN: 'Chaotic Neutral',
+			LE: 'Lawful Evil',
+			NE: 'Neutral Evil',
+			CE: 'Chaotic Evil',
+			U: 'Unaligned',
+		};
+		const size = monster.sizes.map((value) => sizes[value] ?? value).join('/');
+		const type = monster.type ? this.toDisplayText(monster.type) : 'Creature';
+		const subtype = monster.subtypes.length
+			? ` (${monster.subtypes.map((value) => this.toDisplayText(value)).join(', ')})`
+			: '';
+		const alignmentValue = monster.alignment
+			.filter((value): value is string => typeof value === 'string')
+			.join('');
+		const alignment =
+			alignments[alignmentValue.toUpperCase()] ?? this.toDisplayText(alignmentValue);
+		return `${size} ${type}${subtype} · ${alignment || 'alignment not specified'}`;
 	}
 
 	toggleSpellcaster() {
@@ -193,5 +256,9 @@ export class BestiaryPage {
 
 	private unique(values: string[]): string[] {
 		return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
+	}
+
+	private toDisplayText(value: string) {
+		return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
 	}
 }
