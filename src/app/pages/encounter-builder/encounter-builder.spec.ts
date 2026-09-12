@@ -62,6 +62,40 @@ describe('EncounterBuilder', () => {
 		expect((component.participants()[0] as any).healthPoints).toBeUndefined();
 	});
 
+	it('shows and persists recovery values for special abilities', () => {
+		component.addParticipants();
+		const participant = component.participants()[0];
+		component.toggleExpanded(participant.id);
+		component.setAbilityDraft(participant.id, {
+			name: 'Sopro flamejante',
+			recoveryType: 'dice-recharge',
+			rechargeOn: '5,6',
+		});
+		fixture.detectChanges();
+
+		expect(fixture.nativeElement.textContent).toContain('Resultados que recarregam (d6)');
+		component.addSpecialAbility(participant.id);
+		expect(component.participants()[0].sheet.specialAbilities).toContain(
+			jasmine.objectContaining({
+				recoveryType: 'dice-recharge',
+				rechargeDice: 'd6',
+				rechargeOn: [5, 6],
+			}),
+		);
+
+		component.setAbilityDraft(participant.id, {
+			name: 'Grito de guerra',
+			recoveryType: 'uses-per-day',
+			maxUses: 3,
+		});
+		fixture.detectChanges();
+		expect(fixture.nativeElement.textContent).toContain('Usos por dia');
+		component.addSpecialAbility(participant.id);
+		expect(component.participants()[0].sheet.specialAbilities).toContain(
+			jasmine.objectContaining({ recoveryType: 'uses-per-day', maxUses: 3 }),
+		);
+	});
+
 	it('saves the direct encounter record and routes to its edit URL', () => {
 		const router = TestBed.inject(Router);
 		const navigate = spyOn(router, 'navigate').and.resolveTo(true);

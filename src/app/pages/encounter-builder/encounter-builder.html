@@ -334,7 +334,7 @@
 												<option value="uses-per-day">Usos por dia</option>
 												<option value="short-rest">Descanso curto</option>
 												<option value="long-rest">Descanso longo</option>
-												<option value="dice-recharge">Recharge por dado</option></select
+												<option value="dice-recharge">Recharge 5-6</option></select
 											><button
 												type="button"
 												class="app-button app-button-danger"
@@ -353,6 +353,74 @@
 											"
 											placeholder="Descrição"
 										></textarea>
+										@if (
+											ability.recoveryType === 'turn-cooldown' ||
+											ability.recoveryType === 'round-cooldown'
+										) {
+											<label class="mt-2 block text-xs text-app-muted">
+												<span class="mb-1 block">{{
+													ability.recoveryType === 'turn-cooldown'
+														? 'Volta em turnos'
+														: 'Volta em rounds'
+												}}</span>
+												<input
+													type="number"
+													min="1"
+													class="app-field w-full px-3 py-2"
+													[ngModel]="
+														ability.recoveryType === 'turn-cooldown'
+															? (ability.cooldownTurns ?? 1)
+															: (ability.cooldownRounds ?? 1)
+													"
+													(ngModelChange)="
+														updateSpecialAbility(
+															participant.id,
+															ability.id,
+															ability.recoveryType === 'turn-cooldown'
+																? { cooldownTurns: +$event || 1 }
+																: { cooldownRounds: +$event || 1 }
+														)
+													"
+												/>
+											</label>
+										}
+										@if (
+											ability.recoveryType === 'uses-per-day' ||
+											ability.recoveryType === 'short-rest' ||
+											ability.recoveryType === 'long-rest'
+										) {
+											<label class="mt-2 block text-xs text-app-muted">
+												<span class="mb-1 block">{{
+													ability.recoveryType === 'uses-per-day' ? 'Usos por dia' : 'Usos máximos'
+												}}</span>
+												<input
+													type="number"
+													min="1"
+													class="app-field w-full px-3 py-2"
+													[ngModel]="ability.maxUses ?? 1"
+													(ngModelChange)="
+														updateSpecialAbility(participant.id, ability.id, {
+															maxUses: +$event || 1,
+														})
+													"
+												/>
+											</label>
+										}
+										@if (ability.recoveryType === 'dice-recharge') {
+											<label class="mt-2 block text-xs text-app-muted">
+												<span class="mb-1 block">Resultados que recarregam (d6)</span>
+												<input
+													class="app-field w-full px-3 py-2"
+													[ngModel]="(ability.rechargeOn ?? [5, 6]).join(',')"
+													(ngModelChange)="
+														updateSpecialAbility(participant.id, ability.id, {
+															rechargeOn: parseRechargeOnInput($event),
+														})
+													"
+													placeholder="Ex: 5,6"
+												/>
+											</label>
+										}
 									</div>
 								}
 							</div>
@@ -373,7 +441,7 @@
 									<option value="uses-per-day">Usos por dia</option>
 									<option value="short-rest">Descanso curto</option>
 									<option value="long-rest">Descanso longo</option>
-									<option value="dice-recharge">Recharge por dado</option></select
+									<option value="dice-recharge">Recharge 5-6</option></select
 								><button
 									type="button"
 									class="app-button app-button-secondary"
@@ -382,6 +450,55 @@
 									Adicionar
 								</button>
 							</div>
+							@if (
+								getAbilityDraft(participant.id).recoveryType === 'turn-cooldown' ||
+								getAbilityDraft(participant.id).recoveryType === 'round-cooldown'
+							) {
+								<label class="mt-2 block text-xs text-app-muted"
+									><span class="mb-1 block">{{
+										getAbilityDraft(participant.id).recoveryType === 'turn-cooldown'
+											? 'Volta em turnos'
+											: 'Volta em rounds'
+									}}</span
+									><input
+										type="number"
+										min="1"
+										class="app-field w-full px-3 py-2"
+										[ngModel]="getAbilityDraft(participant.id).cooldownValue"
+										(ngModelChange)="
+											setAbilityDraft(participant.id, { cooldownValue: +$event || 1 })
+										"
+								/></label>
+							}
+							@if (
+								getAbilityDraft(participant.id).recoveryType === 'uses-per-day' ||
+								getAbilityDraft(participant.id).recoveryType === 'short-rest' ||
+								getAbilityDraft(participant.id).recoveryType === 'long-rest'
+							) {
+								<label class="mt-2 block text-xs text-app-muted"
+									><span class="mb-1 block">{{
+										getAbilityDraft(participant.id).recoveryType === 'uses-per-day'
+											? 'Usos por dia'
+											: 'Usos máximos'
+									}}</span
+									><input
+										type="number"
+										min="1"
+										class="app-field w-full px-3 py-2"
+										[ngModel]="getAbilityDraft(participant.id).maxUses"
+										(ngModelChange)="setAbilityDraft(participant.id, { maxUses: +$event || 1 })"
+								/></label>
+							}
+							@if (getAbilityDraft(participant.id).recoveryType === 'dice-recharge') {
+								<label class="mt-2 block text-xs text-app-muted"
+									><span class="mb-1 block">Resultados que recarregam (d6)</span
+									><input
+										class="app-field w-full px-3 py-2"
+										[ngModel]="getAbilityDraft(participant.id).rechargeOn"
+										(ngModelChange)="setAbilityDraft(participant.id, { rechargeOn: $event })"
+										placeholder="Ex: 5,6"
+								/></label>
+							}
 							<textarea
 								class="app-field mt-2 min-h-16 w-full px-3 py-2"
 								placeholder="Descrição"
@@ -882,7 +999,9 @@
 			} @else if (bestiaryError()) {
 				<p class="mt-4 text-rose-200">{{ bestiaryError() }}</p>
 			} @else {
-				<div class="mt-4 max-h-[55vh] overflow-hidden rounded-app-panel border border-app-border">
+				<div
+					class="mt-4 max-h-[55vh] overflow-y-auto overscroll-contain rounded-app-panel border border-app-border"
+				>
 					@for (monster of filteredBestiaryMonsters(); track monster.id) {
 						<div
 							class="flex items-center justify-between gap-3 border-b border-app-divider border-l-[3px] border-l-transparent px-3 py-3 transition hover:border-l-violet-300 hover:bg-violet-500/[0.055]"
