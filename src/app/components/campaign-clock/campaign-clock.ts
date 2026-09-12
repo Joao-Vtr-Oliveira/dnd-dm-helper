@@ -41,8 +41,12 @@ export class CampaignClock {
 	readonly worldError = this.campaignWorld.error;
 	readonly currentLocation = this.campaignContext.resolvedCurrentLocation;
 	readonly locationError = this.campaignContext.locationError;
-	readonly locationLabel = computed(() => this.currentLocation()?.label ?? 'Definir posição');
-	readonly locationBreadcrumbLabel = computed(() => this.currentLocation()?.breadcrumb.join(' › ') ?? 'Sem posição definida');
+	readonly locationLabel = computed(
+		() => this.currentLocation()?.label ?? this.savedLocationLabel() ?? 'Definir posição',
+	);
+	readonly locationBreadcrumbLabel = computed(
+		() => this.currentLocation()?.breadcrumb.join(' › ') ?? this.savedLocationLabel() ?? 'Sem posição definida',
+	);
 	readonly isEditingLocation = signal(false);
 	readonly locationSearchQuery = signal('');
 	readonly locationSearchResults = computed(() =>
@@ -134,5 +138,16 @@ export class CampaignClock {
 		this.editDay = day;
 		this.editHour = hour;
 		this.editMinute = minute;
+	}
+
+	private savedLocationLabel(): string | null {
+		const location = this.campaignContext.currentLocationRef();
+		if (!location) return null;
+		const type = location.scopeType === 'empire' ? 'Império' : location.scopeType === 'state' ? 'Estado' : 'Localidade';
+		const name = location.scopeId
+			.split('-')
+			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+			.join(' ');
+		return `${type}: ${name}`;
 	}
 }

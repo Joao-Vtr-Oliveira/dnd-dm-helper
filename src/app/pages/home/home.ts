@@ -174,12 +174,7 @@ export class Home {
 	];
 
 	constructor() {
-		const postSyncToast = this.appBackupService.consumePostSyncToast();
-		if (postSyncToast) {
-			this.showToast('success', postSyncToast);
-		} else if (this.hasUnmigratedLocalData()) {
-			void this.prepareLegacyDataRestore();
-		}
+		if (this.hasUnmigratedLocalData()) void this.prepareLegacyDataRestore();
 	}
 
 	private hasUnmigratedLocalData(): boolean {
@@ -250,9 +245,8 @@ export class Home {
 		try {
 			this.appBackupService.createSafetyBackupBeforeSync();
 			this.appBackupService.applyBackup(preview.backup);
-			this.appBackupService.storePostSyncToast('Sincronização concluída');
 			this.syncPreview.set(null);
-			this.reloadPage();
+			this.showToast('success', 'Sincronização concluída');
 		} catch (error) {
 			this.showToast('error', this.getErrorMessage(error, 'Erro ao sincronizar.'));
 		} finally {
@@ -301,10 +295,6 @@ export class Home {
 
 	private getErrorMessage(error: unknown, fallback: string): string {
 		return error instanceof Error && error.message ? error.message : fallback;
-	}
-
-	private reloadPage() {
-		window.location.reload();
 	}
 
 	private showToast(type: 'success' | 'error', text: string, ms = 2800) {

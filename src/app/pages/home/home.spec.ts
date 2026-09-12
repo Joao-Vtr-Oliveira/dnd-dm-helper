@@ -15,14 +15,11 @@ describe('Home', () => {
 	beforeEach(async () => {
 		localStorage.clear();
 		appBackupService = jasmine.createSpyObj<AppBackupService>('AppBackupService', [
-			'consumePostSyncToast',
 			'createSafetyBackupBeforeSync',
 			'applyBackup',
-			'storePostSyncToast',
 			'fetchRemoteBackup',
 			'buildSummary',
 		]);
-		appBackupService.consumePostSyncToast.and.returnValue(null);
 
 		await TestBed.configureTestingModule({
 			imports: [Home],
@@ -67,8 +64,7 @@ describe('Home', () => {
 		expect(component.mobileNavigationOpen()).toBeFalse();
 	});
 
-	it('reloads the app after applying a confirmed sync', async () => {
-		const reloadSpy = spyOn<any>(component, 'reloadPage');
+	it('applies a confirmed sync without reloading the app', async () => {
 		const backup = { exportedAt: '2026-01-01T10:00:00.000Z' } as any;
 
 		component.syncPreview.set({
@@ -79,6 +75,8 @@ describe('Home', () => {
 				homebrewSheets: 0,
 				hasCalendar: false,
 				calendarLabel: null,
+				hasCampaignLocation: false,
+				campaignLocationLabel: null,
 				exportedAt: '2026-01-01T10:00:00.000Z',
 			},
 		});
@@ -87,8 +85,7 @@ describe('Home', () => {
 
 		expect(appBackupService.createSafetyBackupBeforeSync).toHaveBeenCalled();
 		expect(appBackupService.applyBackup).toHaveBeenCalledWith(backup);
-		expect(appBackupService.storePostSyncToast).toHaveBeenCalledWith('Sincronização concluída');
-		expect(reloadSpy).toHaveBeenCalled();
+		expect(component.toast()).toEqual({ type: 'success', text: 'Sincronização concluída' });
 	});
 
 	it('opens a V2 restore confirmation when only local V1 data exists', async () => {
@@ -99,8 +96,10 @@ describe('Home', () => {
 			battleEncounters: 5,
 			homebrewSheets: 17,
 			hasCalendar: true,
-			calendarLabel: 'Primavera',
-			exportedAt: backup.exportedAt,
+				calendarLabel: 'Primavera',
+				hasCampaignLocation: true,
+				campaignLocationLabel: 'Localidade: Nagawoods',
+				exportedAt: backup.exportedAt,
 		});
 		localStorage.setItem('dnd-dm-helper.encounters.v1', '[]');
 
@@ -110,5 +109,25 @@ describe('Home', () => {
 
 		expect(appBackupService.fetchRemoteBackup).toHaveBeenCalled();
 		expect(restoreFixture.componentInstance.syncPreview()?.backup).toBe(backup);
+	});
+
+	it('shows the saved party location in the sync preview', () => {
+		component.syncPreview.set({
+			backup: { exportedAt: '2026-01-01T10:00:00.000Z' } as any,
+			summary: {
+				encounters: 7,
+				battleEncounters: 5,
+				homebrewSheets: 17,
+				hasCalendar: true,
+				calendarLabel: 'Primavera, Ano 1000, Dia 15, 20:00',
+				hasCampaignLocation: true,
+				campaignLocationLabel: 'Localidade: Nagawoods',
+				exportedAt: '2026-01-01T10:00:00.000Z',
+			},
+		});
+		fixture.detectChanges();
+
+		expect(fixture.nativeElement.textContent).toContain('Posição da party');
+		expect(fixture.nativeElement.textContent).toContain('Localidade: Nagawoods');
 	});
 });

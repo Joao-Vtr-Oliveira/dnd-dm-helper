@@ -36,8 +36,25 @@ describe('AppBackupService', () => {
 		http.expectOne('/rpg_files/campaign-world.json').flush({
 			schemaVersion: 1,
 			empires: [{ id: 'mornk', name: 'Mornk', aliases: [], sourcePath: 'Mornk.md' }],
-			states: [],
-			settlements: [],
+			states: [
+				{
+					id: 'nagazav',
+					name: 'Nagazav',
+					empireId: 'mornk',
+					aliases: [],
+					sourcePath: 'Nagazav.md',
+				},
+			],
+			settlements: [
+				{
+					id: 'nagawoods',
+					name: 'Nagawoods',
+					stateId: 'nagazav',
+					settlementType: 'village',
+					aliases: [],
+					sourcePath: 'Nagawoods.md',
+				},
+			],
 			organizations: [],
 			pointsOfInterest: [],
 		});
@@ -141,7 +158,27 @@ describe('AppBackupService', () => {
 			encounters: 7,
 			battleEncounters: 5,
 			homebrewSheets: 17,
+			hasCampaignLocation: true,
+			campaignLocationLabel: 'Localidade: Nagawoods',
 		}));
+	});
+
+	it('restores the tracked backup position for the campaign clock and world', async () => {
+		const response = await fetch('/rpg_files/dnd-dm-helper-backup-v2.json');
+		service.applyBackup(await response.json());
+
+		expect(campaignContext.currentLocationRef()).toEqual({
+			scopeType: 'settlement',
+			scopeId: 'nagawoods',
+		});
+		expect(campaignContext.resolvedCurrentLocation()?.breadcrumb).toEqual([
+			'Mornk',
+			'Nagazav',
+			'Nagawoods',
+		]);
+		expect(JSON.parse(localStorage.getItem(APP_STORAGE_KEYS.campaignContext) ?? '{}')).toEqual({
+			currentLocation: { scopeType: 'settlement', scopeId: 'nagawoods' },
+		});
 	});
 
 	it('falls back to the bundled V2 backup when the remote backup is incompatible', async () => {

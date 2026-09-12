@@ -169,6 +169,7 @@ describe('CampaignClock', () => {
 		expect(component.locationBreadcrumbLabel()).toBe('Mornk › Nagazav › Nagawoods');
 		campaignContext.setCurrentLocation({ scopeType: 'settlement', scopeId: 'old-village' });
 		expect(component.locationError()).toContain('não encontrada');
+		expect(component.locationLabel()).toBe('Localidade: Old Village');
 		component.open();
 		fixture.detectChanges();
 		const trigger = fixture.nativeElement.querySelector('button');

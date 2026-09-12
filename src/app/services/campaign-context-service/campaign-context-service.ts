@@ -41,7 +41,8 @@ export class CampaignContextService {
 	});
 
 	setCurrentLocation(ref: CampaignLocationRef): void {
-		this.currentLocationRef.set({ ...ref });
+		const canonicalRef = this.campaignWorld.resolveLocation(ref)?.ref ?? ref;
+		this.currentLocationRef.set(canonicalRef);
 		this.persist();
 	}
 

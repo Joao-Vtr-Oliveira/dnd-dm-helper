@@ -265,6 +265,16 @@
 							}
 						</div>
 					</div>
+					<div>
+						<div class="text-xs text-app-subtle">Posição da party</div>
+						<div class="mt-1 text-sm font-semibold text-app-text">
+							@if (preview.summary.hasCampaignLocation && preview.summary.campaignLocationLabel) {
+								{{ preview.summary.campaignLocationLabel }}
+							} @else {
+								Nenhuma posição salva
+							}
+						</div>
+					</div>
 				</div>
 				<div class="mt-4 text-sm text-app-muted">
 					Exportado em:

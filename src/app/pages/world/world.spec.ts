@@ -130,6 +130,16 @@ describe('WorldPage', () => {
 		expect(fixture.nativeElement.textContent).toContain('The Bluefin');
 	});
 
+	it('moves to a restored party location without reloading the page', async () => {
+		await createPage();
+		context.restore({ currentLocation: { scopeType: 'settlement', scopeId: 'nagawoods' } });
+		TestBed.flushEffects();
+		fixture.detectChanges();
+
+		expect(component.selectedLocation()).toEqual({ scopeType: 'settlement', scopeId: 'nagawoods' });
+		expect(fixture.nativeElement.textContent).toContain('Party atualmente aqui');
+	});
+
 	it('drills down through locations and navigates ancestors with breadcrumbs', async () => {
 		await createPage();
 		component.selectLocation({ scopeType: 'empire', scopeId: 'mornk' });

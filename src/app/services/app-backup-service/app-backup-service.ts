@@ -4,7 +4,6 @@ import type { BattleEncounter } from '../../models/battle-encounter-model';
 import type { FiveEToolsCompositionPackage } from '../../models/fiveetools-homebrew-model';
 import {
 	APP_LEGACY_PRIMARY_STORAGE_KEYS,
-	APP_POST_SYNC_TOAST_SESSION_KEY,
 	APP_PRIMARY_STORAGE_KEYS,
 	APP_STORAGE_KEYS,
 	isProjectStorageKey,
@@ -52,6 +51,8 @@ export interface AppBackupSummary {
 	homebrewSheets: number | null;
 	hasCalendar: boolean;
 	calendarLabel: string | null;
+	hasCampaignLocation: boolean;
+	campaignLocationLabel: string | null;
 	exportedAt: string | null;
 }
 
@@ -294,8 +295,6 @@ export class AppBackupService {
 			localStorage.removeItem(APP_STORAGE_KEYS.worldDate);
 		}
 
-		this.campaignContext.restore(normalizedBackup.data.campaignContext ?? null);
-
 		if (normalizedBackup.data.settings.encounterHubFilters) {
 			localStorage.setItem(
 				APP_STORAGE_KEYS.encounterHubFilters,
@@ -316,6 +315,8 @@ export class AppBackupService {
 			localStorage.setItem(key, value);
 		}
 
+		this.campaignContext.restore(normalizedBackup.data.campaignContext ?? null);
+
 		for (const key of APP_LEGACY_PRIMARY_STORAGE_KEYS) localStorage.removeItem(key);
 	}
 
@@ -331,18 +332,10 @@ export class AppBackupService {
 			homebrewSheets: backup.data.homebrewSheets.length,
 			hasCalendar: backup.data.calendar != null,
 			calendarLabel: this.formatCalendarLabel(backup.data.calendar),
+			hasCampaignLocation: backup.data.campaignContext?.currentLocation != null,
+			campaignLocationLabel: this.formatCampaignLocation(backup.data.campaignContext ?? null),
 			exportedAt: backup.exportedAt,
 		};
-	}
-
-	storePostSyncToast(message: string): void {
-		sessionStorage.setItem(APP_POST_SYNC_TOAST_SESSION_KEY, message);
-	}
-
-	consumePostSyncToast(): string | null {
-		const message = sessionStorage.getItem(APP_POST_SYNC_TOAST_SESSION_KEY);
-		if (message) sessionStorage.removeItem(APP_POST_SYNC_TOAST_SESSION_KEY);
-		return message;
 	}
 
 	private collectProjectStorageEntries(): Record<string, string> {
@@ -552,9 +545,11 @@ export class AppBackupService {
 			return {
 				encounters: null,
 				battleEncounters: null,
-				homebrewSheets: null,
+				 homebrewSheets: null,
 				hasCalendar: false,
 				calendarLabel: null,
+				hasCampaignLocation: false,
+				campaignLocationLabel: null,
 				exportedAt: null,
 			};
 		}
@@ -569,6 +564,10 @@ export class AppBackupService {
 			homebrewSheets: Array.isArray(data?.homebrewSheets) ? data!.homebrewSheets!.length : null,
 			hasCalendar: !!data?.calendar,
 			calendarLabel: this.formatCalendarLabel(this.normalizeCalendar(data?.calendar)),
+			hasCampaignLocation: normalizeCampaignContext(data?.campaignContext)?.currentLocation != null,
+			campaignLocationLabel: this.formatCampaignLocation(
+				normalizeCampaignContext(data?.campaignContext),
+			),
 			exportedAt:
 				typeof candidate.exportedAt === 'string' && !Number.isNaN(Date.parse(candidate.exportedAt))
 					? candidate.exportedAt
@@ -586,5 +585,20 @@ export class AppBackupService {
 		};
 		const seasonLabel = seasonLabels[calendar.season] ?? calendar.season;
 		return `${seasonLabel}, Ano ${calendar.year}, Dia ${calendar.day}, ${String(calendar.hour).padStart(2, '0')}:${String(calendar.minute ?? 0).padStart(2, '0')}`;
+	}
+
+	private formatCampaignLocation(context: CampaignContextState | null): string | null {
+		const location = context?.currentLocation;
+		if (!location) return null;
+		const typeLabels = {
+			empire: 'Império',
+			state: 'Estado',
+			settlement: 'Localidade',
+		} as const;
+		const name = location.scopeId
+			.split('-')
+			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+			.join(' ');
+		return `${typeLabels[location.scopeType]}: ${name}`;
 	}
 }

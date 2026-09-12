@@ -16,8 +16,6 @@ export const APP_LEGACY_PRIMARY_STORAGE_KEYS = [
 	'dnd-dm-helper.sheets.v1',
 ] as const;
 
-export const APP_POST_SYNC_TOAST_SESSION_KEY = 'dnd-dm-helper.post-sync-toast.v1';
-
 export const APP_PRIMARY_STORAGE_KEYS = [
 	APP_STORAGE_KEYS.encounters,
 	APP_STORAGE_KEYS.sheets,

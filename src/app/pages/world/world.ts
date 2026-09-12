@@ -39,15 +39,12 @@ export class WorldPage {
 		this.campaignWorld.searchPointsOfInterest(this.searchQuery()).slice(0, 8),
 	);
 
-	private initialized = false;
-
 	constructor() {
 		effect(() => {
-			if (this.initialized || this.campaignWorld.status() !== 'ready') return;
+			if (this.campaignWorld.status() !== 'ready') return;
 			const current = this.campaignContext.currentLocationRef();
-			if (current && this.campaignWorld.resolveLocation(current))
-				this.selectedLocation.set(current);
-			this.initialized = true;
+			const resolved = current && this.campaignWorld.resolveLocation(current);
+			if (resolved) this.selectedLocation.set(resolved.ref);
 		});
 	}
 

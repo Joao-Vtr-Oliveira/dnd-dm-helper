@@ -188,10 +188,10 @@ export class CampaignWorldService {
 
 	resolveLocation(ref: CampaignLocationRef): ResolvedCampaignLocation | null {
 		if (ref.scopeType === 'empire') {
-			const empire = this.getEmpire(ref.scopeId);
+			const empire = this.findLocation(this.world()?.empires ?? [], ref.scopeId);
 			if (!empire) return null;
 			return {
-				ref,
+				ref: { scopeType: 'empire', scopeId: empire.id },
 				empire,
 				state: null,
 				settlement: null,
@@ -200,12 +200,12 @@ export class CampaignWorldService {
 			};
 		}
 		if (ref.scopeType === 'state') {
-			const state = this.getState(ref.scopeId);
+			const state = this.findLocation(this.world()?.states ?? [], ref.scopeId);
 			if (!state) return null;
 			const empire = this.getEmpire(state.empireId);
 			if (!empire) return null;
 			return {
-				ref,
+				ref: { scopeType: 'state', scopeId: state.id },
 				empire,
 				state,
 				settlement: null,
@@ -213,7 +213,7 @@ export class CampaignWorldService {
 				breadcrumb: [empire.name, state.name],
 			};
 		}
-		const settlement = this.getSettlement(ref.scopeId);
+		const settlement = this.findLocation(this.world()?.settlements ?? [], ref.scopeId);
 		if (!settlement) return null;
 		const state = this.getState(settlement.stateId);
 		const empire = state ? this.getEmpire(state.empireId) : null;
@@ -222,7 +222,7 @@ export class CampaignWorldService {
 			? `${settlement.name} (${SETTLEMENT_TYPE_LABELS[settlement.settlementType]})`
 			: settlement.name;
 		return {
-			ref,
+			ref: { scopeType: 'settlement', scopeId: settlement.id },
 			empire,
 			state,
 			settlement,
@@ -289,6 +289,17 @@ export class CampaignWorldService {
 	): boolean {
 		return [entity.name, ...entity.aliases].some((value) =>
 			normalizeCampaignWorldSearchText(value).includes(normalizedQuery),
+		);
+	}
+
+	private findLocation<T extends CampaignEmpire>(items: T[], value: string): T | null {
+		const normalizedValue = normalizeCampaignWorldSearchText(value);
+		return (
+			items.find((item) =>
+				[item.id, item.name, ...item.aliases].some(
+					(candidate) => normalizeCampaignWorldSearchText(candidate) === normalizedValue,
+				),
+			) ?? null
 		);
 	}
 }

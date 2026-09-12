@@ -181,6 +181,26 @@ describe('CampaignWorldService', () => {
 		expect(service.resolveLocation({ scopeType: 'settlement', scopeId: 'missing' })).toBeNull();
 	});
 
+	it('resolves saved locations by their name or alias and returns the catalog ID', () => {
+		load({
+			...VALID_WORLD,
+			settlements: [
+				{ ...VALID_WORLD.settlements[0], id: 'nagawoods-village', aliases: ['Bosque Naga'] },
+			],
+			organizations: [],
+			pointsOfInterest: [],
+		});
+
+		expect(service.resolveLocation({ scopeType: 'settlement', scopeId: 'Nagawoods' })?.ref).toEqual({
+			scopeType: 'settlement',
+			scopeId: 'nagawoods-village',
+		});
+		expect(service.resolveLocation({ scopeType: 'settlement', scopeId: 'bosque naga' })?.ref).toEqual({
+			scopeType: 'settlement',
+			scopeId: 'nagawoods-village',
+		});
+	});
+
 	it('searches names and aliases without matching technical IDs', () => {
 		load({
 			...VALID_WORLD,
