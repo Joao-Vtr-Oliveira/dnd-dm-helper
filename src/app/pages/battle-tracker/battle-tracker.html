@@ -1639,13 +1639,13 @@
 				<button
 					type="button"
 					class="h-10 cursor-pointer rounded-2xl border px-4"
-					[class.border-sky-300/30]="addCombatantDraft().mode === 'api'"
-					[class.bg-sky-500/15]="addCombatantDraft().mode === 'api'"
-					[class.border-white/10]="addCombatantDraft().mode !== 'api'"
-					[class.bg-white/5]="addCombatantDraft().mode !== 'api'"
-					(click)="setAddCombatantMode('api')"
+					[class.border-sky-300/30]="addCombatantDraft().mode === 'compendium'"
+					[class.bg-sky-500/15]="addCombatantDraft().mode === 'compendium'"
+					[class.border-white/10]="addCombatantDraft().mode !== 'compendium'"
+					[class.bg-white/5]="addCombatantDraft().mode !== 'compendium'"
+					(click)="setAddCombatantMode('compendium'); openCompendium()"
 				>
-					API
+					Bestiário
 				</button>
 			</div>
 
@@ -1667,32 +1667,31 @@
 				</label>
 			}
 
-			@if (addCombatantDraft().mode === 'api') {
+			@if (addCombatantDraft().mode === 'compendium') {
 				<div class="mt-4 space-y-3">
 					<label class="block text-sm">
 						<span class="mb-1 block opacity-70">Buscar monstro</span>
 						<input
 							class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
-							[ngModel]="apiSearch()"
-							(ngModelChange)="apiSearch.set($event)"
-							placeholder="Nome ou index"
+							[ngModel]="bestiarySearch()"
+							(ngModelChange)="bestiarySearch.set($event)"
+							placeholder="Nome ou alias"
 						/>
 					</label>
 
 					<div class="max-h-64 space-y-2 overflow-auto rounded-2xl border border-white/10 bg-black/20 p-3">
-						@if (apiLoading()) {
+						@if (bestiaryLoading()) {
 							<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75">
 								Carregando bestiário...
 							</div>
 						} @else {
-							@for (monster of filteredApiMonsters(); track monster.index) {
+							@for (monster of filteredBestiaryMonsters(); track monster.id) {
 								<button
 									type="button"
 									class="flex w-full cursor-pointer items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10"
-									(click)="useApiMonster(monster.index)"
+									(click)="useCompendiumMonster(monster)"
 								>
-									<span class="font-semibold">{{ monster.name }}</span>
-									<span class="text-xs opacity-65">{{ monster.index }}</span>
+									<span><span class="block font-semibold">{{ monster.name }} · {{ monster.source }}</span><span class="text-xs opacity-65">CR {{ monster.challengeRating ?? '-' }} · {{ monster.type ?? '-' }} · {{ monster.size ?? '-' }} · CA {{ monster.armorClass ?? '-' }} · PV {{ monster.averageHp ?? '-' }}</span></span>
 								</button>
 							} @empty {
 								<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75">
@@ -1774,7 +1773,7 @@
 									</p>
 								</div>
 								<span class="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs">
-									{{ addCombatantDraft().mode === 'homebrew' ? 'Homebrew' : 'API' }}
+									{{ addCombatantDraft().mode === 'homebrew' ? 'Homebrew' : 'Bestiário' }}
 								</span>
 							</div>
 

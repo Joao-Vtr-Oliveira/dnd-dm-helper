@@ -102,6 +102,8 @@ interface RawCreature extends Record<string, unknown> {
 	features?: unknown;
 	rawFiveETools?: unknown;
 	fiveEToolsIdentity?: unknown;
+	officialOrigin?: unknown;
+	officialSnapshot?: unknown;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -326,6 +328,8 @@ export class HomebrewSheetImportService {
 			features: raw.features as CreatureFeature[] | undefined,
 			rawFiveETools: raw.rawFiveETools as CreatureSheet['rawFiveETools'],
 			fiveEToolsIdentity: raw.fiveEToolsIdentity as CreatureSheet['fiveEToolsIdentity'],
+			officialOrigin: raw.officialOrigin as CreatureSheet['officialOrigin'],
+			officialSnapshot: raw.officialSnapshot as CreatureSheet['officialSnapshot'],
 		});
 	}
 
@@ -365,6 +369,20 @@ export class HomebrewSheetImportService {
 				Array.isArray(data.fiveEToolsIdentity))
 		) {
 			errors.push('data.fiveEToolsIdentity precisa ser um objeto.');
+		}
+		if (
+			data.officialOrigin !== undefined &&
+			(!data.officialOrigin || typeof data.officialOrigin !== 'object' || Array.isArray(data.officialOrigin))
+		) {
+			errors.push('data.officialOrigin precisa ser um objeto.');
+		}
+		if (
+			data.officialSnapshot !== undefined &&
+			(!data.officialSnapshot ||
+				typeof data.officialSnapshot !== 'object' ||
+				Array.isArray(data.officialSnapshot))
+		) {
+			errors.push('data.officialSnapshot precisa ser um objeto.');
 		}
 	}
 
@@ -639,6 +657,8 @@ export class HomebrewSheetImportService {
 			'features',
 			'rawFiveETools',
 			'fiveEToolsIdentity',
+			'officialOrigin',
+			'officialSnapshot',
 		]);
 		return Object.keys(data).filter((key) => !known.has(key));
 	}

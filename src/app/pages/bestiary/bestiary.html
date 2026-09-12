@@ -1,0 +1,531 @@
+<div class="mx-auto w-full max-w-[1480px] space-y-5 pb-20 pt-1 sm:py-2">
+	<header
+		class="flex flex-col gap-3 border-b border-app-border pb-5 lg:flex-row lg:items-end lg:justify-between"
+	>
+		<div>
+			<div class="app-eyebrow text-violet-200/70">Compêndio local 5eTools</div>
+			<h1 class="mt-1 text-3xl font-semibold tracking-tight text-app-text">Bestiário</h1>
+			<p class="mt-2 max-w-2xl text-sm text-app-muted">
+				Consulta somente leitura. Cada fonte é uma entrada distinta e o encounter guarda seu próprio
+				snapshot.
+			</p>
+		</div>
+		<span class="app-status border-violet-300/20 bg-violet-500/10 text-violet-100"
+			>{{ index()?.monsters?.length ?? 0 }} criaturas ·
+			{{ index()?.sources?.length ?? 0 }} fontes</span
+		>
+	</header>
+
+	@if (error(); as message) {
+		<p class="app-inset border-rose-400/30 bg-rose-500/10 text-sm text-rose-100">{{ message }}</p>
+	}
+
+	<section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)]">
+		<div class="min-w-0 space-y-4">
+			<section class="app-panel overflow-hidden border-violet-300/15">
+				<div
+					class="flex items-center justify-between gap-3 border-b border-app-divider bg-violet-500/[0.035] px-4 py-3"
+				>
+					<div>
+						<div class="app-eyebrow text-violet-200/70">Refinar consulta</div>
+						<p class="mt-1 text-sm text-app-muted">
+							Combine filtros para encontrar a criatura certa.
+						</p>
+					</div>
+					<span class="text-xs font-medium text-violet-100"
+						>{{ monsters().length }} resultados</span
+					>
+				</div>
+				<div class="space-y-3 p-4">
+					<div
+						class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.65fr)_repeat(4,minmax(0,1fr))]"
+					>
+						<label class="relative min-w-0 sm:col-span-2 lg:col-span-1">
+							<span class="mb-1 block text-xs font-medium text-app-muted">Buscar criatura</span>
+							<svg
+								lucideSearch
+								[size]="17"
+								[strokeWidth]="2"
+								aria-hidden="true"
+								class="pointer-events-none absolute bottom-3 left-3 text-violet-200/75"
+							></svg>
+							<input
+								class="app-field w-full py-2 pl-9 pr-3"
+								[ngModel]="query()"
+								(ngModelChange)="query.set($event)"
+								placeholder="Chimera, Rictavio..."
+							/>
+						</label>
+						<label
+							><span class="mb-1 block text-xs font-medium text-app-muted">CR</span
+							><select
+								class="app-field w-full cursor-pointer px-3 py-2"
+								[ngModel]="challengeRating()"
+								(ngModelChange)="challengeRating.set($event)"
+							>
+								<option value="">Todos</option>
+								@for (value of challengeRatings(); track value) {
+									<option [value]="value">{{ value }}</option>
+								}
+							</select></label
+						>
+						<label
+							><span class="mb-1 block text-xs font-medium text-app-muted">Fonte</span
+							><select
+								class="app-field w-full cursor-pointer px-3 py-2"
+								[ngModel]="source()"
+								(ngModelChange)="source.set($event)"
+							>
+								<option value="">Todas</option>
+								@for (value of sources(); track value) {
+									<option [value]="value">{{ value }}</option>
+								}
+							</select></label
+						>
+						<label
+							><span class="mb-1 block text-xs font-medium text-app-muted">Tipo</span
+							><select
+								class="app-field w-full cursor-pointer px-3 py-2"
+								[ngModel]="type()"
+								(ngModelChange)="type.set($event)"
+							>
+								<option value="">Todos</option>
+								@for (value of types(); track value) {
+									<option [value]="value">{{ value }}</option>
+								}
+							</select></label
+						>
+						<label
+							><span class="mb-1 block text-xs font-medium text-app-muted">Tamanho</span
+							><select
+								class="app-field w-full cursor-pointer px-3 py-2"
+								[ngModel]="size()"
+								(ngModelChange)="size.set($event)"
+							>
+								<option value="">Todos</option>
+								@for (value of sizes(); track value) {
+									<option [value]="value">{{ value }}</option>
+								}
+							</select></label
+						>
+					</div>
+					<div class="flex flex-wrap gap-2 border-t border-app-divider pt-3">
+						<button
+							type="button"
+							class="inline-flex min-h-9 items-center gap-2 rounded-app-control border px-3 py-1.5 text-sm transition"
+							[class.border-violet-300/45]="spellcasterOnly()"
+							[class.bg-violet-500/15]="spellcasterOnly()"
+							[class.text-violet-50]="spellcasterOnly()"
+							[class.border-app-border]="!spellcasterOnly()"
+							[class.bg-app-inset]="!spellcasterOnly()"
+							[class.text-app-muted]="!spellcasterOnly()"
+							[attr.aria-pressed]="spellcasterOnly()"
+							(click)="toggleSpellcaster()"
+						>
+							<span
+								class="flex h-4 w-4 items-center justify-center rounded border"
+								[class.border-violet-200]="spellcasterOnly()"
+								[class.bg-violet-400]="spellcasterOnly()"
+								[class.border-app-border]="!spellcasterOnly()"
+								><span
+									class="h-1.5 w-1.5 rounded-full bg-app-surface"
+									[class.opacity-100]="spellcasterOnly()"
+									[class.opacity-0]="!spellcasterOnly()"
+								></span></span
+							>Apenas conjuradores
+						</button>
+						<button
+							type="button"
+							class="inline-flex min-h-9 items-center gap-2 rounded-app-control border px-3 py-1.5 text-sm transition"
+							[class.border-amber-300/45]="legendaryOnly()"
+							[class.bg-amber-500/12]="legendaryOnly()"
+							[class.text-amber-50]="legendaryOnly()"
+							[class.border-app-border]="!legendaryOnly()"
+							[class.bg-app-inset]="!legendaryOnly()"
+							[class.text-app-muted]="!legendaryOnly()"
+							[attr.aria-pressed]="legendaryOnly()"
+							(click)="toggleLegendary()"
+						>
+							<span
+								class="flex h-4 w-4 items-center justify-center rounded border"
+								[class.border-amber-200]="legendaryOnly()"
+								[class.bg-amber-400]="legendaryOnly()"
+								[class.border-app-border]="!legendaryOnly()"
+								><span
+									class="h-1.5 w-1.5 rounded-full bg-app-surface"
+									[class.opacity-100]="legendaryOnly()"
+									[class.opacity-0]="!legendaryOnly()"
+								></span></span
+							>Lendários / Lair
+						</button>
+					</div>
+				</div>
+			</section>
+
+			@if (loading()) {
+				<p class="text-sm text-app-muted">Carregando índice local...</p>
+			} @else {
+				<div class="overflow-hidden rounded-app-panel border border-app-border bg-app-surface/65">
+					@for (monster of monsters(); track monster.id) {
+						<button
+							type="button"
+							class="relative grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-app-divider border-l-2 border-l-transparent px-4 py-3 text-left transition duration-150 hover:bg-white/[0.045]"
+							[class.bg-violet-500/10]="isSelected(monster.source, monster.name)"
+							[class.ring-1]="isSelected(monster.source, monster.name)"
+							[class.ring-inset]="isSelected(monster.source, monster.name)"
+							[class.ring-violet-400/55]="isSelected(monster.source, monster.name)"
+							[class.border-l-violet-300]="
+								isSelected(monster.source, monster.name) || monster.hasSpellcasting
+							"
+							[class.border-l-amber-300]="
+								!isSelected(monster.source, monster.name) &&
+								!monster.hasSpellcasting &&
+								(monster.hasLegendaryActions || monster.hasLairActions)
+							"
+							[attr.aria-current]="isSelected(monster.source, monster.name) ? 'true' : null"
+							(click)="select(monster.source, monster.name)"
+						>
+							<span class="min-w-0"
+								><span class="flex flex-wrap items-center gap-2"
+									><span class="truncate font-semibold tracking-tight text-app-text">{{
+										monster.name
+									}}</span>
+									@if (monster.hasSpellcasting) {
+										<span
+											class="rounded-full border border-violet-300/25 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-100"
+											>Conjurador</span
+										>
+									}
+									@if (monster.hasLegendaryActions || monster.hasLairActions) {
+										<span
+											class="rounded-full border border-amber-300/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-100"
+											>Lendário</span
+										>
+									}</span
+								><span class="mt-1.5 block text-xs text-app-muted"
+									>CR {{ monster.challengeRating ?? '-' }} ·
+									{{ monster.type ?? 'Tipo não informado' }} · {{ monster.size ?? '-' }} · CA
+									{{ monster.armorClass ?? '-' }} · PV {{ monster.averageHp ?? '-' }}</span
+								></span
+							>
+							<span
+								class="app-status self-start border-white/10 bg-app-inset text-app-muted"
+								[class.border-violet-300/25]="isSelected(monster.source, monster.name)"
+								[class.bg-violet-500/10]="isSelected(monster.source, monster.name)"
+								[class.text-violet-100]="isSelected(monster.source, monster.name)"
+								>{{ monster.source }}</span
+							>
+						</button>
+					} @empty {
+						<p class="p-5 text-sm text-app-muted">Nenhuma criatura corresponde aos filtros.</p>
+					}
+				</div>
+			}
+		</div>
+
+		<aside
+			class="app-panel min-w-0 p-4 sm:p-5 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:pb-20"
+		>
+			@if (detailLoading()) {
+				<p class="text-sm text-app-muted">Carregando ficha completa...</p>
+			} @else if (selected(); as monster) {
+				<div class="border-b border-violet-300/20 pb-4">
+					<div class="flex flex-wrap items-start justify-between gap-3">
+						<div class="min-w-0">
+							<div class="app-eyebrow text-violet-200/75">Ficha de criatura</div>
+							<h2 class="mt-1 text-3xl font-semibold tracking-tight text-app-text">
+								{{ monster.name }}
+							</h2>
+							<p class="mt-2 text-sm leading-6 text-app-muted">
+								{{ monster.sizes.join('/') }} {{ monster.type ?? 'Criatura'
+								}}{{ monster.subtypes.length ? ` (${monster.subtypes.join(', ')})` : '' }} ·
+								{{ monster.alignment.join(' ') || 'alinhamento não informado' }}
+							</p>
+						</div>
+						<div class="flex flex-wrap justify-end gap-1.5">
+							<span class="app-status border-violet-300/25 bg-violet-500/10 text-violet-100">{{
+								monster.source
+							}}</span>
+							@if (monster.page) {
+								<span class="app-status border-white/10 bg-app-inset text-app-muted"
+									>p. {{ monster.page }}</span
+								>
+							}
+						</div>
+					</div>
+				</div>
+
+				@if (monster.imageUrl && !imageFailed()) {
+					<button
+						type="button"
+						class="group relative mt-4 block w-full overflow-hidden rounded-app-panel border border-violet-300/20 bg-black/30 text-left shadow-[0_12px_28px_rgb(0_0_0_/_0.2)] transition hover:border-violet-300/45 focus:outline-none"
+						[disabled]="imageLoading()"
+						(click)="openImageLightbox()"
+						[attr.aria-label]="'Ampliar imagem de ' + monster.name"
+					>
+						<div class="aspect-[16/8]" [class.animate-pulse]="imageLoading()"></div>
+						@if (imageLoading()) {
+							<div
+								class="absolute inset-0 animate-pulse bg-gradient-to-r from-white/5 via-violet-300/15 to-white/5"
+							></div>
+						}
+						<img
+							[src]="monster.imageUrl"
+							[alt]="monster.name"
+							class="absolute inset-0 h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]"
+							[class.opacity-0]="imageLoading()"
+							(load)="onImageLoad()"
+							(error)="onImageError()"
+						/>
+						<span
+							class="pointer-events-none absolute inset-0 flex items-end justify-end bg-gradient-to-t from-black/55 via-transparent to-transparent p-3 opacity-0 transition duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
+							><span
+								class="inline-flex items-center gap-2 rounded-full border border-violet-200/30 bg-black/55 px-3 py-1.5 text-xs font-medium text-violet-50 backdrop-blur"
+								><svg lucideZoomIn [size]="16" [strokeWidth]="2.25" aria-hidden="true"></svg>Ampliar
+								arte</span
+							></span
+						>
+					</button>
+				}
+
+				<div class="mt-4 grid grid-cols-3 divide-x divide-app-border border-y border-app-border">
+					<div class="py-3 pr-3">
+						<div class="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-200/75">
+							CR
+						</div>
+						<div class="mt-1 text-xl font-semibold text-violet-100">
+							{{ monster.challengeRating ?? '-' }}
+						</div>
+					</div>
+					<div class="px-3 py-3">
+						<div class="text-[10px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
+							CA
+						</div>
+						<div class="mt-1 text-xl font-semibold text-app-text">
+							{{ monster.armorClass ?? '-' }}
+						</div>
+					</div>
+					<div class="py-3 pl-3">
+						<div class="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200/75">
+							PV
+						</div>
+						<div class="mt-1 truncate text-xl font-semibold text-emerald-100">
+							{{ monster.hitPoints
+							}}{{ monster.hitPointFormula ? ` (${monster.hitPointFormula})` : '' }}
+						</div>
+					</div>
+				</div>
+
+				<div
+					class="mt-4 grid grid-cols-3 divide-x divide-y divide-app-divider border border-app-divider text-center sm:grid-cols-6 sm:divide-y-0"
+				>
+					@for (ability of abilityKeys; track ability) {
+						<div class="px-2 py-2.5">
+							<div class="text-[10px] font-semibold uppercase tracking-wide text-app-subtle">
+								{{ ability }}
+							</div>
+							<div class="mt-0.5 font-semibold text-app-text">
+								{{ monster.abilities[ability] ?? '-' }}
+							</div>
+						</div>
+					}
+				</div>
+
+				<section class="mt-5 border-l-2 border-violet-400/60 pl-3 text-sm leading-6">
+					<div class="app-eyebrow text-violet-200/75">Defesas e sentidos</div>
+					@if (formatSpeed(monster.speed)) {
+						<p class="mt-2">
+							<span class="font-semibold text-app-text">Deslocamento.</span>
+							{{ formatSpeed(monster.speed) }}
+						</p>
+					}
+					@if (formatRecord(monster.saves)) {
+						<p class="mt-1">
+							<span class="font-semibold text-app-text">Salvaguardas.</span>
+							{{ formatRecord(monster.saves) }}
+						</p>
+					}
+					@if (formatRecord(monster.skills)) {
+						<p class="mt-1">
+							<span class="font-semibold text-app-text">Perícias.</span>
+							{{ formatRecord(monster.skills) }}
+						</p>
+					}
+					@if (monster.senses.length || monster.languages.length) {
+						<p class="mt-1">
+							<span class="font-semibold text-app-text">Sentidos.</span>
+							{{ monster.senses.join(', ')
+							}}{{ monster.passive ? ` · passiva ${monster.passive}` : '' }}<br /><span
+								class="font-semibold text-app-text"
+								>Idiomas.</span
+							>
+							{{ monster.languages.join(', ') || '-' }}
+						</p>
+					}
+					@if (
+						monster.vulnerable.length ||
+						monster.resist.length ||
+						monster.immune.length ||
+						monster.conditionImmune.length
+					) {
+						<div class="mt-2">
+							@if (monster.vulnerable.length) {
+								<p>
+									<span class="font-semibold text-app-text">Vulnerabilidades.</span>
+									{{ formatValues(monster.vulnerable) }}
+								</p>
+							}
+							@if (monster.resist.length) {
+								<p>
+									<span class="font-semibold text-app-text">Resistências.</span>
+									{{ formatValues(monster.resist) }}
+								</p>
+							}
+							@if (monster.immune.length) {
+								<p>
+									<span class="font-semibold text-app-text">Imunidades.</span>
+									{{ formatValues(monster.immune) }}
+								</p>
+							}
+							@if (monster.conditionImmune.length) {
+								<p>
+									<span class="font-semibold text-app-text">Imune a condições.</span>
+									{{ formatValues(monster.conditionImmune) }}
+								</p>
+							}
+						</div>
+					}
+				</section>
+
+				@for (
+					section of [
+						{ label: 'Traits', items: monster.traits, accent: 'violet' },
+						{ label: 'Ações', items: monster.actions, accent: 'violet' },
+						{ label: 'Ações bônus', items: monster.bonusActions, accent: 'violet' },
+						{ label: 'Reações', items: monster.reactions, accent: 'violet' },
+						{ label: 'Ações lendárias', items: monster.legendaryActions, accent: 'amber' },
+						{ label: 'Ações míticas', items: monster.mythicActions, accent: 'amber' },
+					];
+					track section.label
+				) {
+					@if (section.items.length) {
+						<section class="mt-6">
+							<div class="flex items-center gap-3">
+								<h3
+									class="text-xs font-semibold uppercase tracking-[0.16em]"
+									[class.text-violet-200]="section.accent === 'violet'"
+									[class.text-amber-100]="section.accent === 'amber'"
+								>
+									{{ section.label }}
+								</h3>
+								<span class="h-px flex-1 bg-app-divider"></span>
+							</div>
+							@for (feature of section.items; track feature.name) {
+								<article class="mt-3 text-sm leading-6 text-app-muted">
+									<span class="font-semibold text-app-text">{{ feature.name }}.</span>
+									{{ render(feature.entries) }}
+								</article>
+							}
+						</section>
+					}
+				}
+				@if (monster.spellcasting.length) {
+					<section class="mt-6">
+						<div class="flex items-center gap-3">
+							<h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-violet-200">
+								Spellcasting
+							</h3>
+							<span class="h-px flex-1 bg-app-divider"></span>
+						</div>
+						@for (block of monster.spellcasting; track block.name) {
+							<article class="mt-3 text-sm leading-6 text-app-muted">
+								<span class="font-semibold text-app-text">{{ block.name }}.</span>
+								{{ render(block.headerEntries) }}
+							</article>
+						}
+					</section>
+				}
+				@if (monster.legendaryGroup) {
+					<section class="mt-6 border-t border-amber-300/20 pt-4">
+						<h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-amber-100">
+							Grupo lendário
+						</h3>
+						<p class="mt-2 text-sm text-app-text">
+							{{ monster.legendaryGroup.name }}
+							<span class="text-app-muted">· {{ monster.legendaryGroup.source }}</span>
+						</p>
+						@if (monster.legendaryGroup.lairActions.length) {
+							<p class="mt-2 text-sm leading-6 text-app-muted">
+								Informação de lair preservada no snapshot; ações de lair não são adicionadas
+								automaticamente.
+							</p>
+						}
+					</section>
+				}
+				<div
+					class="mt-7 flex flex-col-reverse gap-2 border-t border-app-divider pt-4 sm:flex-row sm:flex-wrap"
+				>
+					<button
+						type="button"
+						class="app-button app-button-primary w-full sm:w-auto"
+						(click)="addToEncounter(monster)"
+					>
+						Adicionar ao encounter</button
+					><button
+						type="button"
+						class="app-button app-button-secondary w-full sm:w-auto"
+						(click)="createSheet(monster)"
+					>
+						Criar ficha baseada nesta criatura
+					</button>
+				</div>
+			} @else {
+				<div
+					class="flex min-h-48 items-center justify-center border border-dashed border-violet-300/20 bg-violet-500/[0.025] p-6 text-center text-sm text-app-muted"
+				>
+					Selecione uma criatura para carregar sua ficha completa.
+				</div>
+			}
+		</aside>
+	</section>
+</div>
+
+@if (imageLightboxOpen() && selected(); as monster) {
+	<div
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
+		(click)="closeImageLightbox()"
+	>
+		<section
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="bestiary-image-lightbox-title"
+			[appDialogFocus]="true"
+			(appDialogEscape)="closeImageLightbox()"
+			class="app-dialog w-full max-w-6xl overflow-hidden p-3 sm:p-4"
+			(click)="$event.stopPropagation()"
+		>
+			<div class="flex items-center justify-between gap-4 pb-3">
+				<h2
+					id="bestiary-image-lightbox-title"
+					class="min-w-0 truncate text-lg font-semibold text-app-text"
+				>
+					{{ monster.name }} · arte
+				</h2>
+				<button
+					type="button"
+					class="app-button app-modal-close h-10 w-10 shrink-0 p-0"
+					data-dialog-initial-focus
+					(click)="closeImageLightbox()"
+					aria-label="Fechar imagem ampliada"
+				>
+					<svg lucideX [size]="22" [strokeWidth]="2.5" aria-hidden="true"></svg>
+				</button>
+			</div>
+			<img
+				[src]="monster.imageUrl"
+				[alt]="monster.name"
+				class="max-h-[calc(100vh-9rem)] w-full rounded-app-panel object-contain"
+			/>
+		</section>
+	</div>
+}

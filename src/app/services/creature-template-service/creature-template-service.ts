@@ -1,23 +1,16 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import type {
 	CreatureCategory,
 	CreatureFeature,
 	CreatureSheet,
 } from '../../models/creature-sheet-model';
 import { normalizeArmorClass } from '../../models/creature-sheet-model';
-import { Dnd5eApiService, type ApiMonster } from '../dnd-api/dnd-api';
 import type { SavedSheetInterface } from '../local-storage-service/local-storage-service';
 
 @Injectable({ providedIn: 'root' })
 export class CreatureTemplateService {
-	private readonly dndApi = inject(Dnd5eApiService);
-
 	createFromSavedSheet(sheet: SavedSheetInterface): CreatureSheet {
 		return this.normalizeCreature(sheet.data);
-	}
-
-	createFromApiMonster(monster: ApiMonster): CreatureSheet {
-		return this.normalizeCreature(this.dndApi.toCreatureSheet(monster));
 	}
 
 	createManualCreature(args: {
@@ -59,6 +52,8 @@ export class CreatureTemplateService {
 			fiveEToolsIdentity: raw.fiveEToolsIdentity
 				? structuredClone(raw.fiveEToolsIdentity)
 				: undefined,
+			officialOrigin: raw.officialOrigin ? structuredClone(raw.officialOrigin) : undefined,
+			officialSnapshot: raw.officialSnapshot ? structuredClone(raw.officialSnapshot) : undefined,
 		};
 	}
 

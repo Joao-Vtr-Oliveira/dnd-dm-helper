@@ -6,7 +6,6 @@ import {
 	LucideBookOpen,
 	LucideSearch,
 } from '@lucide/angular';
-import { firstValueFrom } from 'rxjs';
 
 import type {
 	BattleLairActionFrequency,
@@ -28,8 +27,10 @@ import type {
 	EncounterTrap,
 } from '../../models/encounter-model';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
-import { Dnd5eApiService, type ApiResourceListItem } from '../../services/dnd-api/dnd-api';
+	import type { CompendiumBestiaryMonsterIndexEntry } from '../../models/compendium-bestiary-model';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
+	import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
+	import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
 import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
 import {
@@ -91,11 +92,17 @@ export class EncounterBuilder {
 	readonly savedId = signal<string | null>(null);
 	readonly expandedId = signal<string | null>(null);
 	readonly homebrewModalOpen = signal(false);
-	readonly apiModalOpen = signal(false);
-	readonly apiLoading = signal(false);
-	readonly apiError = signal<string | null>(null);
-	readonly apiMonsters = signal<ApiResourceListItem[]>([]);
-	readonly apiQ = signal('');
+	readonly bestiaryModalOpen = signal(false);
+	readonly bestiaryLoading = signal(false);
+	readonly bestiaryError = signal<string | null>(null);
+	readonly bestiaryMonsters = signal<CompendiumBestiaryMonsterIndexEntry[]>([]);
+	readonly bestiaryQ = signal('');
+	readonly bestiarySource = signal('');
+	readonly bestiaryType = signal('');
+	readonly bestiarySize = signal('');
+	readonly bestiaryChallengeRating = signal('');
+	readonly bestiarySpellcasterOnly = signal(false);
+	readonly bestiaryLegendaryOnly = signal(false);
 	readonly sheetQ = signal('');
 	readonly toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
 	readonly unsavedChangesModal = signal(false);
@@ -120,14 +127,22 @@ export class EncounterBuilder {
 				.includes(query),
 		);
 	});
-	readonly filteredApiMonsters = computed(() => {
-		const query = this.apiQ().trim().toLowerCase();
-		return query
-			? this.apiMonsters().filter((monster) =>
-					`${monster.name} ${monster.index}`.toLowerCase().includes(query),
-				)
-			: this.apiMonsters();
+	readonly filteredBestiaryMonsters = computed(() => {
+		const query = this.bestiaryQ().trim().toLowerCase();
+		return this.bestiaryMonsters().filter((monster) =>
+			(!query || `${monster.name} ${monster.aliases.join(' ')}`.toLowerCase().includes(query)) &&
+			(!this.bestiarySource() || monster.source === this.bestiarySource()) &&
+			(!this.bestiaryType() || monster.type === this.bestiaryType()) &&
+			(!this.bestiarySize() || monster.size === this.bestiarySize()) &&
+			(!this.bestiaryChallengeRating() || monster.challengeRating === this.bestiaryChallengeRating()) &&
+			(!this.bestiarySpellcasterOnly() || monster.hasSpellcasting) &&
+			(!this.bestiaryLegendaryOnly() || monster.hasLegendaryActions || monster.hasLairActions),
+		);
 	});
+	readonly bestiarySources = computed(() => this.bestiaryFilterValues((monster) => monster.source));
+	readonly bestiaryTypes = computed(() => this.bestiaryFilterValues((monster) => monster.type));
+	readonly bestiarySizes = computed(() => this.bestiaryFilterValues((monster) => monster.size));
+	readonly bestiaryChallengeRatings = computed(() => this.bestiaryFilterValues((monster) => monster.challengeRating));
 
 	readonly spellLevels = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -136,7 +151,8 @@ export class EncounterBuilder {
 	private readonly ls = inject(LocalStorageService);
 	private readonly battleStorage = inject(BattleEncounterStorageService);
 	private readonly creatureTemplates = inject(CreatureTemplateService);
-	private readonly dndApi = inject(Dnd5eApiService);
+	private readonly bestiary = inject(CompendiumBestiaryRepositoryService);
+	private readonly compendiumAdapter = inject(CompendiumCreatureAdapterService);
 	private readonly fiveETools = inject(FiveEToolsHomebrewService);
 	private readonly savedSnapshot = signal('');
 	private pendingNavigationResolver: ((allowed: boolean) => void) | null = null;
@@ -278,65 +294,54 @@ export class EncounterBuilder {
 		this.showToast({ type: 'success', text: 'Participante(s) adicionado(s).' });
 	}
 
-	openApiModal() {
-		this.apiModalOpen.set(true);
-		this.apiError.set(null);
-		if (this.apiMonsters().length) return;
-		this.apiLoading.set(true);
-		this.dndApi.listMonsters().subscribe({
-			next: (monsters) => {
-				this.apiMonsters.set(
-					[...monsters].sort((left, right) => left.name.localeCompare(right.name)),
-				);
-				this.apiLoading.set(false);
-			},
-			error: (error) => {
-				this.apiLoading.set(false);
-				this.apiError.set(error?.message ?? 'Erro ao carregar bestiário.');
-			},
-		});
-	}
-
-	closeApiModal() {
-		this.apiModalOpen.set(false);
-		this.apiQ.set('');
-	}
-
-	async useApiInDraft(resource: ApiResourceListItem) {
+	async openBestiaryModal() {
+		this.bestiaryModalOpen.set(true);
+		this.bestiaryError.set(null);
+		if (this.bestiaryMonsters().length) return;
+		this.bestiaryLoading.set(true);
 		try {
-			const monster = await firstValueFrom(this.dndApi.getMonster(resource.index));
-			this.draft.update((draft) => ({
-				...draft,
-				name: monster.name || resource.name,
-				hp: Number(monster.hit_points ?? 0),
-				armorClass: String(monster.armor_class?.[0]?.value ?? ''),
-				initiative: this.dndApi.dexMod(monster),
-				category: 'monster',
-			}));
+			this.bestiaryMonsters.set((await this.bestiary.getIndex()).monsters);
 		} catch (error) {
-			this.showToast({
-				type: 'error',
-				text: error instanceof Error ? error.message : 'Erro ao buscar monstro.',
-			});
+			this.bestiaryError.set(error instanceof Error ? error.message : 'Erro ao carregar bestiário local.');
+		} finally {
+			this.bestiaryLoading.set(false);
 		}
 	}
 
-	async addFromApi(resource: ApiResourceListItem) {
+	closeBestiaryModal() {
+		this.bestiaryModalOpen.set(false);
+		this.bestiaryQ.set('');
+		this.bestiarySource.set('');
+		this.bestiaryType.set('');
+		this.bestiarySize.set('');
+		this.bestiaryChallengeRating.set('');
+		this.bestiarySpellcasterOnly.set(false);
+		this.bestiaryLegendaryOnly.set(false);
+	}
+
+	toggleBestiarySpellcaster() {
+		this.bestiarySpellcasterOnly.update((value) => !value);
+	}
+
+	toggleBestiaryLegendary() {
+		this.bestiaryLegendaryOnly.update((value) => !value);
+	}
+
+	async addFromBestiary(resource: CompendiumBestiaryMonsterIndexEntry) {
 		try {
-			const monster = await firstValueFrom(this.dndApi.getMonster(resource.index));
+			const monster = await this.bestiary.getMonster(resource.source, resource.name);
+			if (!monster) throw new Error('Criatura não encontrada no arquivo local.');
 			this.addCopies(
-				this.creatureTemplates.createFromApiMonster(monster),
+				this.compendiumAdapter.toCreatureSheet(monster),
 				'monster',
 				this.quantity(this.draft().quantity),
 				undefined,
 				this.draft().initiative,
 			);
-			this.showToast({ type: 'success', text: 'Participante(s) da API adicionado(s).' });
+			this.closeBestiaryModal();
+			this.showToast({ type: 'success', text: 'Participante(s) do bestiário adicionado(s).' });
 		} catch (error) {
-			this.showToast({
-				type: 'error',
-				text: error instanceof Error ? error.message : 'Erro ao adicionar monstro.',
-			});
+			this.showToast({ type: 'error', text: error instanceof Error ? error.message : 'Erro ao adicionar criatura.' });
 		}
 	}
 
@@ -638,6 +643,14 @@ export class EncounterBuilder {
 		this.updateEncounter({ participants: [...this.encounter().participants, ...participants] });
 	}
 
+	private bestiaryFilterValues(
+		value: (monster: CompendiumBestiaryMonsterIndexEntry) => string | undefined,
+	): string[] {
+		return [...new Set(this.bestiaryMonsters().map(value).filter((item): item is string => !!item))].sort(
+			(left, right) => left.localeCompare(right),
+		);
+	}
+
 	private persistEncounter(): { encounter: SavedEncounter; created: boolean } | null {
 		try {
 			const current = structuredClone(this.encounter());
@@ -664,11 +677,28 @@ export class EncounterBuilder {
 	}
 
 	private async handleFiveEToolsNavigationImport() {
-		const state =
+		const navigationState =
 			(
 				this.router.getCurrentNavigation()?.extras.state as
-					{ fiveEToolsImport?: { entityId?: string } } | undefined
-			)?.fiveEToolsImport ?? (history.state?.fiveEToolsImport as { entityId?: string } | undefined);
+					{
+						fiveEToolsImport?: { entityId?: string };
+						compendiumMonster?: { source?: string; name?: string };
+					} | undefined
+			) ?? history.state;
+		const compendiumMonster = navigationState?.compendiumMonster;
+		if (compendiumMonster?.source && compendiumMonster.name) {
+			window.history.replaceState({ ...history.state, compendiumMonster: undefined }, '');
+			try {
+				const monster = await this.bestiary.getMonster(compendiumMonster.source, compendiumMonster.name);
+				if (!monster) throw new Error('Criatura não encontrada no bestiário local.');
+				this.addCopies(this.compendiumAdapter.toCreatureSheet(monster), 'monster', 1);
+				this.showToast({ type: 'success', text: `${monster.name} adicionado do bestiário.` });
+			} catch (error) {
+				this.showToast({ type: 'error', text: error instanceof Error ? error.message : 'Erro ao importar criatura.' });
+			}
+			return;
+		}
+		const state = navigationState?.fiveEToolsImport;
 		if (!state?.entityId) return;
 		window.history.replaceState({ ...history.state, fiveEToolsImport: undefined }, '');
 		try {

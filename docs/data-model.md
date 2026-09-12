@@ -14,6 +14,21 @@ BattleEncounter
 
 `CreatureSheet` contains reusable stat-block data: name, `armorClass: number | null`, maximum HP, features, abilities, spell capacity, spell references, and optional opaque 5eTools source data. It never carries current HP, conditions, death saves, cooldown state, or spent resources.
 
+## Official Bestiary
+
+```text
+5eTools raw bestiary
+  -> generated local index and source bundles
+  -> repository and normalizer
+  -> CompendiumMonster (read-only)
+  -> adapter
+  -> CreatureSheet / EncounterParticipant snapshot
+```
+
+The raw corpus lives in `rpg_files/5etools-2014/bestiary/` and is never rewritten. `npm run generate:bestiary` creates the browser-served index and lazy source bundles under `public/compendium/bestiary/`. The compact index is loaded once; a full source bundle is loaded only after selecting a creature and then cached in memory. Fluff image paths are compiled into those bundles and resolve to the corresponding 5eTools image URL only when its creature detail is opened.
+
+Official identity is `name + source`; equal names from different sources are separate records. An official import adds `officialOrigin` and an immutable normalized `officialSnapshot` to the participant sheet, never `sourceSheetId`. The encounter remains stable if the source corpus changes. The compendium itself is read-only; creating a homebrew sheet creates an independent editable copy without official provenance.
+
 `EncounterParticipant` is a prepared instance. It owns a stable ID, optional `sourceSheetId`, `initiative: number | null`, category/side configuration, notes, and a sheet snapshot. Its category is the category used in this encounter: it starts from a referenced sheet but may intentionally differ. The snapshot has no runtime state, so later sheet edits do not change preparation already made.
 
 `EncounterLairAction` is a prepared environmental event, never a monster or participant. `EncounterTrap` is a prepared trap with its own trigger, frequency, initiative when applicable, and cooldown configuration. `Encounter` is preparation only: title, description, tags, notes, participants, lair actions, and traps. It does not store HP, conditions, turn state, death saves, pending actions, or history.

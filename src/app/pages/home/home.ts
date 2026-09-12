@@ -130,6 +130,18 @@ export class Home {
 			],
 		},
 		{
+			label: 'Compêndio',
+			hint: 'Referências oficiais locais, somente leitura.',
+			links: [
+				{
+					label: 'Bestiário',
+					description: 'Consultar monstros oficiais e preparar encontros.',
+					icon: LucideLibrary,
+					path: '/home/compendium/bestiary',
+				},
+			],
+		},
+		{
 			label: 'Fichas',
 			hint: 'Biblioteca homebrew para usar e editar.',
 			links: [

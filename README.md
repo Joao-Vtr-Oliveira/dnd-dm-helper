@@ -11,6 +11,7 @@ Ferramenta para mesa de D&D com foco em uso local durante a sessão.
   - habilidades relevantes, espaços de magia resumidos, próximos três turnos e próximo evento ambiental
   - recargas `d6` manuais: o mestre rola o dado físico e registra o resultado; cada habilidade recebe uma tentativa no próximo turno do dono
 - Fichas homebrew salvas
+- Bestiário local 5eTools, com busca, filtros e ficha oficial somente leitura
 - Calendário / world clock
 - Backup completo em JSON do projeto
 - Sincronização global por JSON remoto
@@ -31,6 +32,12 @@ Ferramenta para mesa de D&D com foco em uso local durante a sessão.
 `CreatureSheet` é uma ficha reutilizável. Um `EncounterParticipant` mantém referência opcional à ficha, snapshot estável e configuração de preparação. Lair actions e traps são entidades próprias do encounter, não monsters. Ao iniciar, o app cria um `BattleEncounter` separado com HP atual, condições, recursos, eventos runtime e histórico.
 
 Veja `docs/data-model.md` para o contrato e a política de migração.
+
+## Bestiário local
+
+Os arquivos raw ficam em `rpg_files/5etools-2014/bestiary/`. Eles são compilados sem alteração para `public/compendium/bestiary/`: o índice compacto carrega na abertura e cada source completo carrega sob demanda. Use `npm run generate:bestiary` após atualizar os arquivos raw e `npm run validate:bestiary` para validar os artefatos.
+
+O compêndio é somente leitura. Ao adicionar uma criatura ao encounter, o app guarda a origem `name + source` e um snapshot normalizado dentro da ficha do participante. A ação de criar ficha gera uma cópia homebrew independente.
 
 ## Homebrew canonico
 

@@ -15,6 +15,10 @@ export const routes: Routes = [
 		children: [
 			{ path: '', component: EncounterHub },
 			{
+				path: 'compendium/bestiary',
+				loadComponent: () => import('./pages/bestiary/bestiary').then((module) => module.BestiaryPage),
+			},
+			{
 				path: 'world',
 				loadComponent: () => import('./pages/world/world').then((module) => module.WorldPage),
 			},

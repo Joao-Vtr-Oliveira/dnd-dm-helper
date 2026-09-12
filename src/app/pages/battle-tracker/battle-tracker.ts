@@ -33,12 +33,10 @@ import {
 	LocalStorageService,
 	type SavedSheetInterface,
 } from '../../services/local-storage-service/local-storage-service';
-import {
-	Dnd5eApiService,
-	type ApiResourceListItem,
-} from '../../services/dnd-api/dnd-api';
 import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
-import { firstValueFrom } from 'rxjs';
+import type { CompendiumBestiaryMonsterIndexEntry } from '../../models/compendium-bestiary-model';
+import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
+import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
 
 type ConditionDurationMode = 'manual' | 'next-turn-end' | 'turns' | 'rounds';
 
@@ -76,9 +74,8 @@ type TrapDraft = {
 };
 
 type AddCombatantDraft = {
-	mode: 'manual' | 'homebrew' | 'api';
+	mode: 'manual' | 'homebrew' | 'compendium';
 	sheetId: string;
-	apiIndex: string;
 	name: string;
 	side: BattleCombatantSide;
 	maxHp: string;
@@ -108,7 +105,8 @@ export class BattleTrackerPage {
 	private readonly battleService = inject(BattleEncounterService);
 	private readonly battleUpcomingEventsService = inject(BattleUpcomingEventsService);
 	private readonly localStorageService = inject(LocalStorageService);
-	private readonly dndApi = inject(Dnd5eApiService);
+	private readonly bestiary = inject(CompendiumBestiaryRepositoryService);
+	private readonly compendiumAdapter = inject(CompendiumCreatureAdapterService);
 	private readonly creatureTemplateService = inject(CreatureTemplateService);
 
 	private readonly battleId = this.route.snapshot.paramMap.get('battleId');
@@ -130,17 +128,17 @@ export class BattleTrackerPage {
 	readonly addCombatantDraft = signal<AddCombatantDraft>(this.createAddCombatantDraft());
 	readonly selectedImportedCreature = signal<CreatureSheet | null>(null);
 	readonly homebrewSheets = signal<SavedSheetInterface[]>(this.localStorageService.listSheets());
-	readonly apiMonsters = signal<ApiResourceListItem[]>([]);
-	readonly apiLoading = signal(false);
-	readonly apiSearch = signal('');
+	readonly bestiaryMonsters = signal<CompendiumBestiaryMonsterIndexEntry[]>([]);
+	readonly bestiaryLoading = signal(false);
+	readonly bestiarySearch = signal('');
 	readonly cockpitAbilitiesExpanded = signal(false);
-	readonly filteredApiMonsters = computed(() => {
-		const query = this.apiSearch().trim().toLowerCase();
-		if (!query) return this.apiMonsters();
-		return this.apiMonsters().filter(
+	readonly filteredBestiaryMonsters = computed(() => {
+		const query = this.bestiarySearch().trim().toLowerCase();
+		if (!query) return this.bestiaryMonsters();
+		return this.bestiaryMonsters().filter(
 			(monster) =>
 				monster.name.toLowerCase().includes(query) ||
-				monster.index.toLowerCase().includes(query)
+				monster.aliases.join(' ').toLowerCase().includes(query)
 		);
 	});
 
@@ -964,11 +962,8 @@ export class BattleTrackerPage {
 		this.captureModalTrigger();
 		this.homebrewSheets.set(this.localStorageService.listSheets());
 		this.addCombatantDraft.set(this.createAddCombatantDraft());
-		this.apiSearch.set('');
+		this.bestiarySearch.set('');
 		this.addCombatantModalOpen.set(true);
-		if (!this.apiMonsters().length) {
-			this.loadApiMonsters();
-		}
 		this.focusModal();
 	}
 
@@ -1008,7 +1003,6 @@ export class BattleTrackerPage {
 			...draft,
 			mode: 'homebrew',
 			sheetId,
-			apiIndex: '',
 			name: creature.name || sheet.title,
 			side: this.defaultSideForSheet(sheet),
 			maxHp: String(creature.maxHp),
@@ -1020,26 +1014,36 @@ export class BattleTrackerPage {
 		}));
 	}
 
-	async useApiMonster(index: string) {
-		const monsterRef = this.apiMonsters().find((monster) => monster.index === index);
-		if (!monsterRef) return;
+	async openCompendium() {
+		if (this.bestiaryMonsters().length) return;
+		this.bestiaryLoading.set(true);
 		try {
-			const monster = await firstValueFrom(this.dndApi.getMonster(index));
-			const creature = this.creatureTemplateService.createFromApiMonster(monster);
+			this.bestiaryMonsters.set((await this.bestiary.getIndex()).monsters);
+		} catch (error) {
+			this.showToast('error', error instanceof Error ? error.message : 'Erro ao carregar bestiário local.');
+		} finally {
+			this.bestiaryLoading.set(false);
+		}
+	}
+
+	async useCompendiumMonster(monsterRef: CompendiumBestiaryMonsterIndexEntry) {
+		try {
+			const monster = await this.bestiary.getMonster(monsterRef.source, monsterRef.name);
+			if (!monster) throw new Error('Criatura não encontrada no arquivo local.');
+			const creature = this.compendiumAdapter.toCreatureSheet(monster);
 			this.selectedImportedCreature.set(creature);
 			this.addCombatantDraft.update((draft) => ({
 				...draft,
-				mode: 'api',
-				apiIndex: index,
+				mode: 'compendium',
 				sheetId: '',
-				name: creature.name || monsterRef.name,
+				name: creature.name,
 				side: 'enemy',
 				maxHp: String(creature.maxHp),
 				armorClass: String(creature.armorClass ?? ''),
-				initiative: String(this.dndApi.dexMod(monster)),
+				initiative: '0',
 			}));
-		} catch (err: any) {
-			this.showToast('error', err?.message ?? 'Erro ao buscar monstro.');
+		} catch (error) {
+			this.showToast('error', error instanceof Error ? error.message : 'Erro ao buscar criatura.');
 		}
 	}
 
@@ -1058,7 +1062,7 @@ export class BattleTrackerPage {
 				'error',
 				draft.mode === 'homebrew'
 					? 'Selecione uma ficha homebrew.'
-					: 'Selecione um monstro da API.'
+					: 'Selecione uma criatura do bestiário.'
 			);
 			return;
 		}
@@ -1070,7 +1074,7 @@ export class BattleTrackerPage {
 		const category =
 			draft.mode === 'homebrew'
 				? (this.homebrewSheets().find((sheet) => sheet.id === draft.sheetId)?.category ?? 'monster')
-				: draft.mode === 'api'
+				: draft.mode === 'compendium'
 					? 'monster'
 					: this.categoryForSide(draft.side);
 		const overrides =
@@ -1089,7 +1093,7 @@ export class BattleTrackerPage {
 						side: draft.side,
 						initiative: this.parseInitiativeInput(draft.initiative),
 						category,
-						sourceSheetId: draft.mode === 'homebrew' ? draft.sheetId : undefined,
+					sourceSheetId: draft.mode === 'homebrew' ? draft.sheetId : undefined,
 				  };
 
 		this.updateBattle((current) =>
@@ -1325,7 +1329,6 @@ export class BattleTrackerPage {
 		return {
 			mode: 'manual',
 			sheetId: '',
-			apiIndex: '',
 			name: '',
 			side: 'enemy',
 			maxHp: '0',
@@ -1396,22 +1399,6 @@ export class BattleTrackerPage {
 	private parseArmorClassInput(value: unknown): number | undefined {
 		const numeric = Number(value);
 		return Number.isFinite(numeric) ? Math.floor(numeric) : undefined;
-	}
-
-	private loadApiMonsters() {
-		this.apiLoading.set(true);
-		this.dndApi.listMonsters().subscribe({
-			next: (monsters) => {
-				this.apiMonsters.set(
-					[...monsters].sort((left, right) => left.name.localeCompare(right.name))
-				);
-				this.apiLoading.set(false);
-			},
-			error: (err) => {
-				this.apiLoading.set(false);
-				this.showToast('error', err?.message ?? 'Erro ao carregar bestiário.');
-			},
-		});
 	}
 
 	private slugify(value: string): string {

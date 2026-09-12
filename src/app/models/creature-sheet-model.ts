@@ -1,4 +1,5 @@
 import type { FiveEToolsMonster } from './fiveetools-homebrew-model';
+import type { CompendiumMonster } from './compendium-bestiary-model';
 
 export type CreatureCategory = 'monster' | 'npc' | 'pc' | 'other';
 export type ArmorClass = number | null;
@@ -56,6 +57,12 @@ export interface FiveEToolsIdentity {
 	source: string;
 }
 
+export interface CreatureOfficialOrigin {
+	provider: '5etools';
+	name: string;
+	source: string;
+}
+
 /** Reusable, immutable combat-sheet data. Runtime state belongs to BattleCombatant. */
 export interface CreatureSheet {
 	name: string;
@@ -67,6 +74,8 @@ export interface CreatureSheet {
 	features: CreatureFeature[];
 	rawFiveETools?: FiveEToolsMonster;
 	fiveEToolsIdentity?: FiveEToolsIdentity;
+	officialOrigin?: CreatureOfficialOrigin;
+	officialSnapshot?: CompendiumMonster;
 }
 
 /** Converts UI/import values into the internal AC contract. */

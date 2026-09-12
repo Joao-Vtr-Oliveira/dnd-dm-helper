@@ -285,6 +285,8 @@ export class LocalStorageService {
 			fiveEToolsIdentity: sheet.fiveEToolsIdentity
 				? structuredClone(sheet.fiveEToolsIdentity)
 				: undefined,
+			officialOrigin: sheet.officialOrigin ? structuredClone(sheet.officialOrigin) : undefined,
+			officialSnapshot: sheet.officialSnapshot ? structuredClone(sheet.officialSnapshot) : undefined,
 		};
 	}
 
