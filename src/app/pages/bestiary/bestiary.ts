@@ -9,6 +9,7 @@ import {
 	LucideX,
 	LucideZoomIn,
 } from '@lucide/angular';
+import { AppSelectComponent, type AppSelectOption } from '../../components/app-select/app-select';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type { CompendiumMonster } from '../../models/compendium-bestiary-model';
 import { CompendiumBestiaryRendererService } from '../../services/compendium-bestiary-renderer-service/compendium-bestiary-renderer-service';
@@ -20,6 +21,7 @@ import { LocalStorageService } from '../../services/local-storage-service/local-
 	selector: 'app-bestiary',
 	standalone: true,
 	imports: [
+		AppSelectComponent,
 		CommonModule,
 		DialogFocusDirective,
 		FormsModule,
@@ -65,9 +67,16 @@ export class BestiaryPage {
 	readonly sizes = computed(() =>
 		this.unique(this.index()?.monsters.map((monster) => monster.size ?? '') ?? []),
 	);
-	readonly challengeRatings = computed(() =>
-		this.unique(this.index()?.monsters.map((monster) => monster.challengeRating ?? '') ?? []),
-	);
+	readonly challengeRatings = computed(() => {
+		const values = this.unique(
+			this.index()?.monsters.map((monster) => monster.challengeRating ?? '') ?? [],
+		);
+		return values.sort((left, right) => this.compareChallengeRatings(left, right));
+	});
+	readonly sourceOptions = computed(() => this.toSelectOptions(this.sources()));
+	readonly typeOptions = computed(() => this.toSelectOptions(this.types()));
+	readonly sizeOptions = computed(() => this.toSelectOptions(this.sizes()));
+	readonly challengeRatingOptions = computed(() => this.toSelectOptions(this.challengeRatings()));
 	readonly abilityKeys = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
 	readonly abilityLabels = {
 		str: 'FOR',
@@ -256,6 +265,22 @@ export class BestiaryPage {
 
 	private unique(values: string[]): string[] {
 		return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
+	}
+
+	private toSelectOptions(values: readonly string[]): AppSelectOption[] {
+		return values.map((value) => ({ value, label: value }));
+	}
+
+	private compareChallengeRatings(left: string, right: string) {
+		const difference = this.challengeRatingValue(left) - this.challengeRatingValue(right);
+		return difference || left.localeCompare(right);
+	}
+
+	private challengeRatingValue(value: string) {
+		const fraction = value.trim().match(/^(\d+)\s*\/\s*(\d+)/);
+		if (fraction) return Number(fraction[1]) / Number(fraction[2]);
+		const numeric = Number(value);
+		return Number.isFinite(numeric) ? numeric : Number.POSITIVE_INFINITY;
 	}
 
 	private toDisplayText(value: string) {

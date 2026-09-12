@@ -8,6 +8,8 @@ import {
 	LucideTriangleAlert,
 	LucideX,
 } from '@lucide/angular';
+import { AppSelectComponent } from '../../components/app-select/app-select';
+import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
 
 import {
 	HomebrewCategory,
@@ -66,6 +68,8 @@ function normalizeCreature(raw: CreatureSheet): CreatureSheet {
 	selector: 'app-homebrew-builder',
 	standalone: true,
 	imports: [
+		AppNativeSelectDirective,
+		AppSelectComponent,
 		CommonModule,
 		FormsModule,
 		LucideCircleAlert,

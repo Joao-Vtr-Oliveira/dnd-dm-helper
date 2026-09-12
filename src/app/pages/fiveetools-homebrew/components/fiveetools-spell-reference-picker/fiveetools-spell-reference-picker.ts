@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '../../../../components/app-select/app-select';
 import { FiveEToolsHomebrewService } from '../../../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
 import {
 	FiveEToolsReferenceDataService,
@@ -10,7 +11,7 @@ import {
 @Component({
 	selector: 'app-fiveetools-spell-reference-picker',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [AppSelectComponent, CommonModule, FormsModule],
 	templateUrl: './fiveetools-spell-reference-picker.html',
 })
 export class FiveEToolsSpellReferencePickerComponent {
@@ -43,12 +44,20 @@ export class FiveEToolsSpellReferencePickerComponent {
 			if (school !== 'all' && spell.school !== school) return false;
 			if (!query) return true;
 
-			return this.normalize(`${spell.name} ${spell.source} ${this.referenceData.schoolLabel(spell.school)}`).includes(query);
+			return this.normalize(
+				`${spell.name} ${spell.source} ${this.referenceData.schoolLabel(spell.school)}`,
+			).includes(query);
 		});
 	});
 
 	readonly availableSchools = computed(() =>
-		Array.from(new Set(this.spells().map((spell) => spell.school).filter(Boolean))).sort((left, right) =>
+		Array.from(
+			new Set(
+				this.spells()
+					.map((spell) => spell.school)
+					.filter(Boolean),
+			),
+		).sort((left, right) =>
 			this.referenceData.schoolLabel(left).localeCompare(this.referenceData.schoolLabel(right)),
 		),
 	);
@@ -107,11 +116,13 @@ export class FiveEToolsSpellReferencePickerComponent {
 		try {
 			const sources = await this.referenceData.listSpellSources();
 			this.sources.set(sources);
-			const preferred = sources.includes('XPHB') ? 'XPHB' : sources[0] ?? 'XPHB';
+			const preferred = sources.includes('XPHB') ? 'XPHB' : (sources[0] ?? 'XPHB');
 			this.selectedSource.set(preferred);
 			await this.loadSpellsForSource(preferred, false);
 		} catch (error) {
-			this.error.set(this.getErrorMessage(error, 'Não foi possível carregar as fontes de magia do 5etools.'));
+			this.error.set(
+				this.getErrorMessage(error, 'Não foi possível carregar as fontes de magia do 5etools.'),
+			);
 		} finally {
 			this.loading.set(false);
 		}
@@ -129,7 +140,9 @@ export class FiveEToolsSpellReferencePickerComponent {
 		} catch (error) {
 			this.spells.set([]);
 			this.selectedSpell.set(null);
-			this.error.set(this.getErrorMessage(error, 'Não foi possível carregar as magias dessa fonte.'));
+			this.error.set(
+				this.getErrorMessage(error, 'Não foi possível carregar as magias dessa fonte.'),
+			);
 		} finally {
 			if (toggleLoading) this.sourceLoading.set(false);
 		}

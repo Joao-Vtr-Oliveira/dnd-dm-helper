@@ -42,7 +42,8 @@ export class FiveEToolsPreviewModalComponent {
 	}
 
 	monsterSectionPreview(section: MonsterSectionKey): Array<{ title: string; lines: string[] }> {
-		const blocks = (this.monster?.[section] as Array<{ name?: string; entries?: unknown[] }> | undefined) ?? [];
+		const blocks =
+			(this.monster?.[section] as Array<{ name?: string; entries?: unknown[] }> | undefined) ?? [];
 		return blocks.map((block) => ({
 			title: block.name?.trim() || 'Bloco sem nome',
 			lines: this.fiveEToolsService.renderEntries(block.entries as any),
@@ -81,12 +82,20 @@ export class FiveEToolsPreviewModalComponent {
 		return JSON.stringify(value);
 	}
 
-	private renderSpellLevelLines(spells: Record<string, { spells?: string[]; slots?: number }>): string[] {
+	private renderSpellLevelLines(
+		spells: Record<string, { spells?: string[]; slots?: number }>,
+	): string[] {
 		return Object.entries(spells)
 			.sort((left, right) => Number(left[0]) - Number(right[0]))
 			.flatMap(([level, data]) => {
-				const label = level === '0' ? 'Cantrips' : `${level}o nivel${data.slots != null ? ` (${data.slots} slots)` : ''}`;
-				return [label, ...(data.spells ?? []).map((spell) => this.fiveEToolsService.renderText(spell))];
+				const label =
+					level === '0'
+						? 'Cantrips'
+						: `${level}o nivel${data.slots != null ? ` (${data.slots} slots)` : ''}`;
+				return [
+					label,
+					...(data.spells ?? []).map((spell) => this.fiveEToolsService.renderText(spell)),
+				];
 			});
 	}
 }

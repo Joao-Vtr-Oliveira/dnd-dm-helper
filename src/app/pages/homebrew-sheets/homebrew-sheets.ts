@@ -9,6 +9,7 @@ import {
 	LucideTriangleAlert,
 	LucideX,
 } from '@lucide/angular';
+import { AppSelectComponent } from '../../components/app-select/app-select';
 
 import {
 	LocalStorageService,
@@ -38,6 +39,7 @@ type ConfirmModalState = {
 	selector: 'app-homebrew-sheets',
 	standalone: true,
 	imports: [
+		AppSelectComponent,
 		CommonModule,
 		DialogFocusDirective,
 		FormsModule,
@@ -151,7 +153,9 @@ export class HomebrewSheets {
 			const preview = this.sheetImportService.parseText(this.importText());
 			this.importPreview.set(preview);
 			this.importResolutions.set(
-				Object.fromEntries(preview.conflicts.map((conflict) => [conflict.index, conflict.resolution])),
+				Object.fromEntries(
+					preview.conflicts.map((conflict) => [conflict.index, conflict.resolution]),
+				),
 			);
 		} catch (error) {
 			this.importPreview.set(null);
@@ -218,7 +222,10 @@ export class HomebrewSheets {
 		try {
 			this.fiveEToolsLoading.set(id);
 			const file = await this.fiveEToolsService.loadLocalHomebrewJson();
-			const monster = this.fiveEToolsService.convertSheetToMonster(sheet, this.fiveEToolsService.buildSummary(file).primarySource);
+			const monster = this.fiveEToolsService.convertSheetToMonster(
+				sheet,
+				this.fiveEToolsService.buildSummary(file).primarySource,
+			);
 			const exists = (file.monster ?? []).some(
 				(item) => item.name === monster.name && item.source === monster.source,
 			);
@@ -234,7 +241,8 @@ export class HomebrewSheets {
 		} catch (error) {
 			this.showToast({
 				type: 'error',
-				text: error instanceof Error ? error.message : 'Erro ao adicionar ficha ao arquivo 5etools.',
+				text:
+					error instanceof Error ? error.message : 'Erro ao adicionar ficha ao arquivo 5etools.',
 			});
 		} finally {
 			this.fiveEToolsLoading.set(null);
@@ -275,7 +283,8 @@ export class HomebrewSheets {
 		} catch (error) {
 			this.showToast({
 				type: 'error',
-				text: error instanceof Error ? error.message : 'Erro ao adicionar ficha ao arquivo 5etools.',
+				text:
+					error instanceof Error ? error.message : 'Erro ao adicionar ficha ao arquivo 5etools.',
 			});
 		} finally {
 			this.fiveEToolsLoading.set(null);

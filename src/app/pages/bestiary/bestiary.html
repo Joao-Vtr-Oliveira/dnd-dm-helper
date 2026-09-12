@@ -56,58 +56,36 @@
 								placeholder="Chimera, Rictavio..."
 							/>
 						</label>
-						<label
-							><span class="mb-1 block text-xs font-medium text-app-muted">CR</span
-							><select
-								class="app-field w-full cursor-pointer px-3 py-2"
-								[ngModel]="challengeRating()"
-								(ngModelChange)="challengeRating.set($event)"
-							>
-								<option value="">Todos</option>
-								@for (value of challengeRatings(); track value) {
-									<option [value]="value">{{ value }}</option>
-								}
-							</select></label
-						>
-						<label
-							><span class="mb-1 block text-xs font-medium text-app-muted">Fonte</span
-							><select
-								class="app-field w-full cursor-pointer px-3 py-2"
-								[ngModel]="source()"
-								(ngModelChange)="source.set($event)"
-							>
-								<option value="">Todas</option>
-								@for (value of sources(); track value) {
-									<option [value]="value">{{ value }}</option>
-								}
-							</select></label
-						>
-						<label
-							><span class="mb-1 block text-xs font-medium text-app-muted">Tipo</span
-							><select
-								class="app-field w-full cursor-pointer px-3 py-2"
-								[ngModel]="type()"
-								(ngModelChange)="type.set($event)"
-							>
-								<option value="">Todos</option>
-								@for (value of types(); track value) {
-									<option [value]="value">{{ value }}</option>
-								}
-							</select></label
-						>
-						<label
-							><span class="mb-1 block text-xs font-medium text-app-muted">Tamanho</span
-							><select
-								class="app-field w-full cursor-pointer px-3 py-2"
-								[ngModel]="size()"
-								(ngModelChange)="size.set($event)"
-							>
-								<option value="">Todos</option>
-								@for (value of sizes(); track value) {
-									<option [value]="value">{{ value }}</option>
-								}
-							</select></label
-						>
+						<app-select
+							label="CR"
+							[options]="challengeRatingOptions()"
+							[value]="challengeRating()"
+							emptyLabel="Todos"
+							(valueChange)="challengeRating.set($event)"
+						/>
+						<app-select
+							label="Fonte"
+							[options]="sourceOptions()"
+							[value]="source()"
+							emptyLabel="Todas"
+							[searchable]="true"
+							searchPlaceholder="Buscar fonte..."
+							(valueChange)="source.set($event)"
+						/>
+						<app-select
+							label="Tipo"
+							[options]="typeOptions()"
+							[value]="type()"
+							emptyLabel="Todos"
+							(valueChange)="type.set($event)"
+						/>
+						<app-select
+							label="Tamanho"
+							[options]="sizeOptions()"
+							[value]="size()"
+							emptyLabel="Todos"
+							(valueChange)="size.set($event)"
+						/>
 					</div>
 					<div class="flex flex-wrap gap-2 border-t border-app-divider pt-3">
 						<button

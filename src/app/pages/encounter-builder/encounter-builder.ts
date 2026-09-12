@@ -2,10 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, CanDeactivateFn, Router } from '@angular/router';
-import {
-	LucideBookOpen,
-	LucideSearch,
-} from '@lucide/angular';
+import { LucideBookOpen, LucideSearch } from '@lucide/angular';
+import { AppSelectComponent } from '../../components/app-select/app-select';
+import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
 
 import type {
 	BattleLairActionFrequency,
@@ -27,10 +26,10 @@ import type {
 	EncounterTrap,
 } from '../../models/encounter-model';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
-	import type { CompendiumBestiaryMonsterIndexEntry } from '../../models/compendium-bestiary-model';
+import type { CompendiumBestiaryMonsterIndexEntry } from '../../models/compendium-bestiary-model';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
-	import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
-	import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
+import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
+import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
 import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
 import {
@@ -77,6 +76,8 @@ type TrapDraft = {
 	selector: 'app-encounter-builder',
 	standalone: true,
 	imports: [
+		AppNativeSelectDirective,
+		AppSelectComponent,
 		CommonModule,
 		DialogFocusDirective,
 		FormsModule,
@@ -129,20 +130,24 @@ export class EncounterBuilder {
 	});
 	readonly filteredBestiaryMonsters = computed(() => {
 		const query = this.bestiaryQ().trim().toLowerCase();
-		return this.bestiaryMonsters().filter((monster) =>
-			(!query || `${monster.name} ${monster.aliases.join(' ')}`.toLowerCase().includes(query)) &&
-			(!this.bestiarySource() || monster.source === this.bestiarySource()) &&
-			(!this.bestiaryType() || monster.type === this.bestiaryType()) &&
-			(!this.bestiarySize() || monster.size === this.bestiarySize()) &&
-			(!this.bestiaryChallengeRating() || monster.challengeRating === this.bestiaryChallengeRating()) &&
-			(!this.bestiarySpellcasterOnly() || monster.hasSpellcasting) &&
-			(!this.bestiaryLegendaryOnly() || monster.hasLegendaryActions || monster.hasLairActions),
+		return this.bestiaryMonsters().filter(
+			(monster) =>
+				(!query || `${monster.name} ${monster.aliases.join(' ')}`.toLowerCase().includes(query)) &&
+				(!this.bestiarySource() || monster.source === this.bestiarySource()) &&
+				(!this.bestiaryType() || monster.type === this.bestiaryType()) &&
+				(!this.bestiarySize() || monster.size === this.bestiarySize()) &&
+				(!this.bestiaryChallengeRating() ||
+					monster.challengeRating === this.bestiaryChallengeRating()) &&
+				(!this.bestiarySpellcasterOnly() || monster.hasSpellcasting) &&
+				(!this.bestiaryLegendaryOnly() || monster.hasLegendaryActions || monster.hasLairActions),
 		);
 	});
 	readonly bestiarySources = computed(() => this.bestiaryFilterValues((monster) => monster.source));
 	readonly bestiaryTypes = computed(() => this.bestiaryFilterValues((monster) => monster.type));
 	readonly bestiarySizes = computed(() => this.bestiaryFilterValues((monster) => monster.size));
-	readonly bestiaryChallengeRatings = computed(() => this.bestiaryFilterValues((monster) => monster.challengeRating));
+	readonly bestiaryChallengeRatings = computed(() =>
+		this.bestiaryFilterValues((monster) => monster.challengeRating),
+	);
 
 	readonly spellLevels = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -302,7 +307,9 @@ export class EncounterBuilder {
 		try {
 			this.bestiaryMonsters.set((await this.bestiary.getIndex()).monsters);
 		} catch (error) {
-			this.bestiaryError.set(error instanceof Error ? error.message : 'Erro ao carregar bestiário local.');
+			this.bestiaryError.set(
+				error instanceof Error ? error.message : 'Erro ao carregar bestiário local.',
+			);
 		} finally {
 			this.bestiaryLoading.set(false);
 		}
@@ -341,7 +348,10 @@ export class EncounterBuilder {
 			this.closeBestiaryModal();
 			this.showToast({ type: 'success', text: 'Participante(s) do bestiário adicionado(s).' });
 		} catch (error) {
-			this.showToast({ type: 'error', text: error instanceof Error ? error.message : 'Erro ao adicionar criatura.' });
+			this.showToast({
+				type: 'error',
+				text: error instanceof Error ? error.message : 'Erro ao adicionar criatura.',
+			});
 		}
 	}
 
@@ -646,9 +656,13 @@ export class EncounterBuilder {
 	private bestiaryFilterValues(
 		value: (monster: CompendiumBestiaryMonsterIndexEntry) => string | undefined,
 	): string[] {
-		return [...new Set(this.bestiaryMonsters().map(value).filter((item): item is string => !!item))].sort(
-			(left, right) => left.localeCompare(right),
-		);
+		return [
+			...new Set(
+				this.bestiaryMonsters()
+					.map(value)
+					.filter((item): item is string => !!item),
+			),
+		].sort((left, right) => left.localeCompare(right));
 	}
 
 	private persistEncounter(): { encounter: SavedEncounter; created: boolean } | null {
@@ -678,23 +692,28 @@ export class EncounterBuilder {
 
 	private async handleFiveEToolsNavigationImport() {
 		const navigationState =
-			(
-				this.router.getCurrentNavigation()?.extras.state as
-					{
+			(this.router.getCurrentNavigation()?.extras.state as
+				| {
 						fiveEToolsImport?: { entityId?: string };
 						compendiumMonster?: { source?: string; name?: string };
-					} | undefined
-			) ?? history.state;
+				  }
+				| undefined) ?? history.state;
 		const compendiumMonster = navigationState?.compendiumMonster;
 		if (compendiumMonster?.source && compendiumMonster.name) {
 			window.history.replaceState({ ...history.state, compendiumMonster: undefined }, '');
 			try {
-				const monster = await this.bestiary.getMonster(compendiumMonster.source, compendiumMonster.name);
+				const monster = await this.bestiary.getMonster(
+					compendiumMonster.source,
+					compendiumMonster.name,
+				);
 				if (!monster) throw new Error('Criatura não encontrada no bestiário local.');
 				this.addCopies(this.compendiumAdapter.toCreatureSheet(monster), 'monster', 1);
 				this.showToast({ type: 'success', text: `${monster.name} adicionado do bestiário.` });
 			} catch (error) {
-				this.showToast({ type: 'error', text: error instanceof Error ? error.message : 'Erro ao importar criatura.' });
+				this.showToast({
+					type: 'error',
+					text: error instanceof Error ? error.message : 'Erro ao importar criatura.',
+				});
 			}
 			return;
 		}

@@ -1,5 +1,7 @@
-	<div class="mx-auto w-full max-w-[1480px] space-y-6 pb-8 pt-1 sm:py-2">
-	<div class="five-library-hero flex flex-col gap-5 rounded-app-shell border p-5 sm:p-6 xl:flex-row xl:items-end xl:justify-between">
+<div class="mx-auto w-full max-w-[1480px] space-y-6 pb-8 pt-1 sm:py-2">
+	<div
+		class="five-library-hero flex flex-col gap-5 rounded-app-shell border p-5 sm:p-6 xl:flex-row xl:items-end xl:justify-between"
+	>
 		<div class="space-y-2">
 			<div class="app-eyebrow text-violet-200">Biblioteca 5etools</div>
 			<h2 class="text-3xl font-semibold text-app-text">Arquivo de campanha</h2>
@@ -19,28 +21,16 @@
 				{{ syncing() ? 'Sincronizando...' : 'Sincronizar' }}
 			</button>
 
-			<button
-				type="button"
-				class="app-button app-button-secondary"
-				(click)="openImport()"
-			>
+			<button type="button" class="app-button app-button-secondary" (click)="openImport()">
 				Importar trecho
 			</button>
 
-			<button
-				type="button"
-				class="app-button app-button-secondary"
-				(click)="requestExportFull()"
-			>
+			<button type="button" class="app-button app-button-secondary" (click)="requestExportFull()">
 				Exportar JSON
 			</button>
 
 			<div class="relative">
-				<button
-					type="button"
-					class="app-button app-button-primary"
-					(click)="toggleNewItemMenu()"
-				>
+				<button type="button" class="app-button app-button-primary" (click)="toggleNewItemMenu()">
 					Novo item
 				</button>
 
@@ -83,9 +73,7 @@
 	</div>
 
 	@if (loading()) {
-		<div class="app-panel p-6 text-sm text-app-muted">
-			Carregando arquivo 5etools...
-		</div>
+		<div class="app-panel p-6 text-sm text-app-muted">Carregando arquivo 5etools...</div>
 	} @else if (summary(); as summary) {
 		<app-fiveetools-summary-cards [summary]="summary"></app-fiveetools-summary-cards>
 
@@ -115,17 +103,18 @@
 		<div class="space-y-6">
 			@if (collectionTab() === 'all' || collectionTab() === 'monster') {
 				<section class="space-y-4">
-					<div class="flex flex-col gap-3 border-b border-app-divider pb-4 sm:flex-row sm:items-end sm:justify-between">
+					<div
+						class="flex flex-col gap-3 border-b border-app-divider pb-4 sm:flex-row sm:items-end sm:justify-between"
+					>
 						<div>
-							<div class="app-eyebrow">Entidades</div><h3 class="mt-1 text-xl font-semibold text-app-text">Monstros e fichas</h3>
+							<div class="app-eyebrow">Entidades</div>
+							<h3 class="mt-1 text-xl font-semibold text-app-text">Monstros e fichas</h3>
 							<p class="text-sm text-app-muted">
 								Biblioteca principal de stat blocks com visual mais limpo para navegar, abrir
 								preview e editar.
 							</p>
 						</div>
-						<span
-							class="app-status border border-violet-400/30 bg-violet-500/10 text-violet-100"
-						>
+						<span class="app-status border border-violet-400/30 bg-violet-500/10 text-violet-100">
 							{{ monsterSummaries().length }} itens
 						</span>
 					</div>
@@ -155,17 +144,18 @@
 
 			@if (collectionTab() === 'all' || collectionTab() === 'trap') {
 				<section class="space-y-4">
-					<div class="flex flex-col gap-3 border-b border-app-divider pb-4 sm:flex-row sm:items-end sm:justify-between">
+					<div
+						class="flex flex-col gap-3 border-b border-app-divider pb-4 sm:flex-row sm:items-end sm:justify-between"
+					>
 						<div>
-							<div class="app-eyebrow">Entidades</div><h3 class="mt-1 text-xl font-semibold text-app-text">Traps e hazards</h3>
+							<div class="app-eyebrow">Entidades</div>
+							<h3 class="mt-1 text-xl font-semibold text-app-text">Traps e hazards</h3>
 							<p class="text-sm text-app-muted">
 								Eventos e hazards separados visualmente dos monsters, com fluxo próprio para preview
 								e edição.
 							</p>
 						</div>
-						<span
-							class="app-status border border-amber-400/30 bg-amber-500/10 text-amber-100"
-						>
+						<span class="app-status border border-amber-400/30 bg-amber-500/10 text-amber-100">
 							{{ trapSummaries().length }} itens
 						</span>
 					</div>
@@ -195,7 +185,8 @@
 			@if (collectionTab() === 'extras') {
 				<section class="space-y-6">
 					<div class="border-b border-app-divider pb-4">
-						<div class="app-eyebrow">Coleções complementares</div><h3 class="mt-1 text-xl font-semibold text-app-text">Outros</h3>
+						<div class="app-eyebrow">Coleções complementares</div>
+						<h3 class="mt-1 text-xl font-semibold text-app-text">Outros</h3>
 						<p class="text-sm text-app-muted">
 							Templates, legendary groups, pacotes reutilizaveis e demais coleções preservadas fora
 							da navegação principal de monsters e traps.
@@ -203,7 +194,9 @@
 					</div>
 
 					@if (extraEditorCollection()) {
-						<div class="rounded-[28px] border border-fuchsia-400/20 bg-[rgba(31,20,51,0.72)] p-6 space-y-4">
+						<div
+							class="rounded-[28px] border border-fuchsia-400/20 bg-[rgba(31,20,51,0.72)] p-6 space-y-4"
+						>
 							<div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
 								<div>
 									<h4 class="text-lg font-semibold text-white">{{ extraEditorTitle() }}</h4>
@@ -252,22 +245,39 @@
 								</button>
 							</div>
 							<div class="space-y-2">
-								@for (template of monsterTemplates(); track template.name + '::' + template.source) {
+								@for (
+									template of monsterTemplates();
+									track template.name + '::' + template.source
+								) {
 									<div class="border-t border-app-divider pt-3 first:border-t-0 first:pt-0">
 										<div class="flex items-start justify-between gap-3">
 											<div class="min-w-0">
 												<div class="font-semibold text-white">{{ template.name }}</div>
 												<div class="mt-1 text-xs text-white/55">{{ template.source }}</div>
-												<div class="mt-2 text-sm text-white/65">{{ monsterTemplateSummary(template) }}</div>
+												<div class="mt-2 text-sm text-white/65">
+													{{ monsterTemplateSummary(template) }}
+												</div>
 											</div>
 											<div class="flex flex-wrap gap-2">
-												<button class="h-8 rounded-xl border border-white/10 bg-white/10 px-3 text-xs font-semibold text-white transition hover:bg-white/15" (click)="editMonsterTemplate(template)">Editar</button>
-												<button class="h-8 rounded-xl border border-red-400/20 bg-red-500/15 px-3 text-xs text-red-100 transition hover:bg-red-500/20" (click)="removeMonsterTemplate(template)">Remover</button>
+												<button
+													class="h-8 rounded-xl border border-white/10 bg-white/10 px-3 text-xs font-semibold text-white transition hover:bg-white/15"
+													(click)="editMonsterTemplate(template)"
+												>
+													Editar
+												</button>
+												<button
+													class="h-8 rounded-xl border border-red-400/20 bg-red-500/15 px-3 text-xs text-red-100 transition hover:bg-red-500/20"
+													(click)="removeMonsterTemplate(template)"
+												>
+													Remover
+												</button>
 											</div>
 										</div>
 									</div>
 								} @empty {
-									<div class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/65">
+									<div
+										class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/65"
+									>
 										Nenhum template salvo no arquivo atual.
 									</div>
 								}
@@ -278,7 +288,9 @@
 							<div class="flex items-start justify-between gap-3">
 								<div>
 									<h4 class="font-semibold text-white">Legendary Groups</h4>
-									<p class="mt-1 text-sm text-white/60">Lair actions, regional effects e blocos míticos.</p>
+									<p class="mt-1 text-sm text-white/60">
+										Lair actions, regional effects e blocos míticos.
+									</p>
 								</div>
 								<button
 									type="button"
@@ -295,16 +307,30 @@
 											<div class="min-w-0">
 												<div class="font-semibold text-white">{{ group.name }}</div>
 												<div class="mt-1 text-xs text-white/55">{{ group.source }}</div>
-												<div class="mt-2 text-sm text-white/65">{{ legendaryGroupSummary(group) }}</div>
+												<div class="mt-2 text-sm text-white/65">
+													{{ legendaryGroupSummary(group) }}
+												</div>
 											</div>
 											<div class="flex flex-wrap gap-2">
-												<button class="h-8 rounded-xl border border-white/10 bg-white/10 px-3 text-xs font-semibold text-white transition hover:bg-white/15" (click)="editLegendaryGroup(group)">Editar</button>
-												<button class="h-8 rounded-xl border border-red-400/20 bg-red-500/15 px-3 text-xs text-red-100 transition hover:bg-red-500/20" (click)="removeLegendaryGroup(group)">Remover</button>
+												<button
+													class="h-8 rounded-xl border border-white/10 bg-white/10 px-3 text-xs font-semibold text-white transition hover:bg-white/15"
+													(click)="editLegendaryGroup(group)"
+												>
+													Editar
+												</button>
+												<button
+													class="h-8 rounded-xl border border-red-400/20 bg-red-500/15 px-3 text-xs text-red-100 transition hover:bg-red-500/20"
+													(click)="removeLegendaryGroup(group)"
+												>
+													Remover
+												</button>
 											</div>
 										</div>
 									</div>
 								} @empty {
-									<div class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/65">
+									<div
+										class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/65"
+									>
 										Nenhum legendary group salvo no arquivo atual.
 									</div>
 								}
@@ -314,7 +340,9 @@
 						<div class="app-panel space-y-4 p-5">
 							<div>
 								<h4 class="font-semibold text-white">Pacotes de Composicao</h4>
-								<p class="mt-1 text-sm text-white/60">Pacotes locais reutilizaveis para blocos e spellcasting.</p>
+								<p class="mt-1 text-sm text-white/60">
+									Pacotes locais reutilizaveis para blocos e spellcasting.
+								</p>
 							</div>
 							<div class="space-y-2">
 								@for (pkg of compositionPackages(); track pkg.id) {
@@ -322,14 +350,25 @@
 										<div class="flex items-start justify-between gap-3">
 											<div class="min-w-0">
 												<div class="font-semibold text-white">{{ pkg.name }}</div>
-												<div class="mt-1 text-xs text-white/55">{{ pkg.source || 'sem source' }}</div>
-												<div class="mt-2 text-sm text-white/65">{{ compositionPackageSummary(pkg) }}</div>
+												<div class="mt-1 text-xs text-white/55">
+													{{ pkg.source || 'sem source' }}
+												</div>
+												<div class="mt-2 text-sm text-white/65">
+													{{ compositionPackageSummary(pkg) }}
+												</div>
 											</div>
-											<button class="h-8 rounded-xl border border-red-400/20 bg-red-500/15 px-3 text-xs text-red-100 transition hover:bg-red-500/20" (click)="removeCompositionPackage(pkg)">Remover</button>
+											<button
+												class="h-8 rounded-xl border border-red-400/20 bg-red-500/15 px-3 text-xs text-red-100 transition hover:bg-red-500/20"
+												(click)="removeCompositionPackage(pkg)"
+											>
+												Remover
+											</button>
 										</div>
 									</div>
 								} @empty {
-									<div class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/65">
+									<div
+										class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/65"
+									>
 										Nenhum pacote salvo ainda. Abra um monster e salve a composicao atual.
 									</div>
 								}
@@ -340,7 +379,9 @@
 					<div class="app-panel p-5">
 						<div class="mb-4">
 							<h4 class="font-semibold text-white">Coleções Extras Preservadas</h4>
-							<p class="mt-1 text-sm text-white/60">Arrays adicionais mantidos no arquivo sem editor dedicado.</p>
+							<p class="mt-1 text-sm text-white/60">
+								Arrays adicionais mantidos no arquivo sem editor dedicado.
+							</p>
 						</div>
 						<div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
 							@for (collection of unknownExtraCollections(); track collection.key) {
@@ -349,7 +390,9 @@
 									<div class="mt-1 text-sm text-white/65">{{ collection.count }} item(ns)</div>
 								</div>
 							} @empty {
-								<div class="rounded-3xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-white/70">
+								<div
+									class="rounded-3xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-white/70"
+								>
 									Sem coleções extras além das já tratadas acima.
 								</div>
 							}
@@ -403,31 +446,23 @@
 								@if (editorTab() === 'blocks' || editorTab() === 'spellcasting') {
 									<button
 										type="button"
-									class="app-button border border-sky-400/25 bg-sky-500/12 text-sky-50 hover:bg-sky-500/20"
+										class="app-button border border-sky-400/25 bg-sky-500/12 text-sky-50 hover:bg-sky-500/20"
 										(click)="saveCurrentMonsterAsCompositionPackage()"
 									>
 										Salvar como pacote
 									</button>
 									<button
 										type="button"
-									class="app-button app-button-secondary"
+										class="app-button app-button-secondary"
 										(click)="openTagHelper()"
 									>
 										Abrir helper de tags
 									</button>
 								}
-								<button
-									type="button"
-							class="app-button app-button-accent"
-									(click)="saveMonster()"
-								>
+								<button type="button" class="app-button app-button-accent" (click)="saveMonster()">
 									Salvar monster
 								</button>
-								<button
-									type="button"
-							class="app-button app-button-ghost"
-									(click)="cancelEditor()"
-								>
+								<button type="button" class="app-button app-button-ghost" (click)="cancelEditor()">
 									Fechar
 								</button>
 							</div>
@@ -855,12 +890,17 @@
 
 							@if (editorTab() === 'blocks') {
 								<div class="space-y-4">
-									<div class="rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.04)] p-4 space-y-4">
+									<div
+										class="rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.04)] p-4 space-y-4"
+									>
 										<div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
 											<div>
-												<h4 class="font-semibold text-white">Pacotes reutilizaveis de composicao</h4>
+												<h4 class="font-semibold text-white">
+													Pacotes reutilizaveis de composicao
+												</h4>
 												<p class="text-sm text-white/60">
-													Salve a composicao atual do monster e reaplique blocos + spellcasting em outros stat blocks.
+													Salve a composicao atual do monster e reaplique blocos + spellcasting em
+													outros stat blocks.
 												</p>
 											</div>
 											<button
@@ -874,20 +914,38 @@
 										<div class="space-y-3">
 											@for (pkg of compositionPackages(); track pkg.id) {
 												<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-													<div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+													<div
+														class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between"
+													>
 														<div class="min-w-0">
 															<div class="font-semibold text-white">{{ pkg.name }}</div>
-															<div class="mt-1 text-xs text-white/55">{{ pkg.source || 'sem source' }}</div>
-															<div class="mt-2 text-sm text-white/65">{{ compositionPackageSummary(pkg) }}</div>
+															<div class="mt-1 text-xs text-white/55">
+																{{ pkg.source || 'sem source' }}
+															</div>
+															<div class="mt-2 text-sm text-white/65">
+																{{ compositionPackageSummary(pkg) }}
+															</div>
 														</div>
 														<div class="flex flex-wrap gap-2 xl:justify-end">
-															<button class="h-9 rounded-xl border border-emerald-400/25 bg-emerald-500/12 px-3 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-500/20" (click)="applyCompositionPackage(pkg)">Aplicar</button>
-															<button class="h-9 rounded-xl border border-red-400/20 bg-red-500/15 px-3 text-sm text-red-100 transition hover:bg-red-500/20" (click)="removeCompositionPackage(pkg)">Remover</button>
+															<button
+																class="h-9 rounded-xl border border-emerald-400/25 bg-emerald-500/12 px-3 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-500/20"
+																(click)="applyCompositionPackage(pkg)"
+															>
+																Aplicar
+															</button>
+															<button
+																class="h-9 rounded-xl border border-red-400/20 bg-red-500/15 px-3 text-sm text-red-100 transition hover:bg-red-500/20"
+																(click)="removeCompositionPackage(pkg)"
+															>
+																Remover
+															</button>
 														</div>
 													</div>
 												</div>
 											} @empty {
-												<div class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/65">
+												<div
+													class="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/65"
+												>
 													Nenhum pacote salvo ainda.
 												</div>
 											}
@@ -1753,7 +1811,7 @@
 					(click)="$event.stopPropagation()"
 				>
 					<div
-					class="five-editor-header sticky top-0 z-10 border-b px-5 py-4 backdrop-blur sm:px-6"
+						class="five-editor-header sticky top-0 z-10 border-b px-5 py-4 backdrop-blur sm:px-6"
 					>
 						<div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
 							<div>
@@ -1770,25 +1828,14 @@
 							</div>
 							<div class="flex flex-wrap items-center gap-2">
 								@if (editorTab() === 'blocks') {
-									<button
-							class="app-button app-button-secondary"
-										(click)="openTagHelper()"
-									>
+									<button class="app-button app-button-secondary" (click)="openTagHelper()">
 										Abrir helper de tags
 									</button>
 								}
-								<button
-							class="app-button app-button-accent"
-									(click)="saveTrap()"
-								>
+								<button class="app-button app-button-accent" (click)="saveTrap()">
 									Salvar trap
 								</button>
-								<button
-							class="app-button app-button-ghost"
-									(click)="cancelEditor()"
-								>
-									Fechar
-								</button>
+								<button class="app-button app-button-ghost" (click)="cancelEditor()">Fechar</button>
 							</div>
 						</div>
 						<div class="mt-4 flex flex-wrap gap-2">
@@ -2105,12 +2152,12 @@
 				class="five-workflow-modal flex h-screen w-full flex-col overflow-auto sm:h-auto sm:max-h-[94vh] sm:max-w-6xl"
 				(click)="$event.stopPropagation()"
 			>
-				<div
-					class="five-editor-header sticky top-0 z-10 border-b px-5 py-4 backdrop-blur sm:px-6"
-				>
+				<div class="five-editor-header sticky top-0 z-10 border-b px-5 py-4 backdrop-blur sm:px-6">
 					<div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
 						<div>
-							<h3 id="five-import-title" class="text-2xl font-semibold text-white">Importar trecho</h3>
+							<h3 id="five-import-title" class="text-2xl font-semibold text-white">
+								Importar trecho
+							</h3>
 							<p class="mt-1 text-sm text-white/65">
 								Cole o JSON, valide o conteúdo e resolva conflitos antes de aplicar ao arquivo
 								principal.
@@ -2221,16 +2268,19 @@
 															Comparar item existente com o item importado.
 														</div>
 													</div>
-													<select
-														class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white xl:max-w-xs"
-														[ngModel]="conflictResolutions()[conflict.id]"
-														(ngModelChange)="setConflictResolution(conflict.id, $event)"
-													>
-														<option value="replace">Substituir</option>
-														<option value="keep-existing">Manter existente</option>
-														<option value="duplicate">Duplicar</option>
-														<option value="cancel">Cancelar</option>
-													</select>
+													<app-select
+														class="w-full xl:max-w-xs"
+														label="Resolução"
+														ariaLabel="Resolver conflito"
+														[options]="[
+															{ value: 'replace', label: 'Substituir' },
+															{ value: 'keep-existing', label: 'Manter existente' },
+															{ value: 'duplicate', label: 'Duplicar' },
+															{ value: 'cancel', label: 'Cancelar' },
+														]"
+														[value]="conflictResolutions()[conflict.id]"
+														(valueChange)="setConflictResolution(conflict.id, $any($event))"
+													/>
 												</div>
 												<div class="overflow-auto rounded-2xl border border-white/10 bg-black/20">
 													<table class="min-w-full text-sm text-white/80">
@@ -2320,7 +2370,9 @@
 				class="five-workflow-modal w-full max-w-2xl p-5"
 				(click)="$event.stopPropagation()"
 			>
-				<h3 id="five-sync-title" class="text-2xl font-semibold text-white">Sincronizar JSON 5etools</h3>
+				<h3 id="five-sync-title" class="text-2xl font-semibold text-white">
+					Sincronizar JSON 5etools
+				</h3>
 				<p class="mt-2 text-sm text-white/65">
 					O arquivo local atual será salvo em backup antes de aplicar o conteúdo remoto.
 				</p>
@@ -2455,8 +2507,7 @@
 				<textarea
 					readonly
 					class="mt-4 min-h-28 w-full rounded-2xl border border-white/10 bg-black/20 p-4 font-mono text-xs text-white"
-					>{{ tag }}</textarea
-				>
+					>{{ tag }}</textarea>
 				<div class="mt-5 flex justify-end gap-2">
 					<button
 						class="inline-flex h-10 items-center rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/15"

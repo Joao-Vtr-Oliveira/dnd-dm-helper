@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-	import { By } from '@angular/platform-browser';
+import { By } from '@angular/platform-browser';
 import { Calendar } from './calendar';
 
 describe('Calendar', () => {
@@ -25,11 +25,8 @@ describe('Calendar', () => {
 	});
 
 	it('updates the calendar immediately when changing the season select and persists the value', () => {
-		const seasonSelect = fixture.debugElement.query(By.css('.calendar-field select'))
-			.nativeElement as HTMLSelectElement;
-
-		seasonSelect.value = 'winter';
-		seasonSelect.dispatchEvent(new Event('change'));
+		const seasonSelect = fixture.debugElement.query(By.css('app-select')).componentInstance;
+		seasonSelect.valueChange.emit('winter');
 		fixture.detectChanges();
 
 		expect(component.current().season).toBe('winter');
@@ -49,10 +46,11 @@ describe('Calendar', () => {
 
 	it('selects a day for inspection without changing the world clock', () => {
 		const currentDay = component.current().day;
-		const cell = component
-			.weeks()
-			.flat()
-			.find((candidate) => candidate?.day !== currentDay) ?? null;
+		const cell =
+			component
+				.weeks()
+				.flat()
+				.find((candidate) => candidate?.day !== currentDay) ?? null;
 
 		expect(cell).not.toBeNull();
 		component.selectCell(cell);
@@ -65,7 +63,11 @@ describe('Calendar', () => {
 		component.jumpSeasonInput = 'spring';
 		component.jumpDayInput = 18;
 		component.goToDate();
-		const otherDay = component.weeks().flat().find((candidate) => candidate?.day === 17) ?? null;
+		const otherDay =
+			component
+				.weeks()
+				.flat()
+				.find((candidate) => candidate?.day === 17) ?? null;
 
 		component.selectCell(otherDay);
 

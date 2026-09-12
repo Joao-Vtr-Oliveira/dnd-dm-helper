@@ -1,0 +1,115 @@
+<div class="app-select">
+	@if (label) {
+		<span class="mb-1 block text-xs font-medium text-app-muted">{{ label }}</span>
+	}
+	<button
+		#trigger
+		type="button"
+		class="app-field flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition"
+		[class.cursor-not-allowed]="disabled"
+		[class.opacity-55]="disabled"
+		[disabled]="disabled"
+		[attr.aria-label]="accessibleLabel"
+		[attr.aria-controls]="open ? listboxId : null"
+		[attr.aria-expanded]="open"
+		[attr.aria-activedescendant]="open && !searchable ? activeDescendantId : null"
+		aria-haspopup="listbox"
+		(keydown)="onTriggerKeydown($event)"
+		(click)="toggle()"
+	>
+		<span
+			class="min-w-0 truncate"
+			[class.text-app-text]="selectedOption"
+			[class.text-app-muted]="!selectedOption"
+			>{{ selectedOption?.label ?? emptyLabel ?? 'Selecionar...' }}</span
+		>
+		<svg
+			lucideChevronDown
+			[size]="17"
+			[strokeWidth]="2"
+			aria-hidden="true"
+			class="shrink-0 text-app-subtle transition-transform"
+			[class.rotate-180]="open"
+		></svg>
+	</button>
+
+	@if (open) {
+		<div
+			class="app-select-menu fixed z-[var(--z-app-popover)] rounded-app-panel border border-app-border bg-app-surface-raised p-1 shadow-app-panel"
+			[style.left.px]="menuPosition.left"
+			[style.width.px]="menuPosition.width"
+			[style.top.px]="menuPosition.top"
+			[style.bottom.px]="menuPosition.bottom"
+			[style.max-height.px]="menuPosition.maxHeight"
+			(click)="$event.stopPropagation()"
+		>
+			@if (searchable) {
+				<div class="relative border-b border-app-divider p-2">
+					<svg
+						lucideSearch
+						[size]="16"
+						[strokeWidth]="2"
+						aria-hidden="true"
+						class="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-violet-200/75"
+					></svg>
+					<input
+						#searchInput
+						type="search"
+						class="app-field w-full py-2 pl-9 pr-3 text-sm"
+						role="combobox"
+						[placeholder]="searchPlaceholder"
+						[attr.aria-label]="'Buscar em ' + accessibleLabel"
+						[attr.aria-controls]="listboxId"
+						[attr.aria-activedescendant]="activeDescendantId"
+						aria-autocomplete="list"
+						aria-expanded="true"
+						[value]="query"
+						(input)="onSearch($any($event.target).value)"
+						(keydown)="onSearchKeydown($event)"
+					/>
+				</div>
+			}
+			<div
+				class="app-select-options overflow-y-auto"
+				[style.max-height.px]="menuPosition.maxHeight - (searchable ? 62 : 8)"
+				role="listbox"
+				[id]="listboxId"
+				[attr.aria-label]="accessibleLabel"
+			>
+				@for (option of filteredOptions; track option.value; let index = $index) {
+					<button
+						#optionElement
+						type="button"
+						class="flex min-h-10 w-full items-center justify-between gap-3 rounded-app-control px-3 py-2 text-left text-sm transition"
+						[class.bg-violet-500/15]="option.value === value"
+						[class.text-violet-50]="option.value === value"
+						[class.bg-white/5]="index === activeIndex && option.value !== value"
+						[class.text-app-text]="option.value !== value"
+						[class.text-app-muted]="option.disabled"
+						[class.cursor-not-allowed]="option.disabled"
+						[class.opacity-45]="option.disabled"
+						[id]="optionId(index)"
+						[disabled]="option.disabled"
+						role="option"
+						[attr.aria-selected]="option.value === value"
+						(mousemove)="setActive(index)"
+						(click)="select(option)"
+					>
+						<span class="min-w-0 truncate">{{ option.label }}</span>
+						@if (option.value === value) {
+							<svg
+								lucideCheck
+								[size]="16"
+								[strokeWidth]="2.5"
+								aria-hidden="true"
+								class="shrink-0 text-violet-200"
+							></svg>
+						}
+					</button>
+				} @empty {
+					<p class="px-3 py-5 text-center text-sm text-app-muted">Nenhuma opção encontrada.</p>
+				}
+			</div>
+		</div>
+	}
+</div>

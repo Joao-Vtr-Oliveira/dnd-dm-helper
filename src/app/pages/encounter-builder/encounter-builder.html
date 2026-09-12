@@ -891,58 +891,36 @@
 						(ngModelChange)="bestiaryQ.set($event)"
 				/></label>
 				<div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-					<label
-						><span class="text-xs text-app-muted">CR</span
-						><select
-							class="app-field mt-1 w-full px-2 py-1.5 text-sm"
-							[ngModel]="bestiaryChallengeRating()"
-							(ngModelChange)="bestiaryChallengeRating.set($event)"
-						>
-							<option value="">Todos</option>
-							@for (value of bestiaryChallengeRatings(); track value) {
-								<option [value]="value">{{ value }}</option>
-							}
-						</select></label
-					>
-					<label
-						><span class="text-xs text-app-muted">Fonte</span
-						><select
-							class="app-field mt-1 w-full px-2 py-1.5 text-sm"
-							[ngModel]="bestiarySource()"
-							(ngModelChange)="bestiarySource.set($event)"
-						>
-							<option value="">Todas</option>
-							@for (value of bestiarySources(); track value) {
-								<option [value]="value">{{ value }}</option>
-							}
-						</select></label
-					>
-					<label
-						><span class="text-xs text-app-muted">Tipo</span
-						><select
-							class="app-field mt-1 w-full px-2 py-1.5 text-sm"
-							[ngModel]="bestiaryType()"
-							(ngModelChange)="bestiaryType.set($event)"
-						>
-							<option value="">Todos</option>
-							@for (value of bestiaryTypes(); track value) {
-								<option [value]="value">{{ value }}</option>
-							}
-						</select></label
-					>
-					<label
-						><span class="text-xs text-app-muted">Tamanho</span
-						><select
-							class="app-field mt-1 w-full px-2 py-1.5 text-sm"
-							[ngModel]="bestiarySize()"
-							(ngModelChange)="bestiarySize.set($event)"
-						>
-							<option value="">Todos</option>
-							@for (value of bestiarySizes(); track value) {
-								<option [value]="value">{{ value }}</option>
-							}
-						</select></label
-					>
+					<app-select
+						label="CR"
+						[options]="bestiaryChallengeRatings()"
+						[value]="bestiaryChallengeRating()"
+						emptyLabel="Todos"
+						(valueChange)="bestiaryChallengeRating.set($event)"
+					/>
+					<app-select
+						label="Fonte"
+						[options]="bestiarySources()"
+						[value]="bestiarySource()"
+						emptyLabel="Todas"
+						[searchable]="true"
+						searchPlaceholder="Buscar fonte..."
+						(valueChange)="bestiarySource.set($event)"
+					/>
+					<app-select
+						label="Tipo"
+						[options]="bestiaryTypes()"
+						[value]="bestiaryType()"
+						emptyLabel="Todos"
+						(valueChange)="bestiaryType.set($event)"
+					/>
+					<app-select
+						label="Tamanho"
+						[options]="bestiarySizes()"
+						[value]="bestiarySize()"
+						emptyLabel="Todos"
+						(valueChange)="bestiarySize.set($event)"
+					/>
 				</div>
 				<div class="mt-3 flex flex-wrap gap-2 border-t border-app-divider pt-3">
 					<button

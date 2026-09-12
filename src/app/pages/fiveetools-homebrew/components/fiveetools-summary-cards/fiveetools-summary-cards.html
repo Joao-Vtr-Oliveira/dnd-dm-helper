@@ -1,7 +1,26 @@
 <section class="five-library-summary" aria-label="Resumo do arquivo">
-	<div><div class="app-eyebrow">Source principal</div><div class="mt-1 font-semibold text-app-text">{{ summary.primarySource }}</div></div>
-	<div><div class="app-eyebrow">Monstros</div><div class="mt-1 text-2xl font-semibold text-app-text">{{ summary.monsterCount }}</div></div>
-	<div><div class="app-eyebrow">Traps</div><div class="mt-1 text-2xl font-semibold text-app-text">{{ summary.trapCount }}</div></div>
-	<div><div class="app-eyebrow">Modificado</div><div class="mt-1 text-sm font-medium text-app-text">{{ formatDate(summary.dateLastModified) }}</div></div>
-	<div><div class="app-eyebrow">Versão</div><div class="mt-1 text-sm font-medium text-app-text">{{ summary.siteVersion || 'Não informada' }}</div></div>
+	<div>
+		<div class="app-eyebrow">Source principal</div>
+		<div class="mt-1 font-semibold text-app-text">{{ summary.primarySource }}</div>
+	</div>
+	<div>
+		<div class="app-eyebrow">Monstros</div>
+		<div class="mt-1 text-2xl font-semibold text-app-text">{{ summary.monsterCount }}</div>
+	</div>
+	<div>
+		<div class="app-eyebrow">Traps</div>
+		<div class="mt-1 text-2xl font-semibold text-app-text">{{ summary.trapCount }}</div>
+	</div>
+	<div>
+		<div class="app-eyebrow">Modificado</div>
+		<div class="mt-1 text-sm font-medium text-app-text">
+			{{ formatDate(summary.dateLastModified) }}
+		</div>
+	</div>
+	<div>
+		<div class="app-eyebrow">Versão</div>
+		<div class="mt-1 text-sm font-medium text-app-text">
+			{{ summary.siteVersion || 'Não informada' }}
+		</div>
+	</div>
 </section>

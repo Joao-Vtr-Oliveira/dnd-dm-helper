@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, effect, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
 import type {
 	BattleAbilityRecoveryType,
 	BattleCombatant,
@@ -18,9 +19,7 @@ import type {
 	BattleTrap,
 	BattleUpcomingEvent,
 } from '../../models/battle-encounter-model';
-import type {
-	CreatureSheet,
-} from '../../models/creature-sheet-model';
+import type { CreatureSheet } from '../../models/creature-sheet-model';
 import {
 	BattleEncounterService,
 	type CreateBattleLairActionInput,
@@ -95,7 +94,7 @@ type ConfirmModalState = {
 @Component({
 	selector: 'app-battle-tracker',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [AppNativeSelectDirective, CommonModule, FormsModule],
 	templateUrl: './battle-tracker.html',
 })
 export class BattleTrackerPage {
@@ -112,7 +111,7 @@ export class BattleTrackerPage {
 	private readonly battleId = this.route.snapshot.paramMap.get('battleId');
 
 	readonly battle = signal<BattleEncounter | null>(
-		this.battleId ? this.battleStorage.getBattleEncounterById(this.battleId) : null
+		this.battleId ? this.battleStorage.getBattleEncounterById(this.battleId) : null,
 	);
 	readonly now = signal(Date.now());
 	readonly damageDrafts = signal<Record<string, string>>({});
@@ -138,13 +137,13 @@ export class BattleTrackerPage {
 		return this.bestiaryMonsters().filter(
 			(monster) =>
 				monster.name.toLowerCase().includes(query) ||
-				monster.aliases.join(' ').toLowerCase().includes(query)
+				monster.aliases.join(' ').toLowerCase().includes(query),
 		);
 	});
 
 	readonly conditionOptions: BattleConditionPreset[] = DEFAULT_BATTLE_CONDITIONS.filter(
-	(option) => option.name !== 'concentrating',
-);
+		(option) => option.name !== 'concentrating',
+	);
 	readonly combatants = computed(() => [
 		...(this.battle()?.combatants ?? []),
 		...(this.battle()?.pendingCombatants ?? []),
@@ -171,10 +170,11 @@ export class BattleTrackerPage {
 		if (!battle) return [];
 		return this.battleUpcomingEventsService.buildUpcomingTurnEvents(battle, 3);
 	});
-	readonly nextEnvironmentEvent = computed<BattleUpcomingEvent | null>(() =>
-		this.upcomingEvents().find(
-			(event) => event.type === 'lair-action' || event.type === 'trap',
-		) ?? null,
+	readonly nextEnvironmentEvent = computed<BattleUpcomingEvent | null>(
+		() =>
+			this.upcomingEvents().find(
+				(event) => event.type === 'lair-action' || event.type === 'trap',
+			) ?? null,
 	);
 	readonly pendingDiceRechargeAbilities = computed<BattleSpecialAbility[]>(() => {
 		const battle = this.battle();
@@ -188,10 +188,15 @@ export class BattleTrackerPage {
 	readonly cockpitAbilities = computed<BattleSpecialAbility[]>(() => {
 		const combatant = this.currentCombatant();
 		if (!combatant) return [];
-		const pendingAbilityIds = new Set(this.pendingDiceRechargeAbilities().map((ability) => ability.id));
+		const pendingAbilityIds = new Set(
+			this.pendingDiceRechargeAbilities().map((ability) => ability.id),
+		);
 		return combatant.specialAbilities
 			.filter((ability) => ability.recoveryType !== 'manual')
-			.sort((left, right) => Number(pendingAbilityIds.has(right.id)) - Number(pendingAbilityIds.has(left.id)));
+			.sort(
+				(left, right) =>
+					Number(pendingAbilityIds.has(right.id)) - Number(pendingAbilityIds.has(left.id)),
+			);
 	});
 	readonly visibleCockpitAbilities = computed(() =>
 		this.cockpitAbilitiesExpanded() ? this.cockpitAbilities() : this.cockpitAbilities().slice(0, 3),
@@ -242,8 +247,8 @@ export class BattleTrackerPage {
 		if (!dialog) return;
 		const focusable = Array.from(
 			dialog.querySelectorAll<HTMLElement>(
-				'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href]'
-			)
+				'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href]',
+			),
 		);
 		if (!focusable.length) return;
 
@@ -299,9 +304,7 @@ export class BattleTrackerPage {
 		}
 
 		if (modal.action === 'remove-combatant' && modal.combatantId) {
-			this.updateBattle((battle) =>
-				this.battleService.removeCombatant(battle, modal.combatantId!)
-			);
+			this.updateBattle((battle) => this.battleService.removeCombatant(battle, modal.combatantId!));
 			this.showToast('success', 'Combatente removido.');
 		}
 
@@ -324,7 +327,7 @@ export class BattleTrackerPage {
 
 	setCombatantSide(combatantId: string, side: BattleCombatantSide) {
 		this.updateBattle((battle) =>
-			this.battleService.updateCombatant(battle, combatantId, { side })
+			this.battleService.updateCombatant(battle, combatantId, { side }),
 		);
 	}
 
@@ -332,7 +335,7 @@ export class BattleTrackerPage {
 		this.updateBattle((battle) =>
 			this.battleService.updateCombatantHp(battle, combatantId, {
 				currentHp: this.parseNonNegativeInt(value),
-			})
+			}),
 		);
 	}
 
@@ -340,7 +343,7 @@ export class BattleTrackerPage {
 		this.updateBattle((battle) =>
 			this.battleService.updateCombatantHp(battle, combatantId, {
 				maxHp: this.parseNonNegativeInt(value),
-			})
+			}),
 		);
 	}
 
@@ -348,19 +351,19 @@ export class BattleTrackerPage {
 		this.updateBattle((battle) =>
 			this.battleService.updateCombatantHp(battle, combatantId, {
 				temporaryHp: this.parseNonNegativeInt(value),
-			})
+			}),
 		);
 	}
 
 	toggleDefeated(combatantId: string, checked: boolean) {
 		this.updateBattle((battle) =>
-			this.battleService.setCombatantDefeated(battle, combatantId, checked)
+			this.battleService.setCombatantDefeated(battle, combatantId, checked),
 		);
 	}
 
 	toggleCombatantInspector(combatantId: string) {
 		this.selectedCombatantId.update((selectedId) =>
-			selectedId === combatantId ? null : combatantId
+			selectedId === combatantId ? null : combatantId,
 		);
 	}
 
@@ -428,7 +431,10 @@ export class BattleTrackerPage {
 			if (draft.durationMode === 'next-turn-end') {
 				const target = this.battleService.getPositionAfterTurns(battle, 1);
 				return {
-					name: preset?.name === 'custom' ? this.slugify(label) || 'custom' : preset?.name ?? 'custom',
+					name:
+						preset?.name === 'custom'
+							? this.slugify(label) || 'custom'
+							: (preset?.name ?? 'custom'),
 					label,
 					description: preset?.description,
 					durationType: 'until-end-of-turn' as BattleConditionDurationType,
@@ -440,7 +446,10 @@ export class BattleTrackerPage {
 
 			if (draft.durationMode === 'turns') {
 				return {
-					name: preset?.name === 'custom' ? this.slugify(label) || 'custom' : preset?.name ?? 'custom',
+					name:
+						preset?.name === 'custom'
+							? this.slugify(label) || 'custom'
+							: (preset?.name ?? 'custom'),
 					label,
 					description: preset?.description,
 					durationType: 'turns' as BattleConditionDurationType,
@@ -450,7 +459,10 @@ export class BattleTrackerPage {
 
 			if (draft.durationMode === 'rounds') {
 				return {
-					name: preset?.name === 'custom' ? this.slugify(label) || 'custom' : preset?.name ?? 'custom',
+					name:
+						preset?.name === 'custom'
+							? this.slugify(label) || 'custom'
+							: (preset?.name ?? 'custom'),
 					label,
 					description: preset?.description,
 					durationType: 'rounds' as BattleConditionDurationType,
@@ -459,7 +471,8 @@ export class BattleTrackerPage {
 			}
 
 			return {
-				name: preset?.name === 'custom' ? this.slugify(label) || 'custom' : preset?.name ?? 'custom',
+				name:
+					preset?.name === 'custom' ? this.slugify(label) || 'custom' : (preset?.name ?? 'custom'),
 				label,
 				description: preset?.description,
 				durationType: 'manual' as BattleConditionDurationType,
@@ -467,7 +480,7 @@ export class BattleTrackerPage {
 		})();
 
 		this.updateBattle((current) =>
-			this.battleService.addCondition(current, combatantId, conditionInput)
+			this.battleService.addCondition(current, combatantId, conditionInput),
 		);
 
 		this.conditionDrafts.update((drafts) => ({
@@ -483,7 +496,7 @@ export class BattleTrackerPage {
 
 	removeCondition(combatantId: string, conditionId: string) {
 		this.updateBattle((battle) =>
-			this.battleService.removeCondition(battle, combatantId, conditionId)
+			this.battleService.removeCondition(battle, combatantId, conditionId),
 		);
 	}
 
@@ -514,7 +527,10 @@ export class BattleTrackerPage {
 
 	startDeathSaves(combatantId: string) {
 		this.updateBattle((battle) => this.battleService.startDeathSaves(battle, combatantId));
-		this.showToast('success', 'Testes de morte iniciados. A primeira rolagem acontece no próximo turno.');
+		this.showToast(
+			'success',
+			'Testes de morte iniciados. A primeira rolagem acontece no próximo turno.',
+		);
 	}
 
 	recordDeathSaveResult(actionId: string, roll: number) {
@@ -531,7 +547,10 @@ export class BattleTrackerPage {
 			dead: 'morreu',
 			'natural-20': 'recuperou-se com um 20 natural',
 		};
-		this.showToast(result.outcome === 'failure' || result.outcome === 'dead' ? 'error' : 'success', `${result.roll}: ${labels[result.outcome]}.`);
+		this.showToast(
+			result.outcome === 'failure' || result.outcome === 'dead' ? 'error' : 'success',
+			`${result.roll}: ${labels[result.outcome]}.`,
+		);
 	}
 
 	addDeathSaveFailure(combatantId: string) {
@@ -597,7 +616,7 @@ export class BattleTrackerPage {
 
 	setPrivateNotes(combatantId: string, value: string) {
 		this.updateBattle((battle) =>
-			this.battleService.updateCombatantNotes(battle, combatantId, value)
+			this.battleService.updateCombatantNotes(battle, combatantId, value),
 		);
 	}
 
@@ -651,11 +670,10 @@ export class BattleTrackerPage {
 						? maxUses
 						: undefined,
 				cooldownTurns: draft.recoveryType === 'turn-cooldown' ? cooldownValue : undefined,
-				cooldownRounds:
-					draft.recoveryType === 'round-cooldown' ? cooldownValue : undefined,
+				cooldownRounds: draft.recoveryType === 'round-cooldown' ? cooldownValue : undefined,
 				rechargeDice: draft.recoveryType === 'dice-recharge' ? 'd6' : undefined,
 				rechargeOn: draft.recoveryType === 'dice-recharge' ? rechargeOn : undefined,
-			})
+			}),
 		);
 
 		this.abilityDrafts.update((drafts) => ({
@@ -672,18 +690,20 @@ export class BattleTrackerPage {
 	}
 
 	useAbility(combatantId: string, abilityId: string) {
-		this.updateBattle((battle) => this.battleService.useSpecialAbility(battle, combatantId, abilityId));
+		this.updateBattle((battle) =>
+			this.battleService.useSpecialAbility(battle, combatantId, abilityId),
+		);
 	}
 
 	resetAbility(combatantId: string, abilityId: string) {
 		this.updateBattle((battle) =>
-			this.battleService.resetSpecialAbility(battle, combatantId, abilityId)
+			this.battleService.resetSpecialAbility(battle, combatantId, abilityId),
 		);
 	}
 
 	removeAbility(combatantId: string, abilityId: string) {
 		this.updateBattle((battle) =>
-			this.battleService.removeSpecialAbility(battle, combatantId, abilityId)
+			this.battleService.removeSpecialAbility(battle, combatantId, abilityId),
 		);
 	}
 
@@ -704,9 +724,7 @@ export class BattleTrackerPage {
 
 		this.battle.set(result.battle);
 		this.showToast(
-			result.success
-				? 'success'
-				: 'error',
+			result.success ? 'success' : 'error',
 			result.success
 				? `${result.roll} - ${ability?.name ?? 'Habilidade'} recarregou.`
 				: `${result.roll} - ${ability?.name ?? 'Habilidade'} continua em recarga.`,
@@ -787,7 +805,9 @@ export class BattleTrackerPage {
 	}
 
 	toggleLairAction(actionId: string, active: boolean) {
-		this.updateBattle((battle) => this.battleService.updateLairActionActive(battle, actionId, active));
+		this.updateBattle((battle) =>
+			this.battleService.updateLairActionActive(battle, actionId, active),
+		);
 	}
 
 	removeLairAction(actionId: string) {
@@ -854,7 +874,8 @@ export class BattleTrackerPage {
 
 	abilityAvailabilityClasses(ability: BattleSpecialAbility): string {
 		if (ability.isAvailable) return 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100';
-		if (ability.recoveryType === 'uses-per-day') return 'border-rose-400/30 bg-rose-500/10 text-rose-100';
+		if (ability.recoveryType === 'uses-per-day')
+			return 'border-rose-400/30 bg-rose-500/10 text-rose-100';
 		if (ability.recoveryType === 'turn-cooldown' || ability.recoveryType === 'round-cooldown') {
 			return 'border-amber-400/30 bg-amber-500/10 text-amber-100';
 		}
@@ -893,8 +914,10 @@ export class BattleTrackerPage {
 		if (trap.triggerType === 'initiative') {
 			return `${this.encounterEventFrequencyLabel(trap)} na iniciativa ${trap.initiative ?? 20}`;
 		}
-		if (trap.triggerType === 'round-start') return `${this.encounterEventFrequencyLabel(trap)} no início do round`;
-		if (trap.triggerType === 'round-end') return `${this.encounterEventFrequencyLabel(trap)} no fim do round`;
+		if (trap.triggerType === 'round-start')
+			return `${this.encounterEventFrequencyLabel(trap)} no início do round`;
+		if (trap.triggerType === 'round-end')
+			return `${this.encounterEventFrequencyLabel(trap)} no fim do round`;
 		return 'Manual';
 	}
 
@@ -922,14 +945,19 @@ export class BattleTrackerPage {
 			this.battleService.setSpellSlotsCollapsed(
 				battle,
 				combatantId,
-				!combatant.spellSlotsCollapsed
-			)
+				!combatant.spellSlotsCollapsed,
+			),
 		);
 	}
 
 	setSpellSlotMax(combatantId: string, level: number, value: unknown) {
 		this.updateBattle((battle) =>
-			this.battleService.setSpellSlotMax(battle, combatantId, level, this.parseNonNegativeInt(value))
+			this.battleService.setSpellSlotMax(
+				battle,
+				combatantId,
+				level,
+				this.parseNonNegativeInt(value),
+			),
 		);
 	}
 
@@ -939,8 +967,8 @@ export class BattleTrackerPage {
 				battle,
 				combatantId,
 				level,
-				this.parseNonNegativeInt(value)
-			)
+				this.parseNonNegativeInt(value),
+			),
 		);
 	}
 
@@ -949,9 +977,7 @@ export class BattleTrackerPage {
 	}
 
 	recoverSpellSlot(combatantId: string, level: number) {
-		this.updateBattle((battle) =>
-			this.battleService.recoverSpellSlot(battle, combatantId, level)
-		);
+		this.updateBattle((battle) => this.battleService.recoverSpellSlot(battle, combatantId, level));
 	}
 
 	availableSpellSlots(slot: BattleSpellSlotLevel): number {
@@ -1006,10 +1032,7 @@ export class BattleTrackerPage {
 			name: creature.name || sheet.title,
 			side: this.defaultSideForSheet(sheet),
 			maxHp: String(creature.maxHp),
-			armorClass:
-				creature.armorClass == null
-					? ''
-					: String(creature.armorClass),
+			armorClass: creature.armorClass == null ? '' : String(creature.armorClass),
 			initiative: '0',
 		}));
 	}
@@ -1020,7 +1043,10 @@ export class BattleTrackerPage {
 		try {
 			this.bestiaryMonsters.set((await this.bestiary.getIndex()).monsters);
 		} catch (error) {
-			this.showToast('error', error instanceof Error ? error.message : 'Erro ao carregar bestiário local.');
+			this.showToast(
+				'error',
+				error instanceof Error ? error.message : 'Erro ao carregar bestiário local.',
+			);
 		} finally {
 			this.bestiaryLoading.set(false);
 		}
@@ -1062,7 +1088,7 @@ export class BattleTrackerPage {
 				'error',
 				draft.mode === 'homebrew'
 					? 'Selecione uma ficha homebrew.'
-					: 'Selecione uma criatura do bestiário.'
+					: 'Selecione uma criatura do bestiário.',
 			);
 			return;
 		}
@@ -1088,13 +1114,13 @@ export class BattleTrackerPage {
 						armorClass: this.parseArmorClassInput(draft.armorClass),
 						category,
 						sourceSheetId: undefined,
-				  }
+					}
 				: {
 						side: draft.side,
 						initiative: this.parseInitiativeInput(draft.initiative),
 						category,
-					sourceSheetId: draft.mode === 'homebrew' ? draft.sheetId : undefined,
-				  };
+						sourceSheetId: draft.mode === 'homebrew' ? draft.sheetId : undefined,
+					};
 
 		this.updateBattle((current) =>
 			this.battleService.addCombatantFromParticipant(current, {
@@ -1105,7 +1131,7 @@ export class BattleTrackerPage {
 				initiative: overrides.initiative,
 				sourceSheetId: overrides.sourceSheetId,
 				sheet: creature,
-			})
+			}),
 		);
 
 		this.closeAddCombatantModal();
@@ -1113,7 +1139,7 @@ export class BattleTrackerPage {
 			'success',
 			battle.combatants.length > 0
 				? 'Combatente adicionado para entrar no próximo round.'
-				: 'Combatente adicionado.'
+				: 'Combatente adicionado.',
 		);
 	}
 
@@ -1152,14 +1178,14 @@ export class BattleTrackerPage {
 	applyInitiativeChange(combatantId: string) {
 		const value = this.parseInitiativeInput(this.initiativeDrafts()[combatantId]);
 		this.updateBattle((battle) =>
-			this.battleService.scheduleCombatantInitiative(battle, combatantId, value)
+			this.battleService.scheduleCombatantInitiative(battle, combatantId, value),
 		);
 		this.showToast('success', 'Iniciativa agendada para o próximo round.');
 	}
 
 	clearInitiativeChange(combatantId: string) {
 		this.updateBattle((battle) =>
-			this.battleService.clearScheduledCombatantInitiative(battle, combatantId)
+			this.battleService.clearScheduledCombatantInitiative(battle, combatantId),
 		);
 		const combatant = this.combatants().find((item) => item.id === combatantId);
 		this.initiativeDrafts.update((drafts) => ({
@@ -1191,7 +1217,10 @@ export class BattleTrackerPage {
 	}
 
 	shouldShowPendingInitiative(combatant: BattleCombatant): boolean {
-		return combatant.nextRoundInitiative != null && combatant.nextRoundInitiative !== combatant.initiative;
+		return (
+			combatant.nextRoundInitiative != null &&
+			combatant.nextRoundInitiative !== combatant.initiative
+		);
 	}
 
 	shouldShowPendingInitiativeTieBreaker(combatant: BattleCombatant): boolean {
@@ -1200,7 +1229,11 @@ export class BattleTrackerPage {
 
 	isInactiveUntilNextRound(combatant: BattleCombatant): boolean {
 		const battle = this.battle();
-		return battle != null && combatant.inactiveUntilRound != null && combatant.inactiveUntilRound > battle.round;
+		return (
+			battle != null &&
+			combatant.inactiveUntilRound != null &&
+			combatant.inactiveUntilRound > battle.round
+		);
 	}
 
 	initiativeSummary(combatant: BattleCombatant): string {
@@ -1310,7 +1343,8 @@ export class BattleTrackerPage {
 	}
 
 	private captureModalTrigger() {
-		this.modalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		this.modalTrigger =
+			document.activeElement instanceof HTMLElement ? document.activeElement : null;
 	}
 
 	private restoreModalTrigger() {
@@ -1321,7 +1355,11 @@ export class BattleTrackerPage {
 
 	private focusModal() {
 		window.setTimeout(() =>
-			document.querySelector<HTMLElement>('[data-battle-modal] button, [data-battle-modal] input, [data-battle-modal] select')?.focus()
+			document
+				.querySelector<HTMLElement>(
+					'[data-battle-modal] button, [data-battle-modal] input, [data-battle-modal] select',
+				)
+				?.focus(),
 		);
 	}
 

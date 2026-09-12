@@ -44,20 +44,18 @@
 					(ngModelChange)="setTitle($event)"
 					name="title"
 			/></label>
-			<label class="text-sm text-app-muted md:col-span-2"
-				><span class="mb-1 block">Categoria</span
-				><select
-					class="app-field w-full cursor-pointer px-3 py-2"
-					[ngModel]="category()"
-					(ngModelChange)="category.set($event)"
-					name="category"
-				>
-					<option value="monster">Monstro</option>
-					<option value="npc">NPC</option>
-					<option value="pc">PC</option>
-					<option value="other">Outro</option>
-				</select></label
-			>
+			<app-select
+				class="md:col-span-2"
+				label="Categoria"
+				[options]="[
+					{ value: 'monster', label: 'Monstro' },
+					{ value: 'npc', label: 'NPC' },
+					{ value: 'pc', label: 'PC' },
+					{ value: 'other', label: 'Outro' },
+				]"
+				[value]="category()"
+				(valueChange)="category.set($any($event))"
+			/>
 			<label class="text-sm text-app-muted md:col-span-4"
 				><span class="mb-1 block">Tags</span
 				><input

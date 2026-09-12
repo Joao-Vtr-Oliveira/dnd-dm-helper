@@ -9,6 +9,7 @@ import {
 	LucideTriangleAlert,
 	LucideX,
 } from '@lucide/angular';
+import { AppSelectComponent } from '../../components/app-select/app-select';
 import type {
 	BattleCombatantSide,
 	BattleEncounter,
@@ -51,6 +52,7 @@ type BattleSetupModalState = {
 	selector: 'app-encounter-hub',
 	standalone: true,
 	imports: [
+		AppSelectComponent,
 		CommonModule,
 		DialogFocusDirective,
 		FormsModule,
@@ -222,10 +224,7 @@ export class EncounterHub {
 			]),
 		);
 		const initiatives = Object.fromEntries(
-			encounter.participants.map((participant) => [
-				participant.id,
-				participant.initiative,
-			]),
+			encounter.participants.map((participant) => [participant.id, participant.initiative]),
 		);
 
 		this.battleSetupModal.set({
@@ -269,7 +268,7 @@ export class EncounterHub {
 						...modal,
 						initiatives: {
 							...modal.initiatives,
-						[participantId]: text && Number.isFinite(numeric) ? numeric : null,
+							[participantId]: text && Number.isFinite(numeric) ? numeric : null,
 						},
 					}
 				: modal,
@@ -332,7 +331,10 @@ export class EncounterHub {
 			this.ls.deleteEncounter(modal.encounterId);
 			this.closeConfirmModal();
 			this.refresh();
-			this.showToast({ type: 'success', text: 'Encounter removido. Batalhas históricas foram preservadas.' });
+			this.showToast({
+				type: 'success',
+				text: 'Encounter removido. Batalhas históricas foram preservadas.',
+			});
 			return;
 		}
 

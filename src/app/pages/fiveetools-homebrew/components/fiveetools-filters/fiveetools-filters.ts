@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '../../../../components/app-select/app-select';
 import type { FiveEToolsHomebrewSummary } from '../../../../models/fiveetools-homebrew-model';
 
 type CollectionTab = 'all' | 'monster' | 'trap' | 'extras';
@@ -8,7 +9,7 @@ type CollectionTab = 'all' | 'monster' | 'trap' | 'extras';
 @Component({
 	selector: 'app-fiveetools-filters',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [AppSelectComponent, CommonModule, FormsModule],
 	host: {
 		class: 'block',
 	},

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AppSelectComponent } from '../../components/app-select/app-select';
 import { FiveEToolsEntityCardComponent } from './components/fiveetools-entity-card/fiveetools-entity-card';
 import { FiveEToolsEntryReferencePickerComponent } from './components/fiveetools-entry-reference-picker/fiveetools-entry-reference-picker';
 import { FiveEToolsFiltersComponent } from './components/fiveetools-filters/fiveetools-filters';
@@ -119,6 +120,7 @@ type TagInsertionTarget =
 	selector: 'app-fiveetools-homebrew',
 	standalone: true,
 	imports: [
+		AppSelectComponent,
 		CommonModule,
 		FormsModule,
 		FiveEToolsEntityCardComponent,
@@ -178,7 +180,10 @@ export class FiveEToolsHomebrewPage {
 	readonly importAddSourcesToMeta = signal(false);
 	readonly importPreview = signal<FiveEToolsImportPreview | null>(null);
 	readonly conflictResolutions = signal<Record<string, FiveEToolsConflictResolution>>({});
-	readonly syncPreview = signal<{ file: FiveEToolsHomebrewFile; summary: FiveEToolsHomebrewSummary } | null>(null);
+	readonly syncPreview = signal<{
+		file: FiveEToolsHomebrewFile;
+		summary: FiveEToolsHomebrewSummary;
+	} | null>(null);
 	readonly tagHelperKind = signal<TagHelperKind>('spell');
 	readonly tagSpellName = signal('Fire Bolt');
 	readonly tagSpellSource = signal('XPHB');
@@ -204,15 +209,31 @@ export class FiveEToolsHomebrewPage {
 		return this.fiveEToolsService.listEntities(file).filter((entity) => {
 			if (sourceFilter !== 'all' && entity.source !== sourceFilter) return false;
 			if (groupFilter !== 'all' && !entity.groups.includes(groupFilter)) return false;
-			if (entity.type === 'monster' && creatureTypeFilter !== 'all' && entity.creatureType !== creatureTypeFilter) return false;
-			if (entity.type === 'monster' && crFilter !== 'all' && !this.matchesCrBand(entity.cr, crFilter)) return false;
+			if (
+				entity.type === 'monster' &&
+				creatureTypeFilter !== 'all' &&
+				entity.creatureType !== creatureTypeFilter
+			)
+				return false;
+			if (
+				entity.type === 'monster' &&
+				crFilter !== 'all' &&
+				!this.matchesCrBand(entity.cr, crFilter)
+			)
+				return false;
 			if (!query) return true;
-			return this.normalize(entity.searchText ?? `${entity.name} ${entity.description}`).includes(query);
+			return this.normalize(entity.searchText ?? `${entity.name} ${entity.description}`).includes(
+				query,
+			);
 		});
 	});
 
-	readonly monsterSummaries = computed(() => this.entitySummaries().filter((entity) => entity.type === 'monster'));
-	readonly trapSummaries = computed(() => this.entitySummaries().filter((entity) => entity.type === 'trap'));
+	readonly monsterSummaries = computed(() =>
+		this.entitySummaries().filter((entity) => entity.type === 'monster'),
+	);
+	readonly trapSummaries = computed(() =>
+		this.entitySummaries().filter((entity) => entity.type === 'trap'),
+	);
 	readonly monsterTemplates = computed(() => {
 		const file = this.file();
 		return file ? this.fiveEToolsService.listMonsterTemplates(file) : [];
@@ -223,7 +244,10 @@ export class FiveEToolsHomebrewPage {
 	});
 	readonly extrasCount = computed(() => {
 		const summary = this.summary();
-		return (summary?.otherCollections.reduce((count, collection) => count + collection.count, 0) ?? 0) + this.compositionPackages().length;
+		return (
+			(summary?.otherCollections.reduce((count, collection) => count + collection.count, 0) ?? 0) +
+			this.compositionPackages().length
+		);
 	});
 	readonly resultCount = computed(() => this.entitySummaries().length);
 	readonly currentMonsterWarnings = computed(() => {
@@ -241,15 +265,19 @@ export class FiveEToolsHomebrewPage {
 		const primarySource = this.summary()?.primarySource;
 		if (!file) return 0;
 		let count = 0;
-		for (const monster of file.monster ?? []) count += this.fiveEToolsService.validateMonster(monster, primarySource).length;
-		for (const trap of file.trap ?? []) count += this.fiveEToolsService.validateTrap(trap, primarySource).length;
+		for (const monster of file.monster ?? [])
+			count += this.fiveEToolsService.validateMonster(monster, primarySource).length;
+		for (const trap of file.trap ?? [])
+			count += this.fiveEToolsService.validateTrap(trap, primarySource).length;
 		return count;
 	});
 	readonly generatedTag = computed(() => {
 		const kind = this.tagHelperKind();
-		if (kind === 'spell') return this.fiveEToolsService.toSpellTag(this.tagSpellName(), this.tagSpellSource());
+		if (kind === 'spell')
+			return this.fiveEToolsService.toSpellTag(this.tagSpellName(), this.tagSpellSource());
 		if (kind === 'damage') return this.fiveEToolsService.toDamageTag(this.tagDamage());
-		if (kind === 'condition') return this.fiveEToolsService.toConditionTag(this.tagCondition(), this.tagConditionSource());
+		if (kind === 'condition')
+			return this.fiveEToolsService.toConditionTag(this.tagCondition(), this.tagConditionSource());
 		if (kind === 'dc') return this.fiveEToolsService.toDcTag(Number(this.tagDc()) || 0);
 		if (kind === 'hit') return this.fiveEToolsService.toHitTag(Number(this.tagHit()) || 0);
 		if (kind === 'dice') return this.fiveEToolsService.toDiceTag(this.tagDice());
@@ -316,7 +344,10 @@ export class FiveEToolsHomebrewPage {
 		} catch (error) {
 			const fallback = this.fiveEToolsService.createEmptyFile('Notion');
 			this.file.set(fallback);
-			this.showToast('warn', this.getErrorMessage(error, 'Nao foi possivel carregar o JSON 5etools remoto.'));
+			this.showToast(
+				'warn',
+				this.getErrorMessage(error, 'Nao foi possivel carregar o JSON 5etools remoto.'),
+			);
 		} finally {
 			this.loading.set(false);
 		}
@@ -388,7 +419,11 @@ export class FiveEToolsHomebrewPage {
 		this.collectionTab.set('extras');
 		this.extraEditorCollection.set('monsterTemplate');
 		this.editingExtraRef.set(null);
-		this.extraJsonDraft.set(this.fiveEToolsService.formatJson(this.fiveEToolsService.createEmptyMonsterTemplate(primarySource)));
+		this.extraJsonDraft.set(
+			this.fiveEToolsService.formatJson(
+				this.fiveEToolsService.createEmptyMonsterTemplate(primarySource),
+			),
+		);
 	}
 
 	newLegendaryGroup() {
@@ -397,7 +432,11 @@ export class FiveEToolsHomebrewPage {
 		this.collectionTab.set('extras');
 		this.extraEditorCollection.set('legendaryGroup');
 		this.editingExtraRef.set(null);
-		this.extraJsonDraft.set(this.fiveEToolsService.formatJson(this.fiveEToolsService.createEmptyLegendaryGroup(primarySource)));
+		this.extraJsonDraft.set(
+			this.fiveEToolsService.formatJson(
+				this.fiveEToolsService.createEmptyLegendaryGroup(primarySource),
+			),
+		);
 	}
 
 	editEntity(entity: FiveEToolsEntitySummary) {
@@ -436,10 +475,18 @@ export class FiveEToolsHomebrewPage {
 		const selected = this.fiveEToolsService.getEntityById(file, entity.id);
 		if (!selected) return;
 		if (entity.type === 'monster') {
-			this.previewModal.set({ type: 'monster', monster: structuredClone(selected as FiveEToolsMonster), summary: entity });
+			this.previewModal.set({
+				type: 'monster',
+				monster: structuredClone(selected as FiveEToolsMonster),
+				summary: entity,
+			});
 			return;
 		}
-		this.previewModal.set({ type: 'trap', trap: structuredClone(selected as FiveEToolsTrap), summary: entity });
+		this.previewModal.set({
+			type: 'trap',
+			trap: structuredClone(selected as FiveEToolsTrap),
+			summary: entity,
+		});
 	}
 
 	closePreview() {
@@ -487,9 +534,9 @@ export class FiveEToolsHomebrewPage {
 				matchBy:
 					this.editingEntityRef()?.type === 'monster'
 						? {
-							name: this.editingEntityRef()!.originalName,
-							source: this.editingEntityRef()!.originalSource,
-						}
+								name: this.editingEntityRef()!.originalName,
+								source: this.editingEntityRef()!.originalSource,
+							}
 						: undefined,
 			});
 			this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
@@ -521,9 +568,9 @@ export class FiveEToolsHomebrewPage {
 				matchBy:
 					this.editingEntityRef()?.type === 'trap'
 						? {
-							name: this.editingEntityRef()!.originalName,
-							source: this.editingEntityRef()!.originalSource,
-						}
+								name: this.editingEntityRef()!.originalName,
+								source: this.editingEntityRef()!.originalSource,
+							}
 						: undefined,
 			});
 			this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
@@ -542,9 +589,21 @@ export class FiveEToolsHomebrewPage {
 
 	applyMonsterJsonDraft() {
 		try {
-			const parsed = this.fiveEToolsService.parseJsonField(this.monsterJsonDraft(), this.selectedMonster() ?? {});
+			const parsed = this.fiveEToolsService.parseJsonField(
+				this.monsterJsonDraft(),
+				this.selectedMonster() ?? {},
+			);
 			const normalized = this.fiveEToolsService.parseHomebrewJson({
-				_meta: { sources: [{ json: this.summary()?.primarySource || 'Notion', abbreviation: 'NT', full: this.summary()?.primarySource || 'Notion', version: '1.0.0' }] },
+				_meta: {
+					sources: [
+						{
+							json: this.summary()?.primarySource || 'Notion',
+							abbreviation: 'NT',
+							full: this.summary()?.primarySource || 'Notion',
+							version: '1.0.0',
+						},
+					],
+				},
 				monster: [parsed],
 				trap: [],
 			}).monster?.[0];
@@ -557,9 +616,21 @@ export class FiveEToolsHomebrewPage {
 
 	applyTrapJsonDraft() {
 		try {
-			const parsed = this.fiveEToolsService.parseJsonField(this.trapJsonDraft(), this.selectedTrap() ?? {});
+			const parsed = this.fiveEToolsService.parseJsonField(
+				this.trapJsonDraft(),
+				this.selectedTrap() ?? {},
+			);
 			const normalized = this.fiveEToolsService.parseHomebrewJson({
-				_meta: { sources: [{ json: this.summary()?.primarySource || 'Notion', abbreviation: 'NT', full: this.summary()?.primarySource || 'Notion', version: '1.0.0' }] },
+				_meta: {
+					sources: [
+						{
+							json: this.summary()?.primarySource || 'Notion',
+							abbreviation: 'NT',
+							full: this.summary()?.primarySource || 'Notion',
+							version: '1.0.0',
+						},
+					],
+				},
 				monster: [],
 				trap: [parsed],
 			}).trap?.[0];
@@ -613,9 +684,9 @@ export class FiveEToolsHomebrewPage {
 					matchBy:
 						this.editingExtraRef()?.collection === 'monsterTemplate'
 							? {
-								name: this.editingExtraRef()!.originalName,
-								source: this.editingExtraRef()!.originalSource,
-							}
+									name: this.editingExtraRef()!.originalName,
+									source: this.editingExtraRef()!.originalSource,
+								}
 							: undefined,
 				});
 				this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
@@ -635,9 +706,9 @@ export class FiveEToolsHomebrewPage {
 				matchBy:
 					this.editingExtraRef()?.collection === 'legendaryGroup'
 						? {
-							name: this.editingExtraRef()!.originalName,
-							source: this.editingExtraRef()!.originalSource,
-						}
+								name: this.editingExtraRef()!.originalName,
+								source: this.editingExtraRef()!.originalSource,
+							}
 						: undefined,
 			});
 			this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
@@ -649,7 +720,10 @@ export class FiveEToolsHomebrewPage {
 			this.extraJsonDraft.set(this.fiveEToolsService.formatJson(group));
 			this.showToast('success', 'Legendary group salvo no arquivo 5etools.');
 		} catch (error) {
-			this.showToast('error', this.getErrorMessage(error, 'Nao foi possivel salvar a colecao extra.'));
+			this.showToast(
+				'error',
+				this.getErrorMessage(error, 'Nao foi possivel salvar a colecao extra.'),
+			);
 		}
 	}
 
@@ -658,7 +732,12 @@ export class FiveEToolsHomebrewPage {
 		if (!file) return;
 		if (!window.confirm(`Remover o template ${template.name}?`)) return;
 		this.fiveEToolsService.createBackup(file, `Antes de remover template: ${template.name}`);
-		const next = this.fiveEToolsService.deleteNamedCollectionItem(file, 'monsterTemplate', template.name, template.source);
+		const next = this.fiveEToolsService.deleteNamedCollectionItem(
+			file,
+			'monsterTemplate',
+			template.name,
+			template.source,
+		);
 		this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
 		if (
 			this.editingExtraRef()?.collection === 'monsterTemplate' &&
@@ -675,7 +754,12 @@ export class FiveEToolsHomebrewPage {
 		if (!file) return;
 		if (!window.confirm(`Remover o legendary group ${group.name}?`)) return;
 		this.fiveEToolsService.createBackup(file, `Antes de remover legendary group: ${group.name}`);
-		const next = this.fiveEToolsService.deleteNamedCollectionItem(file, 'legendaryGroup', group.name, group.source);
+		const next = this.fiveEToolsService.deleteNamedCollectionItem(
+			file,
+			'legendaryGroup',
+			group.name,
+			group.source,
+		);
 		this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
 		if (
 			this.editingExtraRef()?.collection === 'legendaryGroup' &&
@@ -831,7 +915,10 @@ export class FiveEToolsHomebrewPage {
 				Object.fromEntries(preview.conflicts.map((conflict) => [conflict.id, conflict.resolution])),
 			);
 		} catch (error) {
-			this.showToast('error', this.getErrorMessage(error, 'Não foi possível preparar o merge do trecho.'));
+			this.showToast(
+				'error',
+				this.getErrorMessage(error, 'Não foi possível preparar o merge do trecho.'),
+			);
 		}
 	}
 
@@ -840,9 +927,14 @@ export class FiveEToolsHomebrewPage {
 		const preview = this.importPreview();
 		if (!file || !preview) return;
 		this.fiveEToolsService.createBackup(file, 'Antes de importar trecho 5etools');
-		const next = this.fiveEToolsService.mergePartialJsonIntoFullFile(file, preview, this.conflictResolutions(), {
-			addMissingSourcesToMeta: this.importAddSourcesToMeta(),
-		});
+		const next = this.fiveEToolsService.mergePartialJsonIntoFullFile(
+			file,
+			preview,
+			this.conflictResolutions(),
+			{
+				addMissingSourcesToMeta: this.importAddSourcesToMeta(),
+			},
+		);
 		this.file.set(this.fiveEToolsService.saveHomebrewFile(next));
 		this.closeImport();
 		this.showToast('success', 'Trecho importado e mesclado ao arquivo 5etools.');
@@ -1080,7 +1172,10 @@ export class FiveEToolsHomebrewPage {
 			return;
 		}
 
-		if ((reference.kind === 'optionalfeature' || reference.kind === 'feat') && reference.hasAdditionalSpells) {
+		if (
+			(reference.kind === 'optionalfeature' || reference.kind === 'feat') &&
+			reference.hasAdditionalSpells
+		) {
 			this.showToast(
 				'warn',
 				`${reference.name} importada. Essa referência também inclui spells associadas, que poderão ser integradas em uma próxima etapa.`,
@@ -1089,7 +1184,10 @@ export class FiveEToolsHomebrewPage {
 			return;
 		}
 
-		this.showToast('success', `${reference.name} importada para ${this.monsterSectionLabel(picker.section)}.`);
+		this.showToast(
+			'success',
+			`${reference.name} importada para ${this.monsterSectionLabel(picker.section)}.`,
+		);
 	}
 
 	importLanguageReference(reference: FiveEToolsReferenceImportable) {
@@ -1118,8 +1216,17 @@ export class FiveEToolsHomebrewPage {
 		return this.monsterSections.find((item) => item.key === section)?.label ?? section;
 	}
 
-	appendGeneratedTagToMonsterEntry(section: MonsterBlockSection, blockIndex: number, entryIndex: number) {
-		this.updateMonsterBlockEntry(section, blockIndex, entryIndex, `${this.getMonsterBlockEntry(section, blockIndex, entryIndex)} ${this.generatedTag()}`.trim());
+	appendGeneratedTagToMonsterEntry(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+	) {
+		this.updateMonsterBlockEntry(
+			section,
+			blockIndex,
+			entryIndex,
+			`${this.getMonsterBlockEntry(section, blockIndex, entryIndex)} ${this.generatedTag()}`.trim(),
+		);
 	}
 
 	appendGeneratedTagToTrapEntry(entryIndex: number) {
@@ -1144,7 +1251,12 @@ export class FiveEToolsHomebrewPage {
 
 	appendGeneratedTagToSpellLevel(blockIndex: number, levelKey: string, spellIndex: number) {
 		const current = this.getSpellLevelSpell(blockIndex, levelKey, spellIndex);
-		this.updateSpellLevelSpell(blockIndex, levelKey, spellIndex, `${current} ${this.generatedTag()}`.trim());
+		this.updateSpellLevelSpell(
+			blockIndex,
+			levelKey,
+			spellIndex,
+			`${current} ${this.generatedTag()}`.trim(),
+		);
 	}
 
 	setMonsterField(field: keyof FiveEToolsMonster, value: string) {
@@ -1165,7 +1277,9 @@ export class FiveEToolsHomebrewPage {
 		const type = this.selectedMonster()?.type;
 		if (!type || typeof type !== 'object' || Array.isArray(type)) return '';
 		const tags = (type as Record<string, unknown>)['tags'];
-		return Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === 'string').join(', ') : '';
+		return Array.isArray(tags)
+			? tags.filter((tag): tag is string => typeof tag === 'string').join(', ')
+			: '';
 	}
 
 	setMonsterTypeBase(value: string) {
@@ -1183,12 +1297,21 @@ export class FiveEToolsHomebrewPage {
 				return {
 					...monster,
 					type: currentTags.length
-						? { ...(typeof current === 'object' && current && !Array.isArray(current) ? current : {}), type: '', tags: currentTags }
+						? {
+								...(typeof current === 'object' && current && !Array.isArray(current)
+									? current
+									: {}),
+								type: '',
+								tags: currentTags,
+							}
 						: '',
 				};
 			}
 
-			if (currentTags.length || (current && typeof current === 'object' && !Array.isArray(current))) {
+			if (
+				currentTags.length ||
+				(current && typeof current === 'object' && !Array.isArray(current))
+			) {
 				return {
 					...monster,
 					type: {
@@ -1316,7 +1439,8 @@ export class FiveEToolsHomebrewPage {
 	monsterSpeedHasAdvancedStructure(): boolean {
 		const speed = this.selectedMonster()?.speed ?? {};
 		return Object.keys(speed).some(
-			(key) => !['walk', 'fly', 'swim', 'climb', 'burrow'].includes(key) || typeof speed[key] !== 'number',
+			(key) =>
+				!['walk', 'fly', 'swim', 'climb', 'burrow'].includes(key) || typeof speed[key] !== 'number',
 		);
 	}
 
@@ -1403,7 +1527,10 @@ export class FiveEToolsHomebrewPage {
 	setMonsterHpField(field: 'average' | 'formula', value: string) {
 		this.updateMonster((monster) => {
 			const hp = { ...(monster.hp ?? {}) };
-			if (field === 'average') hp.average = Number.isFinite(Number(value)) ? Math.max(0, Math.floor(Number(value))) : undefined;
+			if (field === 'average')
+				hp.average = Number.isFinite(Number(value))
+					? Math.max(0, Math.floor(Number(value)))
+					: undefined;
 			else hp.formula = value.trim() || undefined;
 			return { ...monster, hp };
 		});
@@ -1483,7 +1610,13 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	isMonsterEntriesBlock(entry: FiveEToolsEntry): entry is FiveEToolsEntryObject {
-		return !!entry && typeof entry === 'object' && !Array.isArray(entry) && entry.type === 'entries' && Array.isArray(entry.entries);
+		return (
+			!!entry &&
+			typeof entry === 'object' &&
+			!Array.isArray(entry) &&
+			entry.type === 'entries' &&
+			Array.isArray(entry.entries)
+		);
 	}
 
 	monsterEntryHasAdvancedStructure(entry: FiveEToolsEntry): boolean {
@@ -1495,7 +1628,11 @@ export class FiveEToolsHomebrewPage {
 		return hasExtraKeys || hasComplexEntries;
 	}
 
-	getMonsterBlockEntry(section: MonsterBlockSection, blockIndex: number, entryIndex: number): string {
+	getMonsterBlockEntry(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+	): string {
 		const entry = this.getMonsterBlocks(section)[blockIndex]?.entries?.[entryIndex];
 		return typeof entry === 'string' ? entry : '';
 	}
@@ -1505,7 +1642,10 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	addMonsterBlockEntry(section: MonsterBlockSection, blockIndex: number) {
-		this.updateMonsterBlock(section, blockIndex, (block) => ({ ...block, entries: [...(block.entries ?? []), ''] }));
+		this.updateMonsterBlock(section, blockIndex, (block) => ({
+			...block,
+			entries: [...(block.entries ?? []), ''],
+		}));
 	}
 
 	addMonsterTextEntry(section: MonsterBlockSection, blockIndex: number) {
@@ -1515,7 +1655,10 @@ export class FiveEToolsHomebrewPage {
 	addMonsterEntriesBlockEntry(section: MonsterBlockSection, blockIndex: number) {
 		this.updateMonsterBlock(section, blockIndex, (block) => ({
 			...block,
-			entries: [...(block.entries ?? []), { type: 'entries', name: 'Novo sub-bloco', entries: [''] }],
+			entries: [
+				...(block.entries ?? []),
+				{ type: 'entries', name: 'Novo sub-bloco', entries: [''] },
+			],
 		}));
 	}
 
@@ -1529,7 +1672,12 @@ export class FiveEToolsHomebrewPage {
 		}));
 	}
 
-	updateMonsterBlockEntry(section: MonsterBlockSection, blockIndex: number, entryIndex: number, value: string) {
+	updateMonsterBlockEntry(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+		value: string,
+	) {
 		this.updateMonsterBlock(section, blockIndex, (block) => {
 			const entries = [...(block.entries ?? [])];
 			entries[entryIndex] = value;
@@ -1544,7 +1692,12 @@ export class FiveEToolsHomebrewPage {
 		}));
 	}
 
-	moveMonsterBlockEntry(section: MonsterBlockSection, blockIndex: number, entryIndex: number, direction: -1 | 1) {
+	moveMonsterBlockEntry(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+		direction: -1 | 1,
+	) {
 		this.updateMonsterBlock(section, blockIndex, (block) => {
 			const entries = [...(block.entries ?? [])];
 			const targetIndex = entryIndex + direction;
@@ -1555,7 +1708,11 @@ export class FiveEToolsHomebrewPage {
 		});
 	}
 
-	getMonsterEntriesBlockName(section: MonsterBlockSection, blockIndex: number, entryIndex: number): string {
+	getMonsterEntriesBlockName(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+	): string {
 		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
 		return this.isMonsterEntriesBlock(entry) ? entry.name?.trim() || '' : '';
 	}
@@ -1571,10 +1728,16 @@ export class FiveEToolsHomebrewPage {
 		this.updateMonsterEntryObject(section, blockIndex, entryIndex, { ...entry, name: value });
 	}
 
-	getMonsterEntriesBlockText(section: MonsterBlockSection, blockIndex: number, entryIndex: number): string {
+	getMonsterEntriesBlockText(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		entryIndex: number,
+	): string {
 		const entry = this.getMonsterBlockEntries(section, blockIndex)[entryIndex];
 		if (!this.isMonsterEntriesBlock(entry)) return '';
-		return (entry.entries ?? []).filter((child): child is string => typeof child === 'string').join('\n');
+		return (entry.entries ?? [])
+			.filter((child): child is string => typeof child === 'string')
+			.join('\n');
 	}
 
 	setMonsterEntriesBlockText(
@@ -1683,7 +1846,10 @@ export class FiveEToolsHomebrewPage {
 	addSpellcastingBlock() {
 		this.updateMonster((monster) => ({
 			...monster,
-			spellcasting: [...(monster.spellcasting ?? []), { name: 'Spellcasting', type: 'spellcasting', headerEntries: [], spells: {} }],
+			spellcasting: [
+				...(monster.spellcasting ?? []),
+				{ name: 'Spellcasting', type: 'spellcasting', headerEntries: [], spells: {} },
+			],
 		}));
 	}
 
@@ -1697,7 +1863,10 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	removeSpellcastingBlock(blockIndex: number) {
-		this.updateMonster((monster) => ({ ...monster, spellcasting: (monster.spellcasting ?? []).filter((_, index) => index !== blockIndex) }));
+		this.updateMonster((monster) => ({
+			...monster,
+			spellcasting: (monster.spellcasting ?? []).filter((_, index) => index !== blockIndex),
+		}));
 	}
 
 	moveSpellcastingBlock(blockIndex: number, direction: -1 | 1) {
@@ -1711,7 +1880,10 @@ export class FiveEToolsHomebrewPage {
 
 	spellcastingHasAdvancedStructure(block: FiveEToolsSpellcastingBlock): boolean {
 		const keys = Object.keys(block);
-		const hasExtraKeys = keys.some((key) => !['name', 'type', 'headerEntries', 'footerEntries', 'spells', 'displayAs'].includes(key));
+		const hasExtraKeys = keys.some(
+			(key) =>
+				!['name', 'type', 'headerEntries', 'footerEntries', 'spells', 'displayAs'].includes(key),
+		);
 		const hasComplexHeader = (block.headerEntries ?? []).some((entry) => typeof entry !== 'string');
 		const hasComplexFooter = (block.footerEntries ?? []).some((entry) => typeof entry !== 'string');
 		return hasExtraKeys || hasComplexHeader || hasComplexFooter;
@@ -1728,14 +1900,20 @@ export class FiveEToolsHomebrewPage {
 	setSpellHeaderText(blockIndex: number, value: string) {
 		this.updateSpellcastingBlock(blockIndex, (block) => ({
 			...block,
-			headerEntries: value.split('\n').map((line) => line.trim()).filter(Boolean),
+			headerEntries: value
+				.split('\n')
+				.map((line) => line.trim())
+				.filter(Boolean),
 		}));
 	}
 
 	setSpellFooterText(blockIndex: number, value: string) {
 		this.updateSpellcastingBlock(blockIndex, (block) => ({
 			...block,
-			footerEntries: value.split('\n').map((line) => line.trim()).filter(Boolean),
+			footerEntries: value
+				.split('\n')
+				.map((line) => line.trim())
+				.filter(Boolean),
 		}));
 	}
 
@@ -1752,7 +1930,10 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	addSpellHeaderEntry(blockIndex: number) {
-		this.updateSpellcastingBlock(blockIndex, (block) => ({ ...block, headerEntries: [...(block.headerEntries ?? []), ''] }));
+		this.updateSpellcastingBlock(blockIndex, (block) => ({
+			...block,
+			headerEntries: [...(block.headerEntries ?? []), ''],
+		}));
 	}
 
 	getSpellHeaderEntry(blockIndex: number, entryIndex: number): string {
@@ -1775,7 +1956,10 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	addSpellFooterEntry(blockIndex: number) {
-		this.updateSpellcastingBlock(blockIndex, (block) => ({ ...block, footerEntries: [...(block.footerEntries ?? []), ''] }));
+		this.updateSpellcastingBlock(blockIndex, (block) => ({
+			...block,
+			footerEntries: [...(block.footerEntries ?? []), ''],
+		}));
 	}
 
 	getSpellFooterEntry(blockIndex: number, entryIndex: number): string {
@@ -1798,15 +1982,21 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	spellLevels(blockIndex: number): string[] {
-		return Object.keys(this.getSpellcastingBlocks()[blockIndex]?.spells ?? {}).sort((left, right) => Number(left) - Number(right));
+		return Object.keys(this.getSpellcastingBlocks()[blockIndex]?.spells ?? {}).sort(
+			(left, right) => Number(left) - Number(right),
+		);
 	}
 
 	spellHeaderEntries(block: FiveEToolsSpellcastingBlock): string[] {
-		return (block.headerEntries ?? []).filter((entry): entry is string => typeof entry === 'string');
+		return (block.headerEntries ?? []).filter(
+			(entry): entry is string => typeof entry === 'string',
+		);
 	}
 
 	spellFooterEntries(block: FiveEToolsSpellcastingBlock): string[] {
-		return (block.footerEntries ?? []).filter((entry): entry is string => typeof entry === 'string');
+		return (block.footerEntries ?? []).filter(
+			(entry): entry is string => typeof entry === 'string',
+		);
 	}
 
 	spellLevelEntries(block: FiveEToolsSpellcastingBlock, levelKey: string): string[] {
@@ -1842,7 +2032,10 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	addSpellToLevel(blockIndex: number, levelKey: string) {
-		this.updateSpellcastingLevel(blockIndex, levelKey, (level) => ({ ...level, spells: [...(level.spells ?? []), ''] }));
+		this.updateSpellcastingLevel(blockIndex, levelKey, (level) => ({
+			...level,
+			spells: [...(level.spells ?? []), ''],
+		}));
 	}
 
 	getSpellLevelSpell(blockIndex: number, levelKey: string, spellIndex: number): string {
@@ -1888,7 +2081,10 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	removeTrapEntry(entryIndex: number) {
-		this.updateTrap((trap) => ({ ...trap, entries: trap.entries.filter((_, index) => index !== entryIndex) }));
+		this.updateTrap((trap) => ({
+			...trap,
+			entries: trap.entries.filter((_, index) => index !== entryIndex),
+		}));
 	}
 
 	isTrapTextEntry(entry: FiveEToolsEntry): boolean {
@@ -1896,7 +2092,13 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	isTrapEntriesBlock(entry: FiveEToolsEntry): entry is FiveEToolsEntryObject {
-		return !!entry && typeof entry === 'object' && !Array.isArray(entry) && entry.type === 'entries' && Array.isArray(entry.entries);
+		return (
+			!!entry &&
+			typeof entry === 'object' &&
+			!Array.isArray(entry) &&
+			entry.type === 'entries' &&
+			Array.isArray(entry.entries)
+		);
 	}
 
 	trapEntryHasAdvancedStructure(entry: FiveEToolsEntry): boolean {
@@ -2029,15 +2231,21 @@ export class FiveEToolsHomebrewPage {
 		if (!conflict) return [];
 		const incoming =
 			conflict.type === 'monster'
-				? preview.partial.monster?.find((item) => item.name === conflict.name && item.source === conflict.source)
-				: preview.partial.trap?.find((item) => item.name === conflict.name && item.source === conflict.source);
+				? preview.partial.monster?.find(
+						(item) => item.name === conflict.name && item.source === conflict.source,
+					)
+				: preview.partial.trap?.find(
+						(item) => item.name === conflict.name && item.source === conflict.source,
+					);
 		if (!incoming) return [];
 		return this.fiveEToolsService.buildConflictComparison(file, incoming, conflict.type);
 	}
 
 	formatDate(value: number | null | undefined): string {
 		if (typeof value !== 'number') return 'Não informado';
-		return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value * 1000));
+		return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(
+			new Date(value * 1000),
+		);
 	}
 
 	formatJson(value: unknown): string {
@@ -2045,7 +2253,9 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	extraEditorTitle(): string {
-		return this.extraEditorCollection() === 'monsterTemplate' ? 'Editor de Template' : 'Editor de Legendary Group';
+		return this.extraEditorCollection() === 'monsterTemplate'
+			? 'Editor de Template'
+			: 'Editor de Legendary Group';
 	}
 
 	extraEditorHint(): string {
@@ -2062,14 +2272,19 @@ export class FiveEToolsHomebrewPage {
 	}
 
 	monsterTemplateSummary(template: FiveEToolsMonsterTemplate): string {
-		const parts = [template.ref ? `ref ${template.ref}` : null, template.apply ? 'apply configurado' : 'sem apply'];
+		const parts = [
+			template.ref ? `ref ${template.ref}` : null,
+			template.apply ? 'apply configurado' : 'sem apply',
+		];
 		return parts.filter(Boolean).join(' • ');
 	}
 
 	legendaryGroupSummary(group: FiveEToolsLegendaryGroup): string {
 		const counts = [
 			group.lairActions?.length ? `${group.lairActions.length} lair action(ns)` : null,
-			group.regionalEffects?.length ? `${group.regionalEffects.length} efeito(s) regional(is)` : null,
+			group.regionalEffects?.length
+				? `${group.regionalEffects.length} efeito(s) regional(is)`
+				: null,
 			group.mythicEncounter?.length ? `${group.mythicEncounter.length} bloco(s) mythic` : null,
 		];
 		return counts.filter(Boolean).join(' • ') || 'Sem entries configuradas';
@@ -2127,7 +2342,11 @@ export class FiveEToolsHomebrewPage {
 		});
 	}
 
-	private updateMonsterBlock(section: MonsterBlockSection, blockIndex: number, updater: (block: FiveEToolsMonsterFeatureBlock) => FiveEToolsMonsterFeatureBlock) {
+	private updateMonsterBlock(
+		section: MonsterBlockSection,
+		blockIndex: number,
+		updater: (block: FiveEToolsMonsterFeatureBlock) => FiveEToolsMonsterFeatureBlock,
+	) {
 		this.updateMonster((monster) => {
 			const blocks = [...this.getMonsterBlocks(section)];
 			const current = blocks[blockIndex];
@@ -2137,7 +2356,10 @@ export class FiveEToolsHomebrewPage {
 		});
 	}
 
-	private updateSpellcastingBlock(blockIndex: number, updater: (block: FiveEToolsSpellcastingBlock) => FiveEToolsSpellcastingBlock) {
+	private updateSpellcastingBlock(
+		blockIndex: number,
+		updater: (block: FiveEToolsSpellcastingBlock) => FiveEToolsSpellcastingBlock,
+	) {
 		this.updateMonster((monster) => {
 			const blocks = [...(monster.spellcasting ?? [])];
 			const current = blocks[blockIndex];
@@ -2147,7 +2369,13 @@ export class FiveEToolsHomebrewPage {
 		});
 	}
 
-	private updateSpellcastingLevel(blockIndex: number, levelKey: string, updater: (level: NonNullable<FiveEToolsSpellcastingBlock['spells']>[string]) => NonNullable<FiveEToolsSpellcastingBlock['spells']>[string]) {
+	private updateSpellcastingLevel(
+		blockIndex: number,
+		levelKey: string,
+		updater: (
+			level: NonNullable<FiveEToolsSpellcastingBlock['spells']>[string],
+		) => NonNullable<FiveEToolsSpellcastingBlock['spells']>[string],
+	) {
 		this.updateSpellcastingBlock(blockIndex, (block) => {
 			const spells = { ...(block.spells ?? {}) };
 			const current = spells[levelKey] ?? { spells: [] };
@@ -2177,18 +2405,30 @@ export class FiveEToolsHomebrewPage {
 		});
 	}
 
-	private updateStringEntry(entries: Array<string | FiveEToolsEntry> | undefined, index: number, value: string): string[] {
+	private updateStringEntry(
+		entries: Array<string | FiveEToolsEntry> | undefined,
+		index: number,
+		value: string,
+	): string[] {
 		const next = [...(entries ?? [])];
 		next[index] = value;
-		return next.map((entry) => (typeof entry === 'string' ? entry : this.fiveEToolsService.renderEntries([entry]).join(' ')));
+		return next.map((entry) =>
+			typeof entry === 'string' ? entry : this.fiveEToolsService.renderEntries([entry]).join(' '),
+		);
 	}
 
 	private renderSpellLevelLines(block: FiveEToolsSpellcastingBlock): string[] {
 		return Object.entries(block.spells ?? {})
 			.sort((left, right) => Number(left[0]) - Number(right[0]))
 			.flatMap(([level, data]) => {
-				const levelLabel = level === '0' ? 'Cantrips' : `${level}º nível${data.slots != null ? ` (${data.slots} slots)` : ''}`;
-				return [`${levelLabel}:`, ...(data.spells ?? []).map((spell) => this.fiveEToolsService.renderText(spell))];
+				const levelLabel =
+					level === '0'
+						? 'Cantrips'
+						: `${level}º nível${data.slots != null ? ` (${data.slots} slots)` : ''}`;
+				return [
+					`${levelLabel}:`,
+					...(data.spells ?? []).map((spell) => this.fiveEToolsService.renderText(spell)),
+				];
 			});
 	}
 
@@ -2260,13 +2500,17 @@ export class FiveEToolsHomebrewPage {
 
 	private parseCommaSeparated(value: string): string[] {
 		return (value || '')
-			.split(/\n|,/) 
+			.split(/\n|,/)
 			.map((item) => item.trim())
 			.filter(Boolean);
 	}
 
 	private normalize(value: string): string {
-		return (value || '').trim().toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+		return (value || '')
+			.trim()
+			.toLowerCase()
+			.normalize('NFKD')
+			.replace(/[\u0300-\u036f]/g, '');
 	}
 
 	private getErrorMessage(error: unknown, fallback: string): string {

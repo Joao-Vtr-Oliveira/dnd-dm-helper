@@ -1,30 +1,324 @@
-<div class="calendar-page mx-auto w-full max-w-[1480px] space-y-5 pb-8 pt-1 sm:py-2" [ngClass]="seasonTheme()">
+<div
+	class="calendar-page mx-auto w-full max-w-[1480px] space-y-5 pb-8 pt-1 sm:py-2"
+	[ngClass]="seasonTheme()"
+>
 	<header class="calendar-hero overflow-hidden rounded-app-shell border p-5 sm:p-6">
 		<div class="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
 			<div>
 				<div class="app-eyebrow text-[var(--calendar-accent)]">Tempo do mundo</div>
-				<div class="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1"><h1 class="text-3xl font-semibold tracking-tight text-app-text sm:text-4xl">{{ current().day }} de {{ seasonLabel() }}</h1><span class="text-lg text-app-muted">Ano {{ current().year }}</span></div>
-				<div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-app-muted"><span class="calendar-meta"><svg lucideCalendarDays [size]="16" aria-hidden="true"></svg>{{ weekdayLabelCurrent() }}</span><span class="calendar-meta"><svg lucideClock3 [size]="16" aria-hidden="true"></svg>{{ timeLabelCurrent() }}</span><span class="calendar-meta"><svg lucideMoon [size]="16" aria-hidden="true"></svg>{{ moonCurrent().label }}</span>@if (eventsCurrent().length) { <span class="calendar-event-pill"><svg lucideSparkles [size]="15" aria-hidden="true"></svg>{{ eventsCurrent().length }} evento@if (eventsCurrent().length > 1) {s}</span> }</div>
+				<div class="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+					<h1 class="text-3xl font-semibold tracking-tight text-app-text sm:text-4xl">
+						{{ current().day }} de {{ seasonLabel() }}
+					</h1>
+					<span class="text-lg text-app-muted">Ano {{ current().year }}</span>
+				</div>
+				<div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-app-muted">
+					<span class="calendar-meta"
+						><svg lucideCalendarDays [size]="16" aria-hidden="true"></svg
+						>{{ weekdayLabelCurrent() }}</span
+					><span class="calendar-meta"
+						><svg lucideClock3 [size]="16" aria-hidden="true"></svg>{{ timeLabelCurrent() }}</span
+					><span class="calendar-meta"
+						><svg lucideMoon [size]="16" aria-hidden="true"></svg>{{ moonCurrent().label }}</span
+					>
+					@if (eventsCurrent().length) {
+						<span class="calendar-event-pill"
+							><svg lucideSparkles [size]="15" aria-hidden="true"></svg
+							>{{ eventsCurrent().length }} evento
+							@if (eventsCurrent().length > 1) {
+								s
+							}
+						</span>
+					}
+				</div>
 			</div>
-			<div class="flex flex-col gap-2 sm:items-end"><div class="app-action-group"><button type="button" class="app-button app-button-secondary" (click)="changeSeason(-1)" aria-label="Estação anterior"><svg lucideChevronLeft [size]="18" aria-hidden="true"></svg>Estação</button><button type="button" class="app-button app-button-secondary" (click)="changeSeason(1)" aria-label="Próxima estação">Estação<svg lucideChevronRight [size]="18" aria-hidden="true"></svg></button></div><div class="flex flex-wrap items-center gap-2 sm:justify-end"><button type="button" class="calendar-step" (click)="changeDay(-1)">Dia anterior</button><button type="button" class="calendar-step calendar-step-accent" (click)="changeDay(1)">Próximo dia</button></div></div>
+			<div class="flex flex-col gap-2 sm:items-end">
+				<div class="app-action-group">
+					<button
+						type="button"
+						class="app-button app-button-secondary"
+						(click)="changeSeason(-1)"
+						aria-label="Estação anterior"
+					>
+						<svg lucideChevronLeft [size]="18" aria-hidden="true"></svg>Estação</button
+					><button
+						type="button"
+						class="app-button app-button-secondary"
+						(click)="changeSeason(1)"
+						aria-label="Próxima estação"
+					>
+						Estação<svg lucideChevronRight [size]="18" aria-hidden="true"></svg>
+					</button>
+				</div>
+				<div class="flex flex-wrap items-center gap-2 sm:justify-end">
+					<button type="button" class="calendar-step" (click)="changeDay(-1)">Dia anterior</button
+					><button type="button" class="calendar-step calendar-step-accent" (click)="changeDay(1)">
+						Próximo dia
+					</button>
+				</div>
+			</div>
 		</div>
 	</header>
 
-	<section class="calendar-timebar rounded-app-panel border border-app-border bg-app-surface px-4 py-3 sm:px-5">
-		<div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div class="flex items-center gap-3"><div class="calendar-time-icon"><svg lucideClock3 [size]="21" aria-hidden="true"></svg></div><div><div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">Hora atual</div><div class="text-2xl font-semibold tabular-nums text-app-text">{{ timeLabelCurrent() }}</div></div></div><div class="flex flex-wrap items-end gap-3"><div class="calendar-control-stack"><span>Minutos</span><div class="calendar-control-group"><button type="button" (click)="changeMinutes(-30)">-30</button><button type="button" (click)="changeMinutes(-10)">-10</button><button type="button" (click)="changeMinutes(10)">+10</button><button type="button" (click)="changeMinutes(30)">+30</button></div></div><div class="calendar-control-stack"><span>Horas</span><div class="calendar-control-group"><button type="button" (click)="changeHour(-1)">-1</button><button type="button" (click)="changeHour(1)">+1</button><button type="button" (click)="changeHour(4)">+4</button><button type="button" (click)="changeHour(8)">+8</button></div></div><button type="button" class="app-button app-button-ghost" (click)="requestReset('time')"><svg lucideRotateCcw [size]="17" aria-hidden="true"></svg>05:00</button></div></div>
+	<section
+		class="calendar-timebar rounded-app-panel border border-app-border bg-app-surface px-4 py-3 sm:px-5"
+	>
+		<div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+			<div class="flex items-center gap-3">
+				<div class="calendar-time-icon">
+					<svg lucideClock3 [size]="21" aria-hidden="true"></svg>
+				</div>
+				<div>
+					<div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
+						Hora atual
+					</div>
+					<div class="text-2xl font-semibold tabular-nums text-app-text">
+						{{ timeLabelCurrent() }}
+					</div>
+				</div>
+			</div>
+			<div class="flex flex-wrap items-end gap-3">
+				<div class="calendar-control-stack">
+					<span>Minutos</span>
+					<div class="calendar-control-group">
+						<button type="button" (click)="changeMinutes(-30)">-30</button
+						><button type="button" (click)="changeMinutes(-10)">-10</button
+						><button type="button" (click)="changeMinutes(10)">+10</button
+						><button type="button" (click)="changeMinutes(30)">+30</button>
+					</div>
+				</div>
+				<div class="calendar-control-stack">
+					<span>Horas</span>
+					<div class="calendar-control-group">
+						<button type="button" (click)="changeHour(-1)">-1</button
+						><button type="button" (click)="changeHour(1)">+1</button
+						><button type="button" (click)="changeHour(4)">+4</button
+						><button type="button" (click)="changeHour(8)">+8</button>
+					</div>
+				</div>
+				<button type="button" class="app-button app-button-ghost" (click)="requestReset('time')">
+					<svg lucideRotateCcw [size]="17" aria-hidden="true"></svg>05:00
+				</button>
+			</div>
+		</div>
 	</section>
 
 	<section class="app-panel p-4 sm:p-5">
-		<div><div class="app-eyebrow">Navegação precisa</div><h2 class="mt-1 text-lg font-semibold text-app-text">Ir para uma data</h2></div><div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[10rem_minmax(0,1fr)_8rem_auto]"><label class="calendar-field"><span>Ano</span><input type="number" [(ngModel)]="jumpYearInput" /></label><label class="calendar-field"><span>Estação</span><select [ngModel]="jumpSeasonInput" (ngModelChange)="setSeason($event)"><option value="spring">Primavera</option><option value="summer">Verão</option><option value="autumn">Outono</option><option value="winter">Inverno</option></select></label><label class="calendar-field"><span>Dia</span><input type="number" min="1" max="30" [(ngModel)]="jumpDayInput" /></label><button type="button" class="app-button app-button-primary self-end" (click)="goToDate()">Ir para data</button></div><div class="mt-4 flex justify-end border-t border-app-divider pt-3"><button type="button" class="app-button app-button-danger" (click)="requestReset('date')"><svg lucideRotateCcw [size]="17" aria-hidden="true"></svg>Resetar toda a data</button></div>
+		<div>
+			<div class="app-eyebrow">Navegação precisa</div>
+			<h2 class="mt-1 text-lg font-semibold text-app-text">Ir para uma data</h2>
+		</div>
+		<div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[10rem_minmax(0,1fr)_8rem_auto]">
+			<label class="calendar-field"
+				><span>Ano</span><input type="number" [(ngModel)]="jumpYearInput" /></label
+			><app-select
+				label="Estação"
+				[options]="[
+					{ value: 'spring', label: 'Primavera' },
+					{ value: 'summer', label: 'Verão' },
+					{ value: 'autumn', label: 'Outono' },
+					{ value: 'winter', label: 'Inverno' },
+				]"
+				[value]="jumpSeasonInput"
+				(valueChange)="setSeason($any($event))"
+			/><label class="calendar-field"
+				><span>Dia</span><input type="number" min="1" max="30" [(ngModel)]="jumpDayInput" /></label
+			><button type="button" class="app-button app-button-primary self-end" (click)="goToDate()">
+				Ir para data
+			</button>
+		</div>
+		<div class="mt-4 flex justify-end border-t border-app-divider pt-3">
+			<button type="button" class="app-button app-button-danger" (click)="requestReset('date')">
+				<svg lucideRotateCcw [size]="17" aria-hidden="true"></svg>Resetar toda a data
+			</button>
+		</div>
 	</section>
 
 	<div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-		<section class="app-panel overflow-hidden p-0"><div class="flex items-center justify-between border-b border-app-divider px-5 py-4"><div><div class="app-eyebrow">Visão da estação</div><h2 class="mt-1 text-xl font-semibold text-app-text">{{ seasonLabel() }} <span class="font-normal text-app-muted">/ Ano {{ current().year }}</span></h2></div><div class="calendar-moon"><svg lucideMoon [size]="19" aria-hidden="true"></svg><span>{{ moonCurrent().label }}</span></div></div><div class="p-3 sm:p-5"><div class="grid grid-cols-7 pb-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-app-subtle">@for (weekday of weekdayHeaders; track weekday) { <div>{{ weekday }}</div> }</div><div class="space-y-1.5">@for (week of weeks(); track $index) { <div class="grid grid-cols-7 gap-1.5">@for (cell of week; track $index) { @if (cell === null) { <div class="h-12 sm:h-16"></div> } @else { <button type="button" class="calendar-day h-12 sm:h-16" [class.calendar-day-selected]="isSelected(cell)" [class.calendar-day-current]="isCurrent(cell)" (click)="selectCell(cell)" [attr.aria-label]="'Dia ' + cell.day + ', ' + cell.moon.label"><span class="text-sm font-semibold sm:text-base">{{ cell.day }}</span><span class="flex items-center gap-1 text-[10px] text-app-subtle"><span>{{ moonIcon(cell.moon.phase) }}</span>@if (cell.events.length > 0) { <span class="h-1.5 w-1.5 rounded-full bg-amber-300" title="Evento"></span> }</span></button> } }</div> }</div><div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-app-divider pt-3 text-xs text-app-muted"><span class="flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full border-2 border-[var(--calendar-accent)]"></span>Dia atual</span><span class="flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[var(--calendar-accent)]"></span>Selecionado</span><span class="flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-amber-300"></span>Evento</span></div></div></section>
+		<section class="app-panel overflow-hidden p-0">
+			<div class="flex items-center justify-between border-b border-app-divider px-5 py-4">
+				<div>
+					<div class="app-eyebrow">Visão da estação</div>
+					<h2 class="mt-1 text-xl font-semibold text-app-text">
+						{{ seasonLabel() }}
+						<span class="font-normal text-app-muted">/ Ano {{ current().year }}</span>
+					</h2>
+				</div>
+				<div class="calendar-moon">
+					<svg lucideMoon [size]="19" aria-hidden="true"></svg
+					><span>{{ moonCurrent().label }}</span>
+				</div>
+			</div>
+			<div class="p-3 sm:p-5">
+				<div
+					class="grid grid-cols-7 pb-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-app-subtle"
+				>
+					@for (weekday of weekdayHeaders; track weekday) {
+						<div>{{ weekday }}</div>
+					}
+				</div>
+				<div class="space-y-1.5">
+					@for (week of weeks(); track $index) {
+						<div class="grid grid-cols-7 gap-1.5">
+							@for (cell of week; track $index) {
+								@if (cell === null) {
+									<div class="h-12 sm:h-16"></div>
+								} @else {
+									<button
+										type="button"
+										class="calendar-day h-12 sm:h-16"
+										[class.calendar-day-selected]="isSelected(cell)"
+										[class.calendar-day-current]="isCurrent(cell)"
+										(click)="selectCell(cell)"
+										[attr.aria-label]="'Dia ' + cell.day + ', ' + cell.moon.label"
+									>
+										<span class="text-sm font-semibold sm:text-base">{{ cell.day }}</span
+										><span class="flex items-center gap-1 text-[10px] text-app-subtle"
+											><span>{{ moonIcon(cell.moon.phase) }}</span>
+											@if (cell.events.length > 0) {
+												<span class="h-1.5 w-1.5 rounded-full bg-amber-300" title="Evento"></span>
+											}
+										</span>
+									</button>
+								}
+							}
+						</div>
+					}
+				</div>
+				<div
+					class="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-app-divider pt-3 text-xs text-app-muted"
+				>
+					<span class="flex items-center gap-2"
+						><span class="h-2.5 w-2.5 rounded-full border-2 border-[var(--calendar-accent)]"></span
+						>Dia atual</span
+					><span class="flex items-center gap-2"
+						><span class="h-2.5 w-2.5 rounded-full bg-[var(--calendar-accent)]"></span
+						>Selecionado</span
+					><span class="flex items-center gap-2"
+						><span class="h-2.5 w-2.5 rounded-full bg-amber-300"></span>Evento</span
+					>
+				</div>
+			</div>
+		</section>
 
-		<aside class="app-panel p-5 xl:sticky xl:top-4 sm:p-6"><div class="flex items-start justify-between gap-3"><div><div class="app-eyebrow">Dia selecionado</div><h2 class="mt-1 text-xl font-semibold text-app-text">{{ selected().day }} de {{ seasonLabel() }}</h2><p class="mt-1 text-sm text-app-muted">{{ weekdayLabelSelected() }} · {{ timeLabelSelected() }}</p></div><div class="calendar-selected-moon"><svg lucideMoon [size]="18" aria-hidden="true"></svg></div></div><div class="mt-5 border-t border-app-divider pt-5">@if (eventsSelected().length === 0) { <div class="rounded-app-panel border border-dashed border-app-divider bg-app-inset/50 px-4 py-6 text-center"><svg lucideCalendarDays class="mx-auto text-app-subtle" [size]="24" aria-hidden="true"></svg><p class="mt-2 text-sm text-app-muted">Nenhum evento especial neste dia.</p></div> } @else { <div class="space-y-0">@for (event of eventsSelected(); track event.id) { <article class="border-b border-app-divider py-4 first:pt-0 last:border-b-0 last:pb-0"><div class="flex flex-wrap items-center gap-2"><h3 class="text-sm font-semibold text-app-text">{{ event.title }}</h3>@if (event.deity) { <span class="calendar-deity">{{ event.deity }}</span> }</div><p class="mt-2 text-sm leading-6 text-app-muted">{{ event.description }}</p>@if (event.tags?.length) { <div class="mt-3 flex flex-wrap gap-1.5">@for (tag of event.tags; track tag) { <span class="calendar-tag">{{ tag }}</span> }</div> }</article> }</div> }</div></aside>
+		<aside class="app-panel p-5 xl:sticky xl:top-4 sm:p-6">
+			<div class="flex items-start justify-between gap-3">
+				<div>
+					<div class="app-eyebrow">Dia selecionado</div>
+					<h2 class="mt-1 text-xl font-semibold text-app-text">
+						{{ selected().day }} de {{ seasonLabel() }}
+					</h2>
+					<p class="mt-1 text-sm text-app-muted">
+						{{ weekdayLabelSelected() }} · {{ timeLabelSelected() }}
+					</p>
+				</div>
+				<div class="calendar-selected-moon">
+					<svg lucideMoon [size]="18" aria-hidden="true"></svg>
+				</div>
+			</div>
+			<div class="mt-5 border-t border-app-divider pt-5">
+				@if (eventsSelected().length === 0) {
+					<div
+						class="rounded-app-panel border border-dashed border-app-divider bg-app-inset/50 px-4 py-6 text-center"
+					>
+						<svg
+							lucideCalendarDays
+							class="mx-auto text-app-subtle"
+							[size]="24"
+							aria-hidden="true"
+						></svg>
+						<p class="mt-2 text-sm text-app-muted">Nenhum evento especial neste dia.</p>
+					</div>
+				} @else {
+					<div class="space-y-0">
+						@for (event of eventsSelected(); track event.id) {
+							<article
+								class="border-b border-app-divider py-4 first:pt-0 last:border-b-0 last:pb-0"
+							>
+								<div class="flex flex-wrap items-center gap-2">
+									<h3 class="text-sm font-semibold text-app-text">{{ event.title }}</h3>
+									@if (event.deity) {
+										<span class="calendar-deity">{{ event.deity }}</span>
+									}
+								</div>
+								<p class="mt-2 text-sm leading-6 text-app-muted">{{ event.description }}</p>
+								@if (event.tags?.length) {
+									<div class="mt-3 flex flex-wrap gap-1.5">
+										@for (tag of event.tags; track tag) {
+											<span class="calendar-tag">{{ tag }}</span>
+										}
+									</div>
+								}
+							</article>
+						}
+					</div>
+				}
+			</div>
+		</aside>
 	</div>
 </div>
 
 @if (resetConfirmation(); as kind) {
-	<div class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="cancelReset()"><section role="dialog" aria-modal="true" aria-labelledby="calendar-reset-title" class="w-full max-w-lg rounded-app-shell border border-amber-400/25 bg-app-surface-raised p-5 shadow-app-modal sm:p-6" (click)="$event.stopPropagation()"><div class="flex items-start justify-between gap-3"><div><div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100">Alterar tempo do mundo</div><h2 id="calendar-reset-title" class="mt-1 text-xl font-semibold text-app-text">@if (kind === 'date') { Resetar data? } @else { Resetar hora? }</h2></div><button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" (click)="cancelReset()" aria-label="Fechar confirmação"><svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg></button></div><p class="mt-3 text-sm leading-6 text-app-muted">@if (kind === 'date') { A campanha voltará para o dia 1 da Primavera do ano 1000, às 05:00. } @else { A hora voltará para 05:00, mantendo a data atual. } Esta alteração é salva imediatamente.</p><div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" class="app-button app-button-ghost w-full sm:w-auto" (click)="cancelReset()">Cancelar</button><button type="button" class="app-button app-button-danger w-full sm:w-auto" (click)="confirmReset()">@if (kind === 'date') { Resetar data } @else { Resetar hora }</button></div></section></div>
+	<div
+		class="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+		(click)="cancelReset()"
+	>
+		<section
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="calendar-reset-title"
+			class="w-full max-w-lg rounded-app-shell border border-amber-400/25 bg-app-surface-raised p-5 shadow-app-modal sm:p-6"
+			(click)="$event.stopPropagation()"
+		>
+			<div class="flex items-start justify-between gap-3">
+				<div>
+					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100">
+						Alterar tempo do mundo
+					</div>
+					<h2 id="calendar-reset-title" class="mt-1 text-xl font-semibold text-app-text">
+						@if (kind === 'date') {
+							Resetar data?
+						} @else {
+							Resetar hora?
+						}
+					</h2>
+				</div>
+				<button
+					type="button"
+					class="app-button app-modal-close h-11 w-11 shrink-0 p-0"
+					(click)="cancelReset()"
+					aria-label="Fechar confirmação"
+				>
+					<svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg>
+				</button>
+			</div>
+			<p class="mt-3 text-sm leading-6 text-app-muted">
+				@if (kind === 'date') {
+					A campanha voltará para o dia 1 da Primavera do ano 1000, às 05:00.
+				} @else {
+					A hora voltará para 05:00, mantendo a data atual.
+				}
+				Esta alteração é salva imediatamente.
+			</p>
+			<div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+				<button
+					type="button"
+					class="app-button app-button-ghost w-full sm:w-auto"
+					(click)="cancelReset()"
+				>
+					Cancelar</button
+				><button
+					type="button"
+					class="app-button app-button-danger w-full sm:w-auto"
+					(click)="confirmReset()"
+				>
+					@if (kind === 'date') {
+						Resetar data
+					} @else {
+						Resetar hora
+					}
+				</button>
+			</div>
+		</section>
+	</div>
 }

@@ -15,6 +15,7 @@ import {
 import type { MoonPhase, Season, WorldDate } from '../../models/calendar-model';
 import { SEASONS } from '../../utils/calendar-utils/calendar-constants';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '../../components/app-select/app-select';
 import { WorldClockService } from '../../services/WorldClockService/world-clock-service';
 import {
 	LucideCalendarDays,
@@ -37,6 +38,7 @@ const DEFAULT_MINUTE = 0;
 	selector: 'app-calendar',
 	standalone: true,
 	imports: [
+		AppSelectComponent,
 		CommonModule,
 		FormsModule,
 		LucideCalendarDays,

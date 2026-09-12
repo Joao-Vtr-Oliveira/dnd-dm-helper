@@ -1,6 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, inject, signal } from '@angular/core';
+import {
+	Component,
+	EventEmitter,
+	Input,
+	OnChanges,
+	Output,
+	SimpleChanges,
+	computed,
+	inject,
+	signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '../../../../components/app-select/app-select';
 import { FiveEToolsHomebrewService } from '../../../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
 import {
 	FiveEToolsReferenceDataService,
@@ -12,12 +23,13 @@ import {
 	type FiveEToolsReferenceOptionalFeature,
 } from '../../../../services/fiveetools-reference-data-service/fiveetools-reference-data-service';
 
-type ReferenceKind = 'action' | 'optionalfeature' | 'feat' | 'item' | 'condition' | 'status' | 'language';
+type ReferenceKind =
+	'action' | 'optionalfeature' | 'feat' | 'item' | 'condition' | 'status' | 'language';
 
 @Component({
 	selector: 'app-fiveetools-entry-reference-picker',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [AppSelectComponent, CommonModule, FormsModule],
 	templateUrl: './fiveetools-entry-reference-picker.html',
 })
 export class FiveEToolsEntryReferencePickerComponent implements OnChanges {
@@ -77,14 +89,19 @@ export class FiveEToolsEntryReferencePickerComponent implements OnChanges {
 	}
 
 	kindDescription(): string {
-		if (this.kind === 'action') return `Selecione uma action oficial para inserir em ${this.targetSectionLabel}.`;
+		if (this.kind === 'action')
+			return `Selecione uma action oficial para inserir em ${this.targetSectionLabel}.`;
 		if (this.kind === 'optionalfeature') {
 			return `Selecione uma optional feature oficial para reaproveitar em ${this.targetSectionLabel}.`;
 		}
-		if (this.kind === 'item') return `Selecione um item oficial para reaproveitar em ${this.targetSectionLabel}.`;
-		if (this.kind === 'condition') return `Selecione uma condição oficial para usar em ${this.targetSectionLabel}.`;
-		if (this.kind === 'status') return `Selecione um status oficial para usar em ${this.targetSectionLabel}.`;
-		if (this.kind === 'language') return `Selecione um idioma oficial para adicionar a ${this.targetSectionLabel}.`;
+		if (this.kind === 'item')
+			return `Selecione um item oficial para reaproveitar em ${this.targetSectionLabel}.`;
+		if (this.kind === 'condition')
+			return `Selecione uma condição oficial para usar em ${this.targetSectionLabel}.`;
+		if (this.kind === 'status')
+			return `Selecione um status oficial para usar em ${this.targetSectionLabel}.`;
+		if (this.kind === 'language')
+			return `Selecione um idioma oficial para adicionar a ${this.targetSectionLabel}.`;
 		return `Selecione um feat oficial para transformar em bloco reutilizável em ${this.targetSectionLabel}.`;
 	}
 
@@ -131,7 +148,9 @@ export class FiveEToolsEntryReferencePickerComponent implements OnChanges {
 		}
 
 		const feat = item as FiveEToolsReferenceFeat;
-		return [feat.category || '', feat.hasAdditionalSpells ? 'Spells associadas' : ''].filter(Boolean);
+		return [feat.category || '', feat.hasAdditionalSpells ? 'Spells associadas' : ''].filter(
+			Boolean,
+		);
 	}
 
 	private async load() {
@@ -153,15 +172,17 @@ export class FiveEToolsEntryReferencePickerComponent implements OnChanges {
 							: this.kind === 'condition' || this.kind === 'status'
 								? (await this.referenceData.getConditionStatusReferences()).filter(
 										(item) => item.kind === this.kind,
-								  )
-					: this.kind === 'optionalfeature'
-						? await this.referenceData.getOptionalFeatures()
-						: await this.referenceData.getFeats();
+									)
+								: this.kind === 'optionalfeature'
+									? await this.referenceData.getOptionalFeatures()
+									: await this.referenceData.getFeats();
 			this.items.set(items);
 			this.selectedItem.set(items[0] ?? null);
 		} catch (error) {
 			this.items.set([]);
-			this.error.set(this.getErrorMessage(error, 'Não foi possível carregar os dados de referência.'));
+			this.error.set(
+				this.getErrorMessage(error, 'Não foi possível carregar os dados de referência.'),
+			);
 		} finally {
 			this.loading.set(false);
 		}

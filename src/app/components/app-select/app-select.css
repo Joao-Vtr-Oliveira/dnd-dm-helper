@@ -1,0 +1,23 @@
+:host {
+	display: block;
+	min-width: 0;
+}
+
+.app-select-menu {
+	max-width: calc(100vw - 1rem);
+}
+
+.app-select-options {
+	scrollbar-color: rgb(167 139 250 / 0.55) transparent;
+	scrollbar-width: thin;
+}
+
+.app-select-options::-webkit-scrollbar {
+	width: 0.5rem;
+}
+
+.app-select-options::-webkit-scrollbar-thumb {
+	border: 2px solid var(--color-app-surface-raised);
+	border-radius: 9999px;
+	background: rgb(167 139 250 / 0.55);
+}

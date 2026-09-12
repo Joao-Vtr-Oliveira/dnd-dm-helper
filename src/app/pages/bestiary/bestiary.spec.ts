@@ -83,6 +83,25 @@ describe('BestiaryPage', () => {
 		expect(component.abilityModifier(7)).toBe('-2');
 	});
 
+	it('orders challenge ratings by their numeric value while preserving fraction labels', () => {
+		const challengeRatings = ['10', '1/2', '0', '1/4', '2', '1', '1/8'];
+		component.index.set({
+			monsters: challengeRatings.map((challengeRating) => ({
+				...creatureFixture(),
+				id: `MM:${challengeRating}`,
+				name: challengeRating,
+				challengeRating,
+				averageHp: 13,
+				hasSpellcasting: false,
+				hasLegendaryActions: false,
+				hasLairActions: false,
+			})),
+			sources: [],
+		});
+
+		expect(component.challengeRatings()).toEqual(['0', '1/8', '1/4', '1/2', '1', '2', '10']);
+	});
+
 	it('opens and closes the image lightbox for an available image', () => {
 		component.selected.set(creatureFixture('https://5e.tools/img/bestiary/MM/Aarakocra.webp'));
 

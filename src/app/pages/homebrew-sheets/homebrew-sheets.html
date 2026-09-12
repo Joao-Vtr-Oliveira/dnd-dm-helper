@@ -2,34 +2,65 @@
 	<header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 		<div>
 			<h2 class="text-3xl font-semibold text-app-text">Fichas</h2>
-			<p class="mt-1 text-sm text-app-muted">Biblioteca local de fichas homebrew para a campanha.</p>
+			<p class="mt-1 text-sm text-app-muted">
+				Biblioteca local de fichas homebrew para a campanha.
+			</p>
 		</div>
 
 		<div class="app-action-group">
-			<button type="button" class="app-button app-button-primary" (click)="newSheet()">Nova ficha</button>
-			<input #sheetImportFile type="file" accept=".json,application/json" class="hidden" (change)="onImportFile($event)" />
-			<button type="button" class="app-button app-button-secondary" (click)="openImport()">Importar fichas</button>
+			<button type="button" class="app-button app-button-primary" (click)="newSheet()">
+				Nova ficha
+			</button>
+			<input
+				#sheetImportFile
+				type="file"
+				accept=".json,application/json"
+				class="hidden"
+				(change)="onImportFile($event)"
+			/>
+			<button type="button" class="app-button app-button-secondary" (click)="openImport()">
+				Importar fichas
+			</button>
 			@if (filtersActive()) {
-				<button type="button" class="app-button app-button-ghost" (click)="clearFilters()">Limpar filtros</button>
+				<button type="button" class="app-button app-button-ghost" (click)="clearFilters()">
+					Limpar filtros
+				</button>
 			}
 		</div>
 	</header>
 
 	@if (importResult(); as result) {
-		<section class="app-panel border-emerald-400/25 bg-emerald-500/[0.08] p-4" aria-label="Resultado da importação">
+		<section
+			class="app-panel border-emerald-400/25 bg-emerald-500/[0.08] p-4"
+			aria-label="Resultado da importação"
+		>
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 				<div>
-					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100/75">Importação concluída</div>
+					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100/75">
+						Importação concluída
+					</div>
 					<div class="mt-1 font-semibold text-app-text">Resultado do lote de fichas</div>
 				</div>
-				<button type="button" class="app-button app-button-ghost" (click)="importResult.set(null)">Dispensar</button>
+				<button type="button" class="app-button app-button-ghost" (click)="importResult.set(null)">
+					Dispensar
+				</button>
 			</div>
 			<div class="mt-4 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-5">
-				<div class="app-inset px-3 py-2">Importadas: <strong>{{ result.imported }}</strong></div>
-				<div class="app-inset px-3 py-2">Substituídas: <strong>{{ result.replaced }}</strong></div>
-				<div class="app-inset px-3 py-2">Mantidas: <strong>{{ result.kept }}</strong></div>
-				<div class="app-inset px-3 py-2">Copiadas: <strong>{{ result.duplicated }}</strong></div>
-				<div class="app-inset px-3 py-2">Rejeitadas: <strong>{{ result.rejected }}</strong></div>
+				<div class="app-inset px-3 py-2">
+					Importadas: <strong>{{ result.imported }}</strong>
+				</div>
+				<div class="app-inset px-3 py-2">
+					Substituídas: <strong>{{ result.replaced }}</strong>
+				</div>
+				<div class="app-inset px-3 py-2">
+					Mantidas: <strong>{{ result.kept }}</strong>
+				</div>
+				<div class="app-inset px-3 py-2">
+					Copiadas: <strong>{{ result.duplicated }}</strong>
+				</div>
+				<div class="app-inset px-3 py-2">
+					Rejeitadas: <strong>{{ result.rejected }}</strong>
+				</div>
 			</div>
 			@if (result.warnings.length) {
 				<div class="mt-3 text-xs text-emerald-50/80">{{ result.warnings.join(' ') }}</div>
@@ -41,46 +72,74 @@
 		<div class="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,0.8fr))]">
 			<label class="text-sm text-app-muted">
 				<span class="mb-1 block">Buscar</span>
-				<input class="app-field w-full px-4 py-3" placeholder="Nome, criatura, tags ou origem..." [value]="q()" (input)="q.set($any($event.target).value || '')" />
+				<input
+					class="app-field w-full px-4 py-3"
+					placeholder="Nome, criatura, tags ou origem..."
+					[value]="q()"
+					(input)="q.set($any($event.target).value || '')"
+				/>
 			</label>
-			<label class="text-sm text-app-muted">
-				<span class="mb-1 block">Categoria</span>
-				<select class="app-field w-full cursor-pointer px-3 py-3" [ngModel]="categoryFilter()" (ngModelChange)="categoryFilter.set($event)">
-					@for (c of CATEGORIES; track c.id) {
-						<option [value]="c.id">{{ c.label }}</option>
-					}
-				</select>
-			</label>
-			<label class="text-sm text-app-muted">
-				<span class="mb-1 block">Tag</span>
-				<select class="app-field w-full cursor-pointer px-3 py-3" [ngModel]="tagFilter()" (ngModelChange)="tagFilter.set($event)">
-					@for (t of allTags(); track t) {
-						<option [value]="t">{{ t === 'all' ? 'Todas' : t }}</option>
-					}
-				</select>
-			</label>
-			<label class="text-sm text-app-muted">
-				<span class="mb-1 block">Origem</span>
-				<select class="app-field w-full cursor-pointer px-3 py-3" [ngModel]="sourceFilter()" (ngModelChange)="sourceFilter.set($event)">
-					@for (s of allSources(); track s) {
-						<option [value]="s">{{ s === 'all' ? 'Todas' : s }}</option>
-					}
-				</select>
-			</label>
+			<app-select
+				label="Categoria"
+				[options]="CATEGORIES"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="categoryFilter()"
+				(valueChange)="categoryFilter.set($any($event))"
+			/>
+			<app-select
+				label="Tag"
+				[options]="allTags()"
+				[value]="tagFilter()"
+				[optionLabels]="{ all: 'Todas' }"
+				(valueChange)="tagFilter.set($any($event))"
+			/>
+			<app-select
+				label="Origem"
+				[options]="allSources()"
+				[value]="sourceFilter()"
+				[optionLabels]="{ all: 'Todas' }"
+				(valueChange)="sourceFilter.set($any($event))"
+			/>
 		</div>
 		<div class="mt-3 flex flex-wrap gap-2 text-xs text-app-muted">
-			<span class="app-status border border-app-divider bg-app-inset">{{ filtered().length }} de {{ sheets().length }} fichas</span>
+			<span class="app-status border border-app-divider bg-app-inset"
+				>{{ filtered().length }} de {{ sheets().length }} fichas</span
+			>
 			@if (filtersActive()) {
-				<span class="app-status border border-violet-300/20 bg-violet-500/10 text-violet-100">Filtros ativos</span>
+				<span class="app-status border border-violet-300/20 bg-violet-500/10 text-violet-100"
+					>Filtros ativos</span
+				>
 			}
 		</div>
 	</section>
 
 	@if (filtered().length === 0) {
 		<section class="app-empty-state" aria-live="polite">
-			<div class="font-semibold text-app-text">@if (sheets().length === 0) { Nenhuma ficha na biblioteca } @else { Nenhuma ficha encontrada }</div>
-			<p class="mt-1 text-sm">@if (sheets().length === 0) { Crie ou importe uma ficha para começar. } @else { Ajuste ou limpe os filtros para ver outras fichas. }</p>
-			<div class="mt-4 flex justify-center gap-2"><button type="button" class="app-button app-button-primary" (click)="newSheet()">Nova ficha</button>@if (filtersActive()) { <button type="button" class="app-button app-button-secondary" (click)="clearFilters()">Limpar filtros</button> }</div>
+			<div class="font-semibold text-app-text">
+				@if (sheets().length === 0) {
+					Nenhuma ficha na biblioteca
+				} @else {
+					Nenhuma ficha encontrada
+				}
+			</div>
+			<p class="mt-1 text-sm">
+				@if (sheets().length === 0) {
+					Crie ou importe uma ficha para começar.
+				} @else {
+					Ajuste ou limpe os filtros para ver outras fichas.
+				}
+			</p>
+			<div class="mt-4 flex justify-center gap-2">
+				<button type="button" class="app-button app-button-primary" (click)="newSheet()">
+					Nova ficha
+				</button>
+				@if (filtersActive()) {
+					<button type="button" class="app-button app-button-secondary" (click)="clearFilters()">
+						Limpar filtros
+					</button>
+				}
+			</div>
 		</section>
 	} @else {
 		<div class="space-y-3">
@@ -89,47 +148,114 @@
 					<div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
 						<div class="min-w-0 xl:flex-1">
 							<div class="flex flex-wrap items-center gap-2">
-								<h3 class="min-w-0 break-words text-xl font-semibold text-app-text">{{ sheet.title }}</h3>
-								<span class="app-status border" [ngClass]="{
-									'border-red-400/30 bg-red-500/10 text-red-200': sheet.category === 'monster',
-									'border-amber-400/30 bg-amber-500/10 text-amber-100': sheet.category === 'npc',
-									'border-sky-400/30 bg-sky-500/10 text-sky-100': sheet.category === 'pc',
-									'border-app-divider bg-app-inset text-app-muted': sheet.category === 'other'
-								}">
+								<h3 class="min-w-0 break-words text-xl font-semibold text-app-text">
+									{{ sheet.title }}
+								</h3>
+								<span
+									class="app-status border"
+									[ngClass]="{
+										'border-red-400/30 bg-red-500/10 text-red-200': sheet.category === 'monster',
+										'border-amber-400/30 bg-amber-500/10 text-amber-100': sheet.category === 'npc',
+										'border-sky-400/30 bg-sky-500/10 text-sky-100': sheet.category === 'pc',
+										'border-app-divider bg-app-inset text-app-muted': sheet.category === 'other',
+									}"
+								>
 									{{ sheet.category === 'pc' ? 'PC' : (sheet.category | uppercase) }}
 								</span>
 							</div>
 							<div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-app-muted">
-								@if (sheet.source) { <span>Origem: {{ sheet.source }}</span><span aria-hidden="true">·</span> }
-								@if (sheet.externalId) { <span class="break-all">ID: {{ sheet.externalId }}</span><span aria-hidden="true">·</span> }
-								<span>CA {{ sheet.data.armorClass || '-' }} · HP {{ sheet.data.maxHp || '-' }}</span><span aria-hidden="true">·</span>
-								<span>Atualizada em {{ sheet.updatedAt | date:'short' }}</span>
+								@if (sheet.source) {
+									<span>Origem: {{ sheet.source }}</span
+									><span aria-hidden="true">·</span>
+								}
+								@if (sheet.externalId) {
+									<span class="break-all">ID: {{ sheet.externalId }}</span
+									><span aria-hidden="true">·</span>
+								}
+								<span>CA {{ sheet.data.armorClass || '-' }} · HP {{ sheet.data.maxHp || '-' }}</span
+								><span aria-hidden="true">·</span>
+								<span>Atualizada em {{ sheet.updatedAt | date: 'short' }}</span>
 							</div>
 							@if (sheet.tags.length) {
 								<div class="mt-3 flex flex-wrap gap-2">
 									@for (tag of sheet.tags; track tag) {
-										<button type="button" class="app-status border border-app-divider bg-app-inset text-app-muted hover:border-violet-300/30 hover:text-app-text" (click)="setTagQuickFilter(tag)">#{{ tag }}</button>
+										<button
+											type="button"
+											class="app-status border border-app-divider bg-app-inset text-app-muted hover:border-violet-300/30 hover:text-app-text"
+											(click)="setTagQuickFilter(tag)"
+										>
+											#{{ tag }}
+										</button>
 									}
 								</div>
 							}
 						</div>
 
 						<div class="app-action-group shrink-0 xl:justify-end">
-							<button type="button" class="app-button app-button-secondary w-full sm:w-auto" (click)="edit(sheet.id)">Editar</button>
+							<button
+								type="button"
+								class="app-button app-button-secondary w-full sm:w-auto"
+								(click)="edit(sheet.id)"
+							>
+								Editar
+							</button>
 							<div class="relative">
-								<button type="button" class="app-button app-button-ghost" [attr.aria-expanded]="actionMenuSheetId() === sheet.id" [attr.aria-controls]="'sheet-actions-' + sheet.id" aria-label="Mais ações para {{ sheet.title }}" (click)="$event.stopPropagation(); toggleActionMenu(sheet.id)">
+								<button
+									type="button"
+									class="app-button app-button-ghost"
+									[attr.aria-expanded]="actionMenuSheetId() === sheet.id"
+									[attr.aria-controls]="'sheet-actions-' + sheet.id"
+									aria-label="Mais ações para {{ sheet.title }}"
+									(click)="$event.stopPropagation(); toggleActionMenu(sheet.id)"
+								>
 									<svg lucideEllipsis [size]="18" [strokeWidth]="2" aria-hidden="true"></svg>
 									<span class="text-sm">Mais ações</span>
 								</button>
 								@if (actionMenuSheetId() === sheet.id) {
-									<div [id]="'sheet-actions-' + sheet.id" role="menu" class="absolute right-0 top-full z-20 mt-2 w-60 rounded-app-panel border border-app-border bg-app-surface-raised p-1 shadow-app-panel" (click)="$event.stopPropagation()">
-										<button type="button" role="menuitem" class="app-nav-link w-full text-left" (click)="exportOne(sheet.id); closeActionMenu()">Exportar ficha</button>
-										<button type="button" role="menuitem" class="app-nav-link w-full text-left" (click)="duplicate(sheet.id); closeActionMenu()">Duplicar</button>
-										<button type="button" role="menuitem" class="app-nav-link w-full text-left text-emerald-100 hover:text-emerald-50" [disabled]="fiveEToolsLoading() === sheet.id" (click)="addToFiveETools(sheet.id); closeActionMenu()">
-											@if (fiveEToolsLoading() === sheet.id) { Preparando 5etools... } @else { Adicionar ao 5etools }
+									<div
+										[id]="'sheet-actions-' + sheet.id"
+										role="menu"
+										class="absolute right-0 top-full z-20 mt-2 w-60 rounded-app-panel border border-app-border bg-app-surface-raised p-1 shadow-app-panel"
+										(click)="$event.stopPropagation()"
+									>
+										<button
+											type="button"
+											role="menuitem"
+											class="app-nav-link w-full text-left"
+											(click)="exportOne(sheet.id); closeActionMenu()"
+										>
+											Exportar ficha
+										</button>
+										<button
+											type="button"
+											role="menuitem"
+											class="app-nav-link w-full text-left"
+											(click)="duplicate(sheet.id); closeActionMenu()"
+										>
+											Duplicar
+										</button>
+										<button
+											type="button"
+											role="menuitem"
+											class="app-nav-link w-full text-left text-emerald-100 hover:text-emerald-50"
+											[disabled]="fiveEToolsLoading() === sheet.id"
+											(click)="addToFiveETools(sheet.id); closeActionMenu()"
+										>
+											@if (fiveEToolsLoading() === sheet.id) {
+												Preparando 5etools...
+											} @else {
+												Adicionar ao 5etools
+											}
 										</button>
 										<div class="my-1 border-t border-app-divider"></div>
-										<button type="button" role="menuitem" class="app-button app-button-danger min-h-9 px-3 py-1.5 text-sm" (click)="remove(sheet.id); closeActionMenu()">Deletar ficha</button>
+										<button
+											type="button"
+											role="menuitem"
+											class="app-button app-button-danger min-h-9 px-3 py-1.5 text-sm"
+											(click)="remove(sheet.id); closeActionMenu()"
+										>
+											Deletar ficha
+										</button>
 									</div>
 								}
 							</div>
@@ -142,36 +268,93 @@
 </div>
 
 @if (importOpen()) {
-	<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeImport()">
-		<section id="sheet-import-modal" role="dialog" aria-modal="true" aria-labelledby="sheet-import-title" [appDialogFocus]="true" (appDialogEscape)="closeImport()" class="app-dialog w-full max-w-4xl p-4 sm:p-5" (click)="$event.stopPropagation()">
+	<div
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+		(click)="closeImport()"
+	>
+		<section
+			id="sheet-import-modal"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="sheet-import-title"
+			[appDialogFocus]="true"
+			(appDialogEscape)="closeImport()"
+			class="app-dialog w-full max-w-4xl p-4 sm:p-5"
+			(click)="$event.stopPropagation()"
+		>
 			<div class="flex items-start justify-between gap-3">
 				<div>
-					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle">Importação em lote</div>
-					<h2 id="sheet-import-title" class="mt-1 text-2xl font-semibold text-app-text">Importar fichas internas</h2>
-					<p class="mt-1 text-sm text-app-muted">Valide todo o lote antes de gravar qualquer ficha.</p>
+					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
+						Importação em lote
+					</div>
+					<h2 id="sheet-import-title" class="mt-1 text-2xl font-semibold text-app-text">
+						Importar fichas internas
+					</h2>
+					<p class="mt-1 text-sm text-app-muted">
+						Valide todo o lote antes de gravar qualquer ficha.
+					</p>
 				</div>
-				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" data-dialog-initial-focus (click)="closeImport()" aria-label="Fechar importação">
+				<button
+					type="button"
+					class="app-button app-modal-close h-11 w-11 shrink-0 p-0"
+					data-dialog-initial-focus
+					(click)="closeImport()"
+					aria-label="Fechar importação"
+				>
 					<svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg>
 				</button>
 			</div>
 
-			<textarea class="app-field mt-5 min-h-44 w-full p-3 font-mono text-xs" placeholder="Cole aqui o JSON exportado..." [value]="importText()" (input)="importText.set($any($event.target).value || '')"></textarea>
+			<textarea
+				class="app-field mt-5 min-h-44 w-full p-3 font-mono text-xs"
+				placeholder="Cole aqui o JSON exportado..."
+				[value]="importText()"
+				(input)="importText.set($any($event.target).value || '')"
+			></textarea>
 			<div class="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-				<button type="button" class="app-button app-button-ghost w-full sm:w-auto" (click)="closeImport()">Cancelar lote</button>
-				<button type="button" class="app-button app-button-secondary w-full sm:w-auto" (click)="sheetImportFile.click()">Escolher arquivo</button>
-				<button type="button" class="app-button app-button-primary w-full sm:w-auto" (click)="previewImport()">Pré-visualizar</button>
+				<button
+					type="button"
+					class="app-button app-button-ghost w-full sm:w-auto"
+					(click)="closeImport()"
+				>
+					Cancelar lote
+				</button>
+				<button
+					type="button"
+					class="app-button app-button-secondary w-full sm:w-auto"
+					(click)="sheetImportFile.click()"
+				>
+					Escolher arquivo
+				</button>
+				<button
+					type="button"
+					class="app-button app-button-primary w-full sm:w-auto"
+					(click)="previewImport()"
+				>
+					Pré-visualizar
+				</button>
 			</div>
 
 			@if (importPreview(); as preview) {
 				<div class="mt-5 space-y-3">
 					<div class="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-						<div class="app-inset px-3 py-2">Válidas: <strong>{{ preview.candidates.length }}</strong></div>
-						<div class="app-inset px-3 py-2">Inválidas: <strong>{{ preview.invalid.length }}</strong></div>
-						<div class="app-inset px-3 py-2">Conflitos: <strong>{{ preview.conflicts.length }}</strong></div>
-						<div class="app-inset px-3 py-2">Formato: <strong>{{ preview.format }}</strong></div>
+						<div class="app-inset px-3 py-2">
+							Válidas: <strong>{{ preview.candidates.length }}</strong>
+						</div>
+						<div class="app-inset px-3 py-2">
+							Inválidas: <strong>{{ preview.invalid.length }}</strong>
+						</div>
+						<div class="app-inset px-3 py-2">
+							Conflitos: <strong>{{ preview.conflicts.length }}</strong>
+						</div>
+						<div class="app-inset px-3 py-2">
+							Formato: <strong>{{ preview.format }}</strong>
+						</div>
 					</div>
 					@if (preview.warnings.length) {
-						<div class="app-inset border-amber-400/20 bg-amber-500/10 p-3 text-xs text-amber-50"><strong>Avisos:</strong> {{ preview.warnings.join(' ') }}</div>
+						<div class="app-inset border-amber-400/20 bg-amber-500/10 p-3 text-xs text-amber-50">
+							<strong>Avisos:</strong> {{ preview.warnings.join(' ') }}
+						</div>
 					}
 
 					@for (item of preview.candidates; track item.index) {
@@ -179,22 +362,28 @@
 							<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 								<div class="min-w-0">
 									<div class="font-semibold text-app-text">{{ item.title }}</div>
-									<div class="mt-1 break-all text-xs text-app-subtle">{{ item.category }} · {{ item.source }} · {{ item.externalId }}</div>
+									<div class="mt-1 break-all text-xs text-app-subtle">
+										{{ item.category }} · {{ item.source }} · {{ item.externalId }}
+									</div>
 								</div>
 								@for (conflict of preview.conflicts; track conflict.index) {
 									@if (conflict.index === item.index) {
-										<label class="text-xs text-app-muted">
-											<span class="mb-1 block">Resolver conflito</span>
-											<select class="app-field w-full cursor-pointer px-3 py-2" [value]="importResolution(item.index)" (change)="setImportResolution(item.index, $any($event.target).value)">
-												<option value="replace">Substituir existente</option>
-												<option value="keep-existing">Manter existente</option>
-												<option value="duplicate">Importar como cópia</option>
-											</select>
-										</label>
+										<app-select
+											label="Resolver conflito"
+											[options]="[
+												{ value: 'replace', label: 'Substituir existente' },
+												{ value: 'keep-existing', label: 'Manter existente' },
+												{ value: 'duplicate', label: 'Importar como cópia' },
+											]"
+											[value]="importResolution(item.index)"
+											(valueChange)="setImportResolution(item.index, $any($event))"
+										/>
 									}
 								}
 							</div>
-							@if (item.warnings.length) { <div class="mt-2 text-xs text-amber-100">{{ item.warnings.join(' ') }}</div> }
+							@if (item.warnings.length) {
+								<div class="mt-2 text-xs text-amber-100">{{ item.warnings.join(' ') }}</div>
+							}
 						</div>
 					}
 
@@ -206,8 +395,19 @@
 					}
 
 					<div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-						<button type="button" class="app-button app-button-ghost w-full sm:w-auto" (click)="closeImport()">Cancelar lote</button>
-						<button type="button" class="app-button app-button-accent w-full sm:w-auto" [disabled]="preview.candidates.length === 0" (click)="confirmImport()">
+						<button
+							type="button"
+							class="app-button app-button-ghost w-full sm:w-auto"
+							(click)="closeImport()"
+						>
+							Cancelar lote
+						</button>
+						<button
+							type="button"
+							class="app-button app-button-accent w-full sm:w-auto"
+							[disabled]="preview.candidates.length === 0"
+							(click)="confirmImport()"
+						>
 							Importar {{ preview.candidates.length }} fichas válidas
 						</button>
 					</div>
@@ -218,28 +418,79 @@
 }
 
 @if (confirmModal(); as modal) {
-	<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeConfirmModal()">
-		<section id="sheet-confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="sheet-confirmation-title" [appDialogFocus]="true" (appDialogEscape)="closeConfirmModal()" class="app-dialog w-full max-w-lg p-5 sm:p-6" [class.border-rose-400/30]="modal.action === 'delete-sheet'" (click)="$event.stopPropagation()">
+	<div
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+		(click)="closeConfirmModal()"
+	>
+		<section
+			id="sheet-confirmation-modal"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="sheet-confirmation-title"
+			[appDialogFocus]="true"
+			(appDialogEscape)="closeConfirmModal()"
+			class="app-dialog w-full max-w-lg p-5 sm:p-6"
+			[class.border-rose-400/30]="modal.action === 'delete-sheet'"
+			(click)="$event.stopPropagation()"
+		>
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0">
-					<div class="text-[11px] font-semibold uppercase tracking-[0.16em]" [class.text-rose-200]="modal.action === 'delete-sheet'" [class.text-emerald-100]="modal.action === 'add-to-fiveetools'">
-						@if (modal.action === 'delete-sheet') { Ação irreversível } @else { Alteração no arquivo 5etools }
+					<div
+						class="text-[11px] font-semibold uppercase tracking-[0.16em]"
+						[class.text-rose-200]="modal.action === 'delete-sheet'"
+						[class.text-emerald-100]="modal.action === 'add-to-fiveetools'"
+					>
+						@if (modal.action === 'delete-sheet') {
+							Ação irreversível
+						} @else {
+							Alteração no arquivo 5etools
+						}
 					</div>
-					<h2 id="sheet-confirmation-title" class="mt-1 text-xl font-semibold text-app-text">{{ modal.title }}</h2>
+					<h2 id="sheet-confirmation-title" class="mt-1 text-xl font-semibold text-app-text">
+						{{ modal.title }}
+					</h2>
 				</div>
-				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" data-dialog-initial-focus (click)="closeConfirmModal()" aria-label="Fechar confirmação">
+				<button
+					type="button"
+					class="app-button app-modal-close h-11 w-11 shrink-0 p-0"
+					data-dialog-initial-focus
+					(click)="closeConfirmModal()"
+					aria-label="Fechar confirmação"
+				>
 					<svg lucideX [size]="24" [strokeWidth]="2.5" aria-hidden="true"></svg>
 				</button>
 			</div>
 			<p class="mt-3 text-sm leading-6 text-app-muted">{{ modal.description }}</p>
 			@if (modal.action === 'delete-sheet') {
-				<div class="app-inset mt-4 border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">Esta ação não pode ser desfeita.</div>
+				<div
+					class="app-inset mt-4 border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+				>
+					Esta ação não pode ser desfeita.
+				</div>
 			} @else {
-				<div class="app-inset mt-4 border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-50">Um backup local do arquivo 5etools será criado antes da alteração.</div>
+				<div
+					class="app-inset mt-4 border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-50"
+				>
+					Um backup local do arquivo 5etools será criado antes da alteração.
+				</div>
 			}
 			<div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-				<button type="button" class="app-button app-button-ghost w-full sm:w-auto" (click)="closeConfirmModal()">Cancelar</button>
-				<button type="button" class="app-button w-full sm:w-auto" [class.app-button-danger]="modal.action === 'delete-sheet'" [class.app-button-accent]="modal.action === 'add-to-fiveetools'" (click)="confirmAction()">{{ modal.confirmLabel }}</button>
+				<button
+					type="button"
+					class="app-button app-button-ghost w-full sm:w-auto"
+					(click)="closeConfirmModal()"
+				>
+					Cancelar
+				</button>
+				<button
+					type="button"
+					class="app-button w-full sm:w-auto"
+					[class.app-button-danger]="modal.action === 'delete-sheet'"
+					[class.app-button-accent]="modal.action === 'add-to-fiveetools'"
+					(click)="confirmAction()"
+				>
+					{{ modal.confirmLabel }}
+				</button>
 			</div>
 		</section>
 	</div>
@@ -247,16 +498,53 @@
 
 @if (toast(); as t) {
 	<div class="pointer-events-none fixed right-4 top-4 z-[55]">
-		<div class="app-toast pointer-events-auto max-w-sm border px-4 py-3" [class.border-emerald-400/30]="t.type === 'success'" [class.border-red-400/30]="t.type === 'error'" [class.border-amber-400/30]="t.type === 'warn'" role="status" aria-live="polite">
+		<div
+			class="app-toast pointer-events-auto max-w-sm border px-4 py-3"
+			[class.border-emerald-400/30]="t.type === 'success'"
+			[class.border-red-400/30]="t.type === 'error'"
+			[class.border-amber-400/30]="t.type === 'warn'"
+			role="status"
+			aria-live="polite"
+		>
 			<div class="flex items-start gap-3">
-				<div class="app-toast-icon shrink-0" [class.bg-emerald-500/15]="t.type === 'success'" [class.text-emerald-200]="t.type === 'success'" [class.bg-red-500/15]="t.type === 'error'" [class.text-rose-200]="t.type === 'error'" [class.bg-amber-500/15]="t.type === 'warn'" [class.text-amber-100]="t.type === 'warn'">
-					@if (t.type === 'success') { <svg lucideCircleCheck [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else if (t.type === 'error') { <svg lucideCircleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else { <svg lucideTriangleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> }
+				<div
+					class="app-toast-icon shrink-0"
+					[class.bg-emerald-500/15]="t.type === 'success'"
+					[class.text-emerald-200]="t.type === 'success'"
+					[class.bg-red-500/15]="t.type === 'error'"
+					[class.text-rose-200]="t.type === 'error'"
+					[class.bg-amber-500/15]="t.type === 'warn'"
+					[class.text-amber-100]="t.type === 'warn'"
+				>
+					@if (t.type === 'success') {
+						<svg lucideCircleCheck [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					} @else if (t.type === 'error') {
+						<svg lucideCircleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					} @else {
+						<svg lucideTriangleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					}
 				</div>
 				<div class="min-w-0 flex-1">
-					<div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">@if (t.type === 'success') { Concluído } @else if (t.type === 'error') { Não foi possível concluir } @else { Atenção }</div>
+					<div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
+						@if (t.type === 'success') {
+							Concluído
+						} @else if (t.type === 'error') {
+							Não foi possível concluir
+						} @else {
+							Atenção
+						}
+					</div>
 					<div class="mt-1 text-sm leading-5 text-app-text">{{ t.text }}</div>
 				</div>
-				<button type="button" class="app-toast-dismiss shrink-0" (click)="toast.set(null)" aria-label="Fechar mensagem" title="Fechar"><svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg></button>
+				<button
+					type="button"
+					class="app-toast-dismiss shrink-0"
+					(click)="toast.set(null)"
+					aria-label="Fechar mensagem"
+					title="Fechar"
+				>
+					<svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg>
+				</button>
 			</div>
 		</div>
 	</div>
