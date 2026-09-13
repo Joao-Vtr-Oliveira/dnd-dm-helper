@@ -3,6 +3,7 @@ import { Component, computed, effect, HostListener, inject, signal } from '@angu
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
+import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
 import type {
 	BattleAbilityRecoveryType,
 	BattleCombatant,
@@ -20,6 +21,7 @@ import type {
 	BattleUpcomingEvent,
 } from '../../models/battle-encounter-model';
 import type { CreatureSheet } from '../../models/creature-sheet-model';
+import type { ResolvedSpellReference } from '../../models/spell-reference-model';
 import {
 	BattleEncounterService,
 	type CreateBattleLairActionInput,
@@ -36,6 +38,7 @@ import { CreatureTemplateService } from '../../services/creature-template-servic
 import type { CompendiumBestiaryMonsterIndexEntry } from '../../models/compendium-bestiary-model';
 import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
 import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
+import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 
 type ConditionDurationMode = 'manual' | 'next-turn-end' | 'turns' | 'rounds';
 
@@ -94,7 +97,7 @@ type ConfirmModalState = {
 @Component({
 	selector: 'app-battle-tracker',
 	standalone: true,
-	imports: [AppNativeSelectDirective, CommonModule, FormsModule],
+	imports: [AppNativeSelectDirective, CommonModule, FormsModule, SpellQuickViewComponent],
 	templateUrl: './battle-tracker.html',
 })
 export class BattleTrackerPage {
@@ -107,6 +110,7 @@ export class BattleTrackerPage {
 	private readonly bestiary = inject(CompendiumBestiaryRepositoryService);
 	private readonly compendiumAdapter = inject(CompendiumCreatureAdapterService);
 	private readonly creatureTemplateService = inject(CreatureTemplateService);
+	private readonly spellResolver = inject(SpellReferenceResolverService);
 
 	private readonly battleId = this.route.snapshot.paramMap.get('battleId');
 
@@ -126,6 +130,7 @@ export class BattleTrackerPage {
 	readonly addCombatantModalOpen = signal(false);
 	readonly addCombatantDraft = signal<AddCombatantDraft>(this.createAddCombatantDraft());
 	readonly selectedImportedCreature = signal<CreatureSheet | null>(null);
+	readonly quickSpell = signal<ResolvedSpellReference | null>(null);
 	readonly homebrewSheets = signal<SavedSheetInterface[]>(this.localStorageService.listSheets());
 	readonly bestiaryMonsters = signal<CompendiumBestiaryMonsterIndexEntry[]>([]);
 	readonly bestiaryLoading = signal(false);
@@ -927,6 +932,19 @@ export class BattleTrackerPage {
 
 	hasSpells(combatant: BattleCombatant): boolean {
 		return combatant.spells.length > 0;
+	}
+
+	async openSpellQuickView(spell: BattleCombatant['spells'][number]) {
+		if (!spell.source) return;
+		const resolved = await this.spellResolver.resolveReference({
+			name: spell.name,
+			source: spell.source,
+		});
+		if (resolved) {
+			this.quickSpell.set(resolved);
+			return;
+		}
+		this.showToast('error', `Não foi possível localizar ${spell.name} no compêndio.`);
 	}
 
 	hasSheetFeatures(combatant: BattleCombatant): boolean {

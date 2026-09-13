@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { LucideSearch, LucideSparkles } from '@lucide/angular';
 import { AppSelectComponent, type AppSelectOption } from '../../components/app-select/app-select';
 import type {
@@ -19,7 +20,9 @@ import { CompendiumSpellRepositoryService } from '../../services/compendium-spel
 export class SpellsPage {
 	private readonly repository = inject(CompendiumSpellRepositoryService);
 	private readonly renderer = inject(CompendiumRendererService);
+	private readonly route = inject(ActivatedRoute);
 	private selectionRequest = 0;
+	private queryReference: { source: string; name: string } | null = null;
 
 	readonly index = signal<Awaited<ReturnType<CompendiumSpellRepositoryService['getIndex']>> | null>(
 		null,
@@ -75,6 +78,12 @@ export class SpellsPage {
 	});
 
 	constructor() {
+		this.route.queryParamMap.subscribe((params) => {
+			const source = params.get('source')?.trim();
+			const name = params.get('name')?.trim();
+			this.queryReference = source && name ? { source, name } : null;
+			if (this.index()) void this.selectQueryReference();
+		});
 		void this.loadIndex();
 	}
 
@@ -145,6 +154,7 @@ export class SpellsPage {
 	private async loadIndex() {
 		try {
 			this.index.set(await this.repository.getIndex());
+			await this.selectQueryReference();
 		} catch (error) {
 			this.error.set(
 				error instanceof Error ? error.message : 'Não foi possível carregar o índice de magias.',
@@ -152,6 +162,17 @@ export class SpellsPage {
 		} finally {
 			this.loading.set(false);
 		}
+	}
+
+	private async selectQueryReference() {
+		const reference = this.queryReference;
+		if (!reference) return;
+		const match = this.index()?.spells.find(
+			(spell) =>
+				spell.source.toLocaleLowerCase() === reference.source.toLocaleLowerCase() &&
+				spell.name.toLocaleLowerCase() === reference.name.toLocaleLowerCase(),
+		);
+		if (match) await this.select(match);
 	}
 
 	private unique(values: string[]) {

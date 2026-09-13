@@ -412,7 +412,8 @@ export class BattleEncounterService {
 			activeTurnIndex: state.activeTurnIndex,
 			updatedAt: timestamp,
 			completedAt: state.completedAt,
-			turnStartedAt: state.status === 'active' && state.activeTurnIndex >= 0 ? timestamp : undefined,
+			turnStartedAt:
+				state.status === 'active' && state.activeTurnIndex >= 0 ? timestamp : undefined,
 			currentTurnElapsedSeconds: 0,
 			combatants: state.combatants,
 			pendingCombatants: state.pendingCombatants,
@@ -480,10 +481,12 @@ export class BattleEncounterService {
 		combatantId: string,
 		patch: Partial<BattleCombatant>,
 	): BattleEncounter {
-		return this.reconcilePendingActions(this.mapCombatant(battle, combatantId, (combatant) => ({
-			...combatant,
-			...patch,
-		})));
+		return this.reconcilePendingActions(
+			this.mapCombatant(battle, combatantId, (combatant) => ({
+				...combatant,
+				...patch,
+			})),
+		);
 	}
 
 	updateCombatantHp(
@@ -879,7 +882,9 @@ export class BattleEncounterService {
 	}
 
 	canUseDeathSaves(combatant: Pick<BattleCombatant, 'category' | 'side'>): boolean {
-		return combatant.category === 'pc' || (combatant.category === 'npc' && combatant.side !== 'enemy');
+		return (
+			combatant.category === 'pc' || (combatant.category === 'npc' && combatant.side !== 'enemy')
+		);
 	}
 
 	startDeathSaves(battle: BattleEncounter, combatantId: string): BattleEncounter {
@@ -902,12 +907,17 @@ export class BattleEncounterService {
 	): { battle: BattleEncounter; roll: number; outcome: DeathSaveOutcome } | null {
 		if (!Number.isInteger(roll) || roll < 1 || roll > 20) return null;
 		const action = battle.pendingActions.find(
-			(item): item is BattleDeathSavePendingAction => item.id === actionId && item.type === 'death-save',
+			(item): item is BattleDeathSavePendingAction =>
+				item.id === actionId && item.type === 'death-save',
 		);
 		if (!action) return null;
 
 		const combatant = this.findCombatant(battle, action.combatantId);
-		if (!combatant || !this.canUseDeathSaves(combatant) || combatant.deathSaves?.status !== 'active') {
+		if (
+			!combatant ||
+			!this.canUseDeathSaves(combatant) ||
+			combatant.deathSaves?.status !== 'active'
+		) {
 			return null;
 		}
 
@@ -931,7 +941,14 @@ export class BattleEncounterService {
 		const failures = combatant.deathSaves.failures + (roll === 1 ? 2 : roll < 10 ? 1 : 0);
 		const successes = combatant.deathSaves.successes + (roll >= 10 ? 1 : 0);
 		const status = failures >= 3 ? 'dead' : successes >= 3 ? 'stable' : 'active';
-		const outcome: DeathSaveOutcome = status === 'dead' ? 'dead' : status === 'stable' ? 'stable' : roll >= 10 ? 'success' : 'failure';
+		const outcome: DeathSaveOutcome =
+			status === 'dead'
+				? 'dead'
+				: status === 'stable'
+					? 'stable'
+					: roll >= 10
+						? 'success'
+						: 'failure';
 
 		return {
 			battle: this.mapCombatant(withoutAction, action.combatantId, (target) => ({
@@ -1004,7 +1021,9 @@ export class BattleEncounterService {
 			...target,
 			defeated: false,
 			collapsed: false,
-			inactiveUntilRound: target.defeated ? this.getNextRoundForReentry(battle) : target.inactiveUntilRound,
+			inactiveUntilRound: target.defeated
+				? this.getNextRoundForReentry(battle)
+				: target.inactiveUntilRound,
 			deathSaves: undefined,
 		}));
 		return this.reconcilePendingActions(recoveredBattle);
@@ -1026,9 +1045,7 @@ export class BattleEncounterService {
 			pendingActions: battle.pendingActions.filter((item) => item.id !== actionId),
 		};
 		return {
-			battle: succeeded
-				? withoutAction
-				: this.stopConcentration(withoutAction, action.combatantId),
+			battle: succeeded ? withoutAction : this.stopConcentration(withoutAction, action.combatantId),
 			succeeded,
 		};
 	}
@@ -1214,7 +1231,10 @@ export class BattleEncounterService {
 		return this.abilityService.describeAbilityLastUsed(ability);
 	}
 
-	describeDiceRechargeAttempt(ability: BattleSpecialAbility, battle: BattleEncounter): string | null {
+	describeDiceRechargeAttempt(
+		ability: BattleSpecialAbility,
+		battle: BattleEncounter,
+	): string | null {
 		return this.abilityService.describeDiceRechargeAttempt(ability, battle.round);
 	}
 
@@ -1544,7 +1564,8 @@ export class BattleEncounterService {
 			maxHp,
 			currentHp,
 			temporaryHp: this.toNonNegativeInt(raw.temporaryHp),
-			defeated: raw.defeated === true || deathSaves?.status === 'dead' || (autoDefeat && currentHp <= 0),
+			defeated:
+				raw.defeated === true || deathSaves?.status === 'dead' || (autoDefeat && currentHp <= 0),
 			hidden: raw.hidden === true,
 			inactiveUntilRound:
 				raw.inactiveUntilRound == null
@@ -1571,9 +1592,14 @@ export class BattleEncounterService {
 		};
 	}
 
-	private normalizeLairAction(raw: Partial<BattleLairAction>, sourceIndex: number): BattleLairAction {
+	private normalizeLairAction(
+		raw: Partial<BattleLairAction>,
+		sourceIndex: number,
+	): BattleLairAction {
 		const frequency =
-			raw.frequency === 'every-round' || raw.frequency === 'cooldown-rounds' || raw.frequency === 'manual'
+			raw.frequency === 'every-round' ||
+			raw.frequency === 'cooldown-rounds' ||
+			raw.frequency === 'manual'
 				? raw.frequency
 				: 'every-round';
 		return {
@@ -1612,7 +1638,8 @@ export class BattleEncounterService {
 			name: typeof raw.name === 'string' ? raw.name : `Armadilha ${sourceIndex + 1}`,
 			description: typeof raw.description === 'string' ? raw.description : undefined,
 			triggerType,
-			initiative: triggerType === 'initiative' ? this.toFiniteNumber(raw.initiative ?? 20) : undefined,
+			initiative:
+				triggerType === 'initiative' ? this.toFiniteNumber(raw.initiative ?? 20) : undefined,
 			active: raw.active !== false,
 			frequency,
 			cooldownRounds:
@@ -1954,7 +1981,8 @@ export class BattleEncounterService {
 	}
 
 	private normalizeTurnSnapshotState(raw: unknown): BattleTurnSnapshotState {
-		const candidate = raw && typeof raw === 'object' ? (raw as Partial<BattleTurnSnapshotState>) : {};
+		const candidate =
+			raw && typeof raw === 'object' ? (raw as Partial<BattleTurnSnapshotState>) : {};
 		const round = Math.max(1, this.toNonNegativeInt(candidate.round) || 1);
 		const combatants = this.orderCombatants(
 			Array.isArray(candidate.combatants)
@@ -1974,7 +2002,9 @@ export class BattleEncounterService {
 
 		return {
 			status:
-				candidate.status === 'active' || candidate.status === 'paused' || candidate.status === 'completed'
+				candidate.status === 'active' ||
+				candidate.status === 'paused' ||
+				candidate.status === 'completed'
 					? candidate.status
 					: 'active',
 			round,
@@ -1984,7 +2014,8 @@ export class BattleEncounterService {
 				round,
 			),
 			completedAt: typeof candidate.completedAt === 'string' ? candidate.completedAt : undefined,
-			turnStartedAt: typeof candidate.turnStartedAt === 'string' ? candidate.turnStartedAt : undefined,
+			turnStartedAt:
+				typeof candidate.turnStartedAt === 'string' ? candidate.turnStartedAt : undefined,
 			currentTurnElapsedSeconds: this.toNonNegativeInt(candidate.currentTurnElapsedSeconds),
 			combatants,
 			pendingCombatants,
@@ -2068,13 +2099,23 @@ export class BattleEncounterService {
 			const candidate = spell as Partial<CreatureSpell>;
 			const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
 			if (!name) return [];
-			return [{
-				id: typeof candidate.id === 'string' && candidate.id ? candidate.id : `spell-${index + 1}`,
-				name,
-				source: typeof candidate.source === 'string' ? candidate.source : undefined,
-				level: candidate.level == null ? undefined : this.toNonNegativeInt(candidate.level),
-				uses: candidate.uses == null ? undefined : this.toNonNegativeInt(candidate.uses),
-			}];
+			const id =
+				typeof candidate.id === 'string' && candidate.id ? candidate.id : `spell-${index + 1}`;
+			const source =
+				typeof candidate.source === 'string' && candidate.source.trim()
+					? candidate.source.trim()
+					: id.includes('::spell::')
+						? 'PHB'
+						: undefined;
+			return [
+				{
+					id,
+					name,
+					...(source ? { source } : {}),
+					level: candidate.level == null ? undefined : this.toNonNegativeInt(candidate.level),
+					uses: candidate.uses == null ? undefined : this.toNonNegativeInt(candidate.uses),
+				},
+			];
 		});
 	}
 
@@ -2428,5 +2469,4 @@ export class BattleEncounterService {
 		const numeric = Number(value);
 		return Number.isFinite(numeric) ? numeric : 0;
 	}
-
 }

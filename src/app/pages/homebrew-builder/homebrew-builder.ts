@@ -5,11 +5,14 @@ import { ActivatedRoute, CanDeactivateFn, Router } from '@angular/router';
 import {
 	LucideCircleAlert,
 	LucideCircleCheck,
+	LucideBookOpen,
 	LucideTriangleAlert,
 	LucideX,
 } from '@lucide/angular';
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
+import { SpellPickerComponent } from '../../components/spell-picker/spell-picker';
+import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
 
 import {
 	HomebrewCategory,
@@ -19,8 +22,12 @@ import type {
 	CreatureAbilityRecoveryType,
 	CreatureSheet,
 	CreatureSpecialAbility,
+	CreatureSpell,
 } from '../../models/creature-sheet-model';
 import { normalizeArmorClass } from '../../models/creature-sheet-model';
+import type { CompendiumSpellListEntry } from '../../models/compendium-spell-model';
+import type { ResolvedSpellReference } from '../../models/spell-reference-model';
+import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 
 type SpellDraft = { name: string; uses: number; level: number };
 type AbilityDraft = {
@@ -74,8 +81,11 @@ function normalizeCreature(raw: CreatureSheet): CreatureSheet {
 		FormsModule,
 		LucideCircleAlert,
 		LucideCircleCheck,
+		LucideBookOpen,
 		LucideTriangleAlert,
 		LucideX,
+		SpellPickerComponent,
+		SpellQuickViewComponent,
 	],
 	templateUrl: './homebrew-builder.html',
 })
@@ -83,6 +93,7 @@ export class HomebrewBuilder {
 	private ls = inject(LocalStorageService);
 	private route = inject(ActivatedRoute);
 	private router = inject(Router);
+	private spellResolver = inject(SpellReferenceResolverService);
 
 	sheetId = signal<string | null>(null);
 	title = signal<string>('');
@@ -95,6 +106,8 @@ export class HomebrewBuilder {
 
 	// draft de magia nova
 	spellDraft = signal<SpellDraft>({ name: '', uses: 1, level: 0 });
+	spellPickerOpen = signal(false);
+	quickSpell = signal<ResolvedSpellReference | null>(null);
 	abilityDraft = signal<AbilityDraft>({
 		name: '',
 		description: '',
@@ -276,11 +289,64 @@ export class HomebrewBuilder {
 		this.spellDraft.set({ name: '', uses: 1, level: 0 });
 	}
 
+	openSpellPicker() {
+		this.spellPickerOpen.set(true);
+	}
+
+	closeSpellPicker() {
+		this.spellPickerOpen.set(false);
+	}
+
+	addCompendiumSpell(spell: CompendiumSpellListEntry) {
+		const name = spell.name.trim();
+		const source = spell.source.trim();
+		const duplicate = this.creature().spells.some(
+			(candidate) =>
+				candidate.source?.trim().toLocaleLowerCase() === source.toLocaleLowerCase() &&
+				candidate.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase(),
+		);
+		if (duplicate) {
+			this.showToast({ type: 'warn', text: 'Essa magia dessa fonte já foi adicionada.' });
+			return;
+		}
+
+		this.creature.update((creature) => ({
+			...creature,
+			spells: [
+				...creature.spells,
+				{
+					id: crypto.randomUUID(),
+					name,
+					source,
+					level: spell.level,
+					uses: 1,
+				},
+			],
+		}));
+		this.closeSpellPicker();
+	}
+
+	async openSpellQuickView(spell: CreatureSpell) {
+		if (!spell.source) return;
+		const resolved = await this.spellResolver.resolveReference({
+			name: spell.name,
+			source: spell.source,
+		});
+		if (resolved) this.quickSpell.set(resolved);
+	}
+
 	updateSpell(id: string, patch: Partial<CreatureSheet['spells'][number]>) {
 		this.creature.update((c) => {
 			return {
 				...c,
-				spells: c.spells.map((spell) => (spell.id === id ? { ...spell, ...patch } : spell)),
+				spells: c.spells.map((spell) => {
+					if (spell.id !== id) return spell;
+					const source =
+						spell.source && patch.name !== undefined && patch.name !== spell.name
+							? undefined
+							: spell.source;
+					return { ...spell, ...patch, source };
+				}),
 			};
 		});
 	}

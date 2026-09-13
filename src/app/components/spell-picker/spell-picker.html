@@ -1,0 +1,113 @@
+@if (open) {
+	<div
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
+		(click)="close()"
+	>
+		<section
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="spell-picker-title"
+			[appDialogFocus]="true"
+			(appDialogEscape)="close()"
+			class="app-dialog flex max-h-[calc(100vh-1.5rem)] w-full max-w-5xl flex-col p-4 sm:max-h-[calc(100vh-3rem)] sm:p-5"
+			(click)="$event.stopPropagation()"
+		>
+			<div class="flex items-start justify-between gap-4 border-b border-violet-300/20 pb-4">
+				<div>
+					<div class="app-eyebrow text-violet-200/75">Compêndio local</div>
+					<h2 id="spell-picker-title" class="mt-1 text-2xl font-semibold tracking-tight text-app-text">
+						Adicionar magia
+					</h2>
+					<p class="mt-1 text-sm text-app-muted">Selecione uma magia para vincular à ficha.</p>
+				</div>
+				<button
+					type="button"
+					class="app-button app-modal-close h-10 w-10 shrink-0 p-0"
+					data-dialog-initial-focus
+					(click)="close()"
+					aria-label="Fechar seletor de magias"
+				>
+					<svg lucideX [size]="22" [strokeWidth]="2.5" aria-hidden="true"></svg>
+				</button>
+			</div>
+
+			@if (error(); as message) {
+				<p class="app-inset mt-4 border-rose-400/30 bg-rose-500/10 text-sm text-rose-100">{{ message }}</p>
+			} @else if (loading()) {
+				<p class="py-8 text-center text-sm text-app-muted">Carregando índice local...</p>
+			} @else {
+				<div class="mt-4 grid gap-3 md:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
+					<label class="relative min-w-0 md:col-span-2 lg:col-span-1">
+						<span class="mb-1 block text-xs font-medium text-app-muted">Buscar magia</span>
+						<svg
+							lucideSearch
+							[size]="17"
+							[strokeWidth]="2"
+							aria-hidden="true"
+							class="pointer-events-none absolute bottom-3 left-3 text-violet-200/75"
+						></svg>
+						<input
+							class="app-field w-full py-2 pl-9 pr-3"
+							[ngModel]="query()"
+							(ngModelChange)="query.set($event)"
+							placeholder="Bola de fogo, Fireball..."
+						/>
+					</label>
+					<app-select
+						label="Nível"
+						[options]="levelOptions()"
+						[value]="level()"
+						emptyLabel="Todos"
+						(valueChange)="level.set($event)"
+					/>
+					<app-select
+						label="Escola"
+						[options]="schoolOptions()"
+						[value]="school()"
+						emptyLabel="Todas"
+						(valueChange)="school.set($event)"
+					/>
+					<app-select
+						label="Fonte"
+						[options]="sourceOptions()"
+						[value]="source()"
+						emptyLabel="Todas"
+						[searchable]="true"
+						searchPlaceholder="Buscar fonte..."
+						(valueChange)="source.set($event)"
+					/>
+					<app-select
+						label="Classe"
+						[options]="classOptions()"
+						[value]="spellClass()"
+						emptyLabel="Todas"
+						[searchable]="true"
+						searchPlaceholder="Buscar classe..."
+						(valueChange)="spellClass.set($event)"
+					/>
+				</div>
+
+				<div class="mt-4 min-h-0 overflow-y-auto rounded-app-panel border border-app-border">
+					@for (spell of spells(); track spell.id) {
+						<button
+							type="button"
+							class="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-app-divider px-4 py-3 text-left transition hover:bg-violet-500/[0.055]"
+							(click)="select(spell)"
+						>
+							<span class="min-w-0">
+								<span class="block truncate font-semibold text-app-text">{{ spell.name }}</span>
+								<span class="mt-1 block text-xs text-app-muted"
+									>{{ levelLabel(spell.level) }} · {{ schoolLabel(spell.school) }}
+									@if (spell.classes.length) { · {{ spell.classes.join(', ') }} }</span
+								>
+							</span>
+							<span class="app-status self-start border-white/10 bg-app-inset text-app-muted">{{ spell.source }}</span>
+						</button>
+					} @empty {
+						<p class="p-5 text-sm text-app-muted">Nenhuma magia corresponde aos filtros.</p>
+					}
+				</div>
+			}
+		</section>
+	</div>
+}

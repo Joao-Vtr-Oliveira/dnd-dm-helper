@@ -1,5 +1,8 @@
 import { Injectable } from '@angular/core';
-import type { RawFiveEToolsEntry, RawFiveEToolsEntryObject } from '../../models/compendium-entry-model';
+import type {
+	RawFiveEToolsEntry,
+	RawFiveEToolsEntryObject,
+} from '../../models/compendium-entry-model';
 
 export interface CompendiumTextToken {
 	type:
@@ -44,7 +47,10 @@ export class CompendiumRendererService {
 	}
 
 	renderEntries(entries: RawFiveEToolsEntry[] | undefined): string {
-		return (entries ?? []).map((entry) => this.renderEntry(entry)).filter(Boolean).join('\n');
+		return (entries ?? [])
+			.map((entry) => this.renderEntry(entry))
+			.filter(Boolean)
+			.join('\n');
 	}
 
 	spellReference(value: string): { name: string; source?: string } | null {
@@ -54,7 +60,10 @@ export class CompendiumRendererService {
 		return name ? { name, ...(tag[2]?.trim() ? { source: tag[2].trim() } : {}) } : null;
 	}
 
-	private nextTag(text: string, cursor: number): { start: number; end: number; type: string; value: string } | null {
+	private nextTag(
+		text: string,
+		cursor: number,
+	): { start: number; end: number; type: string; value: string } | null {
 		const start = text.indexOf('{@', cursor);
 		if (start < 0) return null;
 		let depth = 1;
@@ -73,7 +82,7 @@ export class CompendiumRendererService {
 				start,
 				end: index + 1,
 				type: (separator < 0 ? content : content.slice(0, separator)).toLowerCase(),
-				value: (separator < 0 ? '' : content.slice(separator).trim()),
+				value: separator < 0 ? '' : content.slice(separator).trim(),
 			};
 		}
 		return null;
@@ -84,24 +93,56 @@ export class CompendiumRendererService {
 		if (entry.type === 'table') return this.renderTable(entry);
 		if (entry.type === 'cell') return this.renderCell(entry);
 		if (entry.type === 'list') {
-			return (entry.items ?? []).map((item) => this.renderEntry(item)).filter(Boolean).map((item) => `- ${item}`).join('\n');
+			return (entry.items ?? [])
+				.map((item) => this.renderEntry(item))
+				.filter(Boolean)
+				.map((item) => `- ${item}`)
+				.join('\n');
 		}
 		const content = this.renderEntries(entry.entries);
 		if (entry.type === 'quote') {
-			return [content && `"${content}"`, this.renderText(entry.by?.trim() ?? '')].filter(Boolean).join(' - ');
+			return [content && `"${content}"`, this.renderText(entry.by?.trim() ?? '')]
+				.filter(Boolean)
+				.join(' - ');
 		}
 		const title = this.renderText((entry.name ?? entry.caption ?? '').trim());
 		return [title, content].filter(Boolean).join(': ') || this.renderUnknownEntry(entry);
 	}
 
 	private tokenType(type: string): CompendiumTextToken['type'] {
-		if (['damage', 'hit', 'dc', 'condition', 'spell', 'dice', 'd20', 'scaledice', 'scaledamage'].includes(type)) {
-			return type === 'd20' || type.startsWith('scale') ? 'dice' : (type as CompendiumTextToken['type']);
+		if (
+			[
+				'damage',
+				'hit',
+				'dc',
+				'condition',
+				'spell',
+				'dice',
+				'd20',
+				'scaledice',
+				'scaledamage',
+			].includes(type)
+		) {
+			return type === 'd20' || type.startsWith('scale')
+				? 'dice'
+				: (type as CompendiumTextToken['type']);
 		}
 		if (type === 'atk') return 'attack';
 		if (type === 'actsave') return 'save';
-		if (['acttrigger', 'actresponse', 'actsavefail', 'actsavesuccess', 'h', 'recharge', 'chance'].includes(type)) return 'label';
-		if (['creature', 'item', 'object', 'action', 'status', 'skill', 'link', 'note'].includes(type)) return 'reference';
+		if (
+			[
+				'acttrigger',
+				'actresponse',
+				'actsavefail',
+				'actsavesuccess',
+				'h',
+				'recharge',
+				'chance',
+			].includes(type)
+		)
+			return 'label';
+		if (['creature', 'item', 'object', 'action', 'status', 'skill', 'link', 'note'].includes(type))
+			return 'reference';
 		return 'unknown';
 	}
 
@@ -116,10 +157,11 @@ export class CompendiumRendererService {
 				return `DC ${label}`;
 			case 'damage':
 			case 'dice':
-			case 'scaledice':
-			case 'scaledamage':
 			case 'condition':
 				return label;
+			case 'scaledice':
+			case 'scaledamage':
+				return this.renderText(values[2]?.trim() || label);
 			case 'spell':
 				return this.displayLabel(type, values);
 			case 'h':
@@ -151,11 +193,31 @@ export class CompendiumRendererService {
 
 	private displayLabel(type: string, values: string[]): string {
 		const referenceTypes = new Set([
-			'book', 'class', 'condition', 'creature', 'deity', 'disease', 'feat', 'hazard', 'item', 'object',
-			'optionalfeature', 'race', 'sense', 'skill', 'spell', 'status', 'subclass', 'table', 'trap',
-			'variantrule', 'vehicle', 'quickref',
+			'book',
+			'class',
+			'condition',
+			'creature',
+			'deity',
+			'disease',
+			'feat',
+			'hazard',
+			'item',
+			'object',
+			'optionalfeature',
+			'race',
+			'sense',
+			'skill',
+			'spell',
+			'status',
+			'subclass',
+			'table',
+			'trap',
+			'variantrule',
+			'vehicle',
+			'quickref',
 		]);
-		const display = referenceTypes.has(type) && values.length > 2 ? values.at(-1)?.trim() : undefined;
+		const display =
+			referenceTypes.has(type) && values.length > 2 ? values.at(-1)?.trim() : undefined;
 		return this.renderText(display || values[0]?.trim() || values.filter(Boolean).join(' '));
 	}
 
@@ -185,9 +247,15 @@ export class CompendiumRendererService {
 		const lines: string[] = [];
 		const caption = entry.caption?.trim() || entry.name?.trim();
 		if (caption) lines.push(this.renderText(caption));
-		if (entry.colLabels?.length) lines.push(entry.colLabels.map((label) => this.renderText(label)).join(' | '));
+		if (entry.colLabels?.length)
+			lines.push(entry.colLabels.map((label) => this.renderText(label)).join(' | '));
 		for (const row of entry.rows ?? []) {
-			lines.push(row.map((cell) => this.renderCell(cell)).filter(Boolean).join(' | '));
+			lines.push(
+				row
+					.map((cell) => this.renderCell(cell))
+					.filter(Boolean)
+					.join(' | '),
+			);
 		}
 		return lines.filter(Boolean).join('\n');
 	}
@@ -195,7 +263,11 @@ export class CompendiumRendererService {
 	private renderCell(value: unknown): string {
 		if (typeof value === 'string') return this.renderText(value);
 		if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-		if (Array.isArray(value)) return value.map((entry) => this.renderCell(entry)).filter(Boolean).join(' ');
+		if (Array.isArray(value))
+			return value
+				.map((entry) => this.renderCell(entry))
+				.filter(Boolean)
+				.join(' ');
 		if (!value || typeof value !== 'object') return '';
 		const cell = value as RawFiveEToolsEntryObject;
 		const roll = this.renderRoll(cell.roll);
@@ -206,7 +278,8 @@ export class CompendiumRendererService {
 	private renderRoll(roll: RawFiveEToolsEntryObject['roll']): string {
 		if (!roll) return '';
 		if (roll.exact !== undefined) return String(roll.exact);
-		if (roll.min !== undefined && roll.max !== undefined) return roll.min === roll.max ? String(roll.min) : `${roll.min}-${roll.max}`;
+		if (roll.min !== undefined && roll.max !== undefined)
+			return roll.min === roll.max ? String(roll.min) : `${roll.min}-${roll.max}`;
 		if (roll.min !== undefined) return `${roll.min}+`;
 		return roll.max === undefined ? '' : `<= ${roll.max}`;
 	}

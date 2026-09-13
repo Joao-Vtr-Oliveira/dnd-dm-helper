@@ -38,7 +38,11 @@
 				<div class="min-w-0 rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
 					<div class="text-xs uppercase tracking-[0.2em] opacity-60">Turno atual</div>
 					<div class="mt-1 break-words text-lg font-semibold">
-						{{ currentCombatant()?.displayName || currentCombatant()?.name || 'Nenhum combatente ativo na iniciativa' }}
+						{{
+							currentCombatant()?.displayName ||
+								currentCombatant()?.name ||
+								'Nenhum combatente ativo na iniciativa'
+						}}
 					</div>
 				</div>
 
@@ -124,7 +128,9 @@
 						<div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
 							<div class="min-w-0">
 								<div class="flex flex-wrap items-center gap-2">
-									<span class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100">Turno atual</span>
+									<span class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100"
+										>Turno atual</span
+									>
 									<span
 										class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold"
 										[class]="sideBadgeClasses(combatant.side)"
@@ -133,7 +139,9 @@
 										{{ sideLabel(combatant.side) }}
 									</span>
 									@if (combatant.defeated) {
-										<span class="rounded-full border border-red-400/30 bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-100">
+										<span
+											class="rounded-full border border-red-400/30 bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-100"
+										>
 											Derrotado
 										</span>
 									}
@@ -168,47 +176,107 @@
 						</div>
 
 						<details open class="mt-4">
-							<summary class="cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50">
+							<summary
+								class="cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50"
+							>
 								Retrair detalhes
 							</summary>
 							@if (pendingActions().length > 0) {
-								<div data-testid="pending-actions" class="mt-4 border-y border-amber-300/25 py-3" aria-live="polite">
+								<div
+									data-testid="pending-actions"
+									class="mt-4 border-y border-amber-300/25 py-3"
+									aria-live="polite"
+								>
 									<div class="text-sm font-semibold uppercase tracking-[0.16em] text-amber-100">
 										Pendências ({{ pendingActions().length }})
 									</div>
 									<div class="mt-3 space-y-2">
 										@for (action of pendingActions(); track action.id) {
-											<div class="flex flex-col gap-2 rounded-2xl border border-amber-300/20 bg-amber-500/10 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+											<div
+												class="flex flex-col gap-2 rounded-2xl border border-amber-300/20 bg-amber-500/10 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+											>
 												<div class="min-w-0">
-														<div class="font-semibold">
-															{{ pendingActionCombatantName(action) }}
-															@if (action.type === 'concentration-check') { · Teste de concentração } @else if (action.type === 'death-save') { · Teste de morte } @else { · {{ action.abilityName }} }
-														</div>
+													<div class="font-semibold">
+														{{ pendingActionCombatantName(action) }}
 														@if (action.type === 'concentration-check') {
-															<div class="mt-1 text-sm text-amber-50/80">
-																{{ action.damage }} de dano · CD {{ action.difficultyClass }} · Role CON fisicamente.
-															</div>
+															· Teste de concentração
 														} @else if (action.type === 'death-save') {
-															<div class="mt-1 text-sm text-amber-50/80">Role d20 fisicamente e registre o resultado.</div>
+															· Teste de morte
 														} @else {
-															<div class="mt-1 text-sm text-amber-50/80">d6 · recupera em {{ action.rechargeOn.join('–') }}</div>
+															· {{ action.abilityName }}
 														}
+													</div>
+													@if (action.type === 'concentration-check') {
+														<div class="mt-1 text-sm text-amber-50/80">
+															{{ action.damage }} de dano · CD {{ action.difficultyClass }} · Role
+															CON fisicamente.
+														</div>
+													} @else if (action.type === 'death-save') {
+														<div class="mt-1 text-sm text-amber-50/80">
+															Role d20 fisicamente e registre o resultado.
+														</div>
+													} @else {
+														<div class="mt-1 text-sm text-amber-50/80">
+															d6 · recupera em {{ action.rechargeOn.join('–') }}
+														</div>
+													}
 												</div>
 												@if (action.type === 'concentration-check') {
-															<div class="flex gap-2">
-																<button type="button" data-testid="concentration-success" class="h-9 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-3 text-sm hover:bg-emerald-500/25" (click)="resolveConcentrationCheck(action.id, true)">Sucesso</button>
-																<button type="button" data-testid="concentration-failure" class="h-9 cursor-pointer rounded-2xl border border-red-300/30 bg-red-500/15 px-3 text-sm hover:bg-red-500/25" (click)="resolveConcentrationCheck(action.id, false)">Falha</button>
-															</div>
-														} @else if (action.type === 'death-save') {
-													<fieldset class="grid grid-cols-5 gap-1.5" [attr.aria-label]="'Resultado do d20 para ' + pendingActionCombatantName(action)">
-																@for (result of deathSaveDieResults; track result) {
-																	<button type="button" data-testid="death-save-result" class="flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-xl border border-amber-300/35 bg-amber-500/15 font-semibold hover:bg-amber-500/30" (click)="recordDeathSaveResult(action.id, result)">{{ result }}</button>
-																}
+													<div class="flex gap-2">
+														<button
+															type="button"
+															data-testid="concentration-success"
+															class="h-9 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-3 text-sm hover:bg-emerald-500/25"
+															(click)="resolveConcentrationCheck(action.id, true)"
+														>
+															Sucesso
+														</button>
+														<button
+															type="button"
+															data-testid="concentration-failure"
+															class="h-9 cursor-pointer rounded-2xl border border-red-300/30 bg-red-500/15 px-3 text-sm hover:bg-red-500/25"
+															(click)="resolveConcentrationCheck(action.id, false)"
+														>
+															Falha
+														</button>
+													</div>
+												} @else if (action.type === 'death-save') {
+													<fieldset
+														class="grid grid-cols-5 gap-1.5"
+														[attr.aria-label]="
+															'Resultado do d20 para ' + pendingActionCombatantName(action)
+														"
+													>
+														@for (result of deathSaveDieResults; track result) {
+															<button
+																type="button"
+																data-testid="death-save-result"
+																class="flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-xl border border-amber-300/35 bg-amber-500/15 font-semibold hover:bg-amber-500/30"
+																(click)="recordDeathSaveResult(action.id, result)"
+															>
+																{{ result }}
+															</button>
+														}
 													</fieldset>
 												} @else {
-													<fieldset class="grid grid-cols-6 gap-1.5" [attr.aria-label]="'Resultado do d6 para ' + action.abilityName">
+													<fieldset
+														class="grid grid-cols-6 gap-1.5"
+														[attr.aria-label]="'Resultado do d6 para ' + action.abilityName"
+													>
 														@for (result of rechargeDieResults; track result) {
-															<button type="button" class="flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-xl border border-amber-300/35 bg-amber-500/15 font-semibold hover:bg-amber-500/30" (click)="recordAbilityRecharge(action.combatantId, action.abilityId, result)">{{ result }}</button>
+															<button
+																type="button"
+																class="flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-xl border border-amber-300/35 bg-amber-500/15 font-semibold hover:bg-amber-500/30"
+																(click)="
+																	recordAbilityRecharge(
+																		action.combatantId,
+																		action.abilityId,
+																		result
+																	)
+																"
+															>
+																{{ result }}
+															</button>
 														}
 													</fieldset>
 												}
@@ -219,26 +287,30 @@
 							}
 
 							<div class="mt-4 flex flex-wrap gap-2">
-									@if (isConcentrating(combatant)) {
-								<span class="rounded-full border border-violet-300/35 bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-100">
-									Concentrando
-								</span>
-							}
-							@if (deathSaveStatusLabel(combatant); as deathSaveStatus) {
-								<span class="rounded-full border border-rose-300/35 bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-100">
-									{{ deathSaveStatus }}
-								</span>
-							}
-							@for (condition of visibleConditions(combatant); track condition.id) {
-								<button
-									type="button"
-									class="cursor-pointer rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs hover:bg-white/15"
-									[attr.aria-label]="'Remover condição ' + condition.label"
-									(click)="removeCondition(combatant.id, condition.id)"
-								>
-									{{ condition.label }} x
-								</button>
-							}
+								@if (isConcentrating(combatant)) {
+									<span
+										class="rounded-full border border-violet-300/35 bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-100"
+									>
+										Concentrando
+									</span>
+								}
+								@if (deathSaveStatusLabel(combatant); as deathSaveStatus) {
+									<span
+										class="rounded-full border border-rose-300/35 bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-100"
+									>
+										{{ deathSaveStatus }}
+									</span>
+								}
+								@for (condition of visibleConditions(combatant); track condition.id) {
+									<button
+										type="button"
+										class="cursor-pointer rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs hover:bg-white/15"
+										[attr.aria-label]="'Remover condição ' + condition.label"
+										(click)="removeCondition(combatant.id, condition.id)"
+									>
+										{{ condition.label }} x
+									</button>
+								}
 							</div>
 
 							<div class="mt-3 inline-flex items-center gap-2 text-sm">
@@ -251,169 +323,194 @@
 									[attr.aria-label]="'Concentração de ' + (combatant.displayName || combatant.name)"
 									[disabled]="combatant.defeated"
 									class="relative h-5 w-9 cursor-pointer rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50"
-									[ngClass]="isConcentrating(combatant) ? 'border-fuchsia-300/70 bg-violet-500/60 shadow-[0_0_0_1px_rgba(216,180,254,0.2)]' : 'border-white/20 bg-white/10'"
+									[ngClass]="
+										isConcentrating(combatant)
+											? 'border-fuchsia-300/70 bg-violet-500/60 shadow-[0_0_0_1px_rgba(216,180,254,0.2)]'
+											: 'border-white/20 bg-white/10'
+									"
 									(click)="setConcentration(combatant.id, !isConcentrating(combatant))"
 								>
-									<span class="absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform" [class.translate-x-4]="isConcentrating(combatant)"></span>
+									<span
+										class="absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform"
+										[class.translate-x-4]="isConcentrating(combatant)"
+									></span>
 								</button>
 							</div>
 
-							<div class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(9rem,0.7fr)_auto]">
-							<input
-								type="number"
-								min="0"
-								data-testid="cockpit-damage-input"
-								class="app-field h-11 min-w-0 border-red-400/20 px-3"
-								aria-label="Dano para o turno atual"
-								placeholder="Dano"
-								[ngModel]="damageDrafts()[combatant.id] || ''"
-								(ngModelChange)="setDamageDraft(combatant.id, $event)"
-							/>
-							<button
-								type="button"
-								data-testid="cockpit-apply-damage"
-								class="h-10 cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 text-sm hover:bg-red-500/20"
-								(click)="applyDamage(combatant.id)"
+							<div
+								class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(9rem,0.7fr)_auto]"
 							>
-								Dano
-							</button>
-							<input
-								type="number"
-								min="0"
-								data-testid="cockpit-healing-input"
-								class="app-field h-11 min-w-0 border-emerald-400/20 px-3"
-								aria-label="Cura para o turno atual"
-								placeholder="Cura"
-								[ngModel]="healingDrafts()[combatant.id] || ''"
-								(ngModelChange)="setHealingDraft(combatant.id, $event)"
-							/>
-							<button
-								type="button"
-								data-testid="cockpit-apply-healing"
-								class="h-10 cursor-pointer rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 text-sm hover:bg-emerald-500/20"
-								(click)="applyHealing(combatant.id)"
-							>
-								Cura
-							</button>
-							<label class="relative min-w-0">
-								<span class="pointer-events-none absolute left-3 top-1.5 text-[11px] font-medium text-app-subtle">HP temporário</span>
 								<input
 									type="number"
 									min="0"
-									class="app-field h-11 w-full min-w-0 px-3 pb-1 pt-5"
-									aria-label="HP temporário para o turno atual"
-									[ngModel]="combatant.temporaryHp"
-									(ngModelChange)="setTemporaryHp(combatant.id, $event)"
+									data-testid="cockpit-damage-input"
+									class="app-field h-11 min-w-0 border-red-400/20 px-3"
+									aria-label="Dano para o turno atual"
+									placeholder="Dano"
+									[ngModel]="damageDrafts()[combatant.id] || ''"
+									(ngModelChange)="setDamageDraft(combatant.id, $event)"
 								/>
-							</label>
-							<button
-								type="button"
-								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 text-sm hover:bg-white/15"
-								(click)="toggleDefeated(combatant.id, !combatant.defeated)"
-							>
-								{{ combatant.defeated ? 'Reerguer' : 'Derrotar' }}
-							</button>
+								<button
+									type="button"
+									data-testid="cockpit-apply-damage"
+									class="h-10 cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 text-sm hover:bg-red-500/20"
+									(click)="applyDamage(combatant.id)"
+								>
+									Dano
+								</button>
+								<input
+									type="number"
+									min="0"
+									data-testid="cockpit-healing-input"
+									class="app-field h-11 min-w-0 border-emerald-400/20 px-3"
+									aria-label="Cura para o turno atual"
+									placeholder="Cura"
+									[ngModel]="healingDrafts()[combatant.id] || ''"
+									(ngModelChange)="setHealingDraft(combatant.id, $event)"
+								/>
+								<button
+									type="button"
+									data-testid="cockpit-apply-healing"
+									class="h-10 cursor-pointer rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 text-sm hover:bg-emerald-500/20"
+									(click)="applyHealing(combatant.id)"
+								>
+									Cura
+								</button>
+								<label class="relative min-w-0">
+									<span
+										class="pointer-events-none absolute left-3 top-1.5 text-[11px] font-medium text-app-subtle"
+										>HP temporário</span
+									>
+									<input
+										type="number"
+										min="0"
+										class="app-field h-11 w-full min-w-0 px-3 pb-1 pt-5"
+										aria-label="HP temporário para o turno atual"
+										[ngModel]="combatant.temporaryHp"
+										(ngModelChange)="setTemporaryHp(combatant.id, $event)"
+									/>
+								</label>
+								<button
+									type="button"
+									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 text-sm hover:bg-white/15"
+									(click)="toggleDefeated(combatant.id, !combatant.defeated)"
+								>
+									{{ combatant.defeated ? 'Reerguer' : 'Derrotar' }}
+								</button>
 							</div>
 
 							<div class="mt-3 flex flex-wrap gap-2">
-							<select
-								class="h-10 min-w-44 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 text-sm"
-								[ngModel]="getConditionDraft(combatant.id).preset"
-								(ngModelChange)="setConditionDraft(combatant.id, { preset: $event })"
-							>
-								@for (option of conditionOptions; track option.name) {
-									@if (option.name !== 'custom') {
-										<option [value]="option.name">{{ option.label }}</option>
+								<select
+									class="h-10 min-w-44 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 text-sm"
+									[ngModel]="getConditionDraft(combatant.id).preset"
+									(ngModelChange)="setConditionDraft(combatant.id, { preset: $event })"
+								>
+									@for (option of conditionOptions; track option.name) {
+										@if (option.name !== 'custom') {
+											<option [value]="option.name">{{ option.label }}</option>
+										}
 									}
-								}
-							</select>
-							<button
-								type="button"
-								data-testid="cockpit-add-condition"
-								class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 text-sm hover:bg-white/15"
-								(click)="addCondition(combatant.id)"
-							>
-								Adicionar condição
-							</button>
+								</select>
+								<button
+									type="button"
+									data-testid="cockpit-add-condition"
+									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 text-sm hover:bg-white/15"
+									(click)="addCondition(combatant.id)"
+								>
+									Adicionar condição
+								</button>
 							</div>
 
 							@if (visibleCockpitAbilities().length > 0) {
-							<div class="mt-4 border-t border-white/10 pt-3">
-								<div class="text-sm font-semibold">Habilidades</div>
-								<div class="mt-2 space-y-2">
-									@for (ability of visibleCockpitAbilities(); track ability.id) {
-										<div class="flex flex-col gap-2 rounded-2xl bg-black/15 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-											<div class="min-w-0">
-												<div class="flex flex-wrap items-center gap-2">
-													<span class="font-semibold">{{ ability.name }}</span>
-													<span class="rounded-full border px-2 py-0.5 text-[11px] font-semibold" [class]="abilityAvailabilityClasses(ability)">
-														{{ abilityStatusLabel(ability) }}
-													</span>
+								<div class="mt-4 border-t border-white/10 pt-3">
+									<div class="text-sm font-semibold">Habilidades</div>
+									<div class="mt-2 space-y-2">
+										@for (ability of visibleCockpitAbilities(); track ability.id) {
+											<div
+												class="flex flex-col gap-2 rounded-2xl bg-black/15 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+											>
+												<div class="min-w-0">
+													<div class="flex flex-wrap items-center gap-2">
+														<span class="font-semibold">{{ ability.name }}</span>
+														<span
+															class="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+															[class]="abilityAvailabilityClasses(ability)"
+														>
+															{{ abilityStatusLabel(ability) }}
+														</span>
+													</div>
+													<div class="mt-1 text-xs opacity-75">
+														{{ abilityRecoveryLabel(ability) }}
+													</div>
+													@if (diceRechargeAttemptLabel(ability); as attempt) {
+														<div class="mt-1 text-xs font-semibold text-amber-100">
+															{{ attempt }}
+														</div>
+													}
 												</div>
-												<div class="mt-1 text-xs opacity-75">{{ abilityRecoveryLabel(ability) }}</div>
-												@if (diceRechargeAttemptLabel(ability); as attempt) {
-													<div class="mt-1 text-xs font-semibold text-amber-100">{{ attempt }}</div>
-												}
-											</div>
-											<div class="flex flex-wrap gap-2">
-												<button
-													type="button"
-													class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-													[disabled]="!canUseAbility(ability)"
-													(click)="useAbility(combatant.id, ability.id)"
-												>
-													{{ abilityUseLabel(ability) }}
-												</button>
-												@if (!ability.isAvailable && ability.recoveryType !== 'dice-recharge') {
+												<div class="flex flex-wrap gap-2">
 													<button
 														type="button"
-														class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-3 text-sm hover:bg-white/15"
-														(click)="resetAbility(combatant.id, ability.id)"
+														class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+														[disabled]="!canUseAbility(ability)"
+														(click)="useAbility(combatant.id, ability.id)"
 													>
-														Recuperar
+														{{ abilityUseLabel(ability) }}
 													</button>
-												}
+													@if (!ability.isAvailable && ability.recoveryType !== 'dice-recharge') {
+														<button
+															type="button"
+															class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-3 text-sm hover:bg-white/15"
+															(click)="resetAbility(combatant.id, ability.id)"
+														>
+															Recuperar
+														</button>
+													}
+												</div>
 											</div>
-										</div>
+										}
+									</div>
+									@if (hiddenCockpitAbilityCount() > 0) {
+										<button
+											type="button"
+											class="mt-2 cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50"
+											(click)="cockpitAbilitiesExpanded.set(true)"
+										>
+											+ {{ hiddenCockpitAbilityCount() }} habilidades
+										</button>
+									} @else if (cockpitAbilitiesExpanded() && cockpitAbilities().length > 3) {
+										<button
+											type="button"
+											class="mt-2 cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50"
+											(click)="cockpitAbilitiesExpanded.set(false)"
+										>
+											Mostrar menos
+										</button>
 									}
 								</div>
-								@if (hiddenCockpitAbilityCount() > 0) {
-									<button
-										type="button"
-										class="mt-2 cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50"
-										(click)="cockpitAbilitiesExpanded.set(true)"
-									>
-										+ {{ hiddenCockpitAbilityCount() }} habilidades
-									</button>
-								} @else if (cockpitAbilitiesExpanded() && cockpitAbilities().length > 3) {
-									<button
-										type="button"
-										class="mt-2 cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50"
-										(click)="cockpitAbilitiesExpanded.set(false)"
-									>
-										Mostrar menos
-									</button>
-								}
-							</div>
 							}
 
 							<div class="mt-4 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-2">
-							<div>
-								<div class="text-xs font-semibold uppercase tracking-[0.14em] opacity-65">A seguir</div>
-								<div class="mt-1 space-y-1 text-sm">
-									@for (event of upcomingTurns(); track event.id) {
-										<div>{{ upcomingTurnLabel(event) }}</div>
-									} @empty {
-										<div class="opacity-70">Nenhum turno seguinte.</div>
-									}
-								</div>
-							</div>
-							@if (nextEnvironmentEvent(); as event) {
 								<div>
-									<div class="text-xs font-semibold uppercase tracking-[0.14em] opacity-65">Próximo evento</div>
-									<div class="mt-1 text-sm font-semibold">{{ event.label }}</div>
+									<div class="text-xs font-semibold uppercase tracking-[0.14em] opacity-65">
+										A seguir
+									</div>
+									<div class="mt-1 space-y-1 text-sm">
+										@for (event of upcomingTurns(); track event.id) {
+											<div>{{ upcomingTurnLabel(event) }}</div>
+										} @empty {
+											<div class="opacity-70">Nenhum turno seguinte.</div>
+										}
+									</div>
 								</div>
-							}
+								@if (nextEnvironmentEvent(); as event) {
+									<div>
+										<div class="text-xs font-semibold uppercase tracking-[0.14em] opacity-65">
+											Próximo evento
+										</div>
+										<div class="mt-1 text-sm font-semibold">{{ event.label }}</div>
+									</div>
+								}
 							</div>
 						</details>
 					</section>
@@ -429,7 +526,11 @@
 
 					<div class="space-y-4">
 						@for (combatant of combatants(); track combatant.id) {
-							<div data-testid="combatant-card" [attr.data-combatant-id]="combatant.id" [class]="cardClasses(combatant)">
+							<div
+								data-testid="combatant-card"
+								[attr.data-combatant-id]="combatant.id"
+								[class]="cardClasses(combatant)"
+							>
 								<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
 									<div class="min-w-0">
 										<div class="flex flex-wrap items-center gap-2">
@@ -445,38 +546,50 @@
 												{{ sideLabel(combatant.side) }}
 											</span>
 
-										@if (currentCombatant()?.id === combatant.id) {
-											<span class="rounded-full border border-amber-300/40 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-100">
-												Turno atual
-											</span>
-										}
+											@if (currentCombatant()?.id === combatant.id) {
+												<span
+													class="rounded-full border border-amber-300/40 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-100"
+												>
+													Turno atual
+												</span>
+											}
 
-										@if (selectedCombatantId() === combatant.id) {
-											<span class="rounded-full border border-violet-300/35 bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-100">
-												Em foco
-											</span>
-										}
+											@if (selectedCombatantId() === combatant.id) {
+												<span
+													class="rounded-full border border-violet-300/35 bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-100"
+												>
+													Em foco
+												</span>
+											}
 
 											@if (combatant.defeated) {
-												<span class="rounded-full border border-red-400/30 bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-100">
+												<span
+													class="rounded-full border border-red-400/30 bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-100"
+												>
 													Derrotado
 												</span>
 											}
 
 											@if (isConcentrating(combatant)) {
-												<span class="rounded-full border border-violet-300/35 bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-100">
+												<span
+													class="rounded-full border border-violet-300/35 bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-100"
+												>
 													Concentrando
 												</span>
 											}
 
 											@if (isInactiveUntilNextRound(combatant)) {
-												<span class="rounded-full border border-slate-300/20 bg-slate-500/10 px-2.5 py-1 text-xs font-semibold text-slate-100">
+												<span
+													class="rounded-full border border-slate-300/20 bg-slate-500/10 px-2.5 py-1 text-xs font-semibold text-slate-100"
+												>
 													Volta no próximo round
 												</span>
 											}
 
 											@if (isPendingCombatant(combatant)) {
-												<span class="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-xs font-semibold">
+												<span
+													class="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-xs font-semibold"
+												>
 													Entra no próximo round
 												</span>
 											}
@@ -484,21 +597,31 @@
 
 										<div class="mt-3 grid grid-cols-2 gap-x-5 gap-y-2 text-sm sm:grid-cols-4">
 											<div>
-												<div class="text-[11px] font-medium uppercase tracking-[0.12em] opacity-55">Iniciativa</div>
+												<div class="text-[11px] font-medium uppercase tracking-[0.12em] opacity-55">
+													Iniciativa
+												</div>
 												<div class="mt-0.5 text-white/80">{{ initiativeSummary(combatant) }}</div>
 											</div>
 											@if (!combatant.pendingAdd) {
 												<div>
-													<div class="text-[11px] font-medium uppercase tracking-[0.12em] opacity-55">Ordem</div>
+													<div
+														class="text-[11px] font-medium uppercase tracking-[0.12em] opacity-55"
+													>
+														Ordem
+													</div>
 													<div class="mt-0.5 text-white/80">{{ combatant.turnOrder + 1 }}</div>
 												</div>
 											}
 											<div>
-												<div class="text-[11px] font-medium uppercase tracking-[0.12em] opacity-55">CA</div>
+												<div class="text-[11px] font-medium uppercase tracking-[0.12em] opacity-55">
+													CA
+												</div>
 												<div class="mt-0.5 text-white/80">{{ combatant.armorClass ?? '-' }}</div>
 											</div>
 											<div>
-												<div class="text-[11px] font-medium uppercase tracking-[0.12em] opacity-55">HP</div>
+												<div class="text-[11px] font-medium uppercase tracking-[0.12em] opacity-55">
+													HP
+												</div>
 												<div class="mt-0.5 text-white/80">{{ hpSummary(combatant) }}</div>
 											</div>
 										</div>
@@ -506,7 +629,9 @@
 										@if (visibleConditions(combatant).length > 0) {
 											<div class="flex flex-wrap gap-2">
 												@for (condition of visibleConditions(combatant); track condition.id) {
-													<span class="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-xs">
+													<span
+														class="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-xs"
+													>
 														{{ condition.label }}
 													</span>
 												}
@@ -514,18 +639,43 @@
 										}
 
 										@if (combatant.deathSaves; as deathSaves) {
-											<div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs" aria-label="Situação dos testes de morte">
-												<span class="font-semibold uppercase tracking-[0.12em] text-rose-200/75">Testes de morte</span>
-												<span class="inline-flex items-center gap-1.5 text-emerald-100/85" aria-label="Sucessos">
+											<div
+												class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
+												aria-label="Situação dos testes de morte"
+											>
+												<span class="font-semibold uppercase tracking-[0.12em] text-rose-200/75"
+													>Testes de morte</span
+												>
+												<span
+													class="inline-flex items-center gap-1.5 text-emerald-100/85"
+													aria-label="Sucessos"
+												>
 													<span>Sucessos</span>
 													@for (marker of deathSaveMarkers; track marker) {
-														<span class="h-2.5 w-2.5 rounded-full border border-emerald-300/50" [ngClass]="marker < deathSaves.successes ? 'bg-emerald-400 shadow-[0_0_7px_rgba(74,222,128,0.7)]' : 'bg-emerald-500/5'"></span>
+														<span
+															class="h-2.5 w-2.5 rounded-full border border-emerald-300/50"
+															[ngClass]="
+																marker < deathSaves.successes
+																	? 'bg-emerald-400 shadow-[0_0_7px_rgba(74,222,128,0.7)]'
+																	: 'bg-emerald-500/5'
+															"
+														></span>
 													}
 												</span>
-												<span class="inline-flex items-center gap-1.5 text-rose-100/85" aria-label="Falhas">
+												<span
+													class="inline-flex items-center gap-1.5 text-rose-100/85"
+													aria-label="Falhas"
+												>
 													<span>Falhas</span>
 													@for (marker of deathSaveMarkers; track marker) {
-														<span class="h-2.5 w-2.5 rounded-full border border-rose-300/50" [ngClass]="marker < deathSaves.failures ? 'bg-rose-400 shadow-[0_0_7px_rgba(251,113,133,0.7)]' : 'bg-rose-500/5'"></span>
+														<span
+															class="h-2.5 w-2.5 rounded-full border border-rose-300/50"
+															[ngClass]="
+																marker < deathSaves.failures
+																	? 'bg-rose-400 shadow-[0_0_7px_rgba(251,113,133,0.7)]'
+																	: 'bg-rose-500/5'
+															"
+														></span>
 													}
 												</span>
 												@if (deathSaveStatusLabel(combatant); as deathSaveStatus) {
@@ -537,7 +687,9 @@
 
 									<div class="flex flex-wrap items-center gap-2 lg:max-w-105 lg:justify-end">
 										@if (selectedCombatantId() === combatant.id) {
-											<label class="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-black/15 px-2.5 text-sm">
+											<label
+												class="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-black/15 px-2.5 text-sm"
+											>
 												<span class="opacity-65">Lado</span>
 												<select
 													class="h-7 cursor-pointer rounded-lg border bg-black/20 px-2 text-sm"
@@ -552,7 +704,9 @@
 												</select>
 											</label>
 
-											<label class="inline-flex h-9 items-center gap-2 rounded-xl px-1.5 text-sm opacity-80">
+											<label
+												class="inline-flex h-9 items-center gap-2 rounded-xl px-1.5 text-sm opacity-80"
+											>
 												<input
 													type="checkbox"
 													class="h-4 w-4 rounded border-white/10 bg-black/20"
@@ -563,20 +717,31 @@
 											</label>
 										}
 
-										<div class="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-black/15 px-2.5 text-sm">
+										<div
+											class="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-black/15 px-2.5 text-sm"
+										>
 											<span>Concentração</span>
 											<button
 												type="button"
 												data-testid="combatant-concentration-toggle"
 												role="switch"
 												[attr.aria-checked]="isConcentrating(combatant)"
-												[attr.aria-label]="'Concentração de ' + (combatant.displayName || combatant.name)"
+												[attr.aria-label]="
+													'Concentração de ' + (combatant.displayName || combatant.name)
+												"
 												[disabled]="combatant.defeated"
-											class="relative h-5 w-9 cursor-pointer rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50"
-												[ngClass]="isConcentrating(combatant) ? 'border-fuchsia-300/70 bg-violet-500/60 shadow-[0_0_0_1px_rgba(216,180,254,0.2)]' : 'border-white/20 bg-white/10'"
+												class="relative h-5 w-9 cursor-pointer rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50"
+												[ngClass]="
+													isConcentrating(combatant)
+														? 'border-fuchsia-300/70 bg-violet-500/60 shadow-[0_0_0_1px_rgba(216,180,254,0.2)]'
+														: 'border-white/20 bg-white/10'
+												"
 												(click)="setConcentration(combatant.id, !isConcentrating(combatant))"
 											>
-												<span class="absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform" [class.translate-x-4]="isConcentrating(combatant)"></span>
+												<span
+													class="absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform"
+													[class.translate-x-4]="isConcentrating(combatant)"
+												></span>
 											</button>
 										</div>
 
@@ -586,7 +751,11 @@
 											[attr.aria-expanded]="selectedCombatantId() === combatant.id"
 											(click)="toggleCombatantInspector(combatant.id)"
 										>
-											@if (selectedCombatantId() === combatant.id) { Fechar painel } @else { Abrir painel }
+											@if (selectedCombatantId() === combatant.id) {
+												Fechar painel
+											} @else {
+												Abrir painel
+											}
 										</button>
 
 										@if (battle()!.status !== 'completed') {
@@ -603,113 +772,51 @@
 												class="h-9 cursor-pointer rounded-xl border border-red-400/25 bg-red-500/10 px-3 text-sm text-red-100 hover:bg-red-500/20"
 												(click)="openRemoveCombatantModal(combatant.id)"
 											>
-										Remover
-									</button>
-								}
-							</div>
-						</div>
-
-						@if (pendingConcentrationChecks(combatant).length > 0) {
-							<div data-testid="combatant-concentration-check" class="mt-3 flex flex-col gap-2 rounded-2xl border border-amber-300/20 bg-amber-500/10 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-								<div class="min-w-0 text-sm">
-									<div class="font-semibold">Teste de concentração pendente</div>
-									@for (action of pendingConcentrationChecks(combatant); track action.id) {
-										<div class="mt-1">{{ action.damage }} de dano · CD {{ action.difficultyClass }} · Role CON fisicamente.</div>
-									}
+												Remover
+											</button>
+										}
+									</div>
 								</div>
-								<div class="flex flex-wrap gap-2">
-									@for (action of pendingConcentrationChecks(combatant); track action.id) {
-										<button type="button" class="h-9 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-3 text-sm hover:bg-emerald-500/25" (click)="resolveConcentrationCheck(action.id, true)">Sucesso</button>
-										<button type="button" class="h-9 cursor-pointer rounded-2xl border border-red-300/30 bg-red-500/15 px-3 text-sm hover:bg-red-500/25" (click)="resolveConcentrationCheck(action.id, false)">Falha</button>
-									}
-								</div>
-							</div>
-						}
 
-										@if (selectedCombatantId() !== combatant.id) {
-							<div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
-								<div class="mb-2 text-sm font-semibold">Dano rapido</div>
-								<div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
-									<input
-										type="number"
-										min="0"
-										class="h-10 w-full min-w-0 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-										placeholder="0"
-										[ngModel]="damageDrafts()[combatant.id] || ''"
-										(ngModelChange)="setDamageDraft(combatant.id, $event)"
-									/>
-									<button
-										type="button"
-										class="h-10 cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 hover:bg-red-500/20"
-										(click)="applyDamage(combatant.id)"
+								@if (pendingConcentrationChecks(combatant).length > 0) {
+									<div
+										data-testid="combatant-concentration-check"
+										class="mt-3 flex flex-col gap-2 rounded-2xl border border-amber-300/20 bg-amber-500/10 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
 									>
-										Aplicar dano
-									</button>
-								</div>
-							</div>
-						}
-
-										@if (selectedCombatantId() === combatant.id) {
-						<div class="mt-4 grid gap-3 md:grid-cols-3">
-							<label class="text-sm">
-										<span class="mb-1 block opacity-70">HP atual</span>
-										<input
-											type="number"
-											min="0"
-											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="combatant.currentHp"
-											(ngModelChange)="setCurrentHp(combatant.id, $event)"
-										/>
-									</label>
-
-									<label class="text-sm">
-										<span class="mb-1 block opacity-70">HP máximo</span>
-										<input
-											type="number"
-											min="0"
-											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="combatant.maxHp"
-											(ngModelChange)="setMaxHp(combatant.id, $event)"
-										/>
-									</label>
-
-									<label class="text-sm">
-										<span class="mb-1 block opacity-70">HP temporário</span>
-										<input
-											type="number"
-											min="0"
-											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="combatant.temporaryHp"
-											(ngModelChange)="setTemporaryHp(combatant.id, $event)"
-										/>
-									</label>
-								</div>
-
-								@if (canUseDeathSaves(combatant)) {
-									<div class="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-										<div>
-											<div class="text-xs font-semibold uppercase tracking-[0.14em] text-rose-200/80">Testes de morte</div>
-											<div class="mt-1 text-sm text-white/65">
-												@if (combatant.deathSaves) { Registre o resultado físico no cockpit ou ajuste os marcadores abaixo. } @else { Controle manual para este combatente. }
-											</div>
+										<div class="min-w-0 text-sm">
+											<div class="font-semibold">Teste de concentração pendente</div>
+											@for (action of pendingConcentrationChecks(combatant); track action.id) {
+												<div class="mt-1">
+													{{ action.damage }} de dano · CD {{ action.difficultyClass }} · Role CON
+													fisicamente.
+												</div>
+											}
 										</div>
 										<div class="flex flex-wrap gap-2">
-											@if (!combatant.deathSaves) {
-												<button type="button" data-testid="start-death-saves" class="h-9 cursor-pointer rounded-xl border border-rose-300/30 bg-rose-500/10 px-3 text-sm text-rose-100 hover:bg-rose-500/20" (click)="startDeathSaves(combatant.id)">Iniciar testes</button>
-											} @else if (combatant.deathSaves.status === 'active') {
-												<button type="button" data-testid="add-death-save-success" class="h-9 cursor-pointer rounded-xl border border-emerald-300/30 bg-emerald-500/10 px-3 text-sm text-emerald-100 hover:bg-emerald-500/20" (click)="addDeathSaveSuccess(combatant.id)">Adicionar sucesso</button>
-												<button type="button" data-testid="add-death-save-failure" class="h-9 cursor-pointer rounded-xl border border-red-300/30 bg-red-500/10 px-3 text-sm text-red-100 hover:bg-red-500/20" (click)="addDeathSaveFailure(combatant.id)">Adicionar falha</button>
-											} @else {
-												<button type="button" data-testid="recover-death-saves" class="h-9 cursor-pointer rounded-xl border border-emerald-300/30 bg-emerald-500/10 px-3 text-sm text-emerald-100 hover:bg-emerald-500/20" (click)="recoverFromDeathSaves(combatant.id)">Corrigir / Recuperar</button>
+											@for (action of pendingConcentrationChecks(combatant); track action.id) {
+												<button
+													type="button"
+													class="h-9 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-3 text-sm hover:bg-emerald-500/25"
+													(click)="resolveConcentrationCheck(action.id, true)"
+												>
+													Sucesso
+												</button>
+												<button
+													type="button"
+													class="h-9 cursor-pointer rounded-2xl border border-red-300/30 bg-red-500/15 px-3 text-sm hover:bg-red-500/25"
+													(click)="resolveConcentrationCheck(action.id, false)"
+												>
+													Falha
+												</button>
 											}
 										</div>
 									</div>
 								}
 
-								<div class="mt-4 grid gap-3 xl:grid-cols-2">
-									<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
-										<div class="mb-2 text-sm font-semibold">Dano</div>
-										<div class="grid gap-2">
+								@if (selectedCombatantId() !== combatant.id) {
+									<div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
+										<div class="mb-2 text-sm font-semibold">Dano rapido</div>
+										<div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
 											<input
 												type="number"
 												min="0"
@@ -720,471 +827,684 @@
 											/>
 											<button
 												type="button"
-												class="h-10 w-full cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 hover:bg-red-500/20"
+												class="h-10 cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 hover:bg-red-500/20"
 												(click)="applyDamage(combatant.id)"
 											>
 												Aplicar dano
 											</button>
 										</div>
 									</div>
+								}
 
-									<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
-										<div class="mb-2 text-sm font-semibold">Cura</div>
-										<div class="grid gap-2">
+								@if (selectedCombatantId() === combatant.id) {
+									<div class="mt-4 grid gap-3 md:grid-cols-3">
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">HP atual</span>
 											<input
 												type="number"
 												min="0"
-												class="h-10 w-full min-w-0 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												placeholder="0"
-												[ngModel]="healingDrafts()[combatant.id] || ''"
-												(ngModelChange)="setHealingDraft(combatant.id, $event)"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="combatant.currentHp"
+												(ngModelChange)="setCurrentHp(combatant.id, $event)"
 											/>
+										</label>
+
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">HP máximo</span>
+											<input
+												type="number"
+												min="0"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="combatant.maxHp"
+												(ngModelChange)="setMaxHp(combatant.id, $event)"
+											/>
+										</label>
+
+										<label class="text-sm">
+											<span class="mb-1 block opacity-70">HP temporário</span>
+											<input
+												type="number"
+												min="0"
+												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												[ngModel]="combatant.temporaryHp"
+												(ngModelChange)="setTemporaryHp(combatant.id, $event)"
+											/>
+										</label>
+									</div>
+
+									@if (canUseDeathSaves(combatant)) {
+										<div
+											class="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between"
+										>
+											<div>
+												<div
+													class="text-xs font-semibold uppercase tracking-[0.14em] text-rose-200/80"
+												>
+													Testes de morte
+												</div>
+												<div class="mt-1 text-sm text-white/65">
+													@if (combatant.deathSaves) {
+														Registre o resultado físico no cockpit ou ajuste os marcadores abaixo.
+													} @else {
+														Controle manual para este combatente.
+													}
+												</div>
+											</div>
+											<div class="flex flex-wrap gap-2">
+												@if (!combatant.deathSaves) {
+													<button
+														type="button"
+														data-testid="start-death-saves"
+														class="h-9 cursor-pointer rounded-xl border border-rose-300/30 bg-rose-500/10 px-3 text-sm text-rose-100 hover:bg-rose-500/20"
+														(click)="startDeathSaves(combatant.id)"
+													>
+														Iniciar testes
+													</button>
+												} @else if (combatant.deathSaves.status === 'active') {
+													<button
+														type="button"
+														data-testid="add-death-save-success"
+														class="h-9 cursor-pointer rounded-xl border border-emerald-300/30 bg-emerald-500/10 px-3 text-sm text-emerald-100 hover:bg-emerald-500/20"
+														(click)="addDeathSaveSuccess(combatant.id)"
+													>
+														Adicionar sucesso
+													</button>
+													<button
+														type="button"
+														data-testid="add-death-save-failure"
+														class="h-9 cursor-pointer rounded-xl border border-red-300/30 bg-red-500/10 px-3 text-sm text-red-100 hover:bg-red-500/20"
+														(click)="addDeathSaveFailure(combatant.id)"
+													>
+														Adicionar falha
+													</button>
+												} @else {
+													<button
+														type="button"
+														data-testid="recover-death-saves"
+														class="h-9 cursor-pointer rounded-xl border border-emerald-300/30 bg-emerald-500/10 px-3 text-sm text-emerald-100 hover:bg-emerald-500/20"
+														(click)="recoverFromDeathSaves(combatant.id)"
+													>
+														Corrigir / Recuperar
+													</button>
+												}
+											</div>
+										</div>
+									}
+
+									<div class="mt-4 grid gap-3 xl:grid-cols-2">
+										<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
+											<div class="mb-2 text-sm font-semibold">Dano</div>
+											<div class="grid gap-2">
+												<input
+													type="number"
+													min="0"
+													class="h-10 w-full min-w-0 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													placeholder="0"
+													[ngModel]="damageDrafts()[combatant.id] || ''"
+													(ngModelChange)="setDamageDraft(combatant.id, $event)"
+												/>
+												<button
+													type="button"
+													class="h-10 w-full cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 hover:bg-red-500/20"
+													(click)="applyDamage(combatant.id)"
+												>
+													Aplicar dano
+												</button>
+											</div>
+										</div>
+
+										<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
+											<div class="mb-2 text-sm font-semibold">Cura</div>
+											<div class="grid gap-2">
+												<input
+													type="number"
+													min="0"
+													class="h-10 w-full min-w-0 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													placeholder="0"
+													[ngModel]="healingDrafts()[combatant.id] || ''"
+													(ngModelChange)="setHealingDraft(combatant.id, $event)"
+												/>
+												<button
+													type="button"
+													class="h-10 w-full cursor-pointer rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 hover:bg-emerald-500/20"
+													(click)="applyHealing(combatant.id)"
+												>
+													Aplicar cura
+												</button>
+											</div>
+										</div>
+									</div>
+
+									<div class="mt-4 grid gap-4 xl:grid-cols-2">
+										<div class="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+											<div>
+												<h4 class="font-semibold">Condições ativas</h4>
+												<p class="text-sm opacity-70">
+													Expiram automaticamente quando a duração termina.
+												</p>
+											</div>
+
+											<div class="space-y-2">
+												@for (condition of visibleConditions(combatant); track condition.id) {
+													<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+														<div
+															class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
+														>
+															<div>
+																<div class="font-semibold">{{ condition.label }}</div>
+																<div class="mt-1 text-sm opacity-75">
+																	{{ conditionDurationLabel(condition) }}
+																</div>
+															</div>
+
+															<button
+																type="button"
+																class="inline-flex h-9 cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
+																(click)="removeCondition(combatant.id, condition.id)"
+															>
+																Remover
+															</button>
+														</div>
+													</div>
+												} @empty {
+													<div
+														class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70"
+													>
+														Nenhuma outra condição ativa.
+													</div>
+												}
+											</div>
+										</div>
+
+										<div class="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+											<div>
+												<h4 class="font-semibold">Adicionar condição</h4>
+												<p class="text-sm opacity-70">
+													Escolha a condição base, ajuste o nome exibido e a duração.
+												</p>
+											</div>
+
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Condição base</span>
+												<select
+													class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="getConditionDraft(combatant.id).preset"
+													(ngModelChange)="setConditionDraft(combatant.id, { preset: $event })"
+												>
+													@for (option of conditionOptions; track option.name) {
+														<option [value]="option.name">{{ option.label }}</option>
+													}
+												</select>
+											</label>
+
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Nome exibido</span>
+												<input
+													type="text"
+													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													placeholder="Opcional: texto personalizado da badge"
+													[ngModel]="getConditionDraft(combatant.id).customLabel"
+													(ngModelChange)="setConditionDraft(combatant.id, { customLabel: $event })"
+												/>
+											</label>
+
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Duração</span>
+												<select
+													class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="getConditionDraft(combatant.id).durationMode"
+													(ngModelChange)="
+														setConditionDraft(combatant.id, { durationMode: $event })
+													"
+												>
+													<option value="manual">Sem duração</option>
+													<option value="next-turn-end">Até o fim do próximo turno</option>
+													<option value="turns">Por turnos</option>
+													<option value="rounds">Por rounds</option>
+												</select>
+											</label>
+
+											@if (
+												getConditionDraft(combatant.id).durationMode === 'turns' ||
+												getConditionDraft(combatant.id).durationMode === 'rounds'
+											) {
+												<label class="text-sm">
+													<span class="mb-1 block opacity-70">
+														@if (getConditionDraft(combatant.id).durationMode === 'turns') {
+															Quantidade de turnos
+														} @else {
+															Quantidade de rounds
+														}
+													</span>
+													<input
+														type="number"
+														min="1"
+														class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+														[ngModel]="getConditionDraft(combatant.id).durationValue"
+														(ngModelChange)="
+															setConditionDraft(combatant.id, { durationValue: $event })
+														"
+													/>
+												</label>
+											}
+
+											<div
+												class="rounded-2xl border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm opacity-75"
+											>
+												Sera exibida como:
+												<span class="font-semibold opacity-100">
+													{{ conditionDraftPreview(combatant.id) }}
+												</span>
+												<span class="opacity-70">
+													·
+													{{
+														conditionModeLabel(getConditionDraft(combatant.id).durationMode)
+													}}</span
+												>
+											</div>
+
 											<button
 												type="button"
-												class="h-10 w-full cursor-pointer rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 hover:bg-emerald-500/20"
-												(click)="applyHealing(combatant.id)"
+												class="h-10 w-full cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+												(click)="addCondition(combatant.id)"
 											>
-												Aplicar cura
+												Adicionar condição
 											</button>
 										</div>
 									</div>
-								</div>
 
-								<div class="mt-4 grid gap-4 xl:grid-cols-2">
-									<div class="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
-										<div>
-											<h4 class="font-semibold">Condições ativas</h4>
-											<p class="text-sm opacity-70">
-												Expiram automaticamente quando a duração termina.
-											</p>
-										</div>
+									<details
+										class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4"
+										[open]="combatant.specialAbilities.length > 0"
+									>
+										<summary class="cursor-pointer text-sm font-semibold text-app-text">
+											@if (combatant.specialAbilities.length > 0) {
+												Habilidades especiais
+											} @else {
+												Adicionar habilidade especial
+											}
+										</summary>
+										@if (combatant.specialAbilities.length > 0) {
+											<div>
+												<p class="mt-1 text-sm opacity-70">
+													Controle usos por dia, descanso, cooldown e recharge durante o combate.
+												</p>
+											</div>
 
-										<div class="space-y-2">
-											@for (condition of visibleConditions(combatant); track condition.id) {
-												<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-													<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-														<div>
-															<div class="font-semibold">{{ condition.label }}</div>
-															<div class="mt-1 text-sm opacity-75">
-																{{ conditionDurationLabel(condition) }}
+											<div class="space-y-2">
+												@for (ability of combatant.specialAbilities; track ability.id) {
+													<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+														<div
+															class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
+														>
+															<div class="min-w-0">
+																<div class="flex flex-wrap items-center gap-2">
+																	<div class="break-words font-semibold">{{ ability.name }}</div>
+																	<span
+																		class="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+																		[class]="abilityAvailabilityClasses(ability)"
+																	>
+																		{{ abilityStatusLabel(ability) }}
+																	</span>
+																	@if (abilityRuleLabel(ability); as rule) {
+																		<span
+																			class="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[11px] opacity-80"
+																		>
+																			{{ rule }}
+																		</span>
+																	}
+																</div>
+																<div class="mt-1 text-sm opacity-80">
+																	{{ abilityRecoveryLabel(ability) }}
+																</div>
+																@if (abilityUsageLabel(ability); as usage) {
+																	<div class="mt-1 text-sm opacity-75">{{ usage }}</div>
+																}
+																@if (abilityLastUsedLabel(ability); as usedAt) {
+																	<div class="mt-1 text-sm opacity-70">{{ usedAt }}</div>
+																}
+																@if (diceRechargeAttemptLabel(ability); as attempt) {
+																	<div class="mt-1 text-sm font-semibold text-amber-100">
+																		{{ attempt }}
+																	</div>
+																} @else if (
+																	ability.recoveryType === 'dice-recharge' &&
+																	ability.lastRechargeRoll
+																) {
+																	<div class="mt-1 text-sm opacity-70">
+																		Último recharge: {{ ability.lastRechargeRoll }}
+																	</div>
+																}
+																@if (ability.description) {
+																	<div class="mt-1 break-words text-sm opacity-65">
+																		{{ ability.description }}
+																	</div>
+																}
+															</div>
+
+															<div class="flex flex-wrap gap-2 md:justify-end">
+																<button
+																	type="button"
+																	class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
+																	[disabled]="!canUseAbility(ability)"
+																	[class.opacity-50]="!canUseAbility(ability)"
+																	(click)="useAbility(combatant.id, ability.id)"
+																>
+																	{{ abilityUseLabel(ability) }}
+																</button>
+
+																<button
+																	type="button"
+																	class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
+																	(click)="resetAbility(combatant.id, ability.id)"
+																>
+																	{{ abilityResetLabel(ability) }}
+																</button>
+
+																<button
+																	type="button"
+																	class="h-9 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-3 text-sm hover:bg-red-500/20"
+																	(click)="removeAbility(combatant.id, ability.id)"
+																>
+																	Remover
+																</button>
 															</div>
 														</div>
-
-														<button
-															type="button"
-															class="inline-flex h-9 cursor-pointer items-center justify-center rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
-															(click)="removeCondition(combatant.id, condition.id)"
-														>
-															Remover
-														</button>
 													</div>
-												</div>
-											} @empty {
-												<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
-													Nenhuma outra condição ativa.
-												</div>
-											}
-										</div>
-									</div>
-
-									<div class="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
-										<div>
-											<h4 class="font-semibold">Adicionar condição</h4>
-											<p class="text-sm opacity-70">
-												Escolha a condição base, ajuste o nome exibido e a duração.
-											</p>
-										</div>
-
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Condição base</span>
-											<select
-												class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getConditionDraft(combatant.id).preset"
-												(ngModelChange)="setConditionDraft(combatant.id, { preset: $event })"
-											>
-												@for (option of conditionOptions; track option.name) {
-													<option [value]="option.name">{{ option.label }}</option>
 												}
-											</select>
-										</label>
+											</div>
+										}
 
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Nome exibido</span>
-											<input
-												type="text"
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												placeholder="Opcional: texto personalizado da badge"
-												[ngModel]="getConditionDraft(combatant.id).customLabel"
-												(ngModelChange)="setConditionDraft(combatant.id, { customLabel: $event })"
-											/>
-										</label>
+										<div class="border-t border-white/10 pt-3 text-sm font-semibold">
+											Nova habilidade especial
+										</div>
+										<div
+											class="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)]"
+										>
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Nome</span>
+												<input
+													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="getAbilityDraft(combatant.id).name"
+													(ngModelChange)="setAbilityDraft(combatant.id, { name: $event })"
+													placeholder="Ex: Sopro Flamejante"
+												/>
+											</label>
 
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Duração</span>
-											<select
-												class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getConditionDraft(combatant.id).durationMode"
-												(ngModelChange)="setConditionDraft(combatant.id, { durationMode: $event })"
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Descrição</span>
+												<input
+													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="getAbilityDraft(combatant.id).description"
+													(ngModelChange)="setAbilityDraft(combatant.id, { description: $event })"
+													placeholder="Opcional"
+												/>
+											</label>
+
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Recuperação</span>
+												<select
+													class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="getAbilityDraft(combatant.id).recoveryType"
+													(ngModelChange)="setAbilityDraft(combatant.id, { recoveryType: $event })"
+												>
+													<option value="manual">Manual</option>
+													<option value="turn-cooldown">Cooldown por turnos</option>
+													<option value="round-cooldown">Cooldown por rounds</option>
+													<option value="uses-per-day">Usos por dia</option>
+													<option value="short-rest">Descanso curto</option>
+													<option value="long-rest">Descanso longo</option>
+													<option value="dice-recharge">Recharge 5-6</option>
+												</select>
+											</label>
+										</div>
+
+										<div class="flex justify-end">
+											<button
+												type="button"
+												class="h-10 w-full cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15 sm:w-auto sm:min-w-56"
+												(click)="addAbility(combatant.id)"
 											>
-												<option value="manual">Sem duração</option>
-												<option value="next-turn-end">Até o fim do próximo turno</option>
-												<option value="turns">Por turnos</option>
-												<option value="rounds">Por rounds</option>
-											</select>
-										</label>
+												Adicionar habilidade
+											</button>
+										</div>
 
-										@if (getConditionDraft(combatant.id).durationMode === 'turns' || getConditionDraft(combatant.id).durationMode === 'rounds') {
+										@if (
+											getAbilityDraft(combatant.id).recoveryType === 'turn-cooldown' ||
+											getAbilityDraft(combatant.id).recoveryType === 'round-cooldown'
+										) {
 											<label class="text-sm">
 												<span class="mb-1 block opacity-70">
-													@if (getConditionDraft(combatant.id).durationMode === 'turns') { Quantidade de turnos } @else { Quantidade de rounds }
+													@if (getAbilityDraft(combatant.id).recoveryType === 'turn-cooldown') {
+														Volta em quantos turnos?
+													} @else {
+														Volta em quantos rounds?
+													}
 												</span>
 												<input
 													type="number"
 													min="1"
 													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="getConditionDraft(combatant.id).durationValue"
-													(ngModelChange)="setConditionDraft(combatant.id, { durationValue: $event })"
+													[ngModel]="getAbilityDraft(combatant.id).cooldownValue"
+													(ngModelChange)="setAbilityDraft(combatant.id, { cooldownValue: $event })"
 												/>
 											</label>
 										}
 
-										<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 px-3 py-2 text-sm opacity-75">
-											Sera exibida como:
-											<span class="font-semibold opacity-100">
-												{{ conditionDraftPreview(combatant.id) }}
-											</span>
-											<span class="opacity-70"> · {{ conditionModeLabel(getConditionDraft(combatant.id).durationMode) }}</span>
-										</div>
-
-										<button
-											type="button"
-											class="h-10 w-full cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-											(click)="addCondition(combatant.id)"
-										>
-											Adicionar condição
-										</button>
-									</div>
-								</div>
-
-								<details class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4" [open]="combatant.specialAbilities.length > 0">
-									<summary class="cursor-pointer text-sm font-semibold text-app-text">
-										@if (combatant.specialAbilities.length > 0) { Habilidades especiais } @else { Adicionar habilidade especial }
-									</summary>
-									@if (combatant.specialAbilities.length > 0) {
-									<div>
-										<p class="mt-1 text-sm opacity-70">
-											Controle usos por dia, descanso, cooldown e recharge durante o combate.
-										</p>
-									</div>
-
-									<div class="space-y-2">
-										@for (ability of combatant.specialAbilities; track ability.id) {
-											<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-												<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-													<div class="min-w-0">
-														<div class="flex flex-wrap items-center gap-2">
-															<div class="break-words font-semibold">{{ ability.name }}</div>
-													<span
-														class="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
-														[class]="abilityAvailabilityClasses(ability)"
-													>
-														{{ abilityStatusLabel(ability) }}
-													</span>
-															@if (abilityRuleLabel(ability); as rule) {
-																<span class="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[11px] opacity-80">
-																	{{ rule }}
-																</span>
-															}
-														</div>
-														<div class="mt-1 text-sm opacity-80">{{ abilityRecoveryLabel(ability) }}</div>
-														@if (abilityUsageLabel(ability); as usage) {
-															<div class="mt-1 text-sm opacity-75">{{ usage }}</div>
-														}
-														@if (abilityLastUsedLabel(ability); as usedAt) {
-															<div class="mt-1 text-sm opacity-70">{{ usedAt }}</div>
-														}
-													@if (diceRechargeAttemptLabel(ability); as attempt) {
-														<div class="mt-1 text-sm font-semibold text-amber-100">{{ attempt }}</div>
-													} @else if (ability.recoveryType === 'dice-recharge' && ability.lastRechargeRoll) {
-														<div class="mt-1 text-sm opacity-70">Último recharge: {{ ability.lastRechargeRoll }}</div>
-														}
-														@if (ability.description) {
-															<div class="mt-1 break-words text-sm opacity-65">{{ ability.description }}</div>
-														}
-													</div>
-
-													<div class="flex flex-wrap gap-2 md:justify-end">
-														<button
-															type="button"
-															class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
-															[disabled]="!canUseAbility(ability)"
-															[class.opacity-50]="!canUseAbility(ability)"
-															(click)="useAbility(combatant.id, ability.id)"
-														>
-															{{ abilityUseLabel(ability) }}
-														</button>
-
-														<button
-															type="button"
-															class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
-															(click)="resetAbility(combatant.id, ability.id)"
-														>
-															{{ abilityResetLabel(ability) }}
-														</button>
-
-														<button
-															type="button"
-															class="h-9 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-3 text-sm hover:bg-red-500/20"
-															(click)="removeAbility(combatant.id, ability.id)"
-														>
-															Remover
-														</button>
-													</div>
-												</div>
-											</div>
+										@if (
+											getAbilityDraft(combatant.id).recoveryType === 'uses-per-day' ||
+											getAbilityDraft(combatant.id).recoveryType === 'short-rest' ||
+											getAbilityDraft(combatant.id).recoveryType === 'long-rest'
+										) {
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Usos máximos</span>
+												<input
+													type="number"
+													min="1"
+													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="getAbilityDraft(combatant.id).maxUses"
+													(ngModelChange)="setAbilityDraft(combatant.id, { maxUses: $event })"
+												/>
+											</label>
 										}
-									</div>
-									}
 
-									<div class="border-t border-white/10 pt-3 text-sm font-semibold">Nova habilidade especial</div>
-									<div class="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)]">
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Nome</span>
-											<input
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getAbilityDraft(combatant.id).name"
-												(ngModelChange)="setAbilityDraft(combatant.id, { name: $event })"
-												placeholder="Ex: Sopro Flamejante"
-											/>
-										</label>
+										@if (getAbilityDraft(combatant.id).recoveryType === 'dice-recharge') {
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Resultados que recarregam</span>
+												<input
+													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="getAbilityDraft(combatant.id).rechargeOn"
+													(ngModelChange)="setAbilityDraft(combatant.id, { rechargeOn: $event })"
+													placeholder="Ex: 5,6"
+												/>
+											</label>
+										}
+									</details>
 
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Descrição</span>
-											<input
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getAbilityDraft(combatant.id).description"
-												(ngModelChange)="setAbilityDraft(combatant.id, { description: $event })"
-												placeholder="Opcional"
-											/>
-										</label>
-
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Recuperação</span>
-											<select
-												class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getAbilityDraft(combatant.id).recoveryType"
-												(ngModelChange)="setAbilityDraft(combatant.id, { recoveryType: $event })"
+									@if (spellSlotsEnabled(combatant)) {
+										<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+											<div
+												class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
 											>
-												<option value="manual">Manual</option>
-												<option value="turn-cooldown">Cooldown por turnos</option>
-												<option value="round-cooldown">Cooldown por rounds</option>
-												<option value="uses-per-day">Usos por dia</option>
-												<option value="short-rest">Descanso curto</option>
-												<option value="long-rest">Descanso longo</option>
-												<option value="dice-recharge">Recharge 5-6</option>
-											</select>
-										</label>
+												<div>
+													<h4 class="font-semibold">Espaços de magia</h4>
+													<p class="text-sm opacity-70">
+														{{ combatant.spellSlots.length }} níveis configurados
+													</p>
+												</div>
 
-									</div>
+												<button
+													type="button"
+													class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
+													(click)="toggleSpellSlotsVisibility(combatant.id)"
+												>
+													@if (spellSlotsVisible(combatant)) {
+														Fechar
+													} @else {
+														Abrir
+													}
+												</button>
+											</div>
 
-									<div class="flex justify-end">
-										<button
-											type="button"
-											class="h-10 w-full cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15 sm:w-auto sm:min-w-56"
-											(click)="addAbility(combatant.id)"
-										>
-											Adicionar habilidade
-										</button>
-									</div>
+											@if (spellSlotsVisible(combatant)) {
+												<div class="grid gap-3">
+													@for (slot of combatant.spellSlots; track slot.level) {
+														<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+															<div
+																class="grid gap-4 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] xl:items-center"
+															>
+																<div class="min-w-0">
+																	<div class="font-semibold">Nível {{ slot.level }}</div>
+																	<div class="text-sm opacity-75">
+																		{{ availableSpellSlots(slot) }} / {{ slot.max }} disponíveis
+																	</div>
+																</div>
 
-									@if (getAbilityDraft(combatant.id).recoveryType === 'turn-cooldown' || getAbilityDraft(combatant.id).recoveryType === 'round-cooldown') {
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">
-												@if (getAbilityDraft(combatant.id).recoveryType === 'turn-cooldown') { Volta em quantos turnos? } @else { Volta em quantos rounds? }
-											</span>
-											<input
-												type="number"
-												min="1"
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getAbilityDraft(combatant.id).cooldownValue"
-												(ngModelChange)="setAbilityDraft(combatant.id, { cooldownValue: $event })"
-											/>
-										</label>
-									}
+																<div class="grid gap-3">
+																	<div class="grid gap-2 sm:grid-cols-2">
+																		<label class="text-sm">
+																			<span class="mb-1 block opacity-70">Máximo</span>
+																			<input
+																				type="number"
+																				min="0"
+																				class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+																				[ngModel]="slot.max"
+																				(ngModelChange)="
+																					setSpellSlotMax(combatant.id, slot.level, $event)
+																				"
+																			/>
+																		</label>
 
-									@if (getAbilityDraft(combatant.id).recoveryType === 'uses-per-day' || getAbilityDraft(combatant.id).recoveryType === 'short-rest' || getAbilityDraft(combatant.id).recoveryType === 'long-rest') {
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Usos máximos</span>
-											<input
-												type="number"
-												min="1"
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getAbilityDraft(combatant.id).maxUses"
-												(ngModelChange)="setAbilityDraft(combatant.id, { maxUses: $event })"
-											/>
-										</label>
-									}
+																		<label class="text-sm">
+																			<span class="mb-1 block opacity-70">Usados</span>
+																			<input
+																				type="number"
+																				min="0"
+																				class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+																				[ngModel]="slot.used"
+																				(ngModelChange)="
+																					setSpellSlotUsed(combatant.id, slot.level, $event)
+																				"
+																			/>
+																		</label>
+																	</div>
 
-									@if (getAbilityDraft(combatant.id).recoveryType === 'dice-recharge') {
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Resultados que recarregam</span>
-											<input
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="getAbilityDraft(combatant.id).rechargeOn"
-												(ngModelChange)="setAbilityDraft(combatant.id, { rechargeOn: $event })"
-												placeholder="Ex: 5,6"
-											/>
-										</label>
-									}
-								</details>
+																	<div class="grid gap-2 sm:grid-cols-2">
+																		<button
+																			type="button"
+																			class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 hover:bg-amber-500/20"
+																			(click)="useSpellSlot(combatant.id, slot.level)"
+																		>
+																			Usar slot
+																		</button>
 
-								@if (spellSlotsEnabled(combatant)) {
-									<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
-									<div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-										<div>
-											<h4 class="font-semibold">Espaços de magia</h4>
-											<p class="text-sm opacity-70">{{ combatant.spellSlots.length }} níveis configurados</p>
-										</div>
-
-										<button
-											type="button"
-											class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
-											(click)="toggleSpellSlotsVisibility(combatant.id)"
-										>
-											@if (spellSlotsVisible(combatant)) { Fechar } @else { Abrir }
-										</button>
-									</div>
-
-									@if (spellSlotsVisible(combatant)) {
-										<div class="grid gap-3">
-											@for (slot of combatant.spellSlots; track slot.level) {
-												<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-													<div class="grid gap-4 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] xl:items-center">
-														<div class="min-w-0">
-															<div class="font-semibold">Nível {{ slot.level }}</div>
-															<div class="text-sm opacity-75">
-																{{ availableSpellSlots(slot) }} / {{ slot.max }} disponíveis
+																		<button
+																			type="button"
+																			class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 hover:bg-emerald-500/20"
+																			(click)="recoverSpellSlot(combatant.id, slot.level)"
+																		>
+																			Recuperar slot
+																		</button>
+																	</div>
+																</div>
 															</div>
 														</div>
-
-														<div class="grid gap-3">
-															<div class="grid gap-2 sm:grid-cols-2">
-																<label class="text-sm">
-																	<span class="mb-1 block opacity-70">Máximo</span>
-																	<input
-																		type="number"
-																		min="0"
-																		class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-																		[ngModel]="slot.max"
-																		(ngModelChange)="setSpellSlotMax(combatant.id, slot.level, $event)"
-																	/>
-																</label>
-
-																<label class="text-sm">
-																	<span class="mb-1 block opacity-70">Usados</span>
-																	<input
-																		type="number"
-																		min="0"
-																		class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-																		[ngModel]="slot.used"
-																		(ngModelChange)="setSpellSlotUsed(combatant.id, slot.level, $event)"
-																	/>
-																</label>
-															</div>
-
-															<div class="grid gap-2 sm:grid-cols-2">
-																<button
-																	type="button"
-																	class="h-10 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-4 hover:bg-amber-500/20"
-																	(click)="useSpellSlot(combatant.id, slot.level)"
-																>
-																	Usar slot
-																</button>
-
-																<button
-																	type="button"
-																	class="h-10 cursor-pointer rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 hover:bg-emerald-500/20"
-																	(click)="recoverSpellSlot(combatant.id, slot.level)"
-																>
-																	Recuperar slot
-																</button>
-															</div>
-														</div>
-													</div>
+													}
 												</div>
 											}
 										</div>
 									}
-									</div>
-								}
 
-								@if (hasSpells(combatant)) {
-									<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
-									<div>
-										<h4 class="font-semibold">Magias conhecidas</h4>
-										<p class="text-sm opacity-70">
-											Magias salvas na ficha original para consulta rápida durante a batalha.
-										</p>
-									</div>
-
-									<div class="grid gap-2 md:grid-cols-2">
-										@for (spell of combatant.spells; track spell.id) {
-											<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-												<div class="font-semibold">{{ spell.name }}</div>
-												<div class="mt-1 text-sm opacity-75">
-													@if (spell.level != null) { Nível {{ spell.level }} }
-													@if (spell.source) { · {{ spell.source }} }
-													@if (spell.uses != null) { · Usos base: {{ spell.uses }} }
-												</div>
+									@if (hasSpells(combatant)) {
+										<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+											<div>
+												<h4 class="font-semibold">Magias conhecidas</h4>
+												<p class="text-sm opacity-70">
+													Magias salvas na ficha original para consulta rápida durante a batalha.
+												</p>
 											</div>
-										}
-									</div>
-								</div>
-								}
 
-								@if (hasSheetFeatures(combatant)) {
-									<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
-									<div>
-										<h4 class="font-semibold">Dados da ficha</h4>
-										<p class="text-sm opacity-70">
-											Traits, ações, reações e observações importadas da ficha original.
-										</p>
-									</div>
-
-									<div class="space-y-2">
-										@for (feature of combatant.features; track feature.id) {
-											<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-												<div class="flex flex-wrap items-center gap-2">
-													<div class="font-semibold">{{ feature.name }}</div>
-													<span class="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[11px] opacity-75">
-														{{ featureKindLabel(feature.kind) }}
-													</span>
-												</div>
-												@if (feature.description) {
-													<div class="mt-2 whitespace-pre-wrap text-sm opacity-80">
-														{{ feature.description }}
+											<div class="grid gap-2 md:grid-cols-2">
+												@for (spell of combatant.spells; track spell.id) {
+													<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+														<div class="flex flex-wrap items-start justify-between gap-2">
+															<div class="font-semibold">{{ spell.name }}</div>
+															@if (spell.source) {
+																<button
+																	type="button"
+																	data-testid="quick-spell-view"
+																	class="h-8 cursor-pointer rounded-xl border border-violet-300/30 bg-violet-500/10 px-2.5 text-xs font-semibold text-violet-50 hover:bg-violet-500/20"
+																	(click)="openSpellQuickView(spell)"
+																>
+																	Ver detalhes
+																</button>
+															}
+														</div>
+														<div class="mt-1 text-sm opacity-75">
+															@if (spell.level != null) {
+																Nível {{ spell.level }}
+															}
+															@if (spell.source) {
+																· {{ spell.source }}
+															}
+															@if (spell.uses != null) {
+																· Usos base: {{ spell.uses }}
+															}
+														</div>
 													</div>
 												}
 											</div>
-										}
-									</div>
-								</div>
-								}
+										</div>
+									}
 
-								<div class="mt-4">
-									<label class="text-sm">
-										<span class="mb-1 block font-semibold">Notas privadas</span>
-										<textarea
-											class="min-h-24 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											placeholder="Notas do mestre para este combatente"
-											[ngModel]="combatant.privateNotes || ''"
-											(ngModelChange)="setPrivateNotes(combatant.id, $event)"
-										></textarea>
-									</label>
-								</div>
+									@if (hasSheetFeatures(combatant)) {
+										<div class="mt-4 space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+											<div>
+												<h4 class="font-semibold">Dados da ficha</h4>
+												<p class="text-sm opacity-70">
+													Traits, ações, reações e observações importadas da ficha original.
+												</p>
+											</div>
+
+											<div class="space-y-2">
+												@for (feature of combatant.features; track feature.id) {
+													<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+														<div class="flex flex-wrap items-center gap-2">
+															<div class="font-semibold">{{ feature.name }}</div>
+															<span
+																class="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[11px] opacity-75"
+															>
+																{{ featureKindLabel(feature.kind) }}
+															</span>
+														</div>
+														@if (feature.description) {
+															<div class="mt-2 whitespace-pre-wrap text-sm opacity-80">
+																{{ feature.description }}
+															</div>
+														}
+													</div>
+												}
+											</div>
+										</div>
+									}
+
+									<div class="mt-4">
+										<label class="text-sm">
+											<span class="mb-1 block font-semibold">Notas privadas</span>
+											<textarea
+												class="min-h-24 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+												placeholder="Notas do mestre para este combatente"
+												[ngModel]="combatant.privateNotes || ''"
+												(ngModelChange)="setPrivateNotes(combatant.id, $event)"
+											></textarea>
+										</label>
+									</div>
 								} @else {
-											<div class="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-3 text-sm opacity-75">
-												Selecione Abrir painel para acessar estado detalhado, recursos, referência e notas.
+									<div
+										class="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-3 text-sm opacity-75"
+									>
+										Selecione Abrir painel para acessar estado detalhado, recursos, referência e
+										notas.
 									</div>
 								}
 							</div>
@@ -1212,14 +1532,18 @@
 							<div class="rounded-2xl border border-white/10 bg-black/20 p-3">
 								<div class="flex flex-wrap items-center justify-between gap-2">
 									<div class="font-semibold">{{ event.label }}</div>
-									<span class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] opacity-80">
+									<span
+										class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] opacity-80"
+									>
 										{{ eventActorLabel(event) }}
 									</span>
 								</div>
 								<div class="mt-1 text-xs opacity-70">Round {{ event.round }}</div>
 							</div>
 						} @empty {
-							<div class="rounded-2xl border border-dashed border-white/10 bg-black/10 p-4 text-sm opacity-70">
+							<div
+								class="rounded-2xl border border-dashed border-white/10 bg-black/10 p-4 text-sm opacity-70"
+							>
 								Nenhum próximo evento relevante calculado no momento.
 							</div>
 						}
@@ -1227,362 +1551,429 @@
 				</div>
 
 				<details class="app-panel p-4">
-					<summary class="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-app-text">
+					<summary
+						class="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-app-text"
+					>
 						<span>Ferramentas da sessão</span>
-						<span class="text-xs font-normal text-app-muted">Iniciativa, ambiente, notas e histórico</span>
+						<span class="text-xs font-normal text-app-muted"
+							>Iniciativa, ambiente, notas e histórico</span
+						>
 					</summary>
 					<div class="mt-4 space-y-4">
-				<section class="app-panel p-4 sm:p-5">
-					<div class="flex items-start justify-between gap-3">
-						<div>
-							<h3 class="text-xl font-semibold">Iniciativas</h3>
-							<p class="mt-1 text-sm text-app-muted">Alterações são aplicadas no início do próximo round.</p>
-						</div>
-						<span class="app-status shrink-0 border border-app-divider bg-app-surface">{{ combatants().length }} combatentes</span>
-					</div>
-
-					<div class="mt-4 divide-y divide-app-divider border-y border-app-divider">
-						@for (combatant of combatants(); track combatant.id) {
-							<div class="grid gap-3 py-3 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.8fr)] lg:items-center">
-								<div class="min-w-0">
-									<div class="font-semibold text-app-text">{{ combatant.displayName || combatant.name }}</div>
-									<div class="mt-0.5 text-sm text-app-muted">
-										Iniciativa {{ combatant.initiative }}
-										@if (combatant.initiativeTieBreaker != null) { · DES {{ combatant.initiativeTieBreaker }} }
-										@if (shouldShowPendingInitiative(combatant)) { · Próximo round {{ combatant.nextRoundInitiative }} }
-										@if (shouldShowPendingInitiativeTieBreaker(combatant)) { · DES agendado {{ combatant.nextRoundInitiativeTieBreaker ?? '-' }} }
-										@if (combatant.pendingAdd) { · Entra no próximo round }
-									</div>
+						<section class="app-panel p-4 sm:p-5">
+							<div class="flex items-start justify-between gap-3">
+								<div>
+									<h3 class="text-xl font-semibold">Iniciativas</h3>
+									<p class="mt-1 text-sm text-app-muted">
+										Alterações são aplicadas no início do próximo round.
+									</p>
 								</div>
-
-								<div class="flex min-w-0 flex-wrap items-end gap-2">
-									<label class="min-w-22 flex-1 text-sm text-app-muted">
-										<span class="mb-1 block">Próximo round</span>
-										<input type="number" aria-label="Iniciativa para o próximo round" class="app-field h-10 w-full px-3" [ngModel]="getInitiativeDraft(combatant)" (ngModelChange)="setInitiativeDraft(combatant.id, $event)" />
-									</label>
-									<button type="button" class="app-button app-button-secondary h-10" (click)="applyInitiativeChange(combatant.id)">Aplicar</button>
-									@if (combatant.nextRoundInitiative != null) {
-										<button type="button" class="app-button app-button-ghost h-10" (click)="clearInitiativeChange(combatant.id)">Limpar</button>
-									}
-									@if (combatant.initiativeTieBreaker != null || shouldShowPendingInitiativeTieBreaker(combatant)) {
-										<label class="w-full text-sm text-app-muted">
-											<span class="mb-1 block">DES de desempate</span>
-											<input type="number" aria-label="DES de desempate" class="app-field h-10 w-full px-3" [ngModel]="getInitiativeTieBreakerValue(combatant)" (ngModelChange)="scheduleInitiativeTieBreaker(combatant.id, $event)" />
-										</label>
-									}
-								</div>
-							</div>
-						}
-					</div>
-				</section>
-
-				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
-					<div>
-						<h3 class="text-xl font-semibold">Ações de covil e armadilhas</h3>
-						<p class="mt-1 text-sm opacity-75">
-							Eventos de ambiente ativos, separados dos combatentes da iniciativa.
-						</p>
-					</div>
-
-					<div class="mt-4 space-y-4">
-						<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-							<div class="mb-3 flex items-center justify-between gap-3">
-								<h4 class="font-semibold">Ações de covil</h4>
-								<span class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px]">
-									{{ battle()!.lairActions.length }} ativas
-								</span>
+								<span class="app-status shrink-0 border border-app-divider bg-app-surface"
+									>{{ combatants().length }} combatentes</span
+								>
 							</div>
 
-							<div class="space-y-2">
-								@for (action of battle()!.lairActions; track action.id) {
-									<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-										<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-											<div>
-												<div class="font-semibold">{{ action.name }}</div>
-												<div class="mt-1 text-sm opacity-75">{{ lairActionScheduleLabel(action) }}</div>
-												@if (action.description) {
-													<div class="mt-1 text-sm opacity-65">{{ action.description }}</div>
+							<div class="mt-4 divide-y divide-app-divider border-y border-app-divider">
+								@for (combatant of combatants(); track combatant.id) {
+									<div
+										class="grid gap-3 py-3 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.8fr)] lg:items-center"
+									>
+										<div class="min-w-0">
+											<div class="font-semibold text-app-text">
+												{{ combatant.displayName || combatant.name }}
+											</div>
+											<div class="mt-0.5 text-sm text-app-muted">
+												Iniciativa {{ combatant.initiative }}
+												@if (combatant.initiativeTieBreaker != null) {
+													· DES {{ combatant.initiativeTieBreaker }}
+												}
+												@if (shouldShowPendingInitiative(combatant)) {
+													· Próximo round {{ combatant.nextRoundInitiative }}
+												}
+												@if (shouldShowPendingInitiativeTieBreaker(combatant)) {
+													· DES agendado {{ combatant.nextRoundInitiativeTieBreaker ?? '-' }}
+												}
+												@if (combatant.pendingAdd) {
+													· Entra no próximo round
 												}
 											</div>
-											<div class="flex flex-wrap gap-2">
-												<button
-													type="button"
-													class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
-													(click)="triggerLairAction(action.id)"
-												>
-													Executar
-												</button>
-												<label class="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm">
-													<input
-														type="checkbox"
-														class="h-4 w-4"
-														[checked]="action.active"
-														(change)="toggleLairAction(action.id, $any($event.target).checked)"
-													/>
-													<span>Ativa</span>
-												</label>
-												<button
-													type="button"
-													class="h-9 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-3 text-sm hover:bg-red-500/20"
-													(click)="removeLairAction(action.id)"
-												>
-													Remover
-												</button>
-											</div>
 										</div>
-									</div>
-								} @empty {
-									<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
-										Nenhuma lair action cadastrada.
+
+										<div class="flex min-w-0 flex-wrap items-end gap-2">
+											<label class="min-w-22 flex-1 text-sm text-app-muted">
+												<span class="mb-1 block">Próximo round</span>
+												<input
+													type="number"
+													aria-label="Iniciativa para o próximo round"
+													class="app-field h-10 w-full px-3"
+													[ngModel]="getInitiativeDraft(combatant)"
+													(ngModelChange)="setInitiativeDraft(combatant.id, $event)"
+												/>
+											</label>
+											<button
+												type="button"
+												class="app-button app-button-secondary h-10"
+												(click)="applyInitiativeChange(combatant.id)"
+											>
+												Aplicar
+											</button>
+											@if (combatant.nextRoundInitiative != null) {
+												<button
+													type="button"
+													class="app-button app-button-ghost h-10"
+													(click)="clearInitiativeChange(combatant.id)"
+												>
+													Limpar
+												</button>
+											}
+											@if (
+												combatant.initiativeTieBreaker != null ||
+												shouldShowPendingInitiativeTieBreaker(combatant)
+											) {
+												<label class="w-full text-sm text-app-muted">
+													<span class="mb-1 block">DES de desempate</span>
+													<input
+														type="number"
+														aria-label="DES de desempate"
+														class="app-field h-10 w-full px-3"
+														[ngModel]="getInitiativeTieBreakerValue(combatant)"
+														(ngModelChange)="scheduleInitiativeTieBreaker(combatant.id, $event)"
+													/>
+												</label>
+											}
+										</div>
 									</div>
 								}
 							</div>
+						</section>
 
-							<div class="mt-3 grid gap-3">
-								<input
-									class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-									placeholder="Adicionar Lair Action"
-									[ngModel]="lairActionDraft().name"
-									(ngModelChange)="setLairActionDraft({ name: $event })"
-								/>
-								<input
-									class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-									placeholder="Descrição opcional"
-									[ngModel]="lairActionDraft().description"
-									(ngModelChange)="setLairActionDraft({ description: $event })"
-								/>
-								<div class="grid gap-3 md:grid-cols-3">
-									<label class="text-sm">
-										<span class="mb-1 block opacity-70">Iniciativa</span>
+						<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+							<div>
+								<h3 class="text-xl font-semibold">Ações de covil e armadilhas</h3>
+								<p class="mt-1 text-sm opacity-75">
+									Eventos de ambiente ativos, separados dos combatentes da iniciativa.
+								</p>
+							</div>
+
+							<div class="mt-4 space-y-4">
+								<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+									<div class="mb-3 flex items-center justify-between gap-3">
+										<h4 class="font-semibold">Ações de covil</h4>
+										<span
+											class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px]"
+										>
+											{{ battle()!.lairActions.length }} ativas
+										</span>
+									</div>
+
+									<div class="space-y-2">
+										@for (action of battle()!.lairActions; track action.id) {
+											<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+												<div
+													class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
+												>
+													<div>
+														<div class="font-semibold">{{ action.name }}</div>
+														<div class="mt-1 text-sm opacity-75">
+															{{ lairActionScheduleLabel(action) }}
+														</div>
+														@if (action.description) {
+															<div class="mt-1 text-sm opacity-65">{{ action.description }}</div>
+														}
+													</div>
+													<div class="flex flex-wrap gap-2">
+														<button
+															type="button"
+															class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
+															(click)="triggerLairAction(action.id)"
+														>
+															Executar
+														</button>
+														<label
+															class="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
+														>
+															<input
+																type="checkbox"
+																class="h-4 w-4"
+																[checked]="action.active"
+																(change)="toggleLairAction(action.id, $any($event.target).checked)"
+															/>
+															<span>Ativa</span>
+														</label>
+														<button
+															type="button"
+															class="h-9 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-3 text-sm hover:bg-red-500/20"
+															(click)="removeLairAction(action.id)"
+														>
+															Remover
+														</button>
+													</div>
+												</div>
+											</div>
+										} @empty {
+											<div
+												class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70"
+											>
+												Nenhuma lair action cadastrada.
+											</div>
+										}
+									</div>
+
+									<div class="mt-3 grid gap-3">
 										<input
-											type="number"
 											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="lairActionDraft().initiative"
-											(ngModelChange)="setLairActionDraft({ initiative: $event })"
+											placeholder="Adicionar Lair Action"
+											[ngModel]="lairActionDraft().name"
+											(ngModelChange)="setLairActionDraft({ name: $event })"
 										/>
-									</label>
-									<label class="text-sm">
-										<span class="mb-1 block opacity-70">Frequência</span>
-										<select
+										<input
 											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="lairActionDraft().frequency"
-											(ngModelChange)="setLairActionDraft({ frequency: $event })"
+											placeholder="Descrição opcional"
+											[ngModel]="lairActionDraft().description"
+											(ngModelChange)="setLairActionDraft({ description: $event })"
+										/>
+										<div class="grid gap-3 md:grid-cols-3">
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Iniciativa</span>
+												<input
+													type="number"
+													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="lairActionDraft().initiative"
+													(ngModelChange)="setLairActionDraft({ initiative: $event })"
+												/>
+											</label>
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Frequência</span>
+												<select
+													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="lairActionDraft().frequency"
+													(ngModelChange)="setLairActionDraft({ frequency: $event })"
+												>
+													<option value="every-round">Todo round</option>
+													<option value="cooldown-rounds">Cooldown por rounds</option>
+													<option value="manual">Manual</option>
+												</select>
+											</label>
+											@if (lairActionDraft().frequency === 'cooldown-rounds') {
+												<label class="text-sm">
+													<span class="mb-1 block opacity-70">Cooldown</span>
+													<input
+														type="number"
+														min="1"
+														class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+														[ngModel]="lairActionDraft().cooldownRounds"
+														(ngModelChange)="setLairActionDraft({ cooldownRounds: $event })"
+													/>
+												</label>
+											}
+										</div>
+										<button
+											type="button"
+											class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+											(click)="addLairAction()"
 										>
-											<option value="every-round">Todo round</option>
-											<option value="cooldown-rounds">Cooldown por rounds</option>
-											<option value="manual">Manual</option>
-										</select>
-									</label>
-									@if (lairActionDraft().frequency === 'cooldown-rounds') {
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Cooldown</span>
-											<input
-												type="number"
-												min="1"
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="lairActionDraft().cooldownRounds"
-												(ngModelChange)="setLairActionDraft({ cooldownRounds: $event })"
-											/>
-										</label>
-									}
+											Adicionar Lair Action
+										</button>
+									</div>
 								</div>
-								<button
-									type="button"
-									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-									(click)="addLairAction()"
-								>
-									Adicionar Lair Action
-								</button>
+
+								<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+									<div class="mb-3 flex items-center justify-between gap-3">
+										<h4 class="font-semibold">Armadilhas</h4>
+										<span
+											class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px]"
+										>
+											{{ battle()!.traps.length }} ativas
+										</span>
+									</div>
+
+									<div class="space-y-2">
+										@for (trap of battle()!.traps; track trap.id) {
+											<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+												<div
+													class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
+												>
+													<div>
+														<div class="font-semibold">{{ trap.name }}</div>
+														<div class="mt-1 text-sm opacity-75">{{ trapScheduleLabel(trap) }}</div>
+														@if (trap.description) {
+															<div class="mt-1 text-sm opacity-65">{{ trap.description }}</div>
+														}
+													</div>
+													<div class="flex flex-wrap gap-2">
+														<button
+															type="button"
+															class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
+															(click)="triggerTrap(trap.id)"
+														>
+															Executar
+														</button>
+														<label
+															class="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
+														>
+															<input
+																type="checkbox"
+																class="h-4 w-4"
+																[checked]="trap.active"
+																(change)="toggleTrap(trap.id, $any($event.target).checked)"
+															/>
+															<span>Ativa</span>
+														</label>
+														<button
+															type="button"
+															class="h-9 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-3 text-sm hover:bg-red-500/20"
+															(click)="removeTrap(trap.id)"
+														>
+															Remover
+														</button>
+													</div>
+												</div>
+											</div>
+										} @empty {
+											<div
+												class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70"
+											>
+												Nenhuma armadilha cadastrada.
+											</div>
+										}
+									</div>
+
+									<div class="mt-3 grid gap-3">
+										<input
+											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+											placeholder="Adicionar Armadilha"
+											[ngModel]="trapDraft().name"
+											(ngModelChange)="setTrapDraft({ name: $event })"
+										/>
+										<input
+											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+											placeholder="Descrição opcional"
+											[ngModel]="trapDraft().description"
+											(ngModelChange)="setTrapDraft({ description: $event })"
+										/>
+										<div class="grid gap-3 md:grid-cols-3">
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Gatilho</span>
+												<select
+													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="trapDraft().triggerType"
+													(ngModelChange)="setTrapDraft({ triggerType: $event })"
+												>
+													<option value="initiative">Iniciativa</option>
+													<option value="round-start">Início do round</option>
+													<option value="round-end">Fim do round</option>
+													<option value="manual">Manual</option>
+												</select>
+											</label>
+											@if (trapDraft().triggerType === 'initiative') {
+												<label class="text-sm">
+													<span class="mb-1 block opacity-70">Iniciativa</span>
+													<input
+														type="number"
+														class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+														[ngModel]="trapDraft().initiative"
+														(ngModelChange)="setTrapDraft({ initiative: $event })"
+													/>
+												</label>
+											}
+											<label class="text-sm">
+												<span class="mb-1 block opacity-70">Frequência</span>
+												<select
+													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+													[ngModel]="trapDraft().frequency"
+													(ngModelChange)="setTrapDraft({ frequency: $event })"
+												>
+													<option value="once">Uma vez</option>
+													<option value="every-round">Todo round</option>
+													<option value="cooldown-rounds">Cooldown por rounds</option>
+													<option value="manual">Manual</option>
+												</select>
+											</label>
+											@if (trapDraft().frequency === 'cooldown-rounds') {
+												<label class="text-sm">
+													<span class="mb-1 block opacity-70">Cooldown</span>
+													<input
+														type="number"
+														min="1"
+														class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+														[ngModel]="trapDraft().cooldownRounds"
+														(ngModelChange)="setTrapDraft({ cooldownRounds: $event })"
+													/>
+												</label>
+											}
+										</div>
+										<button
+											type="button"
+											class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
+											(click)="addTrap()"
+										>
+											Adicionar Armadilha
+										</button>
+									</div>
+								</div>
 							</div>
 						</div>
 
-						<div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-							<div class="mb-3 flex items-center justify-between gap-3">
-								<h4 class="font-semibold">Armadilhas</h4>
-								<span class="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px]">
-									{{ battle()!.traps.length }} ativas
+						<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+							<h3 class="text-xl font-semibold">Notas do mestre</h3>
+							<p class="mt-1 text-sm opacity-75">
+								Essas notas ficam salvas localmente junto com a batalha.
+							</p>
+
+							<textarea
+								class="mt-4 min-h-40 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+								placeholder="Resumo da batalha, objetivos, lembretes..."
+								[ngModel]="battle()!.dmNotes || ''"
+								(ngModelChange)="setDmNotes($event)"
+							></textarea>
+						</div>
+
+						<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+							<div class="flex items-center justify-between gap-3">
+								<div>
+									<h3 class="text-xl font-semibold">Histórico de turnos</h3>
+									<p class="mt-1 text-sm opacity-75">
+										Inclui tempo de turno, expiração de condições e retorno de habilidades.
+									</p>
+								</div>
+								<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">
+									{{ battle()!.turnHistory.length }} eventos
 								</span>
 							</div>
 
-							<div class="space-y-2">
-								@for (trap of battle()!.traps; track trap.id) {
-									<div class="rounded-2xl border border-white/10 bg-white/5 p-3">
-										<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-											<div>
-												<div class="font-semibold">{{ trap.name }}</div>
-												<div class="mt-1 text-sm opacity-75">{{ trapScheduleLabel(trap) }}</div>
-												@if (trap.description) {
-													<div class="mt-1 text-sm opacity-65">{{ trap.description }}</div>
-												}
+							<div class="mt-4 space-y-3">
+								@for (entry of turnHistory(); track entry.id) {
+									<div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+										<div class="flex flex-wrap items-center justify-between gap-2">
+											<div class="font-semibold">
+												Round {{ entry.round }} · {{ entry.combatantName }}
 											</div>
-											<div class="flex flex-wrap gap-2">
-												<button
-													type="button"
-													class="h-9 cursor-pointer rounded-2xl border border-amber-300/30 bg-amber-500/15 px-3 text-sm hover:bg-amber-500/20"
-													(click)="triggerTrap(trap.id)"
-												>
-													Executar
-												</button>
-												<label class="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm">
-													<input
-														type="checkbox"
-														class="h-4 w-4"
-														[checked]="trap.active"
-														(change)="toggleTrap(trap.id, $any($event.target).checked)"
-													/>
-													<span>Ativa</span>
-												</label>
-												<button
-													type="button"
-													class="h-9 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-3 text-sm hover:bg-red-500/20"
-													(click)="removeTrap(trap.id)"
-												>
-													Remover
-												</button>
+											<div class="text-sm opacity-75">
+												{{ formatDuration(entry.durationSeconds || 0) }}
 											</div>
 										</div>
+
+										<div class="mt-1 break-words text-xs opacity-65">
+											Turno {{ entry.turnIndex + 1 }} ·
+											{{ entry.startedAt | date: 'shortTime' }}
+											@if (entry.endedAt) {
+												<span> até {{ entry.endedAt | date: 'shortTime' }}</span>
+											}
+										</div>
+
+										@if (entry.notes) {
+											<div class="mt-2 text-sm opacity-85">{{ entry.notes }}</div>
+										}
 									</div>
 								} @empty {
-									<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-70">
-										Nenhuma armadilha cadastrada.
+									<div
+										class="rounded-2xl border border-dashed border-white/10 bg-black/10 p-4 text-sm opacity-70"
+									>
+										O histórico vai aparecer aqui depois do primeiro avançar de turno.
 									</div>
 								}
 							</div>
-
-							<div class="mt-3 grid gap-3">
-								<input
-									class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-									placeholder="Adicionar Armadilha"
-									[ngModel]="trapDraft().name"
-									(ngModelChange)="setTrapDraft({ name: $event })"
-								/>
-								<input
-									class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-									placeholder="Descrição opcional"
-									[ngModel]="trapDraft().description"
-									(ngModelChange)="setTrapDraft({ description: $event })"
-								/>
-								<div class="grid gap-3 md:grid-cols-3">
-									<label class="text-sm">
-										<span class="mb-1 block opacity-70">Gatilho</span>
-										<select
-											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="trapDraft().triggerType"
-											(ngModelChange)="setTrapDraft({ triggerType: $event })"
-										>
-											<option value="initiative">Iniciativa</option>
-											<option value="round-start">Início do round</option>
-											<option value="round-end">Fim do round</option>
-											<option value="manual">Manual</option>
-										</select>
-									</label>
-									@if (trapDraft().triggerType === 'initiative') {
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Iniciativa</span>
-											<input
-												type="number"
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="trapDraft().initiative"
-												(ngModelChange)="setTrapDraft({ initiative: $event })"
-											/>
-										</label>
-									}
-									<label class="text-sm">
-										<span class="mb-1 block opacity-70">Frequência</span>
-										<select
-											class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-											[ngModel]="trapDraft().frequency"
-											(ngModelChange)="setTrapDraft({ frequency: $event })"
-										>
-											<option value="once">Uma vez</option>
-											<option value="every-round">Todo round</option>
-											<option value="cooldown-rounds">Cooldown por rounds</option>
-											<option value="manual">Manual</option>
-										</select>
-									</label>
-									@if (trapDraft().frequency === 'cooldown-rounds') {
-										<label class="text-sm">
-											<span class="mb-1 block opacity-70">Cooldown</span>
-											<input
-												type="number"
-												min="1"
-												class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												[ngModel]="trapDraft().cooldownRounds"
-												(ngModelChange)="setTrapDraft({ cooldownRounds: $event })"
-											/>
-										</label>
-									}
-								</div>
-								<button
-									type="button"
-									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15"
-									(click)="addTrap()"
-								>
-									Adicionar Armadilha
-								</button>
-							</div>
 						</div>
-					</div>
-				</div>
-
-				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
-					<h3 class="text-xl font-semibold">Notas do mestre</h3>
-					<p class="mt-1 text-sm opacity-75">
-						Essas notas ficam salvas localmente junto com a batalha.
-					</p>
-
-					<textarea
-						class="mt-4 min-h-40 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-						placeholder="Resumo da batalha, objetivos, lembretes..."
-						[ngModel]="battle()!.dmNotes || ''"
-						(ngModelChange)="setDmNotes($event)"
-					></textarea>
-				</div>
-
-				<div class="rounded-3xl border border-white/10 bg-white/5 p-5">
-					<div class="flex items-center justify-between gap-3">
-						<div>
-							<h3 class="text-xl font-semibold">Histórico de turnos</h3>
-							<p class="mt-1 text-sm opacity-75">
-								Inclui tempo de turno, expiração de condições e retorno de habilidades.
-							</p>
-						</div>
-						<span class="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs">
-							{{ battle()!.turnHistory.length }} eventos
-						</span>
-					</div>
-
-					<div class="mt-4 space-y-3">
-						@for (entry of turnHistory(); track entry.id) {
-							<div class="rounded-2xl border border-white/10 bg-black/20 p-3">
-								<div class="flex flex-wrap items-center justify-between gap-2">
-									<div class="font-semibold">
-										Round {{ entry.round }} · {{ entry.combatantName }}
-									</div>
-									<div class="text-sm opacity-75">
-										{{ formatDuration(entry.durationSeconds || 0) }}
-									</div>
-								</div>
-
-								<div class="mt-1 break-words text-xs opacity-65">
-									Turno {{ entry.turnIndex + 1 }} ·
-									{{ entry.startedAt | date:'shortTime' }}
-									@if (entry.endedAt) {
-										<span> até {{ entry.endedAt | date:'shortTime' }}</span>
-									}
-								</div>
-
-								@if (entry.notes) {
-									<div class="mt-2 text-sm opacity-85">{{ entry.notes }}</div>
-								}
-							</div>
-						} @empty {
-							<div class="rounded-2xl border border-dashed border-white/10 bg-black/10 p-4 text-sm opacity-70">
-								O histórico vai aparecer aqui depois do primeiro avançar de turno.
-							</div>
-						}
-					</div>
-				</div>
 					</div>
 				</details>
 			</div>
@@ -1591,8 +1982,18 @@
 </div>
 
 @if (addCombatantModalOpen()) {
-	<div class="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeAddCombatantModal()">
-		<section data-battle-modal role="dialog" aria-modal="true" aria-labelledby="add-combatant-title" class="max-h-[calc(100vh-1.5rem)] w-full max-w-3xl overflow-auto rounded-app-shell border border-app-border bg-app-surface-raised p-4 shadow-app-modal sm:max-h-[90vh] sm:p-5" (click)="$event.stopPropagation()">
+	<div
+		class="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+		(click)="closeAddCombatantModal()"
+	>
+		<section
+			data-battle-modal
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="add-combatant-title"
+			class="max-h-[calc(100vh-1.5rem)] w-full max-w-3xl overflow-auto rounded-app-shell border border-app-border bg-app-surface-raised p-4 shadow-app-modal sm:max-h-[90vh] sm:p-5"
+			(click)="$event.stopPropagation()"
+		>
 			<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
 				<div>
 					<h3 id="add-combatant-title" class="text-2xl font-semibold">Adicionar combatente</h3>
@@ -1660,7 +2061,8 @@
 						<option value="">Selecione uma ficha</option>
 						@for (sheet of homebrewSheets(); track sheet.id) {
 							<option [value]="sheet.id">
-								{{ sheet.title }} · {{ sheet.category === 'pc' ? 'PC' : (sheet.category | uppercase) }}
+								{{ sheet.title }} ·
+								{{ sheet.category === 'pc' ? 'PC' : (sheet.category | uppercase) }}
 							</option>
 						}
 					</select>
@@ -1679,9 +2081,13 @@
 						/>
 					</label>
 
-					<div class="max-h-64 space-y-2 overflow-auto rounded-2xl border border-white/10 bg-black/20 p-3">
+					<div
+						class="max-h-64 space-y-2 overflow-auto rounded-2xl border border-white/10 bg-black/20 p-3"
+					>
 						@if (bestiaryLoading()) {
-							<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75">
+							<div
+								class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75"
+							>
 								Carregando bestiário...
 							</div>
 						} @else {
@@ -1691,10 +2097,20 @@
 									class="flex w-full cursor-pointer items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10"
 									(click)="useCompendiumMonster(monster)"
 								>
-									<span><span class="block font-semibold">{{ monster.name }} · {{ monster.source }}</span><span class="text-xs opacity-65">CR {{ monster.challengeRating ?? '-' }} · {{ monster.type ?? '-' }} · {{ monster.size ?? '-' }} · CA {{ monster.armorClass ?? '-' }} · PV {{ monster.averageHp ?? '-' }}</span></span>
+									<span
+										><span class="block font-semibold"
+											>{{ monster.name }} · {{ monster.source }}</span
+										><span class="text-xs opacity-65"
+											>CR {{ monster.challengeRating ?? '-' }} · {{ monster.type ?? '-' }} ·
+											{{ monster.size ?? '-' }} · CA {{ monster.armorClass ?? '-' }} · PV
+											{{ monster.averageHp ?? '-' }}</span
+										></span
+									>
 								</button>
 							} @empty {
-								<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75">
+								<div
+									class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75"
+								>
 									Nenhum monstro encontrado.
 								</div>
 							}
@@ -1738,7 +2154,6 @@
 						/>
 					</label>
 
-
 					<label class="text-sm">
 						<span class="mb-1 block opacity-70">HP máximo</span>
 						<input
@@ -1769,7 +2184,8 @@
 								<div>
 									<h4 class="text-lg font-semibold">{{ creature.name }}</h4>
 									<p class="mt-1 text-sm opacity-75">
-										Ficha completa importada. Ações, habilidades, magias e spell slots serão preservados no Battle Tracker.
+										Ficha completa importada. Ações, habilidades, magias e spell slots serão
+										preservados no Battle Tracker.
 									</p>
 								</div>
 								<span class="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs">
@@ -1807,8 +2223,12 @@
 
 							<div class="mt-3 grid gap-3 sm:grid-cols-2">
 								<div class="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-									<div class="text-xs uppercase tracking-[0.18em] opacity-60">Habilidades especiais</div>
-									<div class="mt-1 text-lg font-semibold">{{ creature.specialAbilities.length }}</div>
+									<div class="text-xs uppercase tracking-[0.18em] opacity-60">
+										Habilidades especiais
+									</div>
+									<div class="mt-1 text-lg font-semibold">
+										{{ creature.specialAbilities.length }}
+									</div>
 								</div>
 
 								<div class="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
@@ -1842,12 +2262,14 @@
 									(ngModelChange)="setAddCombatantDraft({ initiative: $event })"
 								/>
 							</label>
-
 						</div>
 					</div>
 				} @else {
-					<div class="mt-4 rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75">
-						Selecione uma ficha na guia atual para importar tudo de uma vez e só ajustar lado e iniciativa.
+					<div
+						class="mt-4 rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm opacity-75"
+					>
+						Selecione uma ficha na guia atual para importar tudo de uma vez e só ajustar lado e
+						iniciativa.
 					</div>
 				}
 			}
@@ -1874,20 +2296,52 @@
 }
 
 @if (confirmModal(); as modal) {
-	<div class="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeConfirmModal()">
-		<section data-battle-modal role="dialog" aria-modal="true" aria-labelledby="battle-confirmation-title" class="w-full max-w-md rounded-app-shell border border-app-border bg-app-surface-raised p-5 shadow-app-modal sm:p-6" [class.border-rose-400/30]="modal.tone === 'danger'" (click)="$event.stopPropagation()">
+	<div
+		class="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+		(click)="closeConfirmModal()"
+	>
+		<section
+			data-battle-modal
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="battle-confirmation-title"
+			class="w-full max-w-md rounded-app-shell border border-app-border bg-app-surface-raised p-5 shadow-app-modal sm:p-6"
+			[class.border-rose-400/30]="modal.tone === 'danger'"
+			(click)="$event.stopPropagation()"
+		>
 			<div class="flex items-start justify-between gap-3">
 				<div>
-					<div class="text-[11px] font-semibold uppercase tracking-[0.16em]" [class.text-rose-200]="modal.tone === 'danger'" [class.text-app-subtle]="modal.tone !== 'danger'">
-						@if (modal.tone === 'danger') { Ação irreversível } @else { Confirmação necessária }
+					<div
+						class="text-[11px] font-semibold uppercase tracking-[0.16em]"
+						[class.text-rose-200]="modal.tone === 'danger'"
+						[class.text-app-subtle]="modal.tone !== 'danger'"
+					>
+						@if (modal.tone === 'danger') {
+							Ação irreversível
+						} @else {
+							Confirmação necessária
+						}
 					</div>
-					<h3 id="battle-confirmation-title" class="mt-1 text-xl font-semibold">{{ modal.title }}</h3>
+					<h3 id="battle-confirmation-title" class="mt-1 text-xl font-semibold">
+						{{ modal.title }}
+					</h3>
 				</div>
-				<button type="button" class="app-button app-modal-close h-11 w-11 shrink-0 p-0" (click)="closeConfirmModal()" aria-label="Fechar confirmação">x</button>
+				<button
+					type="button"
+					class="app-button app-modal-close h-11 w-11 shrink-0 p-0"
+					(click)="closeConfirmModal()"
+					aria-label="Fechar confirmação"
+				>
+					x
+				</button>
 			</div>
 			<p class="mt-2 text-sm opacity-80">{{ modal.description }}</p>
 			@if (modal.tone === 'danger') {
-				<div class="app-inset mt-4 border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">Esta ação não pode ser desfeita.</div>
+				<div
+					class="app-inset mt-4 border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+				>
+					Esta ação não pode ser desfeita.
+				</div>
 			}
 
 			<div class="mt-5 flex flex-wrap justify-end gap-2">
@@ -1912,6 +2366,12 @@
 	</div>
 }
 
+<app-spell-quick-view
+	[open]="!!quickSpell()"
+	[spell]="quickSpell()"
+	(closed)="quickSpell.set(null)"
+/>
+
 @if (toast(); as toastMessage) {
 	<div class="pointer-events-none fixed right-4 top-4 z-[55]">
 		<div
@@ -1926,11 +2386,22 @@
 			<div class="flex items-start gap-3">
 				<div class="min-w-0 flex-1">
 					<div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
-						@if (toastMessage.type === 'success') { Concluído } @else { Não foi possível concluir }
+						@if (toastMessage.type === 'success') {
+							Concluído
+						} @else {
+							Não foi possível concluir
+						}
 					</div>
 					<div class="mt-1 text-sm leading-5">{{ toastMessage.text }}</div>
 				</div>
-				<button type="button" class="app-toast-dismiss shrink-0" (click)="toast.set(null)" aria-label="Fechar mensagem">x</button>
+				<button
+					type="button"
+					class="app-toast-dismiss shrink-0"
+					(click)="toast.set(null)"
+					aria-label="Fechar mensagem"
+				>
+					x
+				</button>
 			</div>
 		</div>
 	</div>

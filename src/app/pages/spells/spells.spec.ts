@@ -1,5 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
 
 import type {
 	CompendiumSpell,
@@ -47,6 +49,7 @@ describe('SpellsPage', () => {
 	let component: SpellsPage;
 	let fixture: ComponentFixture<SpellsPage>;
 	let repository: jasmine.SpyObj<CompendiumSpellRepositoryService>;
+	let queryParams: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
 
 	beforeEach(async () => {
 		repository = jasmine.createSpyObj<CompendiumSpellRepositoryService>(
@@ -55,15 +58,17 @@ describe('SpellsPage', () => {
 		);
 		repository.getIndex.and.resolveTo({
 			sources: [{ source: 'PHB', path: 'phb.json' }],
-			spells: [],
+			spells: [spellListFixture()],
 		});
 		repository.getSpell.and.resolveTo(spellFixture());
+		queryParams = new BehaviorSubject(convertToParamMap({}));
 
 		await TestBed.configureTestingModule({
 			imports: [SpellsPage],
 			providers: [
 				provideZonelessChangeDetection(),
 				{ provide: CompendiumSpellRepositoryService, useValue: repository },
+				{ provide: ActivatedRoute, useValue: { queryParamMap: queryParams.asObservable() } },
 			],
 		}).compileComponents();
 		fixture = TestBed.createComponent(SpellsPage);
@@ -108,6 +113,15 @@ describe('SpellsPage', () => {
 		expect(fixture.nativeElement.textContent).toContain('Em níveis superiores');
 		expect(fixture.nativeElement.textContent).toContain('Sorcerer, Wizard');
 		expect(fixture.nativeElement.textContent).toContain('8d6');
+	});
+
+	it('loads a query-param spell after canonicalizing its exact index entry', async () => {
+		await fixture.whenStable();
+		queryParams.next(convertToParamMap({ source: 'phb', name: 'fireball' }));
+		await fixture.whenStable();
+
+		expect(repository.getSpell).toHaveBeenCalledWith('PHB', 'Fireball');
+		expect(component.selected()?.name).toBe('Fireball');
 	});
 
 	it('formats spell labels and components for the list and detail', () => {

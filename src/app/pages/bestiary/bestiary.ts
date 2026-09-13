@@ -10,18 +10,25 @@ import {
 	LucideZoomIn,
 } from '@lucide/angular';
 import { AppSelectComponent, type AppSelectOption } from '../../components/app-select/app-select';
+import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
-import type { CompendiumMonster } from '../../models/compendium-bestiary-model';
+import type {
+	CompendiumMonster,
+	CompendiumSpellcasting,
+} from '../../models/compendium-bestiary-model';
+import type { ResolvedSpellReference } from '../../models/spell-reference-model';
 import { CompendiumRendererService } from '../../services/compendium-renderer-service/compendium-renderer-service';
 import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
 import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
 import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
+import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 
 @Component({
 	selector: 'app-bestiary',
 	standalone: true,
 	imports: [
 		AppSelectComponent,
+		SpellQuickViewComponent,
 		CommonModule,
 		DialogFocusDirective,
 		FormsModule,
@@ -39,6 +46,7 @@ export class BestiaryPage {
 	private readonly renderer = inject(CompendiumRendererService);
 	private readonly localStorage = inject(LocalStorageService);
 	private readonly router = inject(Router);
+	private readonly spellResolver = inject(SpellReferenceResolverService);
 
 	readonly index = signal<Awaited<
 		ReturnType<CompendiumBestiaryRepositoryService['getIndex']>
@@ -49,6 +57,7 @@ export class BestiaryPage {
 	readonly imageLoading = signal(false);
 	readonly imageFailed = signal(false);
 	readonly imageLightboxOpen = signal(false);
+	readonly quickSpell = signal<ResolvedSpellReference | null>(null);
 	readonly error = signal<string | null>(null);
 	readonly query = signal('');
 	readonly source = signal('');
@@ -140,6 +149,52 @@ export class BestiaryPage {
 
 	closeImageLightbox() {
 		this.imageLightboxOpen.set(false);
+	}
+
+	async openSpell(value: string) {
+		const parsed = this.spellResolver.parse(value);
+		const resolved = await this.spellResolver.resolveReference(
+			parsed.reference ?? { name: value.trim() },
+		);
+		if (resolved) this.quickSpell.set(resolved);
+	}
+
+	spellDisplay(value: string) {
+		return this.spellResolver.parse(value).displayText || this.renderer.renderText(value);
+	}
+
+	spellLevels(block: CompendiumSpellcasting) {
+		return Object.entries(block.spells)
+			.map(([key, value]) => ({
+				level: Number(key),
+				spells: value.spells ?? [],
+				slots: value.slots,
+			}))
+			.filter((entry) => Number.isInteger(entry.level) && entry.spells.length)
+			.sort((left, right) => left.level - right.level);
+	}
+
+	spellListLabel(key: string) {
+		if (key === 'will') return 'À vontade';
+		if (key === 'constant') return 'Constante';
+		const [category, uses] = key.split(':');
+		const suffix = uses?.endsWith('e') ? ' cada' : '';
+		const amount = uses?.replace(/e$/, '') ?? '';
+		if (category === 'daily') return `${amount}/dia${suffix}`;
+		if (category === 'rest') return `${amount}/descanso${suffix}`;
+		if (category === 'weekly') return `${amount}/semana${suffix}`;
+		return key;
+	}
+
+	spellLists(block: CompendiumSpellcasting) {
+		const order = ['will', 'constant', 'daily', 'rest', 'weekly'];
+		return Object.entries(block.spellLists)
+			.filter(([, spells]) => spells.length)
+			.sort(([left], [right]) => {
+				const leftOrder = order.indexOf(left.split(':')[0]);
+				const rightOrder = order.indexOf(right.split(':')[0]);
+				return leftOrder - rightOrder || left.localeCompare(right);
+			});
 	}
 
 	isSelected(source: string, name: string) {

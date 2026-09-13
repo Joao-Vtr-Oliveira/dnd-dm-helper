@@ -4,6 +4,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { BattleTrackerPage } from './battle-tracker';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
+import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 
 describe('BattleTrackerPage', () => {
 	let component: BattleTrackerPage;
@@ -19,6 +20,33 @@ describe('BattleTrackerPage', () => {
 				provideZonelessChangeDetection(),
 				provideHttpClient(),
 				provideRouter([]),
+				{
+					provide: SpellReferenceResolverService,
+					useValue: {
+						resolveReference: async () => ({
+							reference: { name: 'Aid', source: 'PHB' },
+							spell: {
+								id: 'PHB:aid',
+								name: 'Aid',
+								source: 'PHB',
+								aliases: [],
+								level: 2,
+								school: 'A',
+								components: { verbal: true, somatic: true },
+								concentration: false,
+								ritual: false,
+								entries: [],
+								entriesHigherLevel: [],
+								damageTypes: [],
+								savingThrows: [],
+								attackTypes: [],
+								conditions: [],
+								classes: [],
+								raw: {} as never,
+							},
+						}),
+					},
+				},
 				{
 					provide: ActivatedRoute,
 					useValue: {
@@ -86,7 +114,7 @@ describe('BattleTrackerPage', () => {
 								},
 							],
 							spellSlots: [],
-							spells: [],
+							spells: [{ id: 'spell-aid', name: 'Aid', source: 'PHB', level: 2, uses: 1 }],
 							features: [],
 						},
 						{
@@ -145,7 +173,7 @@ describe('BattleTrackerPage', () => {
 					turnHistory: [],
 					dmNotes: '',
 				},
-			])
+			]),
 		);
 
 		fixture = TestBed.createComponent(BattleTrackerPage);
@@ -172,7 +200,9 @@ describe('BattleTrackerPage', () => {
 		const buttons = Array.from(
 			fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
 		);
-		const damageButton = buttons.find((button) => (button.textContent || '').includes('Aplicar dano'));
+		const damageButton = buttons.find((button) =>
+			(button.textContent || '').includes('Aplicar dano'),
+		);
 
 		expect(damageButton).toBeTruthy();
 		damageButton?.click();
@@ -192,9 +222,9 @@ describe('BattleTrackerPage', () => {
 		fixture.detectChanges();
 
 		expect(component.currentCombatant()?.name).toBe('Dodman');
-		expect(fixture.nativeElement.querySelector('[data-testid="current-turn-cockpit"]')?.textContent).toContain(
-			'Dodman',
-		);
+		expect(
+			fixture.nativeElement.querySelector('[data-testid="current-turn-cockpit"]')?.textContent,
+		).toContain('Dodman');
 	});
 
 	it('allows collapsing cockpit details while keeping the current turn header available', () => {
@@ -290,16 +320,20 @@ describe('BattleTrackerPage', () => {
 		fixture.nativeElement.querySelector('[data-testid="cockpit-add-condition"]')?.click();
 		fixture.detectChanges();
 
-		const addedCondition = component.battle()?.combatants[0].conditions.find(
-			(condition) => condition.name === 'stunned',
-		);
+		const addedCondition = component
+			.battle()
+			?.combatants[0].conditions.find((condition) => condition.name === 'stunned');
 		expect(addedCondition).toBeTruthy();
 
 		fixture.nativeElement
 			.querySelector(`[aria-label="Remover condição ${addedCondition?.label}"]`)
 			?.click();
 		fixture.detectChanges();
-		expect(component.battle()?.combatants[0].conditions.some((condition) => condition.id === addedCondition?.id)).toBeFalse();
+		expect(
+			component
+				.battle()
+				?.combatants[0].conditions.some((condition) => condition.id === addedCondition?.id),
+		).toBeFalse();
 	});
 
 	it('controls concentration from the cockpit and creates a check through quick damage', () => {
@@ -310,9 +344,15 @@ describe('BattleTrackerPage', () => {
 		fixture.detectChanges();
 
 		const action = component.battle()?.pendingActions[0];
-		expect(component.battle()?.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
+		expect(
+			component
+				.battle()
+				?.combatants[0].conditions.some((condition) => condition.name === 'concentrating'),
+		).toBeTrue();
 		expect(action?.type === 'concentration-check' && action.difficultyClass).toBe(12);
-		expect(fixture.nativeElement.querySelector('[data-testid="pending-actions"]')?.textContent).toContain('Hero');
+		expect(
+			fixture.nativeElement.querySelector('[data-testid="pending-actions"]')?.textContent,
+		).toContain('Hero');
 	});
 
 	it('shows and resolves a concentration check for a combatant outside the current turn', () => {
@@ -329,7 +369,11 @@ describe('BattleTrackerPage', () => {
 		fixture.nativeElement.querySelector('[data-testid="concentration-failure"]')?.click();
 		fixture.detectChanges();
 		expect(component.battle()?.pendingActions).toEqual([]);
-		expect(component.battle()?.combatants[2].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
+		expect(
+			component
+				.battle()
+				?.combatants[2].conditions.some((condition) => condition.name === 'concentrating'),
+		).toBeFalse();
 	});
 
 	it('resolves a non-current combatant concentration check from that combatant card', () => {
@@ -350,12 +394,18 @@ describe('BattleTrackerPage', () => {
 		fixture.detectChanges();
 
 		expect(component.battle()?.pendingActions).toEqual([]);
-		expect(component.battle()?.combatants[2].conditions.some((condition) => condition.name === 'concentrating')).toBeFalse();
+		expect(
+			component
+				.battle()
+				?.combatants[2].conditions.some((condition) => condition.name === 'concentrating'),
+		).toBeFalse();
 	});
 
 	it('uses compact accessible concentration switches without showing it as a removable generic condition', () => {
 		const cardSwitch = Array.from(
-			fixture.nativeElement.querySelectorAll('[data-testid="combatant-concentration-toggle"]') as NodeListOf<HTMLButtonElement>,
+			fixture.nativeElement.querySelectorAll(
+				'[data-testid="combatant-concentration-toggle"]',
+			) as NodeListOf<HTMLButtonElement>,
 		).find((element) => element.getAttribute('aria-label') === 'Concentração de Hero');
 
 		expect(cardSwitch?.getAttribute('role')).toBe('switch');
@@ -364,8 +414,14 @@ describe('BattleTrackerPage', () => {
 		fixture.detectChanges();
 
 		expect(cardSwitch?.getAttribute('aria-checked')).toBe('true');
-		expect(component.battle()?.combatants[0].conditions.some((condition) => condition.name === 'concentrating')).toBeTrue();
-		expect(component.conditionOptions.some((condition) => condition.name === 'concentrating')).toBeFalse();
+		expect(
+			component
+				.battle()
+				?.combatants[0].conditions.some((condition) => condition.name === 'concentrating'),
+		).toBeTrue();
+		expect(
+			component.conditionOptions.some((condition) => condition.name === 'concentrating'),
+		).toBeFalse();
 	});
 
 	it('starts death saves from a PC card and records the physical d20 in the cockpit', () => {
@@ -374,7 +430,11 @@ describe('BattleTrackerPage', () => {
 		fixture.detectChanges();
 		fixture.nativeElement.querySelector('[data-testid="start-death-saves"]')?.click();
 		fixture.detectChanges();
-		expect(component.battle()?.combatants[0].deathSaves).toEqual({ status: 'active', successes: 0, failures: 0 });
+		expect(component.battle()?.combatants[0].deathSaves).toEqual({
+			status: 'active',
+			successes: 0,
+			failures: 0,
+		});
 		expect(component.battle()?.pendingActions).toEqual([]);
 
 		component.nextTurn();
@@ -386,20 +446,41 @@ describe('BattleTrackerPage', () => {
 		) as NodeListOf<HTMLButtonElement>;
 
 		expect(results).toHaveSize(20);
-		Array.from(results).find((button) => button.textContent?.trim() === '20')?.click();
+		Array.from(results)
+			.find((button) => button.textContent?.trim() === '20')
+			?.click();
 		fixture.detectChanges();
 		expect(component.battle()?.combatants[0].deathSaves).toBeUndefined();
 	});
 
 	it('hides empty spell slots, spells, and sheet data from expanded cards', () => {
-		component.toggleCombatantInspector('c1');
+		component.toggleCombatantInspector('c2');
 		fixture.detectChanges();
 
-		const text = fixture.nativeElement.textContent as string;
+		const text = fixture.nativeElement.querySelector(
+			'[data-testid="combatant-card"][data-combatant-id="c2"]',
+		)?.textContent as string;
 		expect(text).not.toContain('Espaços de magia');
 		expect(text).not.toContain('Magias conhecidas');
 		expect(text).not.toContain('Dados da ficha');
 		expect(text).not.toContain('Ativar slots');
+	});
+
+	it('opens a linked spell from the combatant spell list', async () => {
+		component.toggleCombatantInspector('c1');
+		fixture.detectChanges();
+		const card = fixture.nativeElement.querySelector(
+			'[data-testid="combatant-card"][data-combatant-id="c1"]',
+		) as HTMLElement;
+		const quickView = card.querySelector('[data-testid="quick-spell-view"]') as HTMLButtonElement;
+
+		expect(quickView?.textContent).toContain('Ver detalhes');
+		quickView.click();
+		await fixture.whenStable();
+		fixture.detectChanges();
+
+		expect(component.quickSpell()?.spell.name).toBe('Aid');
+		expect(fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain('Aid');
 	});
 
 	it('shows upcoming turns and the next environment event in the cockpit', () => {
@@ -421,12 +502,14 @@ describe('BattleTrackerPage', () => {
 		fixture.detectChanges();
 
 		expect(component.currentCombatant()?.id).toBe('c1');
-		expect(component.pendingDiceRechargeAbilities().map((ability) => ability.id)).toEqual(['fire-breath']);
+		expect(component.pendingDiceRechargeAbilities().map((ability) => ability.id)).toEqual([
+			'fire-breath',
+		]);
 
 		const cockpit = fixture.nativeElement.querySelector('[data-testid="current-turn-cockpit"]');
-		const rollThreeButton = Array.from(cockpit.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(
-			(button) => button.textContent?.trim() === '3',
-		);
+		const rollThreeButton = Array.from(
+			cockpit.querySelectorAll('button') as NodeListOf<HTMLButtonElement>,
+		).find((button) => button.textContent?.trim() === '3');
 		rollThreeButton?.click();
 		fixture.detectChanges();
 

@@ -147,74 +147,125 @@
 			}
 		</div>
 		<div class="mt-5 border-t border-app-divider pt-5">
-			<div class="font-medium text-app-text">Magias</div>
-			<div class="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_6rem_8rem_auto]">
-				<label class="sr-only" for="new-spell-name">Nome da magia</label
-				><input
-					id="new-spell-name"
-					class="app-field w-full px-3 py-2"
-					placeholder="Nome da magia"
-					[ngModel]="spellDraft().name"
-					(ngModelChange)="setSpellDraft({ name: $event })"
-					name="new-spell-name"
-				/>
-				<label class="sr-only" for="new-spell-level">Nível</label
-				><input
-					id="new-spell-level"
-					type="number"
-					min="0"
-					max="9"
-					class="app-field w-full px-3 py-2"
-					placeholder="Nível"
-					[ngModel]="spellDraft().level"
-					(ngModelChange)="setSpellDraft({ level: +$event })"
-					name="new-spell-level"
-				/>
-				<label class="sr-only" for="new-spell-uses">Usos</label
-				><input
-					id="new-spell-uses"
-					type="number"
-					min="0"
-					class="app-field w-full px-3 py-2"
-					placeholder="Usos"
-					[ngModel]="spellDraft().uses"
-					(ngModelChange)="setSpellDraft({ uses: +$event })"
-					name="new-spell-uses"
-				/>
-				<button type="button" class="app-button app-button-secondary" (click)="addSpell()">
-					Adicionar magia
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<div>
+					<div class="font-medium text-app-text">Magias</div>
+					<p class="mt-1 text-sm text-app-muted">
+						Vincule uma magia do compêndio ou cadastre uma referência manual.
+					</p>
+				</div>
+				<button
+					type="button"
+					class="app-button shrink-0 border-violet-300/30 bg-violet-500/15 text-sm text-violet-50 hover:bg-violet-500/25"
+					(click)="openSpellPicker()"
+				>
+					<svg lucideBookOpen [size]="17" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					Adicionar do Compêndio
 				</button>
 			</div>
-			<div class="mt-3 divide-y divide-app-divider">
-				@for (spell of creature().spells; track spell.id) {
-					<div class="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_6rem_8rem_auto]">
+			<div class="app-inset mt-4 p-3 sm:p-4">
+				<div class="text-sm font-semibold text-app-text">Adicionar manualmente</div>
+				<div class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_5rem_5rem_auto] lg:items-end">
+					<label class="min-w-0 text-sm text-app-muted" for="new-spell-name">
+						<span class="mb-1 block">Nome da magia</span>
 						<input
-							class="app-field min-w-0 px-3 py-2"
-							[ngModel]="spell.name"
-							(ngModelChange)="updateSpell(spell.id, { name: $event })"
-							[name]="'spell-name-' + spell.id"
-						/><input
+							id="new-spell-name"
+							class="app-field w-full px-3 py-2"
+							placeholder="Ex: Raio de fogo"
+							[ngModel]="spellDraft().name"
+							(ngModelChange)="setSpellDraft({ name: $event })"
+							name="new-spell-name"
+						/>
+					</label>
+					<label class="text-sm text-app-muted" for="new-spell-level">
+						<span class="mb-1 block">Nível</span>
+						<input
+							id="new-spell-level"
 							type="number"
 							min="0"
 							max="9"
-							class="app-field px-3 py-2"
-							[ngModel]="spell.level ?? 0"
-							(ngModelChange)="updateSpell(spell.id, { level: +$event })"
-							[name]="'spell-level-' + spell.id"
-						/><input
+							class="app-field w-full px-3 py-2"
+							[ngModel]="spellDraft().level"
+							(ngModelChange)="setSpellDraft({ level: +$event })"
+							name="new-spell-level"
+						/>
+					</label>
+					<label class="text-sm text-app-muted" for="new-spell-uses">
+						<span class="mb-1 block">Usos</span>
+						<input
+							id="new-spell-uses"
 							type="number"
 							min="0"
-							class="app-field px-3 py-2"
-							[ngModel]="spell.uses ?? 0"
-							(ngModelChange)="updateSpell(spell.id, { uses: +$event })"
-							[name]="'spell-uses-' + spell.id"
-						/><button
-							type="button"
-							class="app-button app-button-danger"
-							(click)="removeSpell(spell.id)"
-						>
-							Remover
-						</button>
+							class="app-field w-full px-3 py-2"
+							[ngModel]="spellDraft().uses"
+							(ngModelChange)="setSpellDraft({ uses: +$event })"
+							name="new-spell-uses"
+						/>
+					</label>
+					<button type="button" class="app-button app-button-secondary h-10" (click)="addSpell()">
+						Adicionar magia
+					</button>
+				</div>
+			</div>
+			<div class="mt-3 divide-y divide-app-divider">
+				@for (spell of creature().spells; track spell.id) {
+					<div class="grid gap-3 py-4 lg:grid-cols-[minmax(0,1fr)_5rem_5rem_auto] lg:items-start">
+						<label class="min-w-0 text-sm text-app-muted">
+							<span class="mb-1 block">Nome da magia</span>
+							<input
+								class="app-field min-w-0 w-full px-3 py-2"
+								[ngModel]="spell.name"
+								(ngModelChange)="updateSpell(spell.id, { name: $event })"
+								[name]="'spell-name-' + spell.id"
+							/>
+							@if (spell.source) {
+								<div class="mt-1 truncate text-[11px] text-app-subtle">
+									Compêndio: {{ spell.source }}
+								</div>
+							}
+						</label>
+						<label class="text-sm text-app-muted">
+							<span class="mb-1 block">Nível</span>
+							<input
+								type="number"
+								min="0"
+								max="9"
+								class="app-field w-full px-3 py-2"
+								[ngModel]="spell.level ?? 0"
+								(ngModelChange)="updateSpell(spell.id, { level: +$event })"
+								[name]="'spell-level-' + spell.id"
+							/>
+						</label>
+						<label class="text-sm text-app-muted">
+							<span class="mb-1 block">Usos</span>
+							<input
+								type="number"
+								min="0"
+								class="app-field w-full px-3 py-2"
+								[ngModel]="spell.uses ?? 0"
+								(ngModelChange)="updateSpell(spell.id, { uses: +$event })"
+								[name]="'spell-uses-' + spell.id"
+							/>
+						</label>
+						<div>
+							<div class="mb-1 text-sm text-app-muted">Ações</div>
+							<div class="flex flex-wrap gap-2">
+								<button
+									type="button"
+									class="app-button app-button-ghost h-10"
+									[disabled]="!spell.source"
+									(click)="openSpellQuickView(spell)"
+								>
+									Ver</button
+								><button
+									type="button"
+									class="app-button app-button-danger h-10"
+									(click)="removeSpell(spell.id)"
+								>
+									Remover
+								</button>
+							</div>
+						</div>
 					</div>
 				} @empty {
 					<div class="py-3 text-sm text-app-subtle">Nenhuma magia adicionada.</div>
@@ -452,6 +503,20 @@
 		</div>
 	</fieldset>
 </form>
+
+@if (spellPickerOpen()) {
+	<app-spell-picker
+		[open]="spellPickerOpen()"
+		(closed)="closeSpellPicker()"
+		(selected)="addCompendiumSpell($event)"
+	/>
+}
+
+<app-spell-quick-view
+	[open]="!!quickSpell()"
+	[spell]="quickSpell()"
+	(closed)="quickSpell.set(null)"
+/>
 
 <div
 	class="fixed inset-x-0 bottom-0 z-30 border-t border-app-border bg-app-surface-raised/95 p-3 backdrop-blur md:hidden"

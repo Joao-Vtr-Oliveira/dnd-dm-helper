@@ -1,16 +1,11 @@
 import type { FiveEToolsMonster } from './fiveetools-homebrew-model';
 import type { CompendiumMonster } from './compendium-bestiary-model';
+import type { SpellReference } from './spell-reference-model';
 
 export type CreatureCategory = 'monster' | 'npc' | 'pc' | 'other';
 export type ArmorClass = number | null;
 export type CreatureFeatureKind =
-	| 'trait'
-	| 'action'
-	| 'bonus'
-	| 'reaction'
-	| 'legendary'
-	| 'spellcasting'
-	| 'note';
+	'trait' | 'action' | 'bonus' | 'reaction' | 'legendary' | 'spellcasting' | 'note';
 export type CreatureAbilityRecoveryType =
 	| 'manual'
 	| 'turn-cooldown'
@@ -20,10 +15,8 @@ export type CreatureAbilityRecoveryType =
 	| 'long-rest'
 	| 'dice-recharge';
 
-export interface CreatureSpell {
+export interface CreatureSpell extends SpellReference {
 	id: string;
-	name: string;
-	source?: string;
 	level?: number;
 	uses?: number;
 }

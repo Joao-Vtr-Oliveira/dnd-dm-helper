@@ -23,11 +23,17 @@ describe('CompendiumRendererService', () => {
 			'{@i Cast {@spell shield|PHB|Shield Spell}} with {@d20 8}; {@scaledamage 2d6|1-9|1d6}.',
 		);
 
-		expect(text).toBe('Cast Shield Spell with +8; 2d6.');
+		expect(text).toBe('Cast Shield Spell with +8; 1d6.');
+		expect(
+			service.renderText('At Higher Levels: the damage increases by {@scaledamage 8d8|5-9|1d8}.'),
+		).toBe('At Higher Levels: the damage increases by 1d8.');
 	});
 
 	it('extracts spell references only from complete spell tags', () => {
-		expect(service.spellReference('{@spell shield|XPHB}')).toEqual({ name: 'shield', source: 'XPHB' });
+		expect(service.spellReference('{@spell shield|XPHB}')).toEqual({
+			name: 'shield',
+			source: 'XPHB',
+		});
 		expect(service.spellReference('shield')).toBeNull();
 	});
 
@@ -36,7 +42,11 @@ describe('CompendiumRendererService', () => {
 			{
 				type: 'list',
 				items: [
-					{ type: 'item', name: 'Claw', entries: ['{@atk mw} {@hit 8} to hit. {@h}{@damage 2d6} slashing.'] },
+					{
+						type: 'item',
+						name: 'Claw',
+						entries: ['{@atk mw} {@hit 8} to hit. {@h}{@damage 2d6} slashing.'],
+					},
 					'Save {@actSave dex}; {@recharge 4}.',
 				],
 			},
@@ -44,7 +54,9 @@ describe('CompendiumRendererService', () => {
 				type: 'table',
 				caption: 'Breath Weapon',
 				colLabels: ['{@dice d6}', 'Effect'],
-				rows: [[{ type: 'cell', roll: { min: 1, max: 4 } }, '{@chance 50} {@condition frightened}']],
+				rows: [
+					[{ type: 'cell', roll: { min: 1, max: 4 } }, '{@chance 50} {@condition frightened}'],
+				],
 			},
 		]);
 
@@ -60,6 +72,8 @@ describe('CompendiumRendererService', () => {
 			{ type: 'item', name: 'Choice', entries: ['Choose {@spell light|PHB|Light}.'] },
 		]);
 
-		expect(text).toBe('"Arcane words." - Mordenkainen\nAt Higher Levels: The damage increases.\nChoice: Choose Light.');
+		expect(text).toBe(
+			'"Arcane words." - Mordenkainen\nAt Higher Levels: The damage increases.\nChoice: Choose Light.',
+		);
 	});
 });

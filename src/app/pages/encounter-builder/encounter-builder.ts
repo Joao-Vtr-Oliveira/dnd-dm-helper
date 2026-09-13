@@ -5,6 +5,7 @@ import { ActivatedRoute, CanDeactivateFn, Router } from '@angular/router';
 import { LucideBookOpen, LucideSearch } from '@lucide/angular';
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
+import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
 
 import type {
 	BattleLairActionFrequency,
@@ -27,6 +28,7 @@ import type {
 } from '../../models/encounter-model';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type { CompendiumBestiaryMonsterIndexEntry } from '../../models/compendium-bestiary-model';
+import type { ResolvedSpellReference } from '../../models/spell-reference-model';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
 import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
@@ -37,6 +39,7 @@ import {
 	type SavedEncounter,
 	type SavedSheetInterface,
 } from '../../services/local-storage-service/local-storage-service';
+import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 
 type ParticipantDraft = {
 	name: string;
@@ -78,6 +81,7 @@ type TrapDraft = {
 	imports: [
 		AppNativeSelectDirective,
 		AppSelectComponent,
+		SpellQuickViewComponent,
 		CommonModule,
 		DialogFocusDirective,
 		FormsModule,
@@ -98,6 +102,7 @@ export class EncounterBuilder {
 	readonly bestiaryError = signal<string | null>(null);
 	readonly bestiaryMonsters = signal<CompendiumBestiaryMonsterIndexEntry[]>([]);
 	readonly bestiaryQ = signal('');
+	readonly quickSpell = signal<ResolvedSpellReference | null>(null);
 	readonly bestiarySource = signal('');
 	readonly bestiaryType = signal('');
 	readonly bestiarySize = signal('');
@@ -158,6 +163,7 @@ export class EncounterBuilder {
 	private readonly creatureTemplates = inject(CreatureTemplateService);
 	private readonly bestiary = inject(CompendiumBestiaryRepositoryService);
 	private readonly compendiumAdapter = inject(CompendiumCreatureAdapterService);
+	private readonly spellResolver = inject(SpellReferenceResolverService);
 	private readonly fiveETools = inject(FiveEToolsHomebrewService);
 	private readonly savedSnapshot = signal('');
 	private pendingNavigationResolver: ((allowed: boolean) => void) | null = null;
@@ -410,6 +416,15 @@ export class EncounterBuilder {
 
 	spellSlot(participant: EncounterParticipant, level: number): number | null {
 		return participant.sheet.spellSlots.find((slot) => slot.level === level)?.max ?? null;
+	}
+
+	async openSpellQuickView(spell: CreatureSpell) {
+		if (!spell.source) return;
+		const resolved = await this.spellResolver.resolveReference({
+			name: spell.name,
+			source: spell.source,
+		});
+		if (resolved) this.quickSpell.set(resolved);
 	}
 
 	getSpellDraft(id: string): SpellDraft {

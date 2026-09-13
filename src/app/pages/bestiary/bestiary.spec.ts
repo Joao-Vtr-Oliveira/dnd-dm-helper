@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 
 import type { CompendiumMonster } from '../../models/compendium-bestiary-model';
 import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
+import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 import { BestiaryPage } from './bestiary';
 
 function creatureFixture(imageUrl?: string): CompendiumMonster {
@@ -56,6 +57,16 @@ describe('BestiaryPage', () => {
 					provide: CompendiumBestiaryRepositoryService,
 					useValue: {
 						getIndex: async () => ({ monsters: [], sources: [] }),
+					},
+				},
+				{
+					provide: SpellReferenceResolverService,
+					useValue: {
+						parse: (value: string) => ({
+							displayText: value.replace(/\{@spell\s+([^|}]+).*\}/i, '$1'),
+							reference: { name: 'Fireball', source: 'PHB' },
+						}),
+						resolveReference: async () => null,
 					},
 				},
 			],

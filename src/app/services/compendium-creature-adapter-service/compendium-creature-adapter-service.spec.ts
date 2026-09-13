@@ -48,7 +48,7 @@ describe('CompendiumCreatureAdapterService', () => {
 					headerEntries: ['The dragon is a spellcaster.'],
 					footerEntries: [],
 					spells: {
-						'0': { spells: ['{@spell fire bolt|XPHB}'] },
+						'0': { spells: ['{@spell fire bolt|XPHB}', '{@spell mage hand}'] },
 						'3': { slots: 3, spells: ['{@spell fireball|XPHB}'] },
 					},
 					spellLists: { 'daily:1': ['{@spell plane shift|XPHB}'] },
@@ -83,14 +83,25 @@ describe('CompendiumCreatureAdapterService', () => {
 			'spellcasting',
 		]);
 		expect(sheet.spellSlots).toEqual([{ level: 3, max: 4 }]);
-		expect(sheet.spells).toContain(jasmine.objectContaining({ name: 'fireball', source: 'XPHB', level: 3 }));
-		expect(sheet.spells).toContain(jasmine.objectContaining({ name: 'plane shift', source: 'XPHB', uses: 1 }));
+		expect(sheet.spells).toContain(
+			jasmine.objectContaining({ name: 'fireball', source: 'XPHB', level: 3 }),
+		);
+		expect(sheet.spells).toContain(
+			jasmine.objectContaining({ name: 'mage hand', source: 'PHB', level: 0 }),
+		);
+		expect(sheet.spells).toContain(
+			jasmine.objectContaining({ name: 'plane shift', source: 'XPHB', uses: 1 }),
+		);
 		expect(sheet.specialAbilities).toEqual([
 			jasmine.objectContaining({ name: 'Fire Breath (Recharge 4-6)', rechargeOn: [4, 5, 6] }),
 			jasmine.objectContaining({ name: 'Frightful Presence (Recharge 6)', rechargeOn: [6] }),
 			jasmine.objectContaining({ name: 'Wing Attack (3/Day)', maxUses: 3 }),
 		]);
-		expect(sheet.officialOrigin).toEqual({ provider: '5etools', name: 'Ancient Test Dragon', source: 'MM' });
+		expect(sheet.officialOrigin).toEqual({
+			provider: '5etools',
+			name: 'Ancient Test Dragon',
+			source: 'MM',
+		});
 		expect(sheet.officialSnapshot?.legendaryGroup?.lairActions).toEqual(['Magma erupts.']);
 		expect(sheet.features.some((feature) => feature.name === 'Magma erupts.')).toBeFalse();
 	});
