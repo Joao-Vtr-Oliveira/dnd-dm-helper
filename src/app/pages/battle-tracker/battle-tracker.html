@@ -687,22 +687,22 @@
 
 									<div class="flex flex-wrap items-center gap-2 lg:max-w-105 lg:justify-end">
 										@if (selectedCombatantId() === combatant.id) {
-											<label
-												class="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-black/15 px-2.5 text-sm"
-											>
-												<span class="opacity-65">Lado</span>
-												<select
-													class="h-7 cursor-pointer rounded-lg border bg-black/20 px-2 text-sm"
-													[class]="sideSelectClasses(combatant.side)"
-													[ngModel]="combatant.side"
-													(ngModelChange)="setCombatantSide(combatant.id, $event)"
-												>
-													<option value="player">Jogador</option>
-													<option value="ally">Aliado</option>
-													<option value="enemy">Inimigo</option>
-													<option value="neutral">Neutro</option>
-												</select>
-											</label>
+											<div class="flex items-center gap-2 text-sm">
+												<span class="font-medium opacity-65">Lado</span>
+												<app-select
+													class="w-30"
+													label=""
+													ariaLabel="Lado do combatente"
+													[options]="[
+														{ value: 'player', label: 'Jogador' },
+														{ value: 'ally', label: 'Aliado' },
+														{ value: 'enemy', label: 'Inimigo' },
+														{ value: 'neutral', label: 'Neutro' },
+													]"
+													[value]="combatant.side"
+													(valueChange)="setCombatantSide(combatant.id, $any($event))"
+												/>
+											</div>
 
 											<label
 												class="inline-flex h-9 items-center gap-2 rounded-xl px-1.5 text-sm opacity-80"

@@ -3,6 +3,7 @@ import { Component, computed, effect, HostListener, inject, signal } from '@angu
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
+import { AppSelectComponent } from '../../components/app-select/app-select';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
 import type {
 	BattleAbilityRecoveryType,
@@ -97,7 +98,13 @@ type ConfirmModalState = {
 @Component({
 	selector: 'app-battle-tracker',
 	standalone: true,
-	imports: [AppNativeSelectDirective, CommonModule, FormsModule, SpellQuickViewComponent],
+	imports: [
+		AppNativeSelectDirective,
+		AppSelectComponent,
+		CommonModule,
+		FormsModule,
+		SpellQuickViewComponent,
+	],
 	templateUrl: './battle-tracker.html',
 })
 export class BattleTrackerPage {
@@ -1290,13 +1297,6 @@ export class BattleTrackerPage {
 		if (side === 'ally') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
 		if (side === 'neutral') return 'border-slate-300/20 bg-slate-500/10 text-slate-100';
 		return 'border-rose-400/30 bg-rose-500/15 text-rose-100';
-	}
-
-	sideSelectClasses(side: BattleCombatantSide): string {
-		if (side === 'player') return 'border-sky-400/25 bg-sky-500/10 text-sky-50';
-		if (side === 'ally') return 'border-emerald-400/25 bg-emerald-500/10 text-emerald-50';
-		if (side === 'neutral') return 'border-slate-300/20 bg-slate-500/10 text-slate-50';
-		return 'border-rose-400/25 bg-rose-500/10 text-rose-50';
 	}
 
 	confirmButtonClasses(tone: ConfirmModalState['tone']): string {
