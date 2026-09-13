@@ -1,14 +1,4 @@
-export type RawFiveEToolsEntry = string | RawFiveEToolsEntryObject;
-
-export interface RawFiveEToolsEntryObject {
-	type?: string;
-	name?: string;
-	entries?: RawFiveEToolsEntry[];
-	items?: RawFiveEToolsEntry[];
-	rows?: unknown[][];
-	colLabels?: string[];
-	[key: string]: unknown;
-}
+import type { RawFiveEToolsEntry } from './compendium-entry-model';
 
 export interface RawFiveEToolsFeature {
 	name?: string;

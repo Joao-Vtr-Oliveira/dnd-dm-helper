@@ -1,0 +1,299 @@
+<div class="mx-auto w-full max-w-[1480px] space-y-5 pb-20 pt-1 sm:py-2">
+	<header
+		class="flex flex-col gap-3 border-b border-app-border pb-5 lg:flex-row lg:items-end lg:justify-between"
+	>
+		<div>
+			<div class="app-eyebrow text-violet-200/70">Compêndio local 5eTools</div>
+			<h1 class="mt-1 text-3xl font-semibold tracking-tight text-app-text">Magias</h1>
+			<p class="mt-2 max-w-2xl text-sm text-app-muted">
+				Consulta somente leitura de magias oficiais, carregada por fonte quando necessária.
+			</p>
+		</div>
+		<span class="app-status border-violet-300/20 bg-violet-500/10 text-violet-100"
+			>{{ index()?.spells?.length ?? 0 }} magias · {{ index()?.sources?.length ?? 0 }} fontes</span
+		>
+	</header>
+
+	@if (error(); as message) {
+		<p class="app-inset border-rose-400/30 bg-rose-500/10 text-sm text-rose-100">{{ message }}</p>
+	}
+
+	<section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)]">
+		<div class="min-w-0 space-y-4">
+			<section class="app-panel overflow-hidden border-violet-300/15">
+				<div
+					class="flex items-center justify-between gap-3 border-b border-app-divider bg-violet-500/[0.035] px-4 py-3"
+				>
+					<div>
+						<div class="app-eyebrow text-violet-200/70">Refinar consulta</div>
+						<p class="mt-1 text-sm text-app-muted">Combine filtros para encontrar a magia certa.</p>
+					</div>
+					<span class="text-xs font-medium text-violet-100">{{ spells().length }} resultados</span>
+				</div>
+				<div class="space-y-3 p-4">
+					<div
+						class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]"
+					>
+						<label class="relative min-w-0 sm:col-span-2 lg:col-span-1">
+							<span class="mb-1 block text-xs font-medium text-app-muted">Buscar magia</span>
+							<svg
+								lucideSearch
+								[size]="17"
+								[strokeWidth]="2"
+								aria-hidden="true"
+								class="pointer-events-none absolute bottom-3 left-3 text-violet-200/75"
+							></svg>
+							<input
+								class="app-field w-full py-2 pl-9 pr-3"
+								[ngModel]="query()"
+								(ngModelChange)="query.set($event)"
+								placeholder="Bola de fogo, Fireball..."
+							/>
+						</label>
+						<app-select
+							label="Nível"
+							[options]="levelOptions()"
+							[value]="level()"
+							emptyLabel="Todos"
+							(valueChange)="level.set($event)"
+						/>
+						<app-select
+							label="Escola"
+							[options]="schoolOptions()"
+							[value]="school()"
+							emptyLabel="Todas"
+							(valueChange)="school.set($event)"
+						/>
+						<app-select
+							label="Fonte"
+							[options]="sourceOptions()"
+							[value]="source()"
+							emptyLabel="Todas"
+							[searchable]="true"
+							searchPlaceholder="Buscar fonte..."
+							(valueChange)="source.set($event)"
+						/>
+						<app-select
+							label="Classe"
+							[options]="classOptions()"
+							[value]="spellClass()"
+							emptyLabel="Todas"
+							(valueChange)="spellClass.set($event)"
+						/>
+					</div>
+					<div class="flex flex-wrap gap-2 border-t border-app-divider pt-3">
+						<button
+							type="button"
+							class="inline-flex min-h-9 items-center gap-2 rounded-app-control border px-3 py-1.5 text-sm transition"
+							[class.border-violet-300/45]="concentrationOnly()"
+							[class.bg-violet-500/15]="concentrationOnly()"
+							[class.text-violet-50]="concentrationOnly()"
+							[class.border-app-border]="!concentrationOnly()"
+							[class.bg-app-inset]="!concentrationOnly()"
+							[class.text-app-muted]="!concentrationOnly()"
+							[attr.aria-pressed]="concentrationOnly()"
+							(click)="toggleConcentration()"
+						>
+							Concentração
+						</button>
+						<button
+							type="button"
+							class="inline-flex min-h-9 items-center gap-2 rounded-app-control border px-3 py-1.5 text-sm transition"
+							[class.border-amber-300/45]="ritualOnly()"
+							[class.bg-amber-500/12]="ritualOnly()"
+							[class.text-amber-50]="ritualOnly()"
+							[class.border-app-border]="!ritualOnly()"
+							[class.bg-app-inset]="!ritualOnly()"
+							[class.text-app-muted]="!ritualOnly()"
+							[attr.aria-pressed]="ritualOnly()"
+							(click)="toggleRitual()"
+						>
+							Ritual
+						</button>
+					</div>
+				</div>
+			</section>
+
+			@if (loading()) {
+				<p class="text-sm text-app-muted">Carregando índice local...</p>
+			} @else {
+				<div class="overflow-hidden rounded-app-panel border border-app-border bg-app-surface/65">
+					@for (spell of spells(); track spell.id) {
+						<button
+							type="button"
+							class="relative grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-app-divider border-l-[3px] border-l-transparent px-4 py-3.5 text-left transition duration-150 hover:bg-violet-500/[0.055]"
+							[class.bg-violet-500/15]="isSelected(spell)"
+							[class.ring-1]="isSelected(spell)"
+							[class.ring-inset]="isSelected(spell)"
+							[class.ring-violet-400/55]="isSelected(spell)"
+							[class.border-l-violet-300]="isSelected(spell) || spell.concentration"
+							[class.border-l-amber-300]="
+								!isSelected(spell) && !spell.concentration && spell.ritual
+							"
+							[attr.aria-current]="isSelected(spell) ? 'true' : null"
+							(click)="select(spell)"
+						>
+							<span class="min-w-0">
+								<span class="block truncate font-semibold tracking-tight text-app-text">{{
+									spell.name
+								}}</span>
+								<span class="mt-1 block text-xs text-app-muted"
+									>{{ levelLabel(spell.level) }} · {{ schoolLabel(spell.school) }}</span
+								>
+								<span
+									class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-app-muted"
+								>
+									<span>Tempo {{ spell.castingTime ?? '-' }}</span
+									><span class="text-app-subtle">·</span
+									><span>Alcance {{ spell.range ?? '-' }}</span>
+									@if (spell.concentration) {
+										<span
+											class="rounded-full border border-violet-300/25 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-100"
+											>Concentração</span
+										>
+									}
+									@if (spell.ritual) {
+										<span
+											class="rounded-full border border-amber-300/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-100"
+											>Ritual</span
+										>
+									}
+								</span>
+							</span>
+							<span class="app-status self-start border-white/10 bg-app-inset text-app-muted">{{
+								spell.source
+							}}</span>
+						</button>
+					} @empty {
+						<p class="p-5 text-sm text-app-muted">Nenhuma magia corresponde aos filtros.</p>
+					}
+				</div>
+			}
+		</div>
+
+		<aside
+			class="app-panel min-w-0 p-4 sm:p-5 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:pb-20"
+		>
+			@if (detailLoading()) {
+				<p class="text-sm text-app-muted">Carregando magia completa...</p>
+			} @else if (selected(); as spell) {
+				<div class="border-b border-violet-300/20 pb-4">
+					<div class="flex flex-wrap items-start justify-between gap-3">
+						<div class="min-w-0">
+							<div class="app-eyebrow text-violet-200/75">Ficha de magia</div>
+							<h2 class="mt-1 text-3xl font-semibold tracking-tight text-app-text">
+								{{ spell.name }}
+							</h2>
+							<p class="mt-2 text-sm leading-6 text-app-muted">
+								{{ levelLabel(spell.level) }} · {{ schoolLabel(spell.school) }}
+							</p>
+						</div>
+						<div class="flex flex-wrap justify-end gap-1.5">
+							<span class="app-status border-violet-300/25 bg-violet-500/10 text-violet-100">{{
+								spell.source
+							}}</span>
+							@if (spell.page) {
+								<span class="app-status border-white/10 bg-app-inset text-app-muted"
+									>p. {{ spell.page }}</span
+								>
+							}
+						</div>
+					</div>
+				</div>
+
+				<section
+					class="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-app-panel border border-violet-300/20 bg-app-divider sm:grid-cols-4"
+				>
+					@for (
+						item of [
+							{ label: 'Tempo de conjuração', value: spell.castingTime ?? '-' },
+							{ label: 'Alcance', value: spell.range ?? '-' },
+							{ label: 'Componentes', value: componentsLabel(spell.components) },
+							{ label: 'Duração', value: spell.duration ?? '-' },
+						];
+						track item.label
+					) {
+						<div class="min-w-0 bg-app-surface p-3">
+							<div class="text-[10px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
+								{{ item.label }}
+							</div>
+							<div class="mt-1 break-words text-sm font-medium text-app-text">{{ item.value }}</div>
+						</div>
+					}
+				</section>
+
+				@if (spell.components.material || spell.concentration || spell.ritual) {
+					<section
+						class="mt-4 border-l-2 border-violet-400/60 pl-3 text-sm leading-6 text-app-muted"
+					>
+						@if (spell.components.material) {
+							<p>
+								<span class="font-semibold text-app-text">Material.</span>
+								{{ spell.components.material }}
+							</p>
+						}
+						@if (spell.concentration || spell.ritual) {
+							<p class="mt-1">
+								@if (spell.concentration) {
+									<span class="font-semibold text-violet-100">Concentração</span>
+								}
+								@if (spell.concentration && spell.ritual) {
+									<span> · </span>
+								}
+								@if (spell.ritual) {
+									<span class="font-semibold text-amber-100">Ritual</span>
+								}
+							</p>
+						}
+					</section>
+				}
+
+				<section class="mt-6">
+					<div class="flex items-center gap-3">
+						<h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-violet-200">
+							Descrição
+						</h3>
+						<span class="h-px flex-1 bg-app-divider"></span>
+					</div>
+					<p class="mt-3 whitespace-pre-line text-sm leading-7 text-app-muted">
+						{{ render(spell.entries) }}
+					</p>
+				</section>
+
+				@if (spell.entriesHigherLevel.length) {
+					<section class="mt-6">
+						<div class="flex items-center gap-3">
+							<h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-violet-200">
+								Em níveis superiores
+							</h3>
+							<span class="h-px flex-1 bg-app-divider"></span>
+						</div>
+						<p class="mt-3 whitespace-pre-line text-sm leading-7 text-app-muted">
+							{{ render(spell.entriesHigherLevel) }}
+						</p>
+					</section>
+				}
+
+				@if (spell.classes.length) {
+					<section class="mt-6 border-t border-app-divider pt-4">
+						<div class="app-eyebrow text-violet-200/75">Classes</div>
+						<p class="mt-2 text-sm text-app-muted">{{ spell.classes.join(', ') }}</p>
+					</section>
+				}
+			} @else {
+				<div
+					class="flex min-h-48 items-center justify-center border border-dashed border-violet-300/20 bg-violet-500/[0.025] p-6 text-center text-sm text-app-muted"
+				>
+					<svg
+						lucideSparkles
+						[size]="22"
+						[strokeWidth]="2"
+						aria-hidden="true"
+						class="mr-2 shrink-0 text-violet-200/75"
+					></svg>
+					Selecione uma magia para carregar sua descrição completa.
+				</div>
+			}
+		</aside>
+	</section>
+</div>

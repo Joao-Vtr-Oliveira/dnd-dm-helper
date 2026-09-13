@@ -9,12 +9,12 @@ import type {
 	CompendiumMonster,
 	CompendiumSpellcasting,
 	RawFiveEToolsBestiaryBundle,
-	RawFiveEToolsEntry,
 	RawFiveEToolsFeature,
 	RawFiveEToolsLegendaryGroup,
 	RawFiveEToolsMonster,
 	RawFiveEToolsSpellcasting,
 } from '../../models/compendium-bestiary-model';
+import type { RawFiveEToolsEntry } from '../../models/compendium-entry-model';
 
 @Injectable({ providedIn: 'root' })
 export class CompendiumBestiaryNormalizerService {

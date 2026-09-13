@@ -50,6 +50,13 @@ describe('Home', () => {
 		]);
 	});
 
+	it('places Magias directly after Bestiário in the Compêndio navigation group', () => {
+		const compendium = component.navGroups.find((group) => group.label === 'Compêndio');
+
+		expect(compendium?.links?.map((link) => link.label)).toEqual(['Bestiário', 'Magias']);
+		expect(compendium?.links?.[1]?.path).toBe('/home/compendium/spells');
+	});
+
 	it('opens and closes the compact mobile navigation', () => {
 		expect(component.mobileNavigationOpen()).toBeFalse();
 		component.toggleMobileNavigation();

@@ -8,11 +8,11 @@ import type {
 	CreatureSheet,
 	CreatureSpecialAbility,
 } from '../../models/creature-sheet-model';
-import { CompendiumBestiaryRendererService } from '../compendium-bestiary-renderer-service/compendium-bestiary-renderer-service';
+import { CompendiumRendererService } from '../compendium-renderer-service/compendium-renderer-service';
 
 @Injectable({ providedIn: 'root' })
 export class CompendiumCreatureAdapterService {
-	private readonly renderer = inject(CompendiumBestiaryRendererService);
+	private readonly renderer = inject(CompendiumRendererService);
 
 	toCreatureSheet(monster: CompendiumMonster): CreatureSheet {
 		const spellData = this.spellData(monster);

@@ -19,6 +19,10 @@ export const routes: Routes = [
 				loadComponent: () => import('./pages/bestiary/bestiary').then((module) => module.BestiaryPage),
 			},
 			{
+				path: 'compendium/spells',
+				loadComponent: () => import('./pages/spells/spells').then((module) => module.SpellsPage),
+			},
+			{
 				path: 'world',
 				loadComponent: () => import('./pages/world/world').then((module) => module.WorldPage),
 			},

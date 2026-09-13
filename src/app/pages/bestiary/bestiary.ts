@@ -12,7 +12,7 @@ import {
 import { AppSelectComponent, type AppSelectOption } from '../../components/app-select/app-select';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type { CompendiumMonster } from '../../models/compendium-bestiary-model';
-import { CompendiumBestiaryRendererService } from '../../services/compendium-bestiary-renderer-service/compendium-bestiary-renderer-service';
+import { CompendiumRendererService } from '../../services/compendium-renderer-service/compendium-renderer-service';
 import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
 import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
 import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
@@ -36,7 +36,7 @@ import { LocalStorageService } from '../../services/local-storage-service/local-
 export class BestiaryPage {
 	private readonly repository = inject(CompendiumBestiaryRepositoryService);
 	private readonly adapter = inject(CompendiumCreatureAdapterService);
-	private readonly renderer = inject(CompendiumBestiaryRendererService);
+	private readonly renderer = inject(CompendiumRendererService);
 	private readonly localStorage = inject(LocalStorageService);
 	private readonly router = inject(Router);
 
