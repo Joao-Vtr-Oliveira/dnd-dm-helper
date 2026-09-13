@@ -2,7 +2,9 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type {
+	CreatureAbilityKey,
 	CreatureCategory,
+	CreatureDamageDefense,
 	CreatureFeature,
 	CreatureSheet,
 	CreatureSpell,
@@ -57,10 +59,7 @@ export class FiveEToolsHomebrewService {
 		return this.readStoredFile();
 	}
 
-	restoreStoredState(
-		file: FiveEToolsHomebrewFile | null,
-		backups: FiveEToolsStoredBackup[],
-	): void {
+	restoreStoredState(file: FiveEToolsHomebrewFile | null, backups: FiveEToolsStoredBackup[]): void {
 		if (file) this.saveHomebrewFile(file);
 		else localStorage.removeItem(this.storageKey);
 
@@ -806,6 +805,35 @@ export class FiveEToolsHomebrewService {
 			spells: spellData.spells,
 			specialAbilities,
 			features: this.extractCreatureFeatures(monster),
+			aliases: this.optionalStrings(monster.alias),
+			groups: this.optionalStrings(monster.group),
+			source: monster.source,
+			size: this.uniqueStrings(monster.size).join(', ') || undefined,
+			creatureType: this.getMonsterTypeLabel(monster) ?? undefined,
+			alignment: this.uniqueStrings(monster.alignment).join(', ') || undefined,
+			challengeRating: monster.cr,
+			level: Number.isFinite(monster.level) ? Math.floor(monster.level!) : undefined,
+			armorClassNote: this.monsterAcNote(monster),
+			hitPointFormula: monster.hp?.formula?.trim() || undefined,
+			speed: this.monsterSpeed(monster.speed),
+			abilityScores: this.monsterAbilities(monster),
+			savingThrows: this.monsterSavingThrows(monster.save),
+			skills: this.monsterSkills(monster.skill),
+			passivePerception: Number.isFinite(monster.passive)
+				? Math.floor(monster.passive!)
+				: undefined,
+			damageVulnerabilities: this.monsterDefenses(monster.vulnerable),
+			damageResistances: this.monsterDefenses(monster.resist),
+			damageImmunities: this.monsterDefenses(monster.immune),
+			conditionImmunities: this.optionalStrings(
+				Array.isArray(monster.conditionImmune)
+					? monster.conditionImmune.filter((value): value is string => typeof value === 'string')
+					: undefined,
+			),
+			senses: this.monsterSenses(monster.senses),
+			languages: this.optionalStrings(monster.languages),
+			spellcasting: this.monsterSpellcastingMetadata(monster.spellcasting),
+			legendaryActions: this.monsterLegendaryMetadata(monster.legendary),
 			rawFiveETools: structuredClone(monster),
 			fiveEToolsIdentity: { name: monster.name, source: monster.source },
 		};
@@ -873,17 +901,69 @@ export class FiveEToolsHomebrewService {
 			name,
 			source,
 			alias: this.uniqueStrings(
-				this.mergeArrays(base.alias, sheet.title && sheet.title !== name ? [sheet.title] : []),
+				this.mergeArrays(
+					this.mergeArrays(base.alias, sheet.data.aliases),
+					sheet.title && sheet.title !== name ? [sheet.title] : [],
+				),
 			),
-			group: this.uniqueStrings(this.mergeArrays(base.group, sheet.tags ?? [])),
-			type: sheet.category === 'other' ? 'object' : (base.type ?? 'humanoid'),
-			ac: [sheet.data.armorClass ?? this.getMonsterAcValue(base)],
+			group: this.uniqueStrings(
+				this.mergeArrays(this.mergeArrays(base.group, sheet.data.groups), sheet.tags ?? []),
+			),
+			size: sheet.data.size
+				? sheet.data.size
+						.split(',')
+						.map((value) => value.trim())
+						.filter(Boolean)
+				: base.size,
+			type:
+				sheet.category === 'other'
+					? 'object'
+					: (sheet.data.creatureType ?? base.type ?? 'humanoid'),
+			alignment: sheet.data.alignment
+				? sheet.data.alignment
+						.split(',')
+						.map((value) => value.trim())
+						.filter(Boolean)
+				: base.alignment,
+			ac: [
+				this.toMonsterAc(
+					sheet.data.armorClass ?? this.getMonsterAcValue(base),
+					sheet.data.armorClassNote,
+				),
+			],
 			hp: {
 				...(base.hp ?? {}),
 				average: sheet.data.maxHp,
-				formula: typeof base.hp?.formula === 'string' ? base.hp.formula : String(sheet.data.maxHp),
+				formula:
+					sheet.data.hitPointFormula ??
+					(typeof base.hp?.formula === 'string' ? base.hp.formula : String(sheet.data.maxHp)),
 			},
-			speed,
+			speed: sheet.data.speed ? this.toMonsterSpeed(sheet.data.speed) : speed,
+			str: sheet.data.abilityScores?.str ?? base.str,
+			dex: sheet.data.abilityScores?.dex ?? base.dex,
+			con: sheet.data.abilityScores?.con ?? base.con,
+			int: sheet.data.abilityScores?.int ?? base.int,
+			wis: sheet.data.abilityScores?.wis ?? base.wis,
+			cha: sheet.data.abilityScores?.cha ?? base.cha,
+			save: sheet.data.savingThrows ? this.toMonsterSaves(sheet.data.savingThrows) : base.save,
+			skill: sheet.data.skills ? this.toMonsterSkills(sheet.data.skills) : base.skill,
+			passive: sheet.data.passivePerception ?? base.passive,
+			vulnerable: sheet.data.damageVulnerabilities
+				? this.toMonsterDefenses(sheet.data.damageVulnerabilities, 'vulnerable')
+				: base.vulnerable,
+			resist: sheet.data.damageResistances
+				? this.toMonsterDefenses(sheet.data.damageResistances, 'resist')
+				: base.resist,
+			immune: sheet.data.damageImmunities
+				? this.toMonsterDefenses(sheet.data.damageImmunities, 'immune')
+				: base.immune,
+			conditionImmune: sheet.data.conditionImmunities ?? base.conditionImmune,
+			senses: sheet.data.senses
+				? sheet.data.senses.map((sense) => `${sense.name}${sense.detail ? ` ${sense.detail}` : ''}`)
+				: base.senses,
+			languages: sheet.data.languages ?? base.languages,
+			cr: sheet.data.challengeRating ?? base.cr,
+			level: sheet.data.level ?? base.level,
 			spellcasting: this.createSpellcastingFromCreature(sheet.data, base.spellcasting ?? []),
 		};
 
@@ -1775,8 +1855,41 @@ export class FiveEToolsHomebrewService {
 						id: `spell-${spellIndex}`,
 						name: label,
 						level: Number.isInteger(level) ? level : 0,
-						uses: 1,
+						castingGroup: level === 0 ? 'at-will' : 'slot',
 					});
+				}
+			}
+
+			const record = block as Record<string, unknown>;
+			const addList = (
+				values: unknown,
+				castingGroup: NonNullable<CreatureSpell['castingGroup']>,
+				uses?: number,
+				each = false,
+			) => {
+				if (!Array.isArray(values)) return;
+				for (const spellTag of values) {
+					if (typeof spellTag !== 'string') continue;
+					const label = this.extractSpellLabel(spellTag);
+					if (!label) continue;
+					spellIndex += 1;
+					spells.push({
+						id: `spell-${spellIndex}`,
+						name: label,
+						castingGroup,
+						...(uses == null ? {} : { uses }),
+						...(each ? { each: true } : {}),
+					});
+				}
+			};
+			addList(record['will'], 'at-will');
+			addList(record['constant'], 'constant');
+			for (const group of ['daily', 'rest', 'weekly'] as const) {
+				const lists = record[group];
+				if (!lists || typeof lists !== 'object' || Array.isArray(lists)) continue;
+				for (const [usesKey, values] of Object.entries(lists as Record<string, unknown>)) {
+					const match = usesKey.match(/^(\d+)(e)?$/i);
+					addList(values, group, match ? Number(match[1]) : undefined, match?.[2] === 'e');
 				}
 			}
 		}
@@ -1903,6 +2016,194 @@ export class FiveEToolsHomebrewService {
 		return null;
 	}
 
+	private monsterAcNote(monster: FiveEToolsMonster): string | undefined {
+		const first = monster.ac?.[0];
+		if (!first || typeof first !== 'object' || Array.isArray(first)) return undefined;
+		const record = first as Record<string, unknown>;
+		const values = [record['from'], record['condition'], record['note']]
+			.flatMap((value) => (Array.isArray(value) ? value : [value]))
+			.filter((value): value is string => typeof value === 'string' && !!value.trim());
+		return values.length ? values.join(', ') : undefined;
+	}
+
+	private toMonsterAc(
+		value: number | null,
+		note: string | undefined,
+	): number | Record<string, unknown> {
+		if (!note?.trim()) return value ?? 10;
+		return { ac: value ?? 10, note: note.trim() };
+	}
+
+	private toMonsterSpeed(speed: NonNullable<CreatureSheet['speed']>): Record<string, unknown> {
+		return Object.fromEntries(
+			speed.map((entry) => {
+				const distance = entry.distance?.match(/\d+/)?.[0];
+				return [
+					entry.type,
+					entry.hover
+						? { ...(distance ? { number: Number(distance) } : {}), hover: true }
+						: distance
+							? Number(distance)
+							: (entry.distance ?? true),
+				];
+			}),
+		);
+	}
+
+	private toMonsterSaves(
+		values: NonNullable<CreatureSheet['savingThrows']>,
+	): Record<string, string> {
+		return Object.fromEntries(
+			values.map((entry) => [entry.ability, this.signedBonus(entry.bonus)]),
+		);
+	}
+
+	private toMonsterSkills(values: NonNullable<CreatureSheet['skills']>): Record<string, string> {
+		return Object.fromEntries(values.map((entry) => [entry.name, this.signedBonus(entry.bonus)]));
+	}
+
+	private toMonsterDefenses(
+		values: NonNullable<CreatureSheet['damageResistances']>,
+		key: 'resist' | 'immune' | 'vulnerable',
+	): unknown[] {
+		return values.map((entry) =>
+			entry.note?.trim()
+				? { [key]: entry.types, note: entry.note.trim() }
+				: entry.types.length === 1
+					? entry.types[0]
+					: { [key]: entry.types },
+		);
+	}
+
+	private signedBonus(value: number): string {
+		return value >= 0 ? `+${value}` : String(value);
+	}
+
+	private monsterSpeed(speed: FiveEToolsMonster['speed']): CreatureSheet['speed'] {
+		if (!speed) return undefined;
+		const values = Object.entries(speed).flatMap(([type, value]) => {
+			if (type === 'canHover' || value === false) return [];
+			if (typeof value === 'number') return [{ type, distance: `${value} ft.` }];
+			if (typeof value === 'string') return [{ type, distance: value }];
+			if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+			const detail = value as Record<string, unknown>;
+			const distance = detail['number'];
+			return [
+				{
+					type,
+					...(typeof distance === 'number' ? { distance: `${distance} ft.` } : {}),
+					...(detail['hover'] === true || speed['canHover'] === true ? { hover: true } : {}),
+				},
+			];
+		});
+		return values.length ? values : undefined;
+	}
+
+	private monsterAbilities(monster: FiveEToolsMonster): CreatureSheet['abilityScores'] {
+		const values = (['str', 'dex', 'con', 'int', 'wis', 'cha'] as CreatureAbilityKey[]).flatMap(
+			(ability) =>
+				Number.isFinite(monster[ability])
+					? [[ability, Math.floor(monster[ability]!)] as const]
+					: [],
+		);
+		return values.length ? Object.fromEntries(values) : undefined;
+	}
+
+	private monsterSavingThrows(values: FiveEToolsMonster['save']): CreatureSheet['savingThrows'] {
+		if (!values) return undefined;
+		const valid = new Set<CreatureAbilityKey>(['str', 'dex', 'con', 'int', 'wis', 'cha']);
+		const normalized = Object.entries(values).flatMap(([ability, bonus]) => {
+			const key = ability.toLocaleLowerCase() as CreatureAbilityKey;
+			const parsed = this.parseBonus(bonus);
+			return valid.has(key) && parsed !== undefined ? [{ ability: key, bonus: parsed }] : [];
+		});
+		return normalized.length ? normalized : undefined;
+	}
+
+	private monsterSkills(values: FiveEToolsMonster['skill']): CreatureSheet['skills'] {
+		if (!values) return undefined;
+		const normalized = Object.entries(values).flatMap(([name, bonus]) => {
+			const parsed = this.parseBonus(bonus);
+			return parsed === undefined ? [] : [{ name, bonus: parsed }];
+		});
+		return normalized.length ? normalized : undefined;
+	}
+
+	private monsterDefenses(values: unknown[] | undefined): CreatureDamageDefense[] | undefined {
+		if (!values?.length) return undefined;
+		const normalized = values.flatMap((value) => {
+			if (typeof value === 'string' && value.trim()) return [{ types: [value.trim()] }];
+			if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+			const record = value as Record<string, unknown>;
+			const types = ['resist', 'immune', 'vulnerable']
+				.flatMap((key) => (Array.isArray(record[key]) ? record[key] : []))
+				.filter((item): item is string => typeof item === 'string' && !!item.trim());
+			const note = [record['preNote'], record['note'], record['special']]
+				.filter((item): item is string => typeof item === 'string' && !!item.trim())
+				.join(' ');
+			return types.length ? [{ types, ...(note ? { note } : {}) }] : [];
+		});
+		return normalized.length ? normalized : undefined;
+	}
+
+	private monsterSenses(values: string[] | undefined): CreatureSheet['senses'] {
+		const normalized = this.uniqueStrings(values).flatMap((value) => {
+			const [name, ...detail] = value.split(/\s+/);
+			return name ? [{ name, ...(detail.length ? { detail: detail.join(' ') } : {}) }] : [];
+		});
+		return normalized.length ? normalized : undefined;
+	}
+
+	private monsterSpellcastingMetadata(
+		blocks: FiveEToolsSpellcastingBlock[] | undefined,
+	): CreatureSheet['spellcasting'] {
+		const header = (blocks ?? [])
+			.map((block) => this.flattenEntries(block.headerEntries))
+			.filter(Boolean)
+			.join('\n');
+		const ability = header.match(
+			/\b(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma)\b/i,
+		)?.[1];
+		const abilityMap: Record<string, CreatureAbilityKey> = {
+			strength: 'str',
+			dexterity: 'dex',
+			constitution: 'con',
+			intelligence: 'int',
+			wisdom: 'wis',
+			charisma: 'cha',
+		};
+		const dc = header.match(/spell save DC\s*(\d+)/i)?.[1];
+		const attack = header.match(/\+\s*(\d+)\s*to hit with spell attacks/i)?.[1];
+		const normalized = {
+			...(ability && abilityMap[ability.toLocaleLowerCase()]
+				? { ability: abilityMap[ability.toLocaleLowerCase()] }
+				: {}),
+			...(dc ? { spellSaveDc: Number(dc) } : {}),
+			...(attack ? { spellAttackBonus: Number(attack) } : {}),
+			...(header ? { header } : {}),
+		};
+		return Object.keys(normalized).length ? normalized : undefined;
+	}
+
+	private monsterLegendaryMetadata(
+		blocks: FiveEToolsMonsterFeatureBlock[] | undefined,
+	): CreatureSheet['legendaryActions'] {
+		const intro = (blocks ?? [])
+			.map((block) => this.flattenEntries(block.entries))
+			.find((text) => /legendary actions?/i.test(text));
+		const count = intro?.match(/(\d+)\s+legendary actions?/i)?.[1];
+		return intro || count
+			? { ...(count ? { count: Number(count) } : {}), ...(intro ? { intro } : {}) }
+			: undefined;
+	}
+
+	private parseBonus(value: unknown): number | undefined {
+		const match = String(value ?? '')
+			.trim()
+			.match(/^[+\-]?\d+/);
+		return match ? Number(match[0]) : undefined;
+	}
+
 	private groupCreatureFeatures(features: CreatureFeature[]): {
 		trait: FiveEToolsMonsterFeatureBlock[];
 		action: FiveEToolsMonsterFeatureBlock[];
@@ -1957,7 +2258,7 @@ export class FiveEToolsHomebrewService {
 		if (ability.recoveryType === 'uses-per-day' && ability.maxUses) {
 			return `${ability.name} (${ability.maxUses}/Day)`;
 		}
-		return ability.name;
+		return ability.name ?? 'Habilidade especial';
 	}
 
 	private createSpellcastingFromCreature(
@@ -1968,10 +2269,37 @@ export class FiveEToolsHomebrewService {
 			(block) => !(block.spells && Object.keys(block.spells).length),
 		);
 		const levels: Record<string, FiveEToolsSpellcastingLevelBlock> = {};
+		const lists: Record<string, unknown> = {};
 		for (const spell of creature.spells) {
 			const spellTag = spell.name.startsWith('{@spell ')
 				? spell.name
 				: this.toSpellTag(spell.name, spell.source ?? 'XPHB');
+			if (spell.castingGroup === 'at-will') {
+				const key = spell.level === 0 ? 'spells' : 'will';
+				if (key === 'will')
+					lists[key] = [...((lists[key] as string[] | undefined) ?? []), spellTag];
+				else {
+					levels['0'] = levels['0'] ?? { spells: [] };
+					levels['0'].spells = [...(levels['0'].spells ?? []), spellTag];
+				}
+				continue;
+			}
+			if (spell.castingGroup === 'constant') {
+				lists['constant'] = [...((lists['constant'] as string[] | undefined) ?? []), spellTag];
+				continue;
+			}
+			if (
+				spell.castingGroup === 'daily' ||
+				spell.castingGroup === 'rest' ||
+				spell.castingGroup === 'weekly'
+			) {
+				const group = spell.castingGroup;
+				const key = `${Math.max(1, spell.uses ?? 1)}${spell.each ? 'e' : ''}`;
+				const groupLists = (lists[group] as Record<string, string[]> | undefined) ?? {};
+				groupLists[key] = [...(groupLists[key] ?? []), spellTag];
+				lists[group] = groupLists;
+				continue;
+			}
 			const level =
 				Number.isInteger(spell.level) && spell.level! >= 0 && spell.level! <= 9
 					? String(spell.level)
@@ -1986,15 +2314,17 @@ export class FiveEToolsHomebrewService {
 			levels[level].slots = slot.max;
 		}
 
-		const spellBlocks = Object.keys(levels).length
-			? [
-					{
-						name: 'Spellcasting',
-						type: 'spellcasting',
-						spells: levels,
-					},
-				]
-			: [];
+		const spellBlocks =
+			Object.keys(levels).length || Object.keys(lists).length
+				? [
+						{
+							name: 'Spellcasting',
+							type: 'spellcasting',
+							spells: levels,
+							...lists,
+						},
+					]
+				: [];
 		return [...headerBlocks, ...spellBlocks];
 	}
 
@@ -2127,8 +2457,13 @@ export class FiveEToolsHomebrewService {
 		}));
 	}
 
-	private uniqueStrings(values: string[]): string[] {
-		return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+	private uniqueStrings(values: string[] | undefined): string[] {
+		return Array.from(new Set((values ?? []).map((value) => value.trim()).filter(Boolean)));
+	}
+
+	private optionalStrings(values: string[] | undefined): string[] | undefined {
+		const normalized = this.uniqueStrings(values);
+		return normalized.length ? normalized : undefined;
 	}
 
 	private range(start: number, end: number): number[] {

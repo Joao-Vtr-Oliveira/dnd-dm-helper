@@ -86,12 +86,16 @@ describe('BattleEncounterService', () => {
 			new Date('2026-01-01T10:00:00Z'),
 		);
 		const combatant = battle.combatants[0];
+		const reference = battle.referenceSheets[0];
 
 		expect(battle.sourceEncounterId).toBe(encounter.id);
 		expect(battle.name).toBe(encounter.title);
 		expect(battle.description).toBe(encounter.description);
 		expect(combatant.sourceParticipantId).toBe(boss.id);
 		expect(combatant.sourceSheetId).toBe(boss.sourceSheetId);
+		expect(combatant.referenceSheetId).toBe(reference.id);
+		expect(reference.sheet).toEqual(boss.sheet);
+		expect(reference.sheet).not.toBe(source.participants[0].sheet);
 		expect(combatant.currentHp).toBe(combatant.maxHp);
 		expect(combatant.temporaryHp).toBe(0);
 		expect(combatant.spellSlots).toEqual([{ level: 1, max: 2, used: 0 }]);
@@ -255,6 +259,7 @@ describe('BattleEncounterService', () => {
 				{
 					id: 'combatant-1',
 					sourceParticipantId: 'participant-1',
+					referenceSheetId: 'reference-1',
 					name: 'Mage',
 					side: 'enemy',
 					initiative: 10,
@@ -275,6 +280,21 @@ describe('BattleEncounterService', () => {
 					features: [{ id: 'feature-1', name: 'Spellcasting', kind: 'spellcasting' }],
 				},
 			],
+			referenceSheets: [
+				{
+					id: 'reference-1',
+					sheet: {
+						name: 'Mage reference',
+						armorClass: 15,
+						maxHp: 40,
+						spellSlots: [],
+						spells: [],
+						specialAbilities: [],
+						features: [],
+						size: 'Medium',
+					},
+				},
+			],
 			pendingCombatants: [],
 			lairActions: [],
 			traps: [],
@@ -284,9 +304,13 @@ describe('BattleEncounterService', () => {
 		});
 
 		expect(normalized.combatants[0].sourceParticipantId).toBe('participant-1');
+		expect(normalized.combatants[0].referenceSheetId).toBe('reference-1');
 		expect(normalized.combatants[0].spells[0].name).toBe('Magic Missile');
 		expect(normalized.combatants[0].spells[0].source).toBe('PHB');
 		expect(normalized.combatants[0].features[0].name).toBe('Spellcasting');
+		expect(normalized.referenceSheets[0].sheet).toEqual(
+			jasmine.objectContaining({ name: 'Mage reference', size: 'Medium' }),
+		);
 	});
 
 	it('keeps the configured number of snapshots', () => {

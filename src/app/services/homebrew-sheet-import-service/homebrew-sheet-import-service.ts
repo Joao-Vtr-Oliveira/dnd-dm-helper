@@ -5,7 +5,6 @@ import type {
 	CreatureSheet,
 	CreatureSpecialAbility,
 } from '../../models/creature-sheet-model';
-import { normalizeArmorClass } from '../../models/creature-sheet-model';
 import {
 	LocalStorageService,
 	type HomebrewCategory,
@@ -318,19 +317,7 @@ export class HomebrewSheetImportService {
 	}
 
 	private normalizeCreature(raw: RawCreature): CreatureSheet {
-		return this.creatureTemplate.normalizeCreature({
-			name: raw.name as string,
-			maxHp: raw.maxHp as number,
-			armorClass: normalizeArmorClass(raw.armorClass),
-			spellSlots: raw.spellSlots as CreatureSheet['spellSlots'],
-			spells: raw.spells as CreatureSheet['spells'],
-			specialAbilities: raw.specialAbilities as CreatureSheet['specialAbilities'],
-			features: raw.features as CreatureFeature[] | undefined,
-			rawFiveETools: raw.rawFiveETools as CreatureSheet['rawFiveETools'],
-			fiveEToolsIdentity: raw.fiveEToolsIdentity as CreatureSheet['fiveEToolsIdentity'],
-			officialOrigin: raw.officialOrigin as CreatureSheet['officialOrigin'],
-			officialSnapshot: raw.officialSnapshot as CreatureSheet['officialSnapshot'],
-		});
+		return this.creatureTemplate.normalizeCreature(raw as Partial<CreatureSheet>);
 	}
 
 	private validateCreature(data: RawCreature | null, errors: string[]): void {
@@ -442,8 +429,11 @@ export class HomebrewSheetImportService {
 				continue;
 			}
 			const ability = item as Partial<CreatureSpecialAbility>;
-			if (typeof ability.name !== 'string' || !ability.name.trim())
-				errors.push(`${field}.name é obrigatório.`);
+			if (
+				(typeof ability.name !== 'string' || !ability.name.trim()) &&
+				(typeof ability.featureId !== 'string' || !ability.featureId.trim())
+			)
+				errors.push(`${field}.name ou featureId é obrigatório.`);
 			if (ability.id !== undefined && typeof ability.id !== 'string')
 				errors.push(`${field}.id tem tipo inválido.`);
 			if (!RECOVERY_TYPES.includes(ability.recoveryType as CreatureAbilityRecoveryType))
@@ -659,6 +649,29 @@ export class HomebrewSheetImportService {
 			'fiveEToolsIdentity',
 			'officialOrigin',
 			'officialSnapshot',
+			'aliases',
+			'groups',
+			'source',
+			'size',
+			'creatureType',
+			'alignment',
+			'challengeRating',
+			'level',
+			'armorClassNote',
+			'hitPointFormula',
+			'speed',
+			'abilityScores',
+			'savingThrows',
+			'skills',
+			'passivePerception',
+			'damageVulnerabilities',
+			'damageResistances',
+			'damageImmunities',
+			'conditionImmunities',
+			'senses',
+			'languages',
+			'spellcasting',
+			'legendaryActions',
 		]);
 		return Object.keys(data).filter((key) => !known.has(key));
 	}

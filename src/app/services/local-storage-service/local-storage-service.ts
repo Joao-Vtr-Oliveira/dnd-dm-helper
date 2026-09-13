@@ -1,12 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
 import type { Encounter, EncounterLairAction, EncounterParticipant, EncounterTrap } from '../../models/encounter-model';
-import {
-	normalizeArmorClass,
-	type CreatureCategory,
-	type CreatureSheet,
-} from '../../models/creature-sheet-model';
+import type { CreatureCategory, CreatureSheet } from '../../models/creature-sheet-model';
+import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
 
 export type SavedEncounter = Encounter;
 
@@ -27,6 +24,7 @@ export interface SavedSheetInterface {
 
 @Injectable({ providedIn: 'root' })
 export class LocalStorageService {
+	private readonly creatureTemplate = inject(CreatureTemplateService);
 	private readonly KEYEncounters = APP_STORAGE_KEYS.encounters;
 	private readonly KEYSheets = APP_STORAGE_KEYS.sheets;
 	private readonly KEYBattleEncounters = APP_STORAGE_KEYS.battleEncounters;
@@ -270,24 +268,7 @@ export class LocalStorageService {
 	}
 
 	private normalizeCreatureSheet(raw: Partial<CreatureSheet> | undefined): CreatureSheet {
-		const sheet = raw ?? {};
-		return {
-			name: typeof sheet.name === 'string' ? sheet.name.trim() || 'Creature' : 'Creature',
-			armorClass: normalizeArmorClass(sheet.armorClass),
-			maxHp: Number.isFinite(Number(sheet.maxHp)) ? Math.max(0, Math.floor(Number(sheet.maxHp))) : 0,
-			spellSlots: Array.isArray(sheet.spellSlots) ? structuredClone(sheet.spellSlots) : [],
-			spells: Array.isArray(sheet.spells) ? structuredClone(sheet.spells) : [],
-			specialAbilities: Array.isArray(sheet.specialAbilities)
-				? structuredClone(sheet.specialAbilities)
-				: [],
-			features: Array.isArray(sheet.features) ? structuredClone(sheet.features) : [],
-			rawFiveETools: sheet.rawFiveETools ? structuredClone(sheet.rawFiveETools) : undefined,
-			fiveEToolsIdentity: sheet.fiveEToolsIdentity
-				? structuredClone(sheet.fiveEToolsIdentity)
-				: undefined,
-			officialOrigin: sheet.officialOrigin ? structuredClone(sheet.officialOrigin) : undefined,
-			officialSnapshot: sheet.officialSnapshot ? structuredClone(sheet.officialSnapshot) : undefined,
-		};
+		return this.creatureTemplate.normalizeCreature(raw ?? {});
 	}
 
 	private normalizeEncounter(encounter: Encounter): SavedEncounter {

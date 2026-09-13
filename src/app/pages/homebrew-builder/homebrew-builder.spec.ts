@@ -4,6 +4,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 
 import type { CompendiumSpellListEntry } from '../../models/compendium-spell-model';
 import { CompendiumSpellRepositoryService } from '../../services/compendium-spell-repository-service/compendium-spell-repository-service';
+import { CompendiumSuggestionsService } from '../../services/compendium-suggestions-service/compendium-suggestions-service';
 import { HomebrewBuilder } from './homebrew-builder';
 
 describe('HomebrewBuilder', () => {
@@ -28,6 +29,19 @@ describe('HomebrewBuilder', () => {
 				{
 					provide: CompendiumSpellRepositoryService,
 					useValue: { getIndex: async () => ({ sources: [], spells: [] }) },
+				},
+				{
+					provide: CompendiumSuggestionsService,
+					useValue: {
+						getSkills: async () => ['Arcana'],
+						getLanguages: async () => [],
+						getSenses: async () => [],
+						getConditions: async () => [],
+						getMonsterFeatures: async () => [
+							{ name: 'Pack Tactics', effect: 'Advantage with an ally.', example: 'Example.' },
+						],
+						getFeats: async () => [{ name: 'Actor', source: 'PHB', entries: ['Mimicry.'] }],
+					},
 				},
 			],
 		}).compileComponents();
@@ -73,6 +87,55 @@ describe('HomebrewBuilder', () => {
 		expect(component.creature().spellSlots).toEqual([{ level: 1, max: 2 }]);
 	});
 
+	it('shows derived ability modifiers while keeping the entered score as the source of truth', () => {
+		component.setAbilityScore('str', 13);
+		component.setAbilityScore('dex', 20);
+
+		expect(component.abilityModifier('str')).toBe('+1');
+		expect(component.abilityModifier('dex')).toBe('+5');
+		expect(component.abilityModifier('con')).toBe('—');
+	});
+
+	it('prefills new saves and known skills from their governing ability while keeping them editable', () => {
+		component.setAbilityScore('dex', 14);
+		component.addSavingThrow('dex');
+		component.addSkill('Acrobatics');
+
+		expect(component.creature().savingThrows).toEqual([{ ability: 'dex', bonus: 2 }]);
+		expect(component.creature().skills).toEqual([{ name: 'Acrobatics', bonus: 2 }]);
+
+		component.updateSkill('Acrobatics', 5);
+		expect(component.creature().skills?.[0].bonus).toBe(5);
+	});
+
+	it('keeps special ability recovery data consistent when changing its recovery type', () => {
+		component.setAbilityDraft({
+			name: 'Passo sombrio',
+			recoveryType: 'turn-cooldown',
+			cooldownValue: 2,
+		});
+		component.addSpecialAbility();
+
+		const ability = component.creature().specialAbilities[0];
+		expect(ability).toEqual(
+			jasmine.objectContaining({ recoveryType: 'turn-cooldown', cooldownTurns: 2 }),
+		);
+
+		component.setSpecialAbilityRecovery(ability.id, 'uses-per-day');
+		expect(component.creature().specialAbilities[0]).toEqual(
+			jasmine.objectContaining({ recoveryType: 'uses-per-day', maxUses: 1 }),
+		);
+		expect(component.creature().specialAbilities[0].cooldownTurns).toBeUndefined();
+	});
+
+	it('reveals the matching recovery parameter before a special ability is added', () => {
+		component.setAbilityDraft({ recoveryType: 'turn-cooldown' });
+		fixture.detectChanges();
+
+		expect(fixture.nativeElement.textContent).toContain('Turnos até voltar');
+		expect(fixture.nativeElement.querySelector('[name="new-ability-turns"]')).not.toBeNull();
+	});
+
 	it('opens the visible compendium action', () => {
 		const buttons = fixture.nativeElement.querySelectorAll(
 			'button',
@@ -111,7 +174,7 @@ describe('HomebrewBuilder', () => {
 		expect(component.toast()?.type).toBe('warn');
 	});
 
-	it('labels spell fields and actions after adding a compendium spell', () => {
+	it('keeps a compendium spell in the abilities data after adding it', () => {
 		component.addCompendiumSpell({
 			id: 'PHB:aid',
 			name: 'Aid',
@@ -123,13 +186,9 @@ describe('HomebrewBuilder', () => {
 			aliases: [],
 			classes: [],
 		});
-		fixture.detectChanges();
-
-		const text = fixture.nativeElement.textContent as string;
-		expect(text).toContain('Nome da magia');
-		expect(text).toContain('Nível');
-		expect(text).toContain('Usos');
-		expect(text).toContain('Ações');
+		expect(component.creature().spells).toEqual([
+			jasmine.objectContaining({ name: 'Aid', source: 'PHB', level: 2, uses: 1 }),
+		]);
 	});
 
 	it('allows manual and alternate-source spells with the same name and clears stale links on rename', () => {
@@ -169,5 +228,65 @@ describe('HomebrewBuilder', () => {
 		component.save();
 		expect(component.toast()?.type).toBe('warn');
 		expect(component.toast()?.text).toContain('nome');
+	});
+
+	it('uses the four requested semantic groups without native selects or datalists', () => {
+		const text = fixture.nativeElement.textContent as string;
+
+		expect(text).toContain('Essencial');
+		expect(text).toContain('Estatísticas');
+		expect(text).toContain('Defesas e percepção');
+		expect(text).toContain('Habilidades');
+		expect(fixture.nativeElement.querySelector('select')).toBeNull();
+		expect(fixture.nativeElement.querySelector('datalist')).toBeNull();
+	});
+
+	it('retains a single creature type string while allowing an optional subtype', () => {
+		component.setCreatureTypeBase('humanoid');
+		component.setCreatureSubtype('elf');
+
+		expect(component.creature().creatureType).toBe('humanoid (elf)');
+	});
+
+	it('builds damage defenses from selected type chips instead of comma-delimited text', () => {
+		component.selectDefenseType('damageResistances', 'fire');
+		component.selectDefenseType('damageResistances', 'cold');
+		component.setDefenseDraft('damageResistances', { note: 'from nonmagical attacks' });
+		component.addDefense('damageResistances');
+
+		expect(component.creature().damageResistances).toEqual([
+			{ types: ['fire', 'cold'], note: 'from nonmagical attacks' },
+		]);
+	});
+
+	it('copies catalog entries into editable trait features', () => {
+		component.addCatalogFeature({
+			name: 'Pack Tactics',
+			effect: 'Advantage with an ally.',
+			example: 'Example.',
+		});
+
+		expect(component.creature().features).toEqual([
+			jasmine.objectContaining({
+				name: 'Pack Tactics',
+				description: 'Advantage with an ally.',
+				kind: 'trait',
+			}),
+		]);
+	});
+
+	it('filters the active feature catalog tab instead of showing resources and feats at once', () => {
+		component.monsterFeatures.set([
+			{ name: 'Pack Tactics', effect: 'Advantage with an ally.', example: 'Example.' },
+		]);
+		component.feats.set([{ name: 'Actor', source: 'PHB', entries: ['Mimicry.'] }]);
+		component.openFeatureCatalog();
+		component.featureCatalogTab.set('feats');
+		component.featureCatalogSearch.set('actor');
+		fixture.detectChanges();
+
+		expect(fixture.nativeElement.textContent).toContain('Talentos');
+		expect(fixture.nativeElement.textContent).toContain('Actor');
+		expect(fixture.nativeElement.textContent).not.toContain('Pack Tactics');
 	});
 });

@@ -221,35 +221,12 @@
 		</div>
 
 		<aside
-			class="app-panel min-w-0 p-4 sm:p-5 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:pb-20"
+			id="bestiary-detail"
+			class="app-panel order-first min-w-0 scroll-mt-4 p-4 sm:p-5 xl:sticky xl:top-20 xl:order-none xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:pb-20"
 		>
 			@if (detailLoading()) {
 				<p class="text-sm text-app-muted">Carregando ficha completa...</p>
 			} @else if (selected(); as monster) {
-				<div class="border-b border-violet-300/20 pb-4">
-					<div class="flex flex-wrap items-start justify-between gap-3">
-						<div class="min-w-0">
-							<div class="app-eyebrow text-violet-200/75">Ficha de criatura</div>
-							<h2 class="mt-1 text-3xl font-semibold tracking-tight text-app-text">
-								{{ monster.name }}
-							</h2>
-							<p class="mt-2 text-sm leading-6 text-app-muted">
-								{{ formatCreatureMetadata(monster) }}
-							</p>
-						</div>
-						<div class="flex flex-wrap justify-end gap-1.5">
-							<span class="app-status border-violet-300/25 bg-violet-500/10 text-violet-100">{{
-								monster.source
-							}}</span>
-							@if (monster.page) {
-								<span class="app-status border-white/10 bg-app-inset text-app-muted"
-									>p. {{ monster.page }}</span
-								>
-							}
-						</div>
-					</div>
-				</div>
-
 				@if (monster.imageUrl && !imageFailed()) {
 					<button
 						type="button"
@@ -283,228 +260,14 @@
 					</button>
 				}
 
-				<section class="mt-5 border-y border-violet-300/20 py-3">
-					<div class="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
-						Resumo de combate
-					</div>
-					<div
-						class="mt-2 grid grid-cols-[0.8fr_0.9fr_1.3fr] divide-x divide-app-divider text-center"
-					>
-						<div class="px-2 py-1.5 sm:px-3">
-							<div class="text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200/80">
-								CR
-							</div>
-							<div class="mt-1 text-2xl font-semibold tracking-tight text-rose-200">
-								{{ monster.challengeRating ?? '-' }}
-							</div>
-						</div>
-						<div class="px-3 py-1.5">
-							<div
-								class="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-app-subtle"
-							>
-								<svg lucideShield [size]="13" [strokeWidth]="2.25" aria-hidden="true"></svg>CA
-							</div>
-							<div class="mt-1 text-2xl font-semibold tracking-tight text-app-text">
-								{{ monster.armorClass ?? '-' }}
-							</div>
-						</div>
-						<div class="px-3 py-1.5">
-							<div
-								class="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200/75"
-							>
-								<svg lucideHeartPulse [size]="13" [strokeWidth]="2.25" aria-hidden="true"></svg>PV
-							</div>
-							<div class="mt-1 text-2xl font-semibold tracking-tight text-emerald-100">
-								{{ monster.hitPoints }}
-							</div>
-							@if (monster.hitPointFormula) {
-								<div class="mt-0.5 truncate text-xs text-app-muted">
-									{{ monster.hitPointFormula }}
-								</div>
-							}
-						</div>
-					</div>
-				</section>
-
-				<section class="border-b border-app-divider pb-4 pt-4">
-					<div class="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-app-subtle">
-						Atributos
-					</div>
-					<div
-						class="mt-2 grid grid-cols-3 divide-x divide-y divide-app-divider sm:grid-cols-6 sm:divide-y-0"
-					>
-						@for (ability of abilityKeys; track ability) {
-							<div class="px-2 py-2.5 text-center">
-								<div class="text-[10px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
-									{{ abilityLabels[ability] }}
-								</div>
-								<div class="mt-1 text-lg font-semibold text-app-text">
-									{{ monster.abilities[ability] ?? '-' }}
-								</div>
-								<div class="text-xs font-medium text-violet-200/85">
-									{{ abilityModifier(monster.abilities[ability]) }}
-								</div>
-							</div>
-						}
-					</div>
-				</section>
-
-				<section class="mt-5 border-l-2 border-violet-400/60 pl-3 text-sm leading-6">
-					<div class="app-eyebrow text-violet-200/75">Defesas e sentidos</div>
-					@if (formatSpeed(monster.speed)) {
-						<p class="mt-2">
-							<span class="font-semibold text-app-text">Deslocamento.</span>
-							{{ formatSpeed(monster.speed) }}
-						</p>
-					}
-					@if (formatRecord(monster.saves)) {
-						<p class="mt-1">
-							<span class="font-semibold text-app-text">Salvaguardas.</span>
-							{{ formatRecord(monster.saves) }}
-						</p>
-					}
-					@if (formatRecord(monster.skills)) {
-						<p class="mt-1">
-							<span class="font-semibold text-app-text">Perícias.</span>
-							{{ formatRecord(monster.skills) }}
-						</p>
-					}
-					@if (monster.senses.length || monster.languages.length) {
-						<p class="mt-1">
-							<span class="font-semibold text-app-text">Sentidos.</span>
-							{{ monster.senses.join(', ')
-							}}{{ monster.passive ? ` · passiva ${monster.passive}` : '' }}<br /><span
-								class="font-semibold text-app-text"
-								>Idiomas.</span
-							>
-							{{ monster.languages.join(', ') || '-' }}
-						</p>
-					}
-					@if (
-						monster.vulnerable.length ||
-						monster.resist.length ||
-						monster.immune.length ||
-						monster.conditionImmune.length
-					) {
-						<div class="mt-2">
-							@if (monster.vulnerable.length) {
-								<p>
-									<span class="font-semibold text-app-text">Vulnerabilidades.</span>
-									{{ formatValues(monster.vulnerable) }}
-								</p>
-							}
-							@if (monster.resist.length) {
-								<p>
-									<span class="font-semibold text-app-text">Resistências.</span>
-									{{ formatValues(monster.resist) }}
-								</p>
-							}
-							@if (monster.immune.length) {
-								<p>
-									<span class="font-semibold text-app-text">Imunidades.</span>
-									{{ formatValues(monster.immune) }}
-								</p>
-							}
-							@if (monster.conditionImmune.length) {
-								<p>
-									<span class="font-semibold text-app-text">Imune a condições.</span>
-									{{ formatValues(monster.conditionImmune) }}
-								</p>
-							}
-						</div>
-					}
-				</section>
-
-				@for (
-					section of [
-						{ label: 'Traits', items: monster.traits, accent: 'violet' },
-						{ label: 'Ações', items: monster.actions, accent: 'violet' },
-						{ label: 'Ações bônus', items: monster.bonusActions, accent: 'violet' },
-						{ label: 'Reações', items: monster.reactions, accent: 'violet' },
-						{ label: 'Ações lendárias', items: monster.legendaryActions, accent: 'amber' },
-						{ label: 'Ações míticas', items: monster.mythicActions, accent: 'amber' },
-					];
-					track section.label
-				) {
-					@if (section.items.length) {
-						<section class="mt-6">
-							<div class="flex items-center gap-3">
-								<h3
-									class="text-xs font-semibold uppercase tracking-[0.16em]"
-									[class.text-violet-200]="section.accent === 'violet'"
-									[class.text-amber-100]="section.accent === 'amber'"
-								>
-									{{ section.label }}
-								</h3>
-								<span class="h-px flex-1 bg-app-divider"></span>
-							</div>
-							@for (feature of section.items; track feature.name) {
-								<article class="mt-3 text-sm leading-6 text-app-muted">
-									<span class="font-semibold text-app-text">{{ feature.name }}.</span>
-									{{ render(feature.entries) }}
-								</article>
-							}
-						</section>
-					}
-				}
-				@if (monster.spellcasting.length) {
-					<section class="mt-6">
-						<div class="flex items-center gap-3">
-							<h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-violet-200">
-								Spellcasting
-							</h3>
-							<span class="h-px flex-1 bg-app-divider"></span>
-						</div>
-						@for (block of monster.spellcasting; track block.name) {
-							<article class="mt-3 space-y-2 text-sm leading-6 text-app-muted">
-								<span class="font-semibold text-app-text">{{ block.name }}.</span>
-								{{ render(block.headerEntries) }}
-								@for (level of spellLevels(block); track level.level) {
-									<p>
-										<span class="font-medium text-app-text"
-											>{{ level.level === 0 ? 'Truques (à vontade)' : level.level + 'º nível' }}
-											@if (level.slots != null) {
-												({{ level.slots }} slots)
-											}
-											:</span
-										>
-										@for (spell of level.spells; track spell; let last = $last) {
-											<button
-												type="button"
-												class="rounded px-0.5 text-left font-medium text-violet-100 underline decoration-violet-300/35 underline-offset-2 transition hover:text-violet-50"
-												(click)="openSpell(spell)"
-											>
-												{{ spellDisplay(spell) }}
-											</button>
-											@if (!last) {
-												<span>, </span>
-											}
-										}
-									</p>
-								}
-								@for (list of spellLists(block); track list[0]) {
-									<p>
-										<span class="font-medium text-app-text">{{ spellListLabel(list[0]) }}:</span>
-										@for (spell of list[1]; track spell; let last = $last) {
-											<button
-												type="button"
-												class="rounded px-0.5 text-left font-medium text-violet-100 underline decoration-violet-300/35 underline-offset-2 transition hover:text-violet-50"
-												(click)="openSpell(spell)"
-											>
-												{{ spellDisplay(spell) }}
-											</button>
-											@if (!last) {
-												<span>, </span>
-											}
-										}
-									</p>
-								}
-								@if (block.footerEntries.length) {
-									<p>{{ render(block.footerEntries) }}</p>
-								}
-							</article>
-						}
-					</section>
+				@if (selectedCreatureSheet(); as creature) {
+					<app-creature-stat-block
+						class="mt-5 block"
+						[creature]="creature"
+						category="monster"
+						variant="embedded"
+						(selectedSpell)="openSpell($event)"
+					/>
 				}
 				@if (monster.legendaryGroup) {
 					<section class="mt-6 border-t border-amber-300/20 pt-4">

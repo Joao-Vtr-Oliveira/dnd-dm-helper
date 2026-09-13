@@ -1,7 +1,9 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { By } from '@angular/platform-browser';
 
+import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
 import type { CompendiumMonster } from '../../models/compendium-bestiary-model';
 import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
@@ -46,8 +48,10 @@ function creatureFixture(imageUrl?: string): CompendiumMonster {
 describe('BestiaryPage', () => {
 	let component: BestiaryPage;
 	let fixture: ComponentFixture<BestiaryPage>;
+	let resolveReference: jasmine.Spy;
 
 	beforeEach(async () => {
+		resolveReference = jasmine.createSpy('resolveReference').and.resolveTo(null);
 		await TestBed.configureTestingModule({
 			imports: [BestiaryPage],
 			providers: [
@@ -66,7 +70,7 @@ describe('BestiaryPage', () => {
 							displayText: value.replace(/\{@spell\s+([^|}]+).*\}/i, '$1'),
 							reference: { name: 'Fireball', source: 'PHB' },
 						}),
-						resolveReference: async () => null,
+						resolveReference,
 					},
 				},
 			],
@@ -83,15 +87,23 @@ describe('BestiaryPage', () => {
 		expect(component.isSelected('MM', 'Aboleth')).toBeFalse();
 	});
 
-	it('formats creature metadata and ability modifiers for quick table use', () => {
-		const creature = creatureFixture();
-		creature.sizes = ['H'];
-		creature.type = 'undead';
-		creature.alignment = ['L', 'E'];
+	it('adapts the selected creature for the shared stat block and forwards spell selections', async () => {
+		component.selected.set(creatureFixture());
+		fixture.detectChanges();
 
-		expect(component.formatCreatureMetadata(creature)).toBe('Huge Undead · Lawful Evil');
-		expect(component.abilityModifier(25)).toBe('+7');
-		expect(component.abilityModifier(7)).toBe('-2');
+		const statBlock = fixture.debugElement.query(By.directive(CreatureStatBlockComponent));
+		expect(component.selectedCreatureSheet()?.name).toBe('Aarakocra');
+		expect(statBlock).not.toBeNull();
+		expect(statBlock.componentInstance.variant).toBe('embedded');
+
+		statBlock.componentInstance.selectedSpell.emit({
+			id: 'MM:aarakocra:spell:1',
+			name: 'Fireball',
+			source: 'PHB',
+		});
+		await fixture.whenStable();
+
+		expect(resolveReference).toHaveBeenCalledWith({ name: 'Fireball', source: 'PHB' });
 	});
 
 	it('orders challenge ratings by their numeric value while preserving fraction labels', () => {

@@ -1,0 +1,162 @@
+<article
+	class="text-app-muted"
+	[class]="
+		variant === 'standalone'
+			? 'rounded-app-panel border border-app-border bg-app-surface-raised p-4 shadow-app-panel sm:p-5'
+			: ''
+	"
+>
+	<header class="border-b border-app-divider pb-3">
+		<h2 class="break-words text-2xl font-semibold tracking-tight text-app-text">
+			{{ creature.name }}
+		</h2>
+		@if (identityLine()) {
+			<p class="mt-1 text-sm italic text-app-muted">{{ identityLine() }}</p>
+		}
+		@if (referenceDetails().length) {
+			<p class="mt-1 text-xs text-app-subtle">
+				@for (detail of referenceDetails(); track detail.label; let last = $last) {
+					<span
+						><span class="font-semibold text-app-text">{{ detail.label }}</span>
+						{{ detail.value }}</span
+					>
+					@if (!last) {
+						<span aria-hidden="true"> · </span>
+					}
+				}
+			</p>
+		}
+	</header>
+
+	@if (combatDetails().length) {
+		<section class="border-b border-app-divider py-3 text-sm leading-6">
+			<p class="flex flex-wrap gap-x-3 gap-y-0.5">
+				@for (detail of combatDetails(); track detail.label) {
+					<span
+						><span class="font-semibold text-app-text">{{ detail.label }}</span>
+						{{ detail.value }}</span
+					>
+				}
+			</p>
+		</section>
+	}
+
+	@if (abilities().length) {
+		<section class="border-b border-app-divider py-3">
+			<div
+				class="grid grid-cols-3 border-y border-violet-300/20 bg-violet-500/[0.055] sm:grid-cols-6"
+			>
+				@for (ability of abilities(); track ability.key) {
+					<div
+						class="border-r border-b border-violet-300/15 px-2 py-1.5 text-center last:border-r-0 sm:border-b-0"
+					>
+						<div class="text-[10px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
+							{{ ability.label }}
+						</div>
+						<div class="text-sm font-semibold text-app-text">
+							{{ ability.score }} <span class="text-violet-200/85">({{ ability.modifier }})</span>
+						</div>
+					</div>
+				}
+			</div>
+		</section>
+	}
+
+	@if (savesAndSkills().length || defenses().length || sensesAndLanguages().length) {
+		<section class="border-b border-app-divider py-3 text-sm leading-6">
+			@for (detail of savesAndSkills(); track detail.label) {
+				<p>
+					<span class="font-semibold text-app-text">{{ detail.label }}.</span> {{ detail.value }}
+				</p>
+			}
+			@for (detail of defenses(); track detail.label) {
+				<p>
+					<span class="font-semibold text-app-text">{{ detail.label }}.</span> {{ detail.value }}
+				</p>
+			}
+			@for (detail of sensesAndLanguages(); track detail.label) {
+				<p>
+					<span class="font-semibold text-app-text">{{ detail.label }}.</span> {{ detail.value }}
+				</p>
+			}
+		</section>
+	}
+
+	@if (legendaryDetails().length) {
+		<section class="border-b border-app-divider py-3 text-sm leading-6">
+			@for (detail of legendaryDetails(); track detail.label) {
+				<p>
+					<span class="font-semibold text-app-text">{{ detail.label }}.</span> {{ detail.value }}
+				</p>
+			}
+		</section>
+	}
+
+	@if (hasSpellcastingInformation()) {
+		<section class="border-b border-app-divider py-4 text-sm leading-6">
+			<h3 class="border-b border-violet-300/25 pb-1 text-base font-semibold text-violet-100">
+				Conjuração
+			</h3>
+			@if (spellcastingHeader()) {
+				<p class="mt-2 italic">{{ spellcastingHeader() }}</p>
+			}
+			@if (spellcastingSummary()) {
+				<p class="mt-1">{{ spellcastingSummary() }}.</p>
+			}
+			@for (group of spellGroups(); track group.key) {
+				<p class="mt-1">
+					<span class="font-semibold italic text-app-text">{{ group.label }}</span>
+					@if (group.spells.length) {
+						<span>: </span>
+						@for (spell of group.spells; track spell.id; let last = $last) {
+							@if (spell.source?.trim()) {
+								<button
+									type="button"
+									class="rounded px-0.5 text-left font-medium text-violet-100 underline decoration-violet-300/35 underline-offset-2 transition hover:text-violet-50"
+									(click)="selectSpell(spell)"
+								>
+									{{ spell.name }}
+								</button>
+							} @else {
+								<span class="font-medium text-app-text">{{ spell.name }}</span>
+							}
+							@if (!last) {
+								<span>, </span>
+							}
+						}
+					}
+				</p>
+			}
+			@if (spellcastingRecovery()) {
+				<p class="mt-1">
+					<span class="font-semibold text-app-text">Recuperação de espaços.</span>
+					{{ spellcastingRecovery() }}
+				</p>
+			}
+		</section>
+	}
+
+	@for (section of featureSections(); track section.kind) {
+		<section class="pt-5">
+			<h3
+				class="border-b pb-1 text-base font-semibold"
+				[class.border-amber-300/25]="section.kind === 'legendary'"
+				[class.text-amber-100]="section.kind === 'legendary'"
+				[class.border-violet-300/25]="section.kind !== 'legendary'"
+				[class.text-violet-200]="section.kind !== 'legendary'"
+			>
+				{{ section.label }}
+			</h3>
+			@for (feature of section.features; track feature.id) {
+				<article class="mt-3 text-sm leading-6">
+					<span class="font-semibold text-app-text"
+						>{{ feature.name }}{{ featureCost(feature) }}.</span
+					>
+					@if (feature.description?.trim()) {
+						<span> {{ feature.description }}</span>
+					}
+				</article>
+			}
+		</section>
+	}
+</article>

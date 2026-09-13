@@ -4,7 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
 import { AppSelectComponent } from '../../components/app-select/app-select';
+import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
+import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type {
 	BattleAbilityRecoveryType,
 	BattleCombatant,
@@ -21,7 +23,7 @@ import type {
 	BattleTrap,
 	BattleUpcomingEvent,
 } from '../../models/battle-encounter-model';
-import type { CreatureSheet } from '../../models/creature-sheet-model';
+import type { CreatureCategory, CreatureSheet } from '../../models/creature-sheet-model';
 import type { ResolvedSpellReference } from '../../models/spell-reference-model';
 import {
 	BattleEncounterService,
@@ -102,6 +104,8 @@ type ConfirmModalState = {
 		AppNativeSelectDirective,
 		AppSelectComponent,
 		CommonModule,
+		CreatureStatBlockComponent,
+		DialogFocusDirective,
 		FormsModule,
 		SpellQuickViewComponent,
 	],
@@ -138,6 +142,10 @@ export class BattleTrackerPage {
 	readonly addCombatantDraft = signal<AddCombatantDraft>(this.createAddCombatantDraft());
 	readonly selectedImportedCreature = signal<CreatureSheet | null>(null);
 	readonly quickSpell = signal<ResolvedSpellReference | null>(null);
+	readonly referenceSheetViewer = signal<{
+		creature: CreatureSheet;
+		category?: CreatureCategory;
+	} | null>(null);
 	readonly homebrewSheets = signal<SavedSheetInterface[]>(this.localStorageService.listSheets());
 	readonly bestiaryMonsters = signal<CompendiumBestiaryMonsterIndexEntry[]>([]);
 	readonly bestiaryLoading = signal(false);
@@ -377,6 +385,20 @@ export class BattleTrackerPage {
 		this.selectedCombatantId.update((selectedId) =>
 			selectedId === combatantId ? null : combatantId,
 		);
+	}
+
+	openReferenceSheetViewer(combatant: BattleCombatant) {
+		this.captureModalTrigger();
+		this.referenceSheetViewer.set({
+			creature: this.referenceSheetForCombatant(combatant),
+			category: combatant.category,
+		});
+		this.focusModal();
+	}
+
+	closeReferenceSheetViewer(restoreFocus = true) {
+		this.referenceSheetViewer.set(null);
+		if (restoreFocus) this.restoreModalTrigger();
 	}
 
 	applyDamage(combatantId: string) {
@@ -948,6 +970,7 @@ export class BattleTrackerPage {
 			source: spell.source,
 		});
 		if (resolved) {
+			this.closeReferenceSheetViewer(false);
 			this.quickSpell.set(resolved);
 			return;
 		}
@@ -1421,6 +1444,33 @@ export class BattleTrackerPage {
 			armorClass: draft.armorClass.trim(),
 			category: this.categoryForSide(draft.side),
 		});
+	}
+
+	private referenceSheetForCombatant(combatant: BattleCombatant): CreatureSheet {
+		const reference = this.battle()?.referenceSheets.find(
+			(sheet) => sheet.id === combatant.referenceSheetId,
+		);
+		if (reference) return reference.sheet;
+
+		return {
+			name: combatant.displayName?.trim() || combatant.name,
+			armorClass: combatant.armorClass,
+			maxHp: combatant.maxHp,
+			spellSlots: combatant.spellSlots.map((slot) => ({ level: slot.level, max: slot.max })),
+			spells: structuredClone(combatant.spells),
+			specialAbilities: combatant.specialAbilities.map((ability) => ({
+				id: ability.id,
+				name: ability.name,
+				description: ability.description,
+				recoveryType: ability.recoveryType,
+				maxUses: ability.maxUses,
+				cooldownTurns: ability.cooldownTurns,
+				cooldownRounds: ability.cooldownRounds,
+				rechargeDice: ability.rechargeDice,
+				rechargeOn: ability.rechargeOn,
+			})),
+			features: structuredClone(combatant.features),
+		};
 	}
 
 	private defaultSideForSheet(sheet: SavedSheetInterface): BattleCombatantSide {

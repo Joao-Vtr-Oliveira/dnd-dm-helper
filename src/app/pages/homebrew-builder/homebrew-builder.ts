@@ -2,15 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, CanDeactivateFn, Router } from '@angular/router';
-import {
-	LucideCircleAlert,
-	LucideCircleCheck,
-	LucideBookOpen,
-	LucideTriangleAlert,
-	LucideX,
-} from '@lucide/angular';
+import { LucideBookOpen } from '@lucide/angular';
 import { AppSelectComponent } from '../../components/app-select/app-select';
-import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
 import { SpellPickerComponent } from '../../components/spell-picker/spell-picker';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
 
@@ -19,15 +12,26 @@ import {
 	LocalStorageService,
 } from '../../services/local-storage-service/local-storage-service';
 import type {
+	CreatureAbilityKey,
 	CreatureAbilityRecoveryType,
+	CreatureFeature,
+	CreatureFeatureKind,
 	CreatureSheet,
 	CreatureSpecialAbility,
+	CreatureSpeedType,
 	CreatureSpell,
 } from '../../models/creature-sheet-model';
 import { normalizeArmorClass } from '../../models/creature-sheet-model';
 import type { CompendiumSpellListEntry } from '../../models/compendium-spell-model';
+import {
+	CompendiumSuggestionsService,
+	type CompendiumFeat,
+	type CompendiumMonsterFeature,
+} from '../../services/compendium-suggestions-service/compendium-suggestions-service';
 import type { ResolvedSpellReference } from '../../models/spell-reference-model';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
+import { CompendiumRendererService } from '../../services/compendium-renderer-service/compendium-renderer-service';
+import type { RawFiveEToolsEntry } from '../../models/compendium-entry-model';
 
 type SpellDraft = { name: string; uses: number; level: number };
 type AbilityDraft = {
@@ -38,6 +42,26 @@ type AbilityDraft = {
 	cooldownValue: number;
 	rechargeOn: string;
 };
+type FeatureDraft = {
+	name: string;
+	description: string;
+	kind: CreatureFeatureKind;
+	legendaryCost: number;
+};
+type SpeedDraft = { type: CreatureSpeedType; distance: string; hover: boolean };
+type DefenseKey = 'damageVulnerabilities' | 'damageResistances' | 'damageImmunities';
+type DefenseDraft = { types: string[]; note: string };
+type OptionalCreatureField =
+	| 'abilityScores'
+	| 'speed'
+	| 'savingThrows'
+	| 'skills'
+	| DefenseKey
+	| 'senses'
+	| 'languages'
+	| 'conditionImmunities'
+	| 'legendaryActions'
+	| 'spellcasting';
 
 function createEmptyCreature(): CreatureSheet {
 	return {
@@ -75,15 +99,10 @@ function normalizeCreature(raw: CreatureSheet): CreatureSheet {
 	selector: 'app-homebrew-builder',
 	standalone: true,
 	imports: [
-		AppNativeSelectDirective,
 		AppSelectComponent,
 		CommonModule,
 		FormsModule,
-		LucideCircleAlert,
-		LucideCircleCheck,
 		LucideBookOpen,
-		LucideTriangleAlert,
-		LucideX,
 		SpellPickerComponent,
 		SpellQuickViewComponent,
 	],
@@ -94,6 +113,8 @@ export class HomebrewBuilder {
 	private route = inject(ActivatedRoute);
 	private router = inject(Router);
 	private spellResolver = inject(SpellReferenceResolverService);
+	private suggestions = inject(CompendiumSuggestionsService);
+	private renderer = inject(CompendiumRendererService);
 
 	sheetId = signal<string | null>(null);
 	title = signal<string>('');
@@ -116,8 +137,180 @@ export class HomebrewBuilder {
 		cooldownValue: 1,
 		rechargeOn: '5,6',
 	});
+	featureDraft = signal<FeatureDraft>({
+		name: '',
+		description: '',
+		kind: 'trait',
+		legendaryCost: 1,
+	});
+	speedDraft = signal<SpeedDraft>({ type: 'walk', distance: '', hover: false });
+	defenseDrafts = signal<Record<DefenseKey, DefenseDraft>>({
+		damageVulnerabilities: { types: [], note: '' },
+		damageResistances: { types: [], note: '' },
+		damageImmunities: { types: [], note: '' },
+	});
+	languageDraft = signal('');
+	senseDraft = signal({ name: '', detail: '' });
+	conditionDraft = signal('');
+	skillDraft = signal('');
+	customSkill = signal(false);
+	customSave = signal(false);
+	customSaveDraft = signal('');
+	customLanguage = signal(false);
+	customSense = signal(false);
+	customCondition = signal(false);
+	customDefense = signal<Record<DefenseKey, boolean>>({
+		damageVulnerabilities: false,
+		damageResistances: false,
+		damageImmunities: false,
+	});
+	typeBase = signal('');
+	typeSubtype = signal('');
+	customType = signal(false);
+	customTextFields = signal<Record<'size' | 'alignment' | 'challengeRating', boolean>>({
+		size: false,
+		alignment: false,
+		challengeRating: false,
+	});
+	featureCatalogOpen = signal(false);
+	featureCatalogTab = signal<'resources' | 'feats'>('resources');
+	featureCatalogSearch = signal('');
+	monsterFeatures = signal<readonly CompendiumMonsterFeature[]>([]);
+	feats = signal<readonly CompendiumFeat[]>([]);
+	skillSuggestions = signal<readonly string[]>([]);
+	languageSuggestions = signal<readonly string[]>([]);
+	senseSuggestions = signal<readonly string[]>([]);
+	conditionSuggestions = signal<readonly string[]>([]);
 
 	SPELL_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+	readonly abilityKeys: Array<{ key: CreatureAbilityKey; label: string }> = [
+		{ key: 'str', label: 'Força' },
+		{ key: 'dex', label: 'Destreza' },
+		{ key: 'con', label: 'Constituição' },
+		{ key: 'int', label: 'Inteligência' },
+		{ key: 'wis', label: 'Sabedoria' },
+		{ key: 'cha', label: 'Carisma' },
+	];
+	readonly featureKinds: Array<{ value: CreatureFeatureKind; label: string }> = [
+		{ value: 'trait', label: 'Traço' },
+		{ value: 'action', label: 'Ação' },
+		{ value: 'bonus', label: 'Ação bônus' },
+		{ value: 'reaction', label: 'Reação' },
+		{ value: 'legendary', label: 'Ação lendária' },
+		{ value: 'spellcasting', label: 'Conjuração' },
+		{ value: 'note', label: 'Nota' },
+	];
+	readonly sizes = ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'];
+	readonly creatureTypes = [
+		'aberration',
+		'beast',
+		'celestial',
+		'construct',
+		'dragon',
+		'elemental',
+		'fey',
+		'fiend',
+		'giant',
+		'humanoid',
+		'monstrosity',
+		'ooze',
+		'plant',
+		'undead',
+	];
+	readonly alignments = [
+		'lawful good',
+		'neutral good',
+		'chaotic good',
+		'lawful neutral',
+		'neutral',
+		'chaotic neutral',
+		'lawful evil',
+		'neutral evil',
+		'chaotic evil',
+		'unaligned',
+	];
+	readonly challengeRatings = [
+		'0',
+		'1/8',
+		'1/4',
+		'1/2',
+		'1',
+		'2',
+		'3',
+		'4',
+		'5',
+		'6',
+		'7',
+		'8',
+		'9',
+		'10',
+		'11',
+		'12',
+		'13',
+		'14',
+		'15',
+		'16',
+		'17',
+		'18',
+		'19',
+		'20',
+		'21',
+		'22',
+		'23',
+		'24',
+		'25',
+		'26',
+		'27',
+		'28',
+		'29',
+		'30',
+	];
+	readonly damageTypes = [
+		'acid',
+		'bludgeoning',
+		'cold',
+		'fire',
+		'force',
+		'lightning',
+		'necrotic',
+		'piercing',
+		'poison',
+		'psychic',
+		'radiant',
+		'slashing',
+		'thunder',
+	];
+	readonly recoveryOptions = [
+		{ value: 'manual', label: 'Manual' },
+		{ value: 'turn-cooldown', label: 'Por turnos' },
+		{ value: 'round-cooldown', label: 'Por rounds' },
+		{ value: 'dice-recharge', label: 'Recharge por dado' },
+		{ value: 'uses-per-day', label: 'Usos por dia' },
+		{ value: 'short-rest', label: 'Descanso curto' },
+		{ value: 'long-rest', label: 'Descanso longo' },
+	];
+	readonly defenseSections: Array<{ key: DefenseKey; label: string }> = [
+		{ key: 'damageVulnerabilities', label: 'Vulnerabilidades' },
+		{ key: 'damageResistances', label: 'Resistências' },
+		{ key: 'damageImmunities', label: 'Imunidades a dano' },
+	];
+	readonly catalogMonsterFeatures = computed(() => {
+		const query = this.featureCatalogSearch().trim().toLocaleLowerCase();
+		return this.monsterFeatures().filter(
+			(feature) =>
+				!query || `${feature.name} ${feature.effect}`.toLocaleLowerCase().includes(query),
+		);
+	});
+	readonly catalogFeats = computed(() => {
+		const query = this.featureCatalogSearch().trim().toLocaleLowerCase();
+		return this.feats().filter(
+			(feat) =>
+				!query ||
+				`${feat.name} ${feat.source} ${this.featDescription(feat)}`
+					.toLocaleLowerCase()
+					.includes(query),
+		);
+	});
 
 	toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
 	unsavedChangesModal = signal(false);
@@ -137,6 +330,7 @@ export class HomebrewBuilder {
 	);
 
 	constructor() {
+		void this.loadSuggestions();
 		const id = this.route.snapshot.paramMap.get('id');
 		if (id) {
 			const sheet = this.ls.getSheet(id);
@@ -152,7 +346,29 @@ export class HomebrewBuilder {
 				this.source.set(sheet.source ?? '');
 			}
 		}
+		this.syncCreatureType();
 		this.markSaved();
+	}
+
+	private async loadSuggestions() {
+		try {
+			const [skills, languages, senses, conditions, monsterFeatures, feats] = await Promise.all([
+				this.suggestions.getSkills(),
+				this.suggestions.getLanguages(),
+				this.suggestions.getSenses(),
+				this.suggestions.getConditions(),
+				this.suggestions.getMonsterFeatures(),
+				this.suggestions.getFeats(),
+			]);
+			this.skillSuggestions.set(skills);
+			this.languageSuggestions.set(languages);
+			this.senseSuggestions.set(senses);
+			this.conditionSuggestions.set(conditions);
+			this.monsterFeatures.set(monsterFeatures);
+			this.feats.set(feats);
+		} catch {
+			// Suggestions enhance free-text fields; editing remains available offline.
+		}
 	}
 
 	@HostListener('window:beforeunload', ['$event'])
@@ -245,6 +461,624 @@ export class HomebrewBuilder {
 
 	setAc(v: string) {
 		this.creature.update((c) => ({ ...c, armorClass: normalizeArmorClass(v) }));
+	}
+
+	// -------- stat-block fields --------
+	setCreatureText(
+		key:
+			| 'size'
+			| 'creatureType'
+			| 'alignment'
+			| 'challengeRating'
+			| 'source'
+			| 'armorClassNote'
+			| 'hitPointFormula',
+		value: string,
+	) {
+		this.creature.update((creature) => {
+			const next = { ...creature };
+			const text = value.trim();
+			if (text) next[key] = text;
+			else delete next[key];
+			return next;
+		});
+	}
+
+	selectCatalogText(key: 'size' | 'alignment' | 'challengeRating', value: string) {
+		if (value === '__custom__') {
+			this.customTextFields.update((fields) => ({ ...fields, [key]: true }));
+			return;
+		}
+		this.customTextFields.update((fields) => ({ ...fields, [key]: false }));
+		this.setCreatureText(key, value);
+	}
+
+	catalogValue(value: string | undefined, options: readonly string[]) {
+		return value && options.includes(value) ? value : value ? '__custom__' : '';
+	}
+
+	setCreatureTypeBase(value: string) {
+		if (value === '__custom__') {
+			this.customType.set(true);
+			return;
+		}
+		this.customType.set(false);
+		this.typeBase.set(value);
+		this.persistCreatureType();
+	}
+
+	setCreatureTypeCustom(value: string) {
+		this.customType.set(true);
+		this.typeBase.set(value);
+		this.persistCreatureType();
+	}
+
+	setCreatureSubtype(value: string) {
+		this.typeSubtype.set(value);
+		this.persistCreatureType();
+	}
+
+	private syncCreatureType() {
+		const type = this.creature().creatureType?.trim() ?? '';
+		const match = type.match(/^([^()]+?)(?:\s*\((.+)\))?$/);
+		this.typeBase.set(match?.[1]?.trim() ?? type);
+		this.typeSubtype.set(match?.[2]?.trim() ?? '');
+		this.customType.set(!!type && !this.creatureTypes.includes(this.typeBase()));
+	}
+
+	private persistCreatureType() {
+		const base = this.typeBase().trim();
+		const subtype = this.typeSubtype().trim();
+		this.setCreatureText('creatureType', base ? `${base}${subtype ? ` (${subtype})` : ''}` : '');
+	}
+
+	setOptionalNumber(key: 'level' | 'passivePerception', value: unknown) {
+		this.creature.update((creature) => {
+			const next = { ...creature };
+			if (value === '' || value == null || !Number.isFinite(Number(value))) delete next[key];
+			else next[key] = this.parseNonNegInt(value);
+			return next;
+		});
+	}
+
+	setCreatureStringList(key: 'aliases' | 'groups', value: string) {
+		this.creature.update((creature) => {
+			const next = { ...creature };
+			const values = this.parseTextList(value);
+			if (values.length) next[key] = values;
+			else delete next[key];
+			return next;
+		});
+	}
+
+	setAbilityScore(ability: CreatureAbilityKey, value: unknown) {
+		this.creature.update((creature) => {
+			const abilityScores = { ...(creature.abilityScores ?? {}) };
+			if (value === '' || value == null || !Number.isFinite(Number(value)))
+				delete abilityScores[ability];
+			else abilityScores[ability] = Math.floor(Number(value));
+			return this.replaceOptional(
+				creature,
+				'abilityScores',
+				Object.keys(abilityScores).length ? abilityScores : undefined,
+			);
+		});
+	}
+
+	abilityModifier(ability: CreatureAbilityKey): string {
+		const modifier = this.abilityModifierValue(ability);
+		if (modifier === null) return '—';
+		return `${modifier >= 0 ? '+' : ''}${modifier}`;
+	}
+
+	private abilityModifierValue(ability: CreatureAbilityKey): number | null {
+		const score = this.creature().abilityScores?.[ability];
+		return score === undefined ? null : Math.floor((score - 10) / 2);
+	}
+
+	setSpeedDraft(patch: Partial<SpeedDraft>) {
+		this.speedDraft.update((draft) => ({ ...draft, ...patch }));
+	}
+
+	addSpeed() {
+		const draft = this.speedDraft();
+		const distance = draft.distance.trim();
+		if (!distance) return;
+		this.creature.update((creature) => ({
+			...creature,
+			speed: [
+				...(creature.speed ?? []),
+				{ type: draft.type, distance, ...(draft.hover ? { hover: true } : {}) },
+			],
+		}));
+		this.speedDraft.set({ type: 'walk', distance: '', hover: false });
+	}
+
+	updateSpeed(index: number, patch: Partial<NonNullable<CreatureSheet['speed']>[number]>) {
+		this.creature.update((creature) => {
+			const speed = (creature.speed ?? []).map((entry, entryIndex) => {
+				if (entryIndex !== index) return entry;
+				const next = { ...entry, ...patch };
+				const distance = next.distance?.trim();
+				if (distance) next.distance = distance;
+				else delete next.distance;
+				if (!next.hover) delete next.hover;
+				return next;
+			});
+			return this.replaceOptional(creature, 'speed', speed.length ? speed : undefined);
+		});
+	}
+
+	removeSpeed(index: number) {
+		this.creature.update((creature) => {
+			const speed = (creature.speed ?? []).filter((_, entryIndex) => entryIndex !== index);
+			return this.replaceOptional(creature, 'speed', speed.length ? speed : undefined);
+		});
+	}
+
+	addSavingThrow(ability: string) {
+		if (
+			!this.isAbilityKey(ability) ||
+			this.creature().savingThrows?.some((save) => save.ability === ability)
+		)
+			return;
+		this.creature.update((creature) => ({
+			...creature,
+			savingThrows: [
+				...(creature.savingThrows ?? []),
+				{ ability, bonus: this.abilityModifierValue(ability) ?? 0 },
+			],
+		}));
+	}
+
+	selectSavingThrow(value: string) {
+		if (value === '__custom__') {
+			this.customSave.set(true);
+			return;
+		}
+		this.customSave.set(false);
+		this.addSavingThrow(value);
+	}
+
+	addCustomSavingThrow() {
+		const value = this.customSaveDraft().trim().toLocaleLowerCase();
+		if (!this.isAbilityKey(value)) {
+			this.showToast({
+				type: 'warn',
+				text: 'Use STR, DEX, CON, INT, WIS ou CHA para a salvaguarda.',
+			});
+			return;
+		}
+		this.addSavingThrow(value);
+		this.customSaveDraft.set('');
+	}
+
+	updateSavingThrow(ability: CreatureAbilityKey, bonus: unknown) {
+		this.creature.update((creature) => ({
+			...creature,
+			savingThrows: (creature.savingThrows ?? []).map((save) =>
+				save.ability === ability ? { ...save, bonus: this.parseSignedInt(bonus) } : save,
+			),
+		}));
+	}
+
+	removeSavingThrow(ability: CreatureAbilityKey) {
+		this.creature.update((creature) => {
+			const savingThrows = (creature.savingThrows ?? []).filter((save) => save.ability !== ability);
+			return this.replaceOptional(
+				creature,
+				'savingThrows',
+				savingThrows.length ? savingThrows : undefined,
+			);
+		});
+	}
+
+	addSkill(name: string) {
+		const trimmed = name.trim();
+		if (
+			!trimmed ||
+			this.creature().skills?.some((skill) => skill.name.toLowerCase() === trimmed.toLowerCase())
+		)
+			return;
+		this.creature.update((creature) => ({
+			...creature,
+			skills: [
+				...(creature.skills ?? []),
+				{ name: trimmed, bonus: this.skillDefaultBonus(trimmed) },
+			],
+		}));
+	}
+
+	selectSkill(value: string) {
+		if (value === '__custom__') {
+			this.customSkill.set(true);
+			return;
+		}
+		this.customSkill.set(false);
+		this.addSkill(value);
+	}
+
+	updateSkill(name: string, bonus: unknown) {
+		this.creature.update((creature) => ({
+			...creature,
+			skills: (creature.skills ?? []).map((skill) =>
+				skill.name === name ? { ...skill, bonus: this.parseSignedInt(bonus) } : skill,
+			),
+		}));
+	}
+
+	removeSkill(name: string) {
+		this.creature.update((creature) => {
+			const skills = (creature.skills ?? []).filter((skill) => skill.name !== name);
+			return this.replaceOptional(creature, 'skills', skills.length ? skills : undefined);
+		});
+	}
+
+	setDefenseDraft(key: DefenseKey, patch: Partial<DefenseDraft>) {
+		this.defenseDrafts.update((drafts) => ({ ...drafts, [key]: { ...drafts[key], ...patch } }));
+	}
+
+	addDefense(key: DefenseKey) {
+		const draft = this.defenseDrafts()[key];
+		const types = this.uniqueTextList(draft.types);
+		if (!types.length) return;
+		this.creature.update((creature) => ({
+			...creature,
+			[key]: [
+				...(creature[key] ?? []),
+				{ types, ...(draft.note.trim() ? { note: draft.note.trim() } : {}) },
+			],
+		}));
+		this.setDefenseDraft(key, { types: [], note: '' });
+	}
+
+	updateDefenseNote(key: DefenseKey, index: number, noteValue: string) {
+		this.creature.update((creature) => {
+			const defenses = (creature[key] ?? []).map((defense, defenseIndex) => {
+				if (defenseIndex !== index) return defense;
+				if (noteValue.trim()) return { ...defense, note: noteValue.trim() };
+				const next = { ...defense };
+				delete next.note;
+				return next;
+			});
+			return { ...creature, [key]: defenses };
+		});
+	}
+
+	selectDefenseType(key: DefenseKey, value: string) {
+		if (value === '__custom__') {
+			this.customDefense.update((values) => ({ ...values, [key]: true }));
+			return;
+		}
+		this.customDefense.update((values) => ({ ...values, [key]: false }));
+		this.addDefenseType(key, value);
+	}
+
+	addDefenseType(key: DefenseKey, value: string) {
+		const type = value.trim();
+		if (!type) return;
+		this.setDefenseDraft(key, {
+			types: this.uniqueTextList([...this.defenseDrafts()[key].types, type]),
+		});
+	}
+
+	removeDefenseType(key: DefenseKey, type: string) {
+		this.setDefenseDraft(key, {
+			types: this.defenseDrafts()[key].types.filter((item) => item !== type),
+		});
+	}
+
+	removeDefense(key: DefenseKey, index: number) {
+		this.creature.update((creature) => {
+			const defenses = (creature[key] ?? []).filter((_, defenseIndex) => defenseIndex !== index);
+			return this.replaceOptional(creature, key, defenses.length ? defenses : undefined);
+		});
+	}
+
+	addLanguage() {
+		this.addTextListItem('languages', this.languageDraft(), () => this.languageDraft.set(''));
+	}
+
+	selectLanguage(value: string) {
+		if (value === '__custom__') {
+			this.customLanguage.set(true);
+			return;
+		}
+		this.customLanguage.set(false);
+		this.languageDraft.set(value);
+		this.addLanguage();
+	}
+
+	removeLanguage(language: string) {
+		this.removeTextListItem('languages', language);
+	}
+
+	addCondition() {
+		this.addTextListItem('conditionImmunities', this.conditionDraft(), () =>
+			this.conditionDraft.set(''),
+		);
+	}
+
+	selectCondition(value: string) {
+		if (value === '__custom__') {
+			this.customCondition.set(true);
+			return;
+		}
+		this.customCondition.set(false);
+		this.conditionDraft.set(value);
+		this.addCondition();
+	}
+
+	removeCondition(condition: string) {
+		this.removeTextListItem('conditionImmunities', condition);
+	}
+
+	addSense() {
+		const draft = this.senseDraft();
+		const name = draft.name.trim();
+		if (!name) return;
+		this.creature.update((creature) => ({
+			...creature,
+			senses: [
+				...(creature.senses ?? []),
+				{ name, ...(draft.detail.trim() ? { detail: draft.detail.trim() } : {}) },
+			],
+		}));
+		this.senseDraft.set({ name: '', detail: '' });
+	}
+
+	setSenseDraft(patch: Partial<{ name: string; detail: string }>) {
+		this.senseDraft.update((draft) => ({ ...draft, ...patch }));
+	}
+
+	selectSense(value: string) {
+		if (value === '__custom__') {
+			this.customSense.set(true);
+			return;
+		}
+		this.customSense.set(false);
+		this.setSenseDraft({ name: value });
+	}
+
+	updateSense(index: number, nameValue: string, detailValue: string) {
+		this.creature.update((creature) => {
+			const name = nameValue.trim();
+			const senses = (creature.senses ?? []).flatMap((sense, senseIndex) =>
+				senseIndex !== index
+					? [sense]
+					: name
+						? [{ name, ...(detailValue.trim() ? { detail: detailValue.trim() } : {}) }]
+						: [],
+			);
+			return this.replaceOptional(creature, 'senses', senses.length ? senses : undefined);
+		});
+	}
+
+	removeSense(index: number) {
+		this.creature.update((creature) => {
+			const senses = (creature.senses ?? []).filter((_, senseIndex) => senseIndex !== index);
+			return this.replaceOptional(creature, 'senses', senses.length ? senses : undefined);
+		});
+	}
+
+	setFeatureDraft(patch: Partial<FeatureDraft>) {
+		this.featureDraft.update((draft) => ({ ...draft, ...patch }));
+	}
+
+	addFeature() {
+		const draft = this.featureDraft();
+		const name = draft.name.trim();
+		if (!name) return;
+		this.creature.update((creature) => ({
+			...creature,
+			features: [
+				...creature.features,
+				{
+					id: crypto.randomUUID(),
+					name,
+					kind: draft.kind,
+					...(draft.description.trim() ? { description: draft.description.trim() } : {}),
+					...(draft.kind === 'legendary'
+						? { legendaryCost: Math.max(1, this.parseNonNegInt(draft.legendaryCost)) }
+						: {}),
+				},
+			],
+		}));
+		this.featureDraft.set({ name: '', description: '', kind: 'trait', legendaryCost: 1 });
+	}
+
+	openFeatureCatalog() {
+		this.featureCatalogTab.set('resources');
+		this.featureCatalogSearch.set('');
+		this.featureCatalogOpen.set(true);
+	}
+
+	addCatalogFeature(item: CompendiumMonsterFeature | CompendiumFeat) {
+		const description = 'effect' in item ? item.effect : this.featDescription(item);
+		this.creature.update((creature) => ({
+			...creature,
+			features: [
+				...creature.features,
+				{ id: crypto.randomUUID(), name: item.name, description, kind: 'trait' },
+			],
+		}));
+		this.featureCatalogOpen.set(false);
+	}
+
+	featDescription(feat: CompendiumFeat) {
+		return this.renderer.renderEntries(feat.entries as RawFiveEToolsEntry[]);
+	}
+
+	private skillDefaultBonus(name: string): number {
+		const skillAbilities: Record<string, CreatureAbilityKey> = {
+			acrobatics: 'dex',
+			'animal handling': 'wis',
+			arcana: 'int',
+			athletics: 'str',
+			deception: 'cha',
+			history: 'int',
+			insight: 'wis',
+			intimidation: 'cha',
+			investigation: 'int',
+			medicine: 'wis',
+			nature: 'int',
+			perception: 'wis',
+			performance: 'cha',
+			persuasion: 'cha',
+			religion: 'int',
+			'sleight of hand': 'dex',
+			stealth: 'dex',
+			survival: 'wis',
+		};
+		const ability = skillAbilities[name.trim().toLocaleLowerCase()];
+		return ability ? (this.abilityModifierValue(ability) ?? 0) : 0;
+	}
+
+	updateFeature(id: string, patch: Partial<CreatureFeature>) {
+		this.creature.update((creature) => ({
+			...creature,
+			features: creature.features.map((feature) => {
+				if (feature.id !== id) return feature;
+				const next = { ...feature, ...patch };
+				const description = next.description?.trim();
+				if (description) next.description = description;
+				else delete next.description;
+				if (next.kind !== 'legendary') delete next.legendaryCost;
+				return next;
+			}),
+		}));
+	}
+
+	removeFeature(id: string) {
+		this.creature.update((creature) => ({
+			...creature,
+			features: creature.features.filter((feature) => feature.id !== id),
+		}));
+	}
+
+	setLegendaryMetadata(key: 'count' | 'intro', value: unknown) {
+		this.creature.update((creature) => {
+			const legendaryActions = { ...(creature.legendaryActions ?? {}) };
+			if (key === 'count') {
+				if (value === '' || value == null || Number(value) <= 0 || !Number.isFinite(Number(value)))
+					delete legendaryActions.count;
+				else legendaryActions.count = this.parseNonNegInt(value);
+			} else {
+				const text = String(value ?? '').trim();
+				if (text) legendaryActions.intro = text;
+				else delete legendaryActions.intro;
+			}
+			return this.replaceOptional(
+				creature,
+				'legendaryActions',
+				Object.keys(legendaryActions).length ? legendaryActions : undefined,
+			);
+		});
+	}
+
+	setSpellcastingMetadata(
+		key: 'ability' | 'spellSaveDc' | 'spellAttackBonus' | 'header' | 'slotRecovery',
+		value: unknown,
+	) {
+		this.creature.update((creature) => {
+			const spellcasting = { ...(creature.spellcasting ?? {}) };
+			if (key === 'ability') {
+				if (this.isAbilityKey(value)) spellcasting.ability = value;
+				else delete spellcasting.ability;
+			} else if (key === 'header' || key === 'slotRecovery') {
+				const text = String(value ?? '').trim();
+				if (text) spellcasting[key] = text;
+				else delete spellcasting[key];
+			} else if (value === '' || value == null || !Number.isFinite(Number(value))) {
+				delete spellcasting[key];
+			} else {
+				spellcasting[key] =
+					key === 'spellSaveDc' ? this.parseNonNegInt(value) : this.parseSignedInt(value);
+			}
+			return this.replaceOptional(
+				creature,
+				'spellcasting',
+				Object.keys(spellcasting).length ? spellcasting : undefined,
+			);
+		});
+	}
+
+	private addTextListItem(
+		key: 'languages' | 'conditionImmunities',
+		value: string,
+		clear: () => void,
+	) {
+		const additions = this.parseTextList(value);
+		if (!additions.length) return;
+		this.creature.update((creature) => ({
+			...creature,
+			[key]: this.uniqueTextList([...(creature[key] ?? []), ...additions]),
+		}));
+		clear();
+	}
+
+	private removeTextListItem(key: 'languages' | 'conditionImmunities', value: string) {
+		this.creature.update((creature) => {
+			const values = (creature[key] ?? []).filter((item) => item !== value);
+			return this.replaceOptional(creature, key, values.length ? values : undefined);
+		});
+	}
+
+	private parseTextList(value: string): string[] {
+		return this.uniqueTextList(value.split(','));
+	}
+
+	private uniqueTextList(values: readonly string[]): string[] {
+		const unique = new Map<string, string>();
+		for (const value of values) {
+			const trimmed = value.trim();
+			if (trimmed) unique.set(trimmed.toLocaleLowerCase(), trimmed);
+		}
+		return [...unique.values()];
+	}
+
+	private replaceOptional<Key extends OptionalCreatureField>(
+		creature: CreatureSheet,
+		key: Key,
+		value: CreatureSheet[Key] | undefined,
+	): CreatureSheet {
+		const next = { ...creature };
+		if (value === undefined) delete next[key];
+		else next[key] = value;
+		return next;
+	}
+
+	private parseSignedInt(value: unknown): number {
+		const number = Math.floor(Number(value));
+		return Number.isFinite(number) ? number : 0;
+	}
+
+	private isAbilityKey(value: unknown): value is CreatureAbilityKey {
+		return this.abilityKeys.some((ability) => ability.key === value);
+	}
+
+	savingThrowOptions() {
+		const selected = new Set((this.creature().savingThrows ?? []).map((save) => save.ability));
+		const options = this.abilityKeys
+			.filter((ability) => !selected.has(ability.key))
+			.map((ability) => ({ value: ability.key, label: ability.label }));
+		return [...options, { value: '__custom__', label: 'Personalizado' }];
+	}
+
+	savingThrowLabel(ability: CreatureAbilityKey) {
+		return (
+			this.abilityKeys.find((candidate) => candidate.key === ability)?.label ??
+			ability.toUpperCase()
+		);
+	}
+
+	skillOptions() {
+		const selected = new Set(
+			(this.creature().skills ?? []).map((skill) => skill.name.trim().toLocaleLowerCase()),
+		);
+		return this.skillSuggestions()
+			.filter((skill) => !selected.has(skill.trim().toLocaleLowerCase()))
+			.map((skill) => ({ value: skill, label: skill }));
 	}
 
 	// -------- spellcasting --------
@@ -418,6 +1252,48 @@ export class HomebrewBuilder {
 				ability.id === id ? { ...ability, ...patch } : ability,
 			),
 		}));
+	}
+
+	setSpecialAbilityRecovery(id: string, recoveryType: CreatureAbilityRecoveryType) {
+		const ability = this.creature().specialAbilities.find((candidate) => candidate.id === id);
+		if (!ability) return;
+		this.updateSpecialAbility(id, {
+			recoveryType,
+			cooldownTurns: recoveryType === 'turn-cooldown' ? (ability.cooldownTurns ?? 1) : undefined,
+			cooldownRounds: recoveryType === 'round-cooldown' ? (ability.cooldownRounds ?? 1) : undefined,
+			rechargeDice: recoveryType === 'dice-recharge' ? 'd6' : undefined,
+			rechargeOn: recoveryType === 'dice-recharge' ? (ability.rechargeOn ?? [5, 6]) : undefined,
+			maxUses:
+				recoveryType === 'uses-per-day' ||
+				recoveryType === 'short-rest' ||
+				recoveryType === 'long-rest'
+					? (ability.maxUses ?? 1)
+					: undefined,
+		});
+	}
+
+	setSpecialAbilityCooldown(id: string, type: 'turn-cooldown' | 'round-cooldown', value: unknown) {
+		const cooldown = Math.max(1, this.parseNonNegInt(value) || 1);
+		this.updateSpecialAbility(
+			id,
+			type === 'turn-cooldown' ? { cooldownTurns: cooldown } : { cooldownRounds: cooldown },
+		);
+	}
+
+	setSpecialAbilityMaxUses(id: string, value: unknown) {
+		this.updateSpecialAbility(id, { maxUses: Math.max(1, this.parseNonNegInt(value) || 1) });
+	}
+
+	setSpecialAbilityRechargeOn(id: string, value: string) {
+		const rechargeOn = value
+			.split(',')
+			.map((entry) => this.parseNonNegInt(entry))
+			.filter((entry) => entry > 0 && entry <= 6);
+		this.updateSpecialAbility(id, { rechargeOn });
+	}
+
+	specialAbilityRechargeOnValue(ability: CreatureSpecialAbility): string {
+		return ability.rechargeOn?.join(', ') ?? '5, 6';
 	}
 
 	removeSpecialAbility(id: string) {

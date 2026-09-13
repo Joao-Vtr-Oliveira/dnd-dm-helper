@@ -1,5 +1,6 @@
 import type {
 	CreatureCategory,
+	CreatureSheet,
 	CreatureFeature,
 	CreatureSpell,
 } from './creature-sheet-model';
@@ -159,6 +160,8 @@ export interface BattleCombatant {
 	id: string;
 	sourceParticipantId?: string;
 	sourceSheetId?: string;
+	/** Links this runtime combatant to an immutable battle-local stat-block snapshot. */
+	referenceSheetId?: string;
 	name: string;
 	displayName?: string;
 	category?: CreatureCategory;
@@ -225,6 +228,12 @@ export interface BattleTurnSnapshot {
 	state: BattleTurnSnapshotState;
 }
 
+/** Immutable stat-block data captured when a combatant joins a battle. */
+export interface BattleReferenceSheet {
+	id: string;
+	sheet: CreatureSheet;
+}
+
 export interface BattleEncounter {
 	id: string;
 	/** Optional provenance. Historical battles remain valid after their encounter is deleted. */
@@ -240,6 +249,8 @@ export interface BattleEncounter {
 	completedAt?: string;
 	turnStartedAt?: string;
 	currentTurnElapsedSeconds?: number;
+	/** Battle-local stat-block snapshots. Deliberately excluded from turn snapshots. */
+	referenceSheets: BattleReferenceSheet[];
 	combatants: BattleCombatant[];
 	pendingCombatants: BattleCombatant[];
 	lairActions: BattleLairAction[];

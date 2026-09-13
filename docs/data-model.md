@@ -12,7 +12,7 @@ Encounter
 BattleEncounter
 ```
 
-`CreatureSheet` contains reusable stat-block data: name, `armorClass: number | null`, maximum HP, features, abilities, spell capacity, spell references, and optional opaque 5eTools source data. It never carries current HP, conditions, death saves, cooldown state, or spent resources.
+`CreatureSheet` contains reusable stat-block data: name, `armorClass: number | null`, maximum HP, optional identity/combat/defense/perception fields, features, abilities, spell capacity, spell references, and optional opaque 5eTools source data. Optional stat-block fields are omitted when unknown; they never receive display placeholders or numeric defaults. It never carries current HP, conditions, death saves, cooldown state, or spent resources.
 
 ## Official Bestiary
 
@@ -33,7 +33,7 @@ Official identity is `name + source`; equal names from different sources are sep
 
 `EncounterLairAction` is a prepared environmental event, never a monster or participant. `EncounterTrap` is a prepared trap with its own trigger, frequency, initiative when applicable, and cooldown configuration. `Encounter` is preparation only: title, description, tags, notes, participants, lair actions, and traps. It does not store HP, conditions, turn state, death saves, pending actions, or history.
 
-`BattleCombatant` is runtime. It receives a new ID and initializes current HP, temporary HP, runtime abilities, spent slots, conditions, death saves, pending actions, and its numeric initiative. `BattleEncounter` owns combatants, runtime lair actions/traps, turn state, snapshots, history, and DM notes independently. `sourceEncounterId` is optional provenance, not a foreign key: a historical battle remains valid after its source encounter is deleted.
+`BattleCombatant` is runtime. It receives a new ID and initializes current HP, temporary HP, runtime abilities, spent slots, conditions, death saves, pending actions, and its numeric initiative. `BattleEncounter` owns combatants, runtime lair actions/traps, turn state, snapshots, history, DM notes, and immutable reference sheets independently. A combatant points to one battle-local reference sheet; those references stay outside turn snapshots so Undo does not duplicate stat blocks. `sourceEncounterId` is optional provenance, not a foreign key: a historical battle remains valid after its source encounter is deleted.
 
 ## Backup And Migration
 

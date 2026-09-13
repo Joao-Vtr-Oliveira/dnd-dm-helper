@@ -11,6 +11,7 @@ import type {
 	BattleEncounterCreateOptions,
 	BattleLairAction,
 	BattlePendingAction,
+	BattleReferenceSheet,
 	BattleSpecialAbility,
 	BattleSpellSlotLevel,
 	BattleTrap,
@@ -21,6 +22,7 @@ import type {
 import type {
 	CreatureCategory,
 	CreatureFeature,
+	CreatureSheet,
 	CreatureSpecialAbility,
 	CreatureSpell,
 	CreatureSpellSlot,
@@ -63,6 +65,7 @@ type AddCombatantOverrides = {
 	joinsAtRound?: number;
 	sourceParticipantId?: string;
 	sourceSheetId?: string;
+	referenceSheetId?: string;
 };
 
 export type CreateBattleLairActionInput = {
@@ -120,9 +123,14 @@ export class BattleEncounterService {
 		now = new Date(),
 	): BattleEncounter {
 		const timestamp = this.toIso(now);
+		const referenceSheets = encounter.participants.map((participant) =>
+			this.createReferenceSheet(participant.sheet),
+		);
 		const combatants = this.orderCombatants(
 			encounter.participants.map((participant, index) => ({
-				...this.createCombatantFromParticipant(participant, index, options),
+				...this.createCombatantFromParticipant(participant, index, options, {
+					referenceSheetId: referenceSheets[index].id,
+				}),
 				collapsed: true,
 			})),
 		);
@@ -141,6 +149,7 @@ export class BattleEncounterService {
 			updatedAt: timestamp,
 			turnStartedAt: initialTurnIndex >= 0 ? timestamp : undefined,
 			currentTurnElapsedSeconds: 0,
+			referenceSheets,
 			combatants,
 			pendingCombatants: [],
 			lairActions: this.mapEncounterLairActions(encounter.lairActions),
@@ -155,6 +164,7 @@ export class BattleEncounterService {
 	normalizeBattleEncounter(raw: Partial<BattleEncounter>): BattleEncounter {
 		const createdAt = this.normalizeIso(raw.createdAt);
 		const updatedAt = this.normalizeIso(raw.updatedAt ?? raw.createdAt);
+		const referenceSheets = this.normalizeReferenceSheets(raw.referenceSheets);
 		const combatants = this.orderCombatants(
 			Array.isArray(raw.combatants)
 				? raw.combatants.map((combatant, index) => this.normalizeCombatant(combatant, index))
@@ -202,6 +212,7 @@ export class BattleEncounterService {
 			...(typeof raw.completedAt === 'string' ? { completedAt: raw.completedAt } : {}),
 			...(typeof raw.turnStartedAt === 'string' ? { turnStartedAt: raw.turnStartedAt } : {}),
 			currentTurnElapsedSeconds: this.toNonNegativeInt(raw.currentTurnElapsedSeconds),
+			referenceSheets,
 			combatants,
 			pendingCombatants,
 			lairActions,
@@ -531,18 +542,23 @@ export class BattleEncounterService {
 		const joinsAtRound = this.shouldQueueCombatantForNextRound(battle)
 			? battle.round + 1
 			: undefined;
+		const referenceSheet = this.createReferenceSheet(participant.sheet);
 		const combatant = this.createCombatantFromParticipant(
 			participant,
 			battle.combatants.length,
 			undefined,
 			{
 				...overrides,
+				referenceSheetId: referenceSheet.id,
 				pendingAdd: joinsAtRound != null,
 				joinsAtRound,
 			},
 		);
 
-		return this.insertCombatant(battle, combatant, now);
+		return {
+			...this.insertCombatant(battle, combatant, now),
+			referenceSheets: [...battle.referenceSheets, referenceSheet],
+		};
 	}
 
 	duplicateCombatant(
@@ -1542,6 +1558,10 @@ export class BattleEncounterService {
 			sourceParticipantId:
 				typeof raw.sourceParticipantId === 'string' ? raw.sourceParticipantId : undefined,
 			sourceSheetId: typeof raw.sourceSheetId === 'string' ? raw.sourceSheetId : undefined,
+			referenceSheetId:
+				typeof raw.referenceSheetId === 'string' && raw.referenceSheetId.trim()
+					? raw.referenceSheetId
+					: undefined,
 			name: typeof raw.name === 'string' ? raw.name : `Combatente ${sourceIndex + 1}`,
 			displayName: typeof raw.displayName === 'string' ? raw.displayName : undefined,
 			category,
@@ -1707,6 +1727,7 @@ export class BattleEncounterService {
 			id: this.createId(),
 			sourceParticipantId: overrides?.sourceParticipantId ?? participant.id,
 			sourceSheetId: overrides?.sourceSheetId ?? participant.sourceSheetId,
+			referenceSheetId: overrides?.referenceSheetId,
 			name: overrides?.name?.trim() || participant.name || `Combatente ${sourceIndex + 1}`,
 			displayName: overrides?.displayName?.trim() || undefined,
 			category,
@@ -1735,6 +1756,28 @@ export class BattleEncounterService {
 			features: structuredClone(sheet.features),
 			privateNotes: participant.notes?.trim() || undefined,
 		};
+	}
+
+	private createReferenceSheet(sheet: CreatureSheet, id = this.createId()): BattleReferenceSheet {
+		return { id, sheet: structuredClone(sheet) };
+	}
+
+	private normalizeReferenceSheets(raw: unknown): BattleReferenceSheet[] {
+		if (!Array.isArray(raw)) return [];
+
+		const ids = new Set<string>();
+		return raw.flatMap((reference, index) => {
+			if (!reference || typeof reference !== 'object') return [];
+			const candidate = reference as Partial<BattleReferenceSheet>;
+			if (!candidate.sheet || typeof candidate.sheet !== 'object') return [];
+			const id =
+				typeof candidate.id === 'string' && candidate.id.trim()
+					? candidate.id
+					: `reference-sheet-${index + 1}`;
+			if (ids.has(id)) return [];
+			ids.add(id);
+			return [{ id, sheet: structuredClone(candidate.sheet) }];
+		});
 	}
 
 	private createTurnHistoryEntry(
@@ -2070,7 +2113,7 @@ export class BattleEncounterService {
 		return abilities.map((ability, index) =>
 			this.abilityService.normalizeAbility({
 				...this.abilityService.createAbility({
-					name: ability.name,
+					name: ability.name ?? 'Habilidade especial',
 					description: ability.description,
 					recoveryType: ability.recoveryType,
 					maxUses: ability.maxUses,
@@ -2114,6 +2157,12 @@ export class BattleEncounterService {
 					...(source ? { source } : {}),
 					level: candidate.level == null ? undefined : this.toNonNegativeInt(candidate.level),
 					uses: candidate.uses == null ? undefined : this.toNonNegativeInt(candidate.uses),
+					...(['slot', 'at-will', 'constant', 'daily', 'rest', 'weekly'].includes(
+						String(candidate.castingGroup),
+					)
+						? { castingGroup: candidate.castingGroup }
+						: {}),
+					...(candidate.each === true ? { each: true } : {}),
 				},
 			];
 		});

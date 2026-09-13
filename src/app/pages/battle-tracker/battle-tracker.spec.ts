@@ -1,7 +1,9 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { By } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
 import { BattleTrackerPage } from './battle-tracker';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
@@ -255,6 +257,55 @@ describe('BattleTrackerPage', () => {
 		) as HTMLElement;
 		expect(heroCard?.textContent).toContain('Dano rapido');
 		expect(heroCard?.textContent).not.toContain('Notas privadas');
+	});
+
+	it('opens a synthesized full sheet for legacy combatants without a reference snapshot', () => {
+		const hero = component.battle()!.combatants[0];
+
+		component.openReferenceSheetViewer(hero);
+		fixture.detectChanges();
+
+		const dialog = fixture.nativeElement.querySelector('[data-battle-modal]') as HTMLElement;
+		const statBlock = fixture.debugElement.query(By.directive(CreatureStatBlockComponent));
+		expect(component.referenceSheetViewer()?.creature).toEqual(
+			jasmine.objectContaining({
+				name: 'Hero',
+				maxHp: 20,
+				spells: hero.spells,
+			}),
+		);
+		expect(dialog.getAttribute('aria-labelledby')).toBe('battle-reference-sheet-title');
+		expect(dialog.classList).toContain('max-w-7xl');
+		expect(dialog.querySelector('#battle-reference-sheet-title')?.textContent).toContain('Hero');
+		expect(statBlock.componentInstance.variant).toBe('embedded');
+
+		component.closeReferenceSheetViewer();
+		fixture.detectChanges();
+	});
+
+	it('closes the reference sheet with Escape and releases the dialog body lock', () => {
+		component.openReferenceSheetViewer(component.battle()!.combatants[0]);
+		fixture.detectChanges();
+
+		expect(document.body.classList.contains('app-dialog-open')).toBeTrue();
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+		fixture.detectChanges();
+
+		expect(component.referenceSheetViewer()).toBeNull();
+		expect(document.body.classList.contains('app-dialog-open')).toBeFalse();
+	});
+
+	it('hands a reference sheet spell selection to Quick Spell View', async () => {
+		component.openReferenceSheetViewer(component.battle()!.combatants[0]);
+		fixture.detectChanges();
+
+		const statBlock = fixture.debugElement.query(By.directive(CreatureStatBlockComponent));
+		statBlock.componentInstance.selectedSpell.emit(component.battle()!.combatants[0].spells[0]);
+		await fixture.whenStable();
+		fixture.detectChanges();
+
+		expect(component.referenceSheetViewer()).toBeNull();
+		expect(component.quickSpell()?.spell.name).toBe('Aid');
 	});
 
 	it('keeps undefined tie breakers and empty ability states out of the combatant view', () => {
