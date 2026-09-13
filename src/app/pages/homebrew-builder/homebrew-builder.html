@@ -23,32 +23,8 @@
 		<p class="mb-4 text-sm text-app-muted">
 			Os campos que identificam a criatura ficam sempre visíveis.
 		</p>
-		<div class="grid gap-3 md:grid-cols-12">
-			<label class="text-sm text-app-muted md:col-span-4"
-				><span class="mb-1 block">Título na biblioteca</span
-				><input
-					class="app-field w-full px-3 py-2"
-					[ngModel]="title()"
-					(ngModelChange)="setTitle($event)"
-					name="title"
-			/></label>
-			<label class="text-sm text-app-muted md:col-span-4"
-				><span class="mb-1 block">Tags</span
-				><input
-					class="app-field w-full px-3 py-2"
-					[ngModel]="tagsText()"
-					(ngModelChange)="tagsText.set($event)"
-					name="tags"
-			/></label>
-			<label class="text-sm text-app-muted md:col-span-4"
-				><span class="mb-1 block">Origem</span
-				><input
-					class="app-field w-full px-3 py-2"
-					[ngModel]="source()"
-					(ngModelChange)="source.set($event)"
-					name="source"
-			/></label>
-			<label class="text-sm text-app-muted md:col-span-4"
+		<div class="grid gap-3 sm:grid-cols-2 2xl:grid-cols-6">
+			<label class="text-sm text-app-muted 2xl:col-span-2"
 				><span class="mb-1 block">Nome da criatura</span
 				><input
 					class="app-field w-full px-3 py-2"
@@ -59,7 +35,7 @@
 					[attr.aria-invalid]="!creature().name.trim()"
 			/></label>
 			<app-select
-				class="md:col-span-3"
+				class="2xl:col-span-1"
 				label="Categoria"
 				[options]="[
 					{ value: 'monster', label: 'Monstro' },
@@ -70,7 +46,7 @@
 				[value]="category()"
 				(valueChange)="category.set($any($event))"
 			/>
-			<label class="text-sm text-app-muted md:col-span-2"
+			<label class="text-sm text-app-muted"
 				><span class="mb-1 block">CA</span
 				><input
 					class="app-field w-full px-3 py-2"
@@ -78,7 +54,7 @@
 					(ngModelChange)="setAc($event)"
 					name="armor-class"
 			/></label>
-			<label class="text-sm text-app-muted md:col-span-3"
+			<label class="text-sm text-app-muted"
 				><span class="mb-1 block">PV</span
 				><input
 					type="number"
@@ -89,7 +65,7 @@
 					name="max-hp"
 			/></label>
 			<app-select
-				class="md:col-span-3"
+				class="2xl:col-span-1"
 				label="Tamanho"
 				[options]="sizes.concat('__custom__')"
 				[optionLabels]="{ __custom__: 'Personalizado' }"
@@ -98,7 +74,7 @@
 				(valueChange)="selectCatalogText('size', $event)"
 			/>
 			@if (customTextFields().size || (creature().size && !sizes.includes(creature().size!))) {
-				<label class="text-sm text-app-muted md:col-span-3"
+				<label class="text-sm text-app-muted 2xl:col-span-2"
 					><span class="mb-1 block">Tamanho personalizado</span
 					><input
 						class="app-field w-full px-3 py-2"
@@ -108,7 +84,7 @@
 				/></label>
 			}
 			<app-select
-				class="md:col-span-3"
+				class="2xl:col-span-2"
 				label="Tipo"
 				[options]="creatureTypes.concat('__custom__')"
 				[optionLabels]="{ __custom__: 'Personalizado' }"
@@ -117,7 +93,7 @@
 				(valueChange)="setCreatureTypeBase($event)"
 			/>
 			@if (customType() || catalogValue(typeBase(), creatureTypes) === '__custom__') {
-				<label class="text-sm text-app-muted md:col-span-3"
+				<label class="text-sm text-app-muted 2xl:col-span-2"
 					><span class="mb-1 block">Tipo personalizado</span
 					><input
 						class="app-field w-full px-3 py-2"
@@ -126,7 +102,7 @@
 						name="custom-type"
 				/></label>
 			}
-			<label class="text-sm text-app-muted md:col-span-3"
+			<label class="text-sm text-app-muted 2xl:col-span-2"
 				><span class="mb-1 block">Subtipo opcional</span
 				><input
 					class="app-field w-full px-3 py-2"
@@ -136,7 +112,7 @@
 					name="creature-subtype"
 			/></label>
 			<app-select
-				class="md:col-span-3"
+				class="2xl:col-span-1"
 				label="Alinhamento"
 				[options]="alignments.concat('__custom__')"
 				[optionLabels]="{ __custom__: 'Personalizado' }"
@@ -148,7 +124,7 @@
 				customTextFields().alignment ||
 				(creature().alignment && !alignments.includes(creature().alignment!))
 			) {
-				<label class="text-sm text-app-muted md:col-span-3"
+				<label class="text-sm text-app-muted 2xl:col-span-2"
 					><span class="mb-1 block">Alinhamento personalizado</span
 					><input
 						class="app-field w-full px-3 py-2"
@@ -158,7 +134,7 @@
 				/></label>
 			}
 			<app-select
-				class="md:col-span-3"
+				class="2xl:col-span-1"
 				label="ND"
 				[options]="challengeRatings.concat('__custom__')"
 				[optionLabels]="{ __custom__: 'Personalizado' }"
@@ -170,7 +146,7 @@
 				customTextFields().challengeRating ||
 				(creature().challengeRating && !challengeRatings.includes(creature().challengeRating!))
 			) {
-				<label class="text-sm text-app-muted md:col-span-3"
+				<label class="text-sm text-app-muted 2xl:col-span-2"
 					><span class="mb-1 block">ND personalizado</span
 					><input
 						class="app-field w-full px-3 py-2"
@@ -180,9 +156,58 @@
 				/></label>
 			}
 		</div>
+		<div class="mt-3 grid gap-3 border-t border-app-divider pt-3 sm:grid-cols-2">
+			<label class="text-sm text-app-muted"
+				><span class="mb-1 block">Nota de CA</span
+				><input
+					class="app-field w-full px-3 py-2"
+					placeholder="Ex.: armadura natural"
+					[ngModel]="creature().armorClassNote ?? ''"
+					(ngModelChange)="setCreatureText('armorClassNote', $event)"
+					name="armor-note"
+			/></label>
+			<label class="text-sm text-app-muted"
+				><span class="mb-1 block">Fórmula de PV</span
+				><input
+					class="app-field w-full px-3 py-2"
+					placeholder="Ex.: 12d8 + 24"
+					[ngModel]="creature().hitPointFormula ?? ''"
+					(ngModelChange)="setCreatureText('hitPointFormula', $event)"
+					name="hp-formula"
+			/></label>
+		</div>
+		<details class="mt-5 border-t border-app-divider pt-4">
+			<summary class="cursor-pointer text-sm font-medium text-app-muted">Metadata avançada</summary>
+			<div class="mt-3 grid gap-3 md:grid-cols-3">
+				<label class="text-sm text-app-muted"
+					><span class="mb-1 block">Título na biblioteca</span
+					><input
+						class="app-field w-full px-3 py-2"
+						[ngModel]="title()"
+						(ngModelChange)="setTitle($event)"
+						name="title"
+				/></label>
+				<label class="text-sm text-app-muted"
+					><span class="mb-1 block">Tags</span
+					><input
+						class="app-field w-full px-3 py-2"
+						[ngModel]="tagsText()"
+						(ngModelChange)="tagsText.set($event)"
+						name="tags"
+				/></label>
+				<label class="text-sm text-app-muted"
+					><span class="mb-1 block">Origem</span
+					><input
+						class="app-field w-full px-3 py-2"
+						[ngModel]="source()"
+						(ngModelChange)="source.set($event)"
+						name="source"
+				/></label>
+			</div>
+		</details>
 	</fieldset>
 
-	<details class="app-panel group p-4 sm:p-5">
+	<details class="app-panel group p-4 sm:p-5" open>
 		<summary class="cursor-pointer list-none font-semibold text-app-text">
 			<span class="flex justify-between"
 				>Estatísticas
@@ -195,7 +220,7 @@
 		<div class="mt-5 space-y-5">
 			<section>
 				<div class="mb-3 font-medium text-app-text">Atributos</div>
-				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6">
 					@for (ability of abilityKeys; track ability.key) {
 						<label class="app-inset p-3 text-sm text-app-muted">
 							<span class="mb-1 flex items-center justify-between gap-2 text-xs">
@@ -216,34 +241,29 @@
 					}
 				</div>
 			</section>
-			<section class="grid gap-5 border-t border-app-divider pt-5 lg:grid-cols-2">
-				<div>
-					<div class="flex items-end justify-between gap-3">
-						<div class="font-medium text-app-text">Deslocamento</div>
-						<app-select
-							class="w-44"
-							label="Tipo"
-							[options]="[
-								{ value: 'walk', label: 'Caminhada' },
-								{ value: 'fly', label: 'Voo' },
-								{ value: 'swim', label: 'Natação' },
-								{ value: 'climb', label: 'Escalada' },
-								{ value: 'burrow', label: 'Escavação' },
-							]"
-							[value]="speedDraft().type"
-							(valueChange)="setSpeedDraft({ type: $any($event) })"
-						/>
-					</div>
+			<section class="border-t border-app-divider pt-5">
+				<div class="flex items-center justify-between gap-3">
+					<h3 class="font-medium text-app-text">Deslocamento</h3>
+					@if (inlineComposer() === 'speed') {
+						<button type="button" class="app-button app-button-ghost" (click)="cancelInlineComposer()">
+							Cancelar
+						</button>
+					} @else {
+						<button type="button" class="app-button app-button-ghost" (click)="openInlineComposer('speed')">
+							+ Adicionar deslocamento
+						</button>
+					}
+				</div>
 					<div class="mt-2 space-y-2">
 						@for (speed of creature().speed ?? []; track $index; let index = $index) {
-							<div class="app-inset flex flex-wrap items-end gap-2 p-2">
-								<span class="min-w-20 text-sm text-app-text">{{ speed.type }}</span
+							<div class="grid items-center gap-2 border-t border-app-divider py-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]">
+								<span class="font-medium text-app-text">{{ speedLabel(speed.type) }}</span
 								><input
-									class="app-field min-w-36 flex-1 px-3 py-2"
+									class="app-field w-full px-3 py-2"
 									[ngModel]="speed.distance ?? ''"
 									(ngModelChange)="updateSpeed(index, { distance: $event })"
 									[name]="'speed-distance-' + index"
-								/><label class="text-sm text-app-muted"
+								/><label class="flex items-center gap-2 text-sm text-app-muted"
 									><input
 										type="checkbox"
 										[ngModel]="speed.hover ?? false"
@@ -253,130 +273,109 @@
 									Paira</label
 								><button
 									type="button"
-									class="app-button app-button-danger"
+									class="app-button app-button-danger px-3"
+									aria-label="Remover deslocamento"
 									(click)="removeSpeed(index)"
 								>
-									Remover
+									×
 								</button>
 							</div>
 						}
 					</div>
-					<div class="mt-2 flex gap-2">
+					@if (inlineComposer() === 'speed') {
+						<div class="mt-3 grid items-end gap-2 border-t border-app-divider pt-3 sm:grid-cols-[11rem_minmax(0,1fr)_auto]">
+							<app-select label="Tipo" [options]="[
+								{ value: 'walk', label: 'Caminhada' }, { value: 'fly', label: 'Voo' },
+								{ value: 'swim', label: 'Natação' }, { value: 'climb', label: 'Escalada' },
+								{ value: 'burrow', label: 'Escavação' }
+							]" [value]="speedDraft().type" (valueChange)="setSpeedDraft({ type: $any($event) })" />
+							<input class="app-field w-full px-3 py-2" placeholder="Distância, ex.: 9 m" [ngModel]="speedDraft().distance" (ngModelChange)="setSpeedDraft({ distance: $event })" name="new-speed-distance" />
+							<button type="button" class="app-button app-button-secondary" (click)="confirmSpeed()">Confirmar</button>
+						</div>
+					}
+			</section>
+			<section class="border-t border-app-divider pt-5">
+				<div class="flex items-center justify-between gap-3">
+					<h3 class="font-medium text-app-text">Salvaguardas</h3>
+					@if (inlineComposer() === 'save') {
+						<button type="button" class="app-button app-button-ghost" (click)="cancelInlineComposer()">Cancelar</button>
+					} @else {
+						<button type="button" class="app-button app-button-ghost" (click)="openInlineComposer('save')">+ Adicionar salvaguarda</button>
+					}
+				</div>
+				@if (inlineComposer() === 'save') {
+					<div class="mt-3 grid items-end gap-2 border-t border-app-divider pt-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+						<app-select label="Salvaguarda" [options]="savingThrowOptions()" [value]="''" emptyLabel="Selecionar" (valueChange)="selectSavingThrow($event)" />
+						@if (customSave()) {
 						<input
 							class="app-field min-w-0 flex-1 px-3 py-2"
-							placeholder="Distância, ex: 30 ft."
-							[ngModel]="speedDraft().distance"
-							(ngModelChange)="setSpeedDraft({ distance: $event })"
-							name="new-speed-distance"
-						/><button type="button" class="app-button app-button-secondary" (click)="addSpeed()">
-							Adicionar
-						</button>
+							placeholder="STR, DEX, CON, INT, WIS ou CHA"
+							[ngModel]="customSaveDraft()"
+							(ngModelChange)="customSaveDraft.set($event)"
+							name="custom-save"
+						/><button type="button" class="app-button app-button-secondary" (click)="addCustomSavingThrow()">Confirmar</button>
+						}
 					</div>
-				</div>
-				<div>
-					<div class="flex items-end justify-between gap-3">
-						<div class="font-medium text-app-text">Salvaguardas</div>
-						<app-select
-							class="w-44"
-							label="Adicionar"
-							[options]="savingThrowOptions()"
-							[value]="''"
-							emptyLabel="Adicionar"
-							(valueChange)="selectSavingThrow($event)"
-						/>
-					</div>
-					@if (customSave()) {
-						<div class="mt-2 flex gap-2">
+				}
+				<div class="mt-2 divide-y divide-app-divider">
+					@for (save of creature().savingThrows ?? []; track save.ability) {
+						<div class="grid items-center gap-2 py-2 sm:grid-cols-[minmax(0,1fr)_5rem_auto]">
+							<div class="font-medium text-app-text">{{ savingThrowLabel(save.ability) }}</div>
 							<input
-								class="app-field min-w-0 flex-1 px-3 py-2"
-								placeholder="STR, DEX, CON, INT, WIS ou CHA"
-								[ngModel]="customSaveDraft()"
-								(ngModelChange)="customSaveDraft.set($event)"
-								name="custom-save"
+									type="number"
+									class="app-field w-full px-2 py-2 text-center"
+									[ngModel]="save.bonus"
+									(ngModelChange)="updateSavingThrow(save.ability, $event)"
+									[name]="'save-bonus-' + save.ability"
 							/><button
 								type="button"
-								class="app-button app-button-secondary"
-								(click)="addCustomSavingThrow()"
+								class="app-button app-button-danger px-3"
+								aria-label="Remover salvaguarda {{ savingThrowLabel(save.ability) }}"
+								(click)="removeSavingThrow(save.ability)"
 							>
-								Adicionar
+								×
 							</button>
 						</div>
 					}
-					<div class="mt-3 space-y-2">
-						@for (save of creature().savingThrows ?? []; track save.ability) {
-							<div
-								class="app-inset grid items-end gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_7rem_auto]"
-							>
-								<div>
-									<div class="font-medium text-app-text">{{ savingThrowLabel(save.ability) }}</div>
-									<div class="mt-0.5 text-xs text-app-subtle">Salvaguarda</div>
-								</div>
-								<label class="text-sm text-app-muted"
-									><span class="mb-1 block">Bônus</span
-									><input
-										type="number"
-										class="app-field w-full px-3 py-2"
-										[ngModel]="save.bonus"
-										(ngModelChange)="updateSavingThrow(save.ability, $event)"
-										[name]="'save-bonus-' + save.ability" /></label
-								><button
-									type="button"
-									class="app-button app-button-danger self-end"
-									(click)="removeSavingThrow(save.ability)"
-								>
-									Remover
-								</button>
-							</div>
-						}
-					</div>
 				</div>
 			</section>
-			<section class="grid gap-4 border-t border-app-divider pt-5 lg:grid-cols-[1fr_16rem]">
+			<section class="border-t border-app-divider pt-5">
 				<div>
-					<div class="flex items-end justify-between gap-3">
-						<div class="font-medium text-app-text">Perícias</div>
-						<app-select
-							class="w-52"
-							label="Adicionar"
-							[options]="skillOptions().concat([{ value: '__custom__', label: 'Personalizado' }])"
-							[value]="''"
-							emptyLabel="Adicionar"
-							[searchable]="true"
-							(valueChange)="selectSkill($event)"
-						/>
+					<div class="flex items-center justify-between gap-3">
+						<h3 class="font-medium text-app-text">Perícias</h3>
+						@if (inlineComposer() === 'skill') {
+							<button type="button" class="app-button app-button-ghost" (click)="cancelInlineComposer()">Cancelar</button>
+						} @else {
+							<button type="button" class="app-button app-button-ghost" (click)="openInlineComposer('skill')">+ Adicionar perícia</button>
+						}
 					</div>
-					@if (customSkill()) {
-						<div class="mt-2 flex gap-2">
+					@if (inlineComposer() === 'skill') {
+						<div class="mt-3 grid items-end gap-2 border-t border-app-divider pt-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+							<app-select label="Perícia" [options]="skillOptions().concat([{ value: '__custom__', label: 'Personalizado' }])" [value]="''" emptyLabel="Selecionar" [searchable]="true" (valueChange)="selectSkill($event)" />
+							@if (customSkill()) {
 							<input
 								class="app-field min-w-0 flex-1 px-3 py-2"
 								placeholder="Perícia personalizada"
 								[ngModel]="skillDraft()"
 								(ngModelChange)="skillDraft.set($event)"
 								name="custom-skill"
-							/><button
-								type="button"
-								class="app-button app-button-secondary"
-								(click)="addSkill(skillDraft()); skillDraft.set('')"
-							>
-								Adicionar
-							</button>
+							/><button type="button" class="app-button app-button-secondary" (click)="confirmCustomSkill()">Confirmar</button>
+							}
 						</div>
 					}
-					<div class="mt-3 grid gap-2 sm:grid-cols-2">
+					<div class="mt-2 divide-y divide-app-divider">
 						@for (skill of creature().skills ?? []; track skill.name) {
-							<div class="app-inset grid items-end gap-2 p-3 grid-cols-[minmax(0,1fr)_5.5rem_auto]">
+							<div class="grid grid-cols-[minmax(0,1fr)_5rem_auto] items-center gap-2 py-2">
 								<div class="min-w-0 truncate font-medium text-app-text">{{ skill.name }}</div>
-								<label class="text-sm text-app-muted"
-									><span class="mb-1 block">Bônus</span
-									><input
+								<input
 										type="number"
-										class="app-field w-full px-2 py-2"
+										class="app-field w-full px-2 py-2 text-center"
 										[ngModel]="skill.bonus"
 										(ngModelChange)="updateSkill(skill.name, $event)"
-										[name]="'skill-bonus-' + skill.name" /></label
-								><button
+										[name]="'skill-bonus-' + skill.name"
+								/><button
 									type="button"
-									class="app-button app-button-danger self-end px-3"
+									class="app-button app-button-danger px-3"
 									aria-label="Remover perícia {{ skill.name }}"
 									(click)="removeSkill(skill.name)"
 								>
@@ -386,33 +385,6 @@
 						}
 					</div>
 				</div>
-				<label class="text-sm text-app-muted"
-					><span class="mb-1 block">Percepção passiva</span
-					><input
-						type="number"
-						min="0"
-						class="app-field w-full px-3 py-2"
-						[ngModel]="creature().passivePerception ?? ''"
-						(ngModelChange)="setOptionalNumber('passivePerception', $event)"
-						name="passive-perception"
-				/></label>
-			</section>
-			<section class="grid gap-3 border-t border-app-divider pt-5 md:grid-cols-2">
-				<label class="text-sm text-app-muted"
-					><span class="mb-1 block">Nota de CA</span
-					><input
-						class="app-field w-full px-3 py-2"
-						[ngModel]="creature().armorClassNote ?? ''"
-						(ngModelChange)="setCreatureText('armorClassNote', $event)"
-						name="armor-note" /></label
-				><label class="text-sm text-app-muted"
-					><span class="mb-1 block">Fórmula de PV</span
-					><input
-						class="app-field w-full px-3 py-2"
-						[ngModel]="creature().hitPointFormula ?? ''"
-						(ngModelChange)="setCreatureText('hitPointFormula', $event)"
-						name="hp-formula"
-				/></label>
 			</section>
 		</div>
 	</details>
@@ -420,7 +392,7 @@
 	<details class="app-panel group p-4 sm:p-5">
 		<summary class="cursor-pointer list-none font-semibold text-app-text">
 			<span class="flex justify-between"
-				>Defesas e percepção
+				>Defesas, percepção e idiomas
 				<span class="text-sm font-normal text-app-muted group-open:hidden">Mostrar</span
 				><span class="hidden text-sm font-normal text-app-muted group-open:inline"
 					>Ocultar</span
@@ -430,61 +402,106 @@
 		<div class="mt-5 space-y-5">
 			@for (defense of defenseSections; track defense.key) {
 				<section>
-					<h3 class="font-medium text-app-text">{{ defense.label }}</h3>
-					<div class="mt-2 space-y-2">
-						@for (entry of creature()[defense.key] ?? []; track $index; let index = $index) {
-							<div class="app-inset flex flex-wrap items-end gap-2 p-3">
-								<div class="flex flex-1 flex-wrap gap-1">
-									@for (type of entry.types; track type) {
-										<span class="app-status bg-app-surface-raised text-app-text">{{ type }}</span>
-									}
-								</div>
-								<input
-									class="app-field min-w-40 flex-1 px-3 py-2"
-									placeholder="Nota opcional"
-									[ngModel]="entry.note ?? ''"
-									(ngModelChange)="updateDefenseNote(defense.key, index, $event)"
-									[name]="defense.key + '-note-' + index"
-								/><button
-									type="button"
-									class="app-button app-button-danger"
-									(click)="removeDefense(defense.key, index)"
-								>
-									Remover
-								</button>
-							</div>
+					<div class="flex items-center justify-between gap-3">
+						<h3
+							class="font-medium"
+							[class.text-red-200]="defense.key === 'damageVulnerabilities'"
+							[class.text-emerald-200]="defense.key === 'damageResistances'"
+							[class.text-violet-100]="defense.key === 'damageImmunities'"
+						>
+							{{ defense.label }}
+						</h3>
+						@if (inlineComposer() === 'defense:' + defense.key) {
+							<button type="button" class="app-button app-button-ghost" (click)="cancelInlineComposer()">Cancelar</button>
+						} @else {
+							<button type="button" class="app-button app-button-ghost" (click)="openDefenseComposer(defense.key)">+ Adicionar</button>
 						}
 					</div>
-					<div class="app-inset mt-2 p-3">
+					<div class="mt-2 flex flex-wrap gap-1.5">
+						@for (entry of creature()[defense.key] ?? []; track $index) {
+							@if (!entry.note) {
+								@for (type of entry.types; track type) {
+									<button
+										type="button"
+										class="app-status border border-app-divider bg-app-inset text-app-text"
+										[class.border-red-300/30]="defense.key === 'damageVulnerabilities'"
+										[class.border-emerald-300/30]="defense.key === 'damageResistances'"
+										[class.border-violet-300/30]="defense.key === 'damageImmunities'"
+										(click)="removeSimpleDefenseType(defense.key, type)"
+									>
+										{{ type }} ×
+									</button>
+								}
+							}
+						}
+					</div>
+					<div class="mt-3 space-y-2">
+						@for (entry of creature()[defense.key] ?? []; track $index; let index = $index) {
+							@if (entry.note) {
+								<div class="border-l-2 border-amber-300/60 py-2 pl-3">
+									<div class="flex flex-wrap gap-1">
+										@for (type of entry.types; track type) {
+											<span class="app-status bg-amber-500/15 text-amber-100">{{ type }}</span>
+										}
+									</div>
+									<div class="mt-2 flex flex-wrap gap-2">
+										<input
+											class="app-field min-w-40 flex-1 px-3 py-2"
+											[ngModel]="entry.note"
+											(ngModelChange)="updateDefenseNote(defense.key, index, $event)"
+											[name]="defense.key + '-note-' + index"
+										/><button
+											type="button"
+											class="app-button app-button-danger"
+											(click)="removeDefense(defense.key, index)"
+										>
+											Remover
+										</button>
+									</div>
+								</div>
+							}
+						}
+					</div>
+					@if (inlineComposer() === 'defense:' + defense.key) {
+					<div class="mt-3 border-t border-app-divider pt-3">
 						<div class="flex flex-wrap gap-1">
 							@for (type of defenseDrafts()[defense.key].types; track type) {
 								<button
 									type="button"
-									class="app-status bg-violet-500/15 text-violet-100"
+									class="app-status"
+									[class.bg-red-500/15]="defense.key === 'damageVulnerabilities'"
+									[class.text-red-100]="defense.key === 'damageVulnerabilities'"
+									[class.bg-emerald-500/15]="defense.key === 'damageResistances'"
+									[class.text-emerald-100]="defense.key === 'damageResistances'"
+									[class.bg-violet-500/15]="defense.key === 'damageImmunities'"
+									[class.text-violet-100]="defense.key === 'damageImmunities'"
 									(click)="removeDefenseType(defense.key, type)"
 								>
 									{{ type }} ×
 								</button>
 							}
 						</div>
-						<div class="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-							<app-select
-								label="Tipo de dano"
-								[options]="damageTypes.concat('__custom__')"
-								[optionLabels]="{ __custom__: 'Personalizado' }"
-								[value]="''"
-								emptyLabel="Selecionar"
-								[searchable]="true"
-								(valueChange)="selectDefenseType(defense.key, $event)"
-							/>
+						<div class="mt-2 grid items-end gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
 							@if (customDefense()[defense.key]) {
-								<input
-									class="app-field w-full px-3 py-2"
-									placeholder="Tipo personalizado"
-									#customDamage
-									(keyup.enter)="
-										addDefenseType(defense.key, customDamage.value); customDamage.value = ''
-									"
+								<label class="text-sm text-app-muted"
+									><span class="mb-1 block">Tipo personalizado</span
+									><input
+										class="app-field w-full px-3 py-2"
+										placeholder="Ex.: prata"
+										#customDamage
+										(keyup.enter)="
+											addDefenseType(defense.key, customDamage.value); customDamage.value = ''
+										"
+									/></label>
+							} @else {
+								<app-select
+									label="Tipo de dano"
+									[options]="defenseTypeOptions(defense.key).concat('__custom__')"
+									[optionLabels]="{ __custom__: 'Personalizado' }"
+									[value]="''"
+									emptyLabel="Selecionar"
+									[searchable]="true"
+									(valueChange)="selectDefenseType(defense.key, $event)"
 								/>
 							}
 							<label class="text-sm text-app-muted"
@@ -497,58 +514,71 @@
 							><button
 								type="button"
 								class="app-button app-button-secondary self-end"
-								(click)="addDefense(defense.key)"
+								(click)="confirmDefense(defense.key)"
 							>
-								Adicionar
+								Confirmar
 							</button>
 						</div>
 					</div>
+					}
 				</section>
 			}
 		</div>
-		<div class="mt-5 grid gap-5 border-t border-app-divider pt-5 lg:grid-cols-2">
+		<div class="mt-5 space-y-5 border-t border-app-divider pt-5">
 			<section>
-				<h3 class="font-medium text-app-text">Sentidos</h3>
+				<div class="flex items-center justify-between gap-3">
+					<h3 class="font-medium text-app-text">Sentidos e percepção</h3>
+					@if (inlineComposer() === 'sense') {
+						<button type="button" class="app-button app-button-ghost" (click)="cancelInlineComposer()">Cancelar</button>
+					} @else {
+						<button type="button" class="app-button app-button-ghost" (click)="openInlineComposer('sense')">+ Adicionar sentido</button>
+					}
+				</div>
 				<div class="mt-2 space-y-2">
 					@for (sense of creature().senses ?? []; track $index; let index = $index) {
-						<div class="app-inset flex flex-wrap gap-2 p-2">
+						<div class="grid items-center gap-2 border-t border-app-divider py-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
 							<strong class="text-sm text-app-text">{{ sense.name }}</strong
 							><input
-								class="app-field min-w-36 flex-1 px-3 py-2"
+								class="app-field w-full px-3 py-2"
 								placeholder="Alcance ou detalhe"
 								[ngModel]="sense.detail ?? ''"
 								(ngModelChange)="updateSense(index, sense.name, $event)"
 								[name]="'sense-detail-' + index"
 							/><button
 								type="button"
-								class="app-button app-button-danger"
+								class="app-button app-button-danger px-3"
+								aria-label="Remover sentido {{ sense.name }}"
 								(click)="removeSense(index)"
 							>
-								Remover
+								×
 							</button>
 						</div>
 					}
 				</div>
-				<div class="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-					<app-select
-						label="Sentido"
-						[options]="senseSuggestions().concat('__custom__')"
-						[optionLabels]="{ __custom__: 'Personalizado' }"
-						[value]="''"
-						emptyLabel="Selecionar"
-						(valueChange)="selectSense($event)"
-					/>
+				@if (inlineComposer() === 'sense') {
+				<div class="mt-3 grid items-end gap-2 border-t border-app-divider pt-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
 					@if (customSense()) {
-						<input
-							class="app-field px-3 py-2"
-							placeholder="Sentido personalizado"
-							[ngModel]="senseDraft().name"
-							(ngModelChange)="setSenseDraft({ name: $event })"
-							name="custom-sense"
+						<label class="text-sm text-app-muted"
+							><span class="mb-1 block">Sentido personalizado</span
+							><input
+								class="app-field w-full px-3 py-2"
+								placeholder="Ex.: percepção sísmica"
+								[ngModel]="senseDraft().name"
+								(ngModelChange)="setSenseDraft({ name: $event })"
+								name="custom-sense"
+						/></label>
+					} @else {
+						<app-select
+							label="Sentido"
+							[options]="senseSuggestions().concat('__custom__')"
+							[optionLabels]="{ __custom__: 'Personalizado' }"
+							[value]="senseDraft().name"
+							emptyLabel="Selecionar"
+							(valueChange)="selectSense($event)"
 						/>
 					}
 					<input
-						class="app-field px-3 py-2"
+						class="app-field w-full px-3 py-2"
 						placeholder="Alcance ou detalhe"
 						[ngModel]="senseDraft().detail"
 						(ngModelChange)="setSenseDraft({ detail: $event })"
@@ -556,14 +586,34 @@
 					/><button
 						type="button"
 						class="app-button app-button-secondary self-end"
-						(click)="addSense()"
+						(click)="confirmSense()"
 					>
-						Adicionar
+						Confirmar
 					</button>
 				</div>
+				}
 			</section>
 			<section>
-				<h3 class="font-medium text-app-text">Idiomas e condições</h3>
+				<label class="block text-sm text-app-muted"
+					><span class="mb-1 block font-medium text-app-text">Percepção passiva</span
+					><input
+						type="number"
+						min="0"
+						class="app-field w-full px-3 py-2"
+						[ngModel]="creature().passivePerception ?? ''"
+						(ngModelChange)="setOptionalNumber('passivePerception', $event)"
+						name="passive-perception"
+				/></label>
+			</section>
+			<section>
+				<div class="flex items-center justify-between gap-3">
+					<h3 class="font-medium text-app-text">Idiomas</h3>
+					@if (inlineComposer() === 'language') {
+						<button type="button" class="app-button app-button-ghost" (click)="cancelInlineComposer()">Cancelar</button>
+					} @else {
+						<button type="button" class="app-button app-button-ghost" (click)="openInlineComposer('language')">+ Adicionar</button>
+					}
+				</div>
 				<div class="mt-2 flex flex-wrap gap-1">
 					@for (language of creature().languages ?? []; track language) {
 						<button
@@ -574,17 +624,9 @@
 							{{ language }} ×
 						</button>
 					}
-					@for (condition of creature().conditionImmunities ?? []; track condition) {
-						<button
-							type="button"
-							class="app-status bg-app-inset text-app-text"
-							(click)="removeCondition(condition)"
-						>
-							{{ condition }} ×
-						</button>
-					}
 				</div>
-				<div class="mt-3 grid gap-2 sm:grid-cols-2">
+				@if (inlineComposer() === 'language') {
+				<div class="mt-3 grid items-end gap-2 border-t border-app-divider pt-3 sm:grid-cols-[minmax(0,1fr)_auto]">
 					<app-select
 						label="Idioma"
 						[options]="languageSuggestions().concat('__custom__')"
@@ -595,7 +637,7 @@
 						(valueChange)="selectLanguage($event)"
 					/>
 					@if (customLanguage()) {
-						<div class="flex gap-2">
+						<div class="grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
 							<input
 								class="app-field min-w-0 flex-1 px-3 py-2"
 								placeholder="Idioma personalizado"
@@ -605,41 +647,67 @@
 							/><button
 								type="button"
 								class="app-button app-button-secondary"
-								(click)="addLanguage()"
+							(click)="confirmCustomLanguage()"
 							>
-								+
-							</button>
-						</div>
-					}
-					<app-select
-						label="Imunidade a condição"
-						[options]="conditionSuggestions().concat('__custom__')"
-						[optionLabels]="{ __custom__: 'Personalizado' }"
-						[value]="''"
-						emptyLabel="Adicionar"
-						[searchable]="true"
-						(valueChange)="selectCondition($event)"
-					/>
-					@if (customCondition()) {
-						<div class="flex gap-2">
-							<input
-								class="app-field min-w-0 flex-1 px-3 py-2"
-								placeholder="Condição personalizada"
-								[ngModel]="conditionDraft()"
-								(ngModelChange)="conditionDraft.set($event)"
-								name="custom-condition"
-							/><button
-								type="button"
-								class="app-button app-button-secondary"
-								(click)="addCondition()"
-							>
-								+
+							Confirmar
 							</button>
 						</div>
 					}
 				</div>
+				}
 			</section>
 		</div>
+		<section class="mt-5 border-t border-app-divider pt-5">
+			<div class="flex items-center justify-between gap-3">
+				<h3 class="font-medium text-app-text">Imunidades a condição</h3>
+				@if (inlineComposer() === 'condition') {
+					<button type="button" class="app-button app-button-ghost" (click)="cancelInlineComposer()">Cancelar</button>
+				} @else {
+					<button type="button" class="app-button app-button-ghost" (click)="openInlineComposer('condition')">+ Adicionar condição</button>
+				}
+			</div>
+			<div class="mt-2 flex flex-wrap gap-1">
+				@for (condition of creature().conditionImmunities ?? []; track condition) {
+					<button
+						type="button"
+						class="app-status border border-violet-300/20 bg-violet-500/15 text-violet-100"
+						(click)="removeCondition(condition)"
+					>
+						{{ condition }} ×
+					</button>
+				}
+			</div>
+			@if (inlineComposer() === 'condition') {
+			<div class="mt-3 grid items-end gap-2 border-t border-app-divider pt-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+				<app-select
+					label="Adicionar imunidade"
+					[options]="conditionSuggestions().concat('__custom__')"
+					[optionLabels]="{ __custom__: 'Personalizado' }"
+					[value]="''"
+					emptyLabel="Adicionar"
+					[searchable]="true"
+					(valueChange)="selectCondition($event)"
+				/>
+				@if (customCondition()) {
+					<div class="grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+						<input
+							class="app-field min-w-0 flex-1 px-3 py-2"
+							placeholder="Condição personalizada"
+							[ngModel]="conditionDraft()"
+							(ngModelChange)="conditionDraft.set($event)"
+							name="custom-condition"
+						/><button
+							type="button"
+							class="app-button app-button-secondary"
+							(click)="confirmCustomCondition()"
+						>
+							Adicionar
+						</button>
+					</div>
+				}
+			</div>
+			}
+		</section>
 	</details>
 
 	<details class="app-panel group p-4 sm:p-5">
@@ -652,39 +720,159 @@
 				></span
 			>
 		</summary>
-		<div class="mt-5 space-y-6">
-			<section>
+		<div class="mt-5 space-y-4">
+			@for (section of featureSections; track section.kind) {
+				<section
+					[class.border-t]="$index > 0"
+					[class.border-app-divider]="$index > 0"
+					[class.pt-4]="$index > 0"
+				>
+					<div class="flex flex-wrap items-center justify-between gap-3">
+						<div>
+							<h3 class="font-medium text-app-text">{{ section.label }}</h3>
+							@if (section.kind === 'trait') {
+								<p class="mt-1 text-sm text-app-muted">Importe ou crie manualmente.</p>
+							}
+						</div>
+						<div class="app-action-group">
+							@if (section.kind === 'trait') {
+								<button type="button" class="app-button app-button-ghost" (click)="openFeatureCatalog()">
+									Biblioteca
+								</button>
+							}
+							@if (featureComposerKind() === section.kind) {
+								<button type="button" class="app-button app-button-ghost" (click)="cancelFeatureComposer()">Cancelar</button>
+							} @else {
+								<button type="button" class="app-button app-button-secondary" (click)="openFeatureComposer(section.kind)">+ Manual</button>
+							}
+						</div>
+					</div>
+					<div class="mt-3 divide-y divide-app-divider">
+						@for (feature of featuresByKind(section.kind); track feature.id) {
+							<article class="grid gap-2 py-3 md:grid-cols-[minmax(0,1fr)_auto]">
+								<label class="text-sm text-app-muted"
+									><span class="mb-1 block">Nome</span
+									><input
+										class="app-field w-full px-3 py-2"
+										[ngModel]="feature.name"
+										(ngModelChange)="updateFeature(feature.id, { name: $event })"
+										[name]="'feature-name-' + feature.id"
+								/></label>
+								<button
+									type="button"
+									class="app-button app-button-danger px-3"
+									aria-label="Remover {{ section.label }} {{ feature.name }}"
+									(click)="removeFeature(feature.id)"
+								>
+									×
+								</button>
+								<label class="text-sm text-app-muted md:col-span-2"
+									><span class="mb-1 block">Descrição</span
+									><textarea
+										class="app-field min-h-20 w-full px-3 py-2"
+										[ngModel]="feature.description ?? ''"
+										(ngModelChange)="updateFeature(feature.id, { description: $event })"
+										[name]="'feature-description-' + feature.id"
+									></textarea>
+								</label>
+							</article>
+						} @empty {
+							<p class="py-2 text-sm text-app-muted">{{ section.empty }}</p>
+						}
+					</div>
+					@if (featureComposerKind() === section.kind) {
+						<div
+							class="mt-3 grid gap-2 border-t border-app-divider pt-3 md:grid-cols-[minmax(0,1fr)_auto]"
+						>
+							<input
+								class="app-field px-3 py-2"
+								placeholder="Nome"
+								[ngModel]="featureDraft().name"
+								(ngModelChange)="setFeatureDraft({ name: $event })"
+								[name]="'new-' + section.kind + '-name'"
+							/>
+							<div class="flex gap-2">
+								<button
+									type="button"
+									class="app-button app-button-ghost"
+									(click)="cancelFeatureComposer()"
+								>
+									Cancelar
+								</button>
+								<button
+									type="button"
+									class="app-button app-button-secondary"
+									(click)="addFeature()"
+								>
+									Adicionar
+								</button>
+							</div>
+							<textarea
+								class="app-field min-h-20 px-3 py-2 md:col-span-2"
+								placeholder="Descrição"
+								[ngModel]="featureDraft().description"
+								(ngModelChange)="setFeatureDraft({ description: $event })"
+								[name]="'new-' + section.kind + '-description'"
+							></textarea>
+						</div>
+					}
+				</section>
+			}
+			<section class="border-t border-app-divider pt-5">
 				<div class="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h3 class="font-medium text-app-text">Traços e ações</h3>
-						<p class="text-sm text-app-muted">Crie uma entrada só depois de confirmar.</p>
+						<h3 class="font-medium text-amber-100">Legendary Actions</h3>
+						<p class="mt-1 text-sm text-app-muted">Usadas fora do turno e recuperadas no início do turno.</p>
 					</div>
-					<button type="button" class="app-button app-button-ghost" (click)="openFeatureCatalog()">
-						Abrir catálogo
-					</button>
+					@if (featureComposerKind() === 'legendary') {
+						<button type="button" class="app-button app-button-ghost" (click)="cancelFeatureComposer()">Cancelar</button>
+					} @else {
+						<button type="button" class="app-button app-button-secondary" (click)="openFeatureComposer('legendary')">+ Adicionar ação lendária</button>
+					}
 				</div>
-				<div class="mt-3 space-y-2">
-					@for (feature of creature().features; track feature.id) {
-						<article class="app-inset grid gap-2 p-3 md:grid-cols-[10rem_1fr_auto]">
-							<app-select
-								label="Tipo"
-								[options]="featureKinds"
-								[value]="feature.kind"
-								(valueChange)="updateFeature(feature.id, { kind: $any($event) })"
-							/><label class="text-sm text-app-muted"
+				<div class="mt-3 flex flex-wrap items-end gap-2">
+					<label class="text-sm text-app-muted"
+						><span class="mb-1 block">A criatura possui</span
+						><input
+							type="number"
+							min="1"
+							class="app-field w-20 px-3 py-2 text-center"
+							[ngModel]="creature().legendaryActions?.count ?? ''"
+							(ngModelChange)="setLegendaryMetadata('count', $event)"
+							name="legendary-count"
+					/></label><span class="pb-3 text-sm text-app-muted">ações lendárias por rodada.</span>
+				</div>
+				<details class="mt-3">
+					<summary class="cursor-pointer text-sm font-medium text-app-muted">Introdução customizada</summary>
+					<input class="app-field mt-2 w-full px-3 py-2" placeholder="Texto opcional" [ngModel]="creature().legendaryActions?.intro ?? ''" (ngModelChange)="setLegendaryMetadata('intro', $event)" name="legendary-intro" />
+				</details>
+				<div class="mt-3 divide-y divide-app-divider">
+					@for (feature of featuresByKind('legendary'); track feature.id) {
+						<article class="grid gap-2 py-3 md:grid-cols-[minmax(0,1fr)_7rem_auto]">
+							<label class="text-sm text-app-muted"
 								><span class="mb-1 block">Nome</span
 								><input
 									class="app-field w-full px-3 py-2"
 									[ngModel]="feature.name"
 									(ngModelChange)="updateFeature(feature.id, { name: $event })"
 									[name]="'feature-name-' + feature.id" /></label
+							><label class="text-sm text-app-muted"
+								><span class="mb-1 block">Custo</span
+								><input
+									type="number"
+									min="1"
+									class="app-field w-full px-3 py-2"
+									[ngModel]="feature.legendaryCost ?? 1"
+									(ngModelChange)="updateFeature(feature.id, { legendaryCost: +$event || 1 })"
+									[name]="'feature-cost-' + feature.id" /></label
 							><button
 								type="button"
 								class="app-button app-button-danger self-end"
 								(click)="removeFeature(feature.id)"
 							>
-								Remover</button
-							><label class="text-sm text-app-muted md:col-span-3"
+								Remover
+							</button>
+							<label class="text-sm text-app-muted md:col-span-3"
 								><span class="mb-1 block">Descrição</span
 								><textarea
 									class="app-field min-h-20 w-full px-3 py-2"
@@ -693,127 +881,122 @@
 									[name]="'feature-description-' + feature.id"
 								></textarea>
 							</label>
-							@if (feature.kind === 'legendary') {
-								<label class="text-sm text-app-muted"
-									><span class="mb-1 block">Custo lendário</span
-									><input
-										type="number"
-										min="1"
-										class="app-field w-full px-3 py-2"
-										[ngModel]="feature.legendaryCost ?? 1"
-										(ngModelChange)="updateFeature(feature.id, { legendaryCost: +$event || 1 })"
-										[name]="'feature-cost-' + feature.id"
-								/></label>
-							}
 						</article>
+					} @empty {
+						<p class="py-3 text-sm text-app-muted">Nenhuma ação lendária adicionada.</p>
 					}
 				</div>
-				<div class="app-inset mt-3 grid gap-2 p-3 md:grid-cols-[10rem_1fr_auto]">
-					<app-select
-						label="Nova entrada"
-						[options]="featureKinds"
-						[value]="featureDraft().kind"
-						(valueChange)="setFeatureDraft({ kind: $any($event) })"
-					/><input
-						class="app-field px-3 py-2"
-						placeholder="Nome"
-						[ngModel]="featureDraft().name"
-						(ngModelChange)="setFeatureDraft({ name: $event })"
-						name="new-feature-name"
-					/><button type="button" class="app-button app-button-secondary" (click)="addFeature()">
-						Adicionar</button
-					><textarea
-						class="app-field min-h-20 px-3 py-2 md:col-span-3"
-						placeholder="Descrição"
-						[ngModel]="featureDraft().description"
-						(ngModelChange)="setFeatureDraft({ description: $event })"
-						name="new-feature-description"
-					></textarea>
-				</div>
-			</section>
-			<section class="border-t border-app-divider pt-5">
-				<h3 class="font-medium text-app-text">Ações lendárias e conjuração</h3>
-				<div class="mt-3 grid gap-3 lg:grid-cols-2">
-					<div class="space-y-2">
+				@if (featureComposerKind() === 'legendary') {
+					<div
+						class="mt-3 grid gap-2 border-t border-app-divider pt-3 md:grid-cols-[minmax(0,1fr)_7rem_auto]"
+					>
+						<input
+							class="app-field px-3 py-2"
+							placeholder="Nome"
+							[ngModel]="featureDraft().name"
+							(ngModelChange)="setFeatureDraft({ name: $event })"
+							name="new-legendary-name"
+						/>
 						<label class="text-sm text-app-muted"
-							><span class="mb-1 block">Ações por rodada</span
+							><span class="mb-1 block">Custo</span
 							><input
 								type="number"
 								min="1"
 								class="app-field w-full px-3 py-2"
-								[ngModel]="creature().legendaryActions?.count ?? ''"
-								(ngModelChange)="setLegendaryMetadata('count', $event)"
-								name="legendary-count" /></label
-						><textarea
-							class="app-field min-h-20 w-full px-3 py-2"
-							placeholder="Introdução das ações lendárias"
-							[ngModel]="creature().legendaryActions?.intro ?? ''"
-							(ngModelChange)="setLegendaryMetadata('intro', $event)"
-							name="legendary-intro"
+								[ngModel]="featureDraft().legendaryCost"
+								(ngModelChange)="setFeatureDraft({ legendaryCost: +$event || 1 })"
+								name="new-legendary-cost"
+						/></label>
+						<div class="flex gap-2">
+							<button
+								type="button"
+								class="app-button app-button-ghost"
+								(click)="cancelFeatureComposer()"
+							>
+								Cancelar</button
+							><button type="button" class="app-button app-button-secondary" (click)="addFeature()">
+								Adicionar
+							</button>
+						</div>
+						<textarea
+							class="app-field min-h-20 px-3 py-2 md:col-span-3"
+							placeholder="Descrição"
+							[ngModel]="featureDraft().description"
+							(ngModelChange)="setFeatureDraft({ description: $event })"
+							name="new-legendary-description"
 						></textarea>
 					</div>
-					<div class="grid gap-2 sm:grid-cols-2">
-						<app-select
-							label="Habilidade de conjuração"
-							[options]="abilityKeys"
-							optionValueKey="key"
-							optionLabelKey="label"
-							[value]="creature().spellcasting?.ability ?? ''"
-							emptyLabel="Não definida"
-							(valueChange)="setSpellcastingMetadata('ability', $event)"
-						/><label class="text-sm text-app-muted"
-							><span class="mb-1 block">CD</span
-							><input
-								type="number"
-								class="app-field w-full px-3 py-2"
-								[ngModel]="creature().spellcasting?.spellSaveDc ?? ''"
-								(ngModelChange)="setSpellcastingMetadata('spellSaveDc', $event)"
-								name="spell-save-dc" /></label
-						><label class="text-sm text-app-muted"
-							><span class="mb-1 block">Ataque mágico</span
-							><input
-								type="number"
-								class="app-field w-full px-3 py-2"
-								[ngModel]="creature().spellcasting?.spellAttackBonus ?? ''"
-								(ngModelChange)="setSpellcastingMetadata('spellAttackBonus', $event)"
-								name="spell-attack-bonus" /></label
-						><input
-							class="app-field px-3 py-2"
-							placeholder="Cabeçalho de conjuração"
-							[ngModel]="creature().spellcasting?.header ?? ''"
-							(ngModelChange)="setSpellcastingMetadata('header', $event)"
-							name="spell-header"
-						/>
-					</div>
-				</div>
+				}
 			</section>
 			<section class="border-t border-app-divider pt-5">
-				<div class="flex justify-between gap-3">
+				<div class="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h3 class="font-medium text-app-text">Magias e slots</h3>
+						<h3 class="font-medium text-app-text">Spellcasting</h3>
 						<p class="text-sm text-app-muted">
 							Selecione do compêndio ou adicione uma referência manual.
 						</p>
 					</div>
-					<button type="button" class="app-button app-button-ghost" (click)="openSpellPicker()">
-						<svg lucideBookOpen [size]="17" aria-hidden="true"></svg>Adicionar do Compêndio
-					</button>
+					<div class="app-action-group">
+						<button type="button" class="app-button app-button-ghost" (click)="openSpellPicker()">
+							<svg lucideBookOpen [size]="17" aria-hidden="true"></svg>Compêndio
+						</button>
+						@if (inlineComposer() === 'spell') {
+							<button type="button" class="app-button app-button-ghost" (click)="cancelInlineComposer()">Cancelar</button>
+						} @else {
+							<button type="button" class="app-button app-button-secondary" (click)="openInlineComposer('spell')">+ Manual</button>
+						}
+					</div>
 				</div>
-				<div class="mt-3 grid gap-2 sm:grid-cols-3">
+				<div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+					<app-select
+						label="Habilidade"
+						[options]="abilityKeys"
+						optionValueKey="key"
+						optionLabelKey="label"
+						[value]="creature().spellcasting?.ability ?? ''"
+						emptyLabel="Não definida"
+						(valueChange)="setSpellcastingMetadata('ability', $event)"
+					/>
+					<label class="text-sm text-app-muted"
+						><span class="mb-1 block">CD</span
+						><input
+							type="number"
+							class="app-field w-full px-3 py-2"
+							[ngModel]="creature().spellcasting?.spellSaveDc ?? ''"
+							(ngModelChange)="setSpellcastingMetadata('spellSaveDc', $event)"
+							name="spell-save-dc"
+					/></label>
+					<label class="text-sm text-app-muted"
+						><span class="mb-1 block">Ataque mágico</span
+						><input
+							type="number"
+							class="app-field w-full px-3 py-2"
+							[ngModel]="creature().spellcasting?.spellAttackBonus ?? ''"
+							(ngModelChange)="setSpellcastingMetadata('spellAttackBonus', $event)"
+							name="spell-attack-bonus"
+					/></label>
+				</div>
+				<details class="mt-3">
+					<summary class="cursor-pointer text-sm font-medium text-app-muted">Opções avançadas</summary>
+					<label class="mt-2 block text-sm text-app-muted"><span class="mb-1 block">Cabeçalho</span><input class="app-field w-full px-3 py-2" [ngModel]="creature().spellcasting?.header ?? ''" (ngModelChange)="setSpellcastingMetadata('header', $event)" name="spell-header" /></label>
+				</details>
+				<h4 class="mt-5 text-sm font-medium text-app-text">Magias e slots</h4>
+				<div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
 					@for (level of SPELL_LEVELS; track level) {
-						<label class="app-inset flex items-center justify-between p-2 text-sm text-app-muted"
+						<label class="app-inset flex min-h-12 items-center justify-between gap-2 px-3 py-2 text-sm text-app-muted"
 							><span>{{ level }}º nível</span
 							><input
 								type="number"
 								min="0"
-								class="app-field w-20 px-2 py-1"
+								class="app-field h-9 w-16 px-2 py-1 text-center"
 								[ngModel]="slotValue(level)"
 								(ngModelChange)="setSpellSlot(level, $event)"
 								[name]="'slot-max-' + level"
 						/></label>
 					}
 				</div>
-				<div class="mt-3 flex flex-wrap gap-2">
+				@if (inlineComposer() === 'spell') {
+				<div class="mt-3 grid items-end gap-2 border-t border-app-divider pt-3 sm:grid-cols-[minmax(0,1fr)_5rem_auto]">
 					<input
 						class="app-field min-w-44 flex-1 px-3 py-2"
 						placeholder="Magia manual"
@@ -828,10 +1011,11 @@
 						[ngModel]="spellDraft().level"
 						(ngModelChange)="setSpellDraft({ level: +$event })"
 						name="new-spell-level"
-					/><button type="button" class="app-button app-button-secondary" (click)="addSpell()">
-						Adicionar
+					/><button type="button" class="app-button app-button-secondary" (click)="confirmSpell()">
+						Confirmar
 					</button>
 				</div>
+				}
 				<div class="mt-2 space-y-2">
 					@for (spell of creature().spells; track spell.id) {
 						<div class="app-inset flex flex-wrap items-center gap-2 p-2">
@@ -864,13 +1048,20 @@
 				</div>
 			</section>
 			<section class="border-t border-app-divider pt-5">
-				<h3 class="font-medium text-app-text">Habilidades especiais</h3>
-				<p class="mt-1 text-sm text-app-muted">
-					Defina quando a habilidade volta e o valor necessário para isso acontecer.
-				</p>
+				<div class="flex flex-wrap items-center justify-between gap-3">
+					<div>
+						<h3 class="font-medium text-app-text">Habilidades especiais</h3>
+						<p class="mt-1 text-sm text-app-muted">Defina recarga e descrição.</p>
+					</div>
+					@if (inlineComposer() === 'special-ability') {
+						<button type="button" class="app-button app-button-ghost" (click)="cancelInlineComposer()">Cancelar</button>
+					} @else {
+						<button type="button" class="app-button app-button-secondary" (click)="openInlineComposer('special-ability')">+ Adicionar habilidade</button>
+					}
+				</div>
 				<div class="mt-3 space-y-3">
 					@for (ability of creature().specialAbilities; track ability.id) {
-						<div class="app-inset grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
+						<div class="grid gap-3 border-t border-app-divider pt-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
 							<input
 								class="app-field px-3 py-2"
 								[ngModel]="ability.name ?? ''"
@@ -934,15 +1125,14 @@
 											[name]="'ability-uses-' + ability.id"
 									/></label>
 								} @else if (ability.recoveryType === 'dice-recharge') {
-									<label class="text-sm text-app-muted"
-										><span class="mb-1 block">Resultados do d6</span
-										><input
-											class="app-field w-36 px-3 py-2"
-											placeholder="5, 6"
-											[ngModel]="specialAbilityRechargeOnValue(ability)"
-											(ngModelChange)="setSpecialAbilityRechargeOn(ability.id, $event)"
-											[name]="'ability-recharge-' + ability.id"
-									/></label>
+									<div>
+										<span class="mb-1 block text-sm text-app-muted">Recharge on</span>
+										<div class="flex gap-1">
+											@for (face of [1, 2, 3, 4, 5, 6]; track face) {
+												<button type="button" class="app-button px-3" [class.app-button-secondary]="ability.rechargeOn?.includes(face)" [class.app-button-ghost]="!ability.rechargeOn?.includes(face)" (click)="toggleSpecialAbilityRechargeFace(ability.id, face)">{{ face }}</button>
+											}
+										</div>
+									</div>
 								}
 							</div>
 							<textarea
@@ -956,7 +1146,8 @@
 						</div>
 					}
 				</div>
-				<div class="app-inset mt-3 grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
+				@if (inlineComposer() === 'special-ability') {
+				<div class="mt-3 grid gap-3 border-t border-app-divider pt-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
 					<input
 						class="app-field px-3 py-2"
 						placeholder="Nova habilidade"
@@ -971,9 +1162,9 @@
 					/><button
 						type="button"
 						class="app-button app-button-secondary self-end"
-						(click)="addSpecialAbility()"
+						(click)="confirmSpecialAbility()"
 					>
-						Adicionar
+						Confirmar
 					</button>
 					<div class="flex flex-wrap items-end gap-2 md:col-span-3">
 						@if (abilityDraft().recoveryType === 'turn-cooldown') {
@@ -1033,6 +1224,7 @@
 						name="new-ability-description"
 					></textarea>
 				</div>
+				}
 			</section>
 		</div>
 	</details>
@@ -1047,7 +1239,9 @@
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="feature-catalog-title"
-			class="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-app-shell border border-app-border bg-app-surface-raised p-5"
+			[appDialogFocus]="true"
+			(appDialogEscape)="featureCatalogOpen.set(false)"
+			class="app-dialog w-full max-w-3xl p-5"
 			(click)="$event.stopPropagation()"
 		>
 			<div class="flex justify-between gap-3">
@@ -1069,12 +1263,16 @@
 				<div class="flex gap-5" role="tablist" aria-label="Tipo de item">
 					<button
 						type="button"
+						id="feature-catalog-resources-tab"
+						role="tab"
 						class="border-b-2 px-1 pb-3 text-sm font-semibold transition"
 						[class.border-violet-300]="featureCatalogTab() === 'resources'"
 						[class.text-violet-100]="featureCatalogTab() === 'resources'"
 						[class.border-transparent]="featureCatalogTab() !== 'resources'"
 						[class.text-app-muted]="featureCatalogTab() !== 'resources'"
 						[aria-selected]="featureCatalogTab() === 'resources'"
+						[tabindex]="featureCatalogTab() === 'resources' ? 0 : -1"
+						aria-controls="feature-catalog-panel"
 						(click)="featureCatalogTab.set('resources')"
 					>
 						Recursos de monstros
@@ -1082,12 +1280,16 @@
 					</button>
 					<button
 						type="button"
+						id="feature-catalog-feats-tab"
+						role="tab"
 						class="border-b-2 px-1 pb-3 text-sm font-semibold transition"
 						[class.border-violet-300]="featureCatalogTab() === 'feats'"
 						[class.text-violet-100]="featureCatalogTab() === 'feats'"
 						[class.border-transparent]="featureCatalogTab() !== 'feats'"
 						[class.text-app-muted]="featureCatalogTab() !== 'feats'"
 						[aria-selected]="featureCatalogTab() === 'feats'"
+						[tabindex]="featureCatalogTab() === 'feats' ? 0 : -1"
+						aria-controls="feature-catalog-panel"
 						(click)="featureCatalogTab.set('feats')"
 					>
 						Talentos <span class="text-xs opacity-70">{{ feats().length }}</span>
@@ -1101,36 +1303,70 @@
 				[ngModel]="featureCatalogSearch()"
 				(ngModelChange)="featureCatalogSearch.set($event)"
 				name="feature-catalog-search"
+				data-dialog-initial-focus
 			/>
-			<div class="mt-3 space-y-2">
+			<div
+				id="feature-catalog-panel"
+				role="tabpanel"
+				[attr.aria-labelledby]="
+					featureCatalogTab() === 'resources'
+						? 'feature-catalog-resources-tab'
+						: 'feature-catalog-feats-tab'
+				"
+				class="mt-3 space-y-2"
+			>
 				@if (featureCatalogTab() === 'resources') {
 					@for (feature of catalogMonsterFeatures(); track feature.name) {
-						<button
-							type="button"
-							class="app-inset block w-full p-3 text-left transition hover:border-violet-300/35 hover:bg-violet-500/[0.06]"
-							(click)="addCatalogFeature(feature)"
-						>
-							<strong class="block text-app-text">{{ feature.name }}</strong>
-							<span class="mt-1 block text-sm leading-5 text-app-muted">{{ feature.effect }}</span>
-						</button>
+						<article class="app-inset p-3">
+							<div class="flex items-start justify-between gap-3">
+								<details class="min-w-0 flex-1">
+									<summary class="cursor-pointer font-semibold text-app-text">
+										{{ feature.name }}
+									</summary>
+									<p class="mt-2 whitespace-pre-line text-sm leading-5 text-app-muted">
+										{{ feature.effect }}
+									</p>
+								</details>
+								<button
+									type="button"
+									class="app-button app-button-secondary shrink-0"
+									(click)="addCatalogFeature(feature)"
+								>
+									Adicionar
+								</button>
+							</div>
+							<p class="mt-2 line-clamp-3 text-sm leading-5 text-app-muted">{{ feature.effect }}</p>
+						</article>
 					} @empty {
 						<p class="py-8 text-center text-sm text-app-muted">Nenhum recurso encontrado.</p>
 					}
 				} @else {
 					@for (feat of catalogFeats(); track feat.name + feat.source) {
-						<button
-							type="button"
-							class="app-inset block w-full p-3 text-left transition hover:border-violet-300/35 hover:bg-violet-500/[0.06]"
-							(click)="addCatalogFeature(feat)"
-						>
-							<span class="flex items-baseline justify-between gap-3"
-								><strong class="text-app-text">{{ feat.name }}</strong>
-								<span class="text-xs text-app-subtle">{{ feat.source }}</span></span
-							>
-							<span class="mt-1 block text-sm leading-5 text-app-muted">{{
-								featDescription(feat)
-							}}</span>
-						</button>
+						<article class="app-inset p-3">
+							<div class="flex items-start justify-between gap-3">
+								<details class="min-w-0 flex-1">
+									<summary class="cursor-pointer font-semibold text-app-text">
+										{{ feat.name }}
+									</summary>
+									<p class="mt-2 whitespace-pre-line text-sm leading-5 text-app-muted">
+										{{ featDescription(feat) }}
+									</p>
+								</details>
+								<button
+									type="button"
+									class="app-button app-button-secondary shrink-0"
+									(click)="addCatalogFeature(feat)"
+								>
+									Adicionar
+								</button>
+							</div>
+							<div class="mt-2 flex items-start gap-3">
+								<p class="line-clamp-3 min-w-0 flex-1 text-sm leading-5 text-app-muted">
+									{{ featDescription(feat) }}
+								</p>
+								<span class="text-xs text-app-subtle">{{ feat.source }}</span>
+							</div>
+						</article>
 					} @empty {
 						<p class="py-8 text-center text-sm text-app-muted">Nenhum talento encontrado.</p>
 					}

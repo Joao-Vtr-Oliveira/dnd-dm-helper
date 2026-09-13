@@ -129,6 +129,7 @@ describe('HomebrewBuilder', () => {
 	});
 
 	it('reveals the matching recovery parameter before a special ability is added', () => {
+		component.openInlineComposer('special-ability');
 		component.setAbilityDraft({ recoveryType: 'turn-cooldown' });
 		fixture.detectChanges();
 
@@ -141,7 +142,7 @@ describe('HomebrewBuilder', () => {
 			'button',
 		) as NodeListOf<HTMLButtonElement>;
 		const action = Array.from(buttons).find((button) =>
-			button.textContent?.includes('Adicionar do Compêndio'),
+			button.textContent?.includes('Compêndio'),
 		);
 
 		expect(action).toBeTruthy();
@@ -150,6 +151,20 @@ describe('HomebrewBuilder', () => {
 
 		expect(component.spellPickerOpen()).toBeTrue();
 		expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
+	});
+
+	it('opens, confirms, and closes the temporary speed composer', () => {
+		expect(fixture.nativeElement.querySelector('[name="new-speed-distance"]')).toBeNull();
+
+		component.openInlineComposer('speed');
+		component.setSpeedDraft({ distance: '9 m' });
+		fixture.detectChanges();
+		expect(fixture.nativeElement.querySelector('[name="new-speed-distance"]')).not.toBeNull();
+
+		component.confirmSpeed();
+		fixture.detectChanges();
+		expect(component.creature().speed).toEqual([{ type: 'walk', distance: '9 m' }]);
+		expect(fixture.nativeElement.querySelector('[name="new-speed-distance"]')).toBeNull();
 	});
 
 	it('adds a compendium spell with its canonical source and rejects only that same source', () => {
@@ -235,10 +250,51 @@ describe('HomebrewBuilder', () => {
 
 		expect(text).toContain('Essencial');
 		expect(text).toContain('Estatísticas');
-		expect(text).toContain('Defesas e percepção');
+		expect(text).toContain('Defesas, percepção e idiomas');
 		expect(text).toContain('Habilidades');
 		expect(fixture.nativeElement.querySelector('select')).toBeNull();
 		expect(fixture.nativeElement.querySelector('datalist')).toBeNull();
+	});
+
+	it('shows the selected sense in its trigger before it is added', () => {
+		component.openInlineComposer('sense');
+		component.senseSuggestions.set(['Darkvision']);
+		component.selectSense('Darkvision');
+		fixture.detectChanges();
+
+		const root = fixture.nativeElement as HTMLElement;
+		const senseSelect = Array.from(root.querySelectorAll('app-select')).find((select) =>
+			select.textContent?.includes('Sentido'),
+		);
+
+		expect(senseSelect?.textContent).toContain('Darkvision');
+		expect(component.creature().senses).toBeUndefined();
+	});
+
+	it('clears a previous sense selection when switching to custom input', () => {
+		component.selectSense('Darkvision');
+		component.selectSense('__custom__');
+
+		expect(component.customSense()).toBeTrue();
+		expect(component.senseDraft().name).toBe('');
+	});
+
+	it('focuses the catalog search and closes it with Escape', async () => {
+		component.openFeatureCatalog();
+		fixture.detectChanges();
+		await fixture.whenStable();
+
+		const search = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
+			'[name="feature-catalog-search"]',
+		);
+		expect(document.body.classList.contains('app-dialog-open')).toBeTrue();
+		expect(document.activeElement).toBe(search);
+
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+		fixture.detectChanges();
+
+		expect(component.featureCatalogOpen()).toBeFalse();
+		expect(document.body.classList.contains('app-dialog-open')).toBeFalse();
 	});
 
 	it('retains a single creature type string while allowing an optional subtype', () => {
@@ -257,6 +313,14 @@ describe('HomebrewBuilder', () => {
 		expect(component.creature().damageResistances).toEqual([
 			{ types: ['fire', 'cold'], note: 'from nonmagical attacks' },
 		]);
+	});
+
+	it('hides selected damage types from the remaining defense choices', () => {
+		component.selectDefenseType('damageVulnerabilities', 'fire');
+		component.addDefense('damageVulnerabilities');
+
+		expect(component.defenseTypeOptions('damageVulnerabilities')).not.toContain('fire');
+		expect(component.defenseTypeOptions('damageVulnerabilities')).toContain('cold');
 	});
 
 	it('copies catalog entries into editable trait features', () => {

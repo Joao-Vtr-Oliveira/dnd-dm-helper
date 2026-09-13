@@ -6,6 +6,7 @@ import { LucideBookOpen } from '@lucide/angular';
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { SpellPickerComponent } from '../../components/spell-picker/spell-picker';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
+import { DialogFocusDirective } from '../../directives/dialog-focus';
 
 import {
 	HomebrewCategory,
@@ -51,6 +52,16 @@ type FeatureDraft = {
 type SpeedDraft = { type: CreatureSpeedType; distance: string; hover: boolean };
 type DefenseKey = 'damageVulnerabilities' | 'damageResistances' | 'damageImmunities';
 type DefenseDraft = { types: string[]; note: string };
+type InlineComposer =
+	| 'speed'
+	| 'save'
+	| 'skill'
+	| `defense:${DefenseKey}`
+	| 'sense'
+	| 'language'
+	| 'condition'
+	| 'spell'
+	| 'special-ability';
 type OptionalCreatureField =
 	| 'abilityScores'
 	| 'speed'
@@ -101,6 +112,7 @@ function normalizeCreature(raw: CreatureSheet): CreatureSheet {
 	imports: [
 		AppSelectComponent,
 		CommonModule,
+		DialogFocusDirective,
 		FormsModule,
 		LucideBookOpen,
 		SpellPickerComponent,
@@ -175,6 +187,8 @@ export class HomebrewBuilder {
 	featureCatalogOpen = signal(false);
 	featureCatalogTab = signal<'resources' | 'feats'>('resources');
 	featureCatalogSearch = signal('');
+	featureComposerKind = signal<CreatureFeatureKind | null>(null);
+	inlineComposer = signal<InlineComposer | null>(null);
 	monsterFeatures = signal<readonly CompendiumMonsterFeature[]>([]);
 	feats = signal<readonly CompendiumFeat[]>([]);
 	skillSuggestions = signal<readonly string[]>([]);
@@ -191,14 +205,11 @@ export class HomebrewBuilder {
 		{ key: 'wis', label: 'Sabedoria' },
 		{ key: 'cha', label: 'Carisma' },
 	];
-	readonly featureKinds: Array<{ value: CreatureFeatureKind; label: string }> = [
-		{ value: 'trait', label: 'Traço' },
-		{ value: 'action', label: 'Ação' },
-		{ value: 'bonus', label: 'Ação bônus' },
-		{ value: 'reaction', label: 'Reação' },
-		{ value: 'legendary', label: 'Ação lendária' },
-		{ value: 'spellcasting', label: 'Conjuração' },
-		{ value: 'note', label: 'Nota' },
+	readonly featureSections: Array<{ kind: CreatureFeatureKind; label: string; empty: string }> = [
+		{ kind: 'trait', label: 'Traits', empty: 'Nenhum trait adicionado.' },
+		{ kind: 'action', label: 'Actions', empty: 'Nenhuma action adicionada.' },
+		{ kind: 'bonus', label: 'Bonus Actions', empty: 'Nenhuma bonus action adicionada.' },
+		{ kind: 'reaction', label: 'Reactions', empty: 'Nenhuma reaction adicionada.' },
 	];
 	readonly sizes = ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'];
 	readonly creatureTypes = [
@@ -580,6 +591,67 @@ export class HomebrewBuilder {
 		this.speedDraft.update((draft) => ({ ...draft, ...patch }));
 	}
 
+	openInlineComposer(composer: InlineComposer) {
+		this.inlineComposer.set(composer);
+	}
+
+	openDefenseComposer(key: DefenseKey) {
+		this.openInlineComposer(`defense:${key}`);
+	}
+
+	cancelInlineComposer() {
+		const composer = this.inlineComposer();
+		if (composer === 'speed') this.speedDraft.set({ type: 'walk', distance: '', hover: false });
+		if (composer === 'save') {
+			this.customSave.set(false);
+			this.customSaveDraft.set('');
+		}
+		if (composer === 'skill') {
+			this.customSkill.set(false);
+			this.skillDraft.set('');
+		}
+		if (composer?.startsWith('defense:')) {
+			const key = composer.slice('defense:'.length) as DefenseKey;
+			this.setDefenseDraft(key, { types: [], note: '' });
+			this.customDefense.update((values) => ({ ...values, [key]: false }));
+		}
+		if (composer === 'sense') {
+			this.customSense.set(false);
+			this.senseDraft.set({ name: '', detail: '' });
+		}
+		if (composer === 'language') {
+			this.customLanguage.set(false);
+			this.languageDraft.set('');
+		}
+		if (composer === 'condition') {
+			this.customCondition.set(false);
+			this.conditionDraft.set('');
+		}
+		if (composer === 'spell') this.spellDraft.set({ name: '', uses: 1, level: 0 });
+		if (composer === 'special-ability') {
+			this.abilityDraft.set({
+				name: '',
+				description: '',
+				recoveryType: 'manual',
+				maxUses: 1,
+				cooldownValue: 1,
+				rechargeOn: '5,6',
+			});
+		}
+		this.inlineComposer.set(null);
+	}
+
+	speedLabel(type: string) {
+		const labels: Record<string, string> = {
+			walk: 'Caminhada',
+			fly: 'Voo',
+			swim: 'Natação',
+			climb: 'Escalada',
+			burrow: 'Escavação',
+		};
+		return labels[type] ?? type;
+	}
+
 	addSpeed() {
 		const draft = this.speedDraft();
 		const distance = draft.distance.trim();
@@ -592,6 +664,12 @@ export class HomebrewBuilder {
 			],
 		}));
 		this.speedDraft.set({ type: 'walk', distance: '', hover: false });
+	}
+
+	confirmSpeed() {
+		if (!this.speedDraft().distance.trim()) return;
+		this.addSpeed();
+		this.inlineComposer.set(null);
 	}
 
 	updateSpeed(index: number, patch: Partial<NonNullable<CreatureSheet['speed']>[number]>) {
@@ -638,6 +716,7 @@ export class HomebrewBuilder {
 		}
 		this.customSave.set(false);
 		this.addSavingThrow(value);
+		this.inlineComposer.set(null);
 	}
 
 	addCustomSavingThrow() {
@@ -651,6 +730,7 @@ export class HomebrewBuilder {
 		}
 		this.addSavingThrow(value);
 		this.customSaveDraft.set('');
+		this.inlineComposer.set(null);
 	}
 
 	updateSavingThrow(ability: CreatureAbilityKey, bonus: unknown) {
@@ -696,6 +776,13 @@ export class HomebrewBuilder {
 		}
 		this.customSkill.set(false);
 		this.addSkill(value);
+		this.inlineComposer.set(null);
+	}
+
+	confirmCustomSkill() {
+		if (!this.skillDraft().trim()) return;
+		this.addSkill(this.skillDraft());
+		this.cancelInlineComposer();
 	}
 
 	updateSkill(name: string, bonus: unknown) {
@@ -732,6 +819,12 @@ export class HomebrewBuilder {
 		this.setDefenseDraft(key, { types: [], note: '' });
 	}
 
+	confirmDefense(key: DefenseKey) {
+		if (!this.defenseDrafts()[key].types.length) return;
+		this.addDefense(key);
+		this.inlineComposer.set(null);
+	}
+
 	updateDefenseNote(key: DefenseKey, index: number, noteValue: string) {
 		this.creature.update((creature) => {
 			const defenses = (creature[key] ?? []).map((defense, defenseIndex) => {
@@ -752,6 +845,15 @@ export class HomebrewBuilder {
 		}
 		this.customDefense.update((values) => ({ ...values, [key]: false }));
 		this.addDefenseType(key, value);
+	}
+
+	defenseTypeOptions(key: DefenseKey) {
+		const selected = new Set(
+			[...(this.creature()[key] ?? []).flatMap((defense) => defense.types), ...this.defenseDrafts()[key].types].map(
+				(type) => type.toLocaleLowerCase(),
+			),
+		);
+		return this.damageTypes.filter((type) => !selected.has(type.toLocaleLowerCase()));
 	}
 
 	addDefenseType(key: DefenseKey, value: string) {
@@ -775,8 +877,25 @@ export class HomebrewBuilder {
 		});
 	}
 
+	removeSimpleDefenseType(key: DefenseKey, type: string) {
+		this.creature.update((creature) => {
+			const defenses = (creature[key] ?? []).flatMap((defense) => {
+				if (defense.note) return [defense];
+				const types = defense.types.filter((candidate) => candidate !== type);
+				return types.length ? [{ ...defense, types }] : [];
+			});
+			return this.replaceOptional(creature, key, defenses.length ? defenses : undefined);
+		});
+	}
+
 	addLanguage() {
 		this.addTextListItem('languages', this.languageDraft(), () => this.languageDraft.set(''));
+	}
+
+	confirmCustomLanguage() {
+		if (!this.languageDraft().trim()) return;
+		this.addLanguage();
+		this.cancelInlineComposer();
 	}
 
 	selectLanguage(value: string) {
@@ -787,6 +906,7 @@ export class HomebrewBuilder {
 		this.customLanguage.set(false);
 		this.languageDraft.set(value);
 		this.addLanguage();
+		this.inlineComposer.set(null);
 	}
 
 	removeLanguage(language: string) {
@@ -799,6 +919,12 @@ export class HomebrewBuilder {
 		);
 	}
 
+	confirmCustomCondition() {
+		if (!this.conditionDraft().trim()) return;
+		this.addCondition();
+		this.cancelInlineComposer();
+	}
+
 	selectCondition(value: string) {
 		if (value === '__custom__') {
 			this.customCondition.set(true);
@@ -807,6 +933,7 @@ export class HomebrewBuilder {
 		this.customCondition.set(false);
 		this.conditionDraft.set(value);
 		this.addCondition();
+		this.inlineComposer.set(null);
 	}
 
 	removeCondition(condition: string) {
@@ -827,6 +954,12 @@ export class HomebrewBuilder {
 		this.senseDraft.set({ name: '', detail: '' });
 	}
 
+	confirmSense() {
+		if (!this.senseDraft().name.trim()) return;
+		this.addSense();
+		this.inlineComposer.set(null);
+	}
+
 	setSenseDraft(patch: Partial<{ name: string; detail: string }>) {
 		this.senseDraft.update((draft) => ({ ...draft, ...patch }));
 	}
@@ -834,6 +967,7 @@ export class HomebrewBuilder {
 	selectSense(value: string) {
 		if (value === '__custom__') {
 			this.customSense.set(true);
+			this.setSenseDraft({ name: '' });
 			return;
 		}
 		this.customSense.set(false);
@@ -865,6 +999,20 @@ export class HomebrewBuilder {
 		this.featureDraft.update((draft) => ({ ...draft, ...patch }));
 	}
 
+	featuresByKind(kind: CreatureFeatureKind) {
+		return this.creature().features.filter((feature) => feature.kind === kind);
+	}
+
+	openFeatureComposer(kind: CreatureFeatureKind) {
+		this.featureDraft.set({ name: '', description: '', kind, legendaryCost: 1 });
+		this.featureComposerKind.set(kind);
+	}
+
+	cancelFeatureComposer() {
+		this.featureComposerKind.set(null);
+		this.featureDraft.set({ name: '', description: '', kind: 'trait', legendaryCost: 1 });
+	}
+
 	addFeature() {
 		const draft = this.featureDraft();
 		const name = draft.name.trim();
@@ -884,7 +1032,7 @@ export class HomebrewBuilder {
 				},
 			],
 		}));
-		this.featureDraft.set({ name: '', description: '', kind: 'trait', legendaryCost: 1 });
+		this.cancelFeatureComposer();
 	}
 
 	openFeatureCatalog() {
@@ -1123,6 +1271,12 @@ export class HomebrewBuilder {
 		this.spellDraft.set({ name: '', uses: 1, level: 0 });
 	}
 
+	confirmSpell() {
+		if (!this.spellDraft().name.trim()) return;
+		this.addSpell();
+		this.inlineComposer.set(null);
+	}
+
 	openSpellPicker() {
 		this.spellPickerOpen.set(true);
 	}
@@ -1245,6 +1399,12 @@ export class HomebrewBuilder {
 		});
 	}
 
+	confirmSpecialAbility() {
+		if (!this.abilityDraft().name.trim()) return;
+		this.addSpecialAbility();
+		this.inlineComposer.set(null);
+	}
+
 	updateSpecialAbility(id: string, patch: Partial<CreatureSpecialAbility>) {
 		this.creature.update((creature) => ({
 			...creature,
@@ -1289,6 +1449,16 @@ export class HomebrewBuilder {
 			.split(',')
 			.map((entry) => this.parseNonNegInt(entry))
 			.filter((entry) => entry > 0 && entry <= 6);
+		this.updateSpecialAbility(id, { rechargeOn });
+	}
+
+	toggleSpecialAbilityRechargeFace(id: string, face: number) {
+		const ability = this.creature().specialAbilities.find((candidate) => candidate.id === id);
+		if (!ability) return;
+		const faces = ability.rechargeOn ?? [5, 6];
+		const rechargeOn = faces.includes(face)
+			? faces.filter((candidate) => candidate !== face)
+			: [...faces, face].sort((left, right) => left - right);
 		this.updateSpecialAbility(id, { rechargeOn });
 	}
 
