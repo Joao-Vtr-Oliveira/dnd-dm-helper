@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, effect, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { LucideBookOpen } from '@lucide/angular';
 import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
@@ -100,6 +101,7 @@ type ConfirmModalState = {
 		CreatureStatBlockComponent,
 		DialogFocusDirective,
 		FormsModule,
+		LucideBookOpen,
 		SpellQuickViewComponent,
 		ConditionReferenceTriggerDirective,
 		SpellReferenceTriggerDirective,
@@ -401,6 +403,14 @@ export class BattleTrackerPage {
 			combatant,
 		});
 		this.focusModal();
+	}
+
+	scrollToCurrentCombatant() {
+		const combatant = this.currentCombatant();
+		if (!combatant) return;
+		document
+			.getElementById(`battle-combatant-${combatant.id}`)
+			?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 	}
 
 	closeReferenceSheetViewer(restoreFocus = true) {

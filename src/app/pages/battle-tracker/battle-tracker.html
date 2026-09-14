@@ -123,7 +123,7 @@
 				@if (currentCombatant(); as combatant) {
 					<section
 						data-testid="current-turn-cockpit"
-						class="sticky top-3 z-20 rounded-app-panel border border-amber-300/35 bg-app-surface-raised/95 p-4 shadow-app-modal backdrop-blur"
+						class="sticky top-[4.5rem] z-20 rounded-app-panel border border-amber-300/35 bg-app-surface-raised/95 p-4 shadow-app-modal backdrop-blur"
 					>
 						<div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
 							<div class="min-w-0">
@@ -163,16 +163,27 @@
 								</div>
 							</div>
 
-							@if (battle()!.status === 'active') {
+							<div class="flex flex-wrap gap-2">
 								<button
 									type="button"
-									data-testid="cockpit-next-turn"
-									class="app-button h-12 border-amber-300/40 bg-amber-500/20 px-5 font-semibold text-amber-50 hover:bg-amber-500/30"
-									(click)="nextTurn()"
+									data-testid="cockpit-scroll-to-combatant"
+									class="app-button h-12 border-violet-300/30 bg-violet-500/10 px-4 text-violet-100 hover:border-violet-300/55 hover:bg-violet-500/25 hover:text-violet-50"
+									(click)="scrollToCurrentCombatant()"
 								>
-									Próximo turno
+									<svg lucideBookOpen [size]="17" [strokeWidth]="2.25" aria-hidden="true"></svg>
+									Ver ficha
 								</button>
-							}
+								@if (battle()!.status === 'active') {
+									<button
+										type="button"
+										data-testid="cockpit-next-turn"
+										class="app-button h-12 border-amber-300/40 bg-amber-500/20 px-5 font-semibold text-amber-50 hover:bg-amber-500/30"
+										(click)="nextTurn()"
+									>
+										Próximo turno
+									</button>
+								}
+							</div>
 						</div>
 
 						<details open class="mt-4">
@@ -525,6 +536,7 @@
 							<div
 								data-testid="combatant-card"
 								[attr.data-combatant-id]="combatant.id"
+								[id]="'battle-combatant-' + combatant.id"
 								[class]="cardClasses(combatant)"
 							>
 								<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
@@ -711,33 +723,7 @@
 											</label>
 										}
 
-										<div
-											class="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-black/15 px-2.5 text-sm"
-										>
-											<span>Concentração</span>
-											<button
-												type="button"
-												data-testid="combatant-concentration-toggle"
-												role="switch"
-												[attr.aria-checked]="isConcentrating(combatant)"
-												[attr.aria-label]="
-													'Concentração de ' + (combatant.displayName || combatant.name)
-												"
-												[disabled]="combatant.defeated"
-												class="relative h-5 w-9 cursor-pointer rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50"
-												[ngClass]="
-													isConcentrating(combatant)
-														? 'border-fuchsia-300/70 bg-violet-500/60 shadow-[0_0_0_1px_rgba(216,180,254,0.2)]'
-														: 'border-white/20 bg-white/10'
-												"
-												(click)="setConcentration(combatant.id, !isConcentrating(combatant))"
-											>
-												<span
-													class="absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform"
-													[class.translate-x-4]="isConcentrating(combatant)"
-												></span>
-											</button>
-										</div>
+										<button type="button" data-testid="combatant-reference-sheet" class="inline-flex h-9 items-center gap-2 rounded-xl border border-violet-300/30 bg-violet-500/10 px-3 text-sm text-violet-100 hover:border-violet-300/55 hover:bg-violet-500/25 hover:text-violet-50" (click)="openReferenceSheetViewer(combatant)"><svg lucideBookOpen [size]="16" [strokeWidth]="2.25" aria-hidden="true"></svg>Ver ficha completa</button>
 
 										<button
 											type="button"
@@ -831,14 +817,7 @@
 								}
 
 								@if (selectedCombatantId() === combatant.id) {
-									<button
-										type="button"
-										class="h-9 cursor-pointer rounded-xl border border-violet-300/30 bg-violet-500/15 px-3 text-sm text-violet-100 hover:bg-violet-500/25"
-										(click)="openReferenceSheetViewer(combatant)"
-									>
-										Ver ficha completa
-									</button>
-
+									<div class="mb-4 inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-black/15 px-2.5 text-sm"><span>Concentração</span><button type="button" data-testid="combatant-concentration-toggle" role="switch" [attr.aria-checked]="isConcentrating(combatant)" [attr.aria-label]="'Concentração de ' + (combatant.displayName || combatant.name)" [disabled]="combatant.defeated" class="relative h-5 w-9 cursor-pointer rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50" [ngClass]="isConcentrating(combatant) ? 'border-fuchsia-300/70 bg-violet-500/60 shadow-[0_0_0_1px_rgba(216,180,254,0.2)]' : 'border-white/20 bg-white/10'" (click)="setConcentration(combatant.id, !isConcentrating(combatant))"><span class="absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform" [class.translate-x-4]="isConcentrating(combatant)"></span></button></div>
 									<div class="mt-4 grid gap-3 md:grid-cols-3">
 										<label class="text-sm">
 											<span class="mb-1 block opacity-70">HP atual</span>

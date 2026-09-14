@@ -233,6 +233,15 @@ describe('BattleTrackerPage', () => {
 		).toContain('Dodman');
 	});
 
+	it('scrolls from the cockpit to the current combatant card', () => {
+		const card = fixture.nativeElement.querySelector('#battle-combatant-c1') as HTMLElement;
+		const scrollIntoView = spyOn(card, 'scrollIntoView');
+
+		fixture.nativeElement.querySelector('[data-testid="cockpit-scroll-to-combatant"]')?.click();
+
+		expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+	});
+
 	it('allows collapsing cockpit details while keeping the current turn header available', () => {
 		const cockpit = fixture.nativeElement.querySelector('[data-testid="current-turn-cockpit"]');
 		const details = cockpit.querySelector('details') as HTMLDetailsElement;
@@ -556,7 +565,9 @@ describe('BattleTrackerPage', () => {
 		).toBeFalse();
 	});
 
-	it('uses compact accessible concentration switches without showing it as a removable generic condition', () => {
+	it('keeps concentration control in the expanded card without showing it as a removable generic condition', () => {
+		component.toggleCombatantInspector('c1');
+		fixture.detectChanges();
 		const cardSwitch = Array.from(
 			fixture.nativeElement.querySelectorAll(
 				'[data-testid="combatant-concentration-toggle"]',

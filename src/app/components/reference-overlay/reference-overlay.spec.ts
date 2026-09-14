@@ -38,9 +38,11 @@ describe('ReferenceOverlayComponent', () => {
 		references.openCondition('poisoned');
 		fixture.detectChanges();
 		const floating = fixture.nativeElement.querySelector('[data-reference-floating]') as HTMLElement;
+		expect(floating.textContent).toContain('Retrair');
 		(floating.querySelector('[aria-label="Retrair referência"]') as HTMLButtonElement | null)?.click();
 		fixture.detectChanges();
 		expect(floating.textContent).not.toContain('desvantagem nas jogadas de ataque');
+		expect(floating.textContent).toContain('Expandir');
 		(floating.querySelector('[aria-label="Expandir referência"]') as HTMLButtonElement | null)?.click();
 		fixture.detectChanges();
 		expect(floating.textContent).toContain('desvantagem nas jogadas de ataque');
