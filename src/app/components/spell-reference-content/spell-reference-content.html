@@ -1,0 +1,14 @@
+<section class="grid grid-cols-2 gap-px overflow-hidden rounded-app-panel border border-violet-300/20 bg-app-divider">
+	@for (item of [{ label: 'Tempo de conjuração', value: spell.castingTime ?? '-' }, { label: 'Alcance', value: spell.range ?? '-' }, { label: 'Componentes', value: componentsLabel(spell.components) }, { label: 'Duração', value: spell.duration ?? '-' }]; track item.label) {
+		<div class="min-w-0 bg-app-surface p-3"><div class="text-[10px] font-semibold uppercase tracking-[0.14em] text-app-subtle">{{ item.label }}</div><div class="mt-1 break-words text-sm font-medium text-app-text">{{ item.value }}</div></div>
+	}
+</section>
+@if (spell.components.material || spell.concentration || spell.ritual) {
+	<section class="mt-4 border-l-2 border-violet-400/60 pl-3 text-sm leading-6 text-app-muted">
+		@if (spell.components.material) { <p><span class="font-semibold text-app-text">Material.</span> {{ spell.components.material }}</p> }
+		@if (spell.concentration || spell.ritual) { <p class="mt-1">@if (spell.concentration) { <span class="font-semibold text-violet-100">Concentração</span> } @if (spell.concentration && spell.ritual) { <span> · </span> } @if (spell.ritual) { <span class="font-semibold text-amber-100">Ritual</span> }</p> }
+	</section>
+}
+<section class="mt-5"><h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-violet-200">Descrição</h3><p class="mt-3 whitespace-pre-line text-sm leading-7 text-app-muted">{{ render(spell.entries) }}</p></section>
+@if (spell.entriesHigherLevel.length) { <section class="mt-5"><h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-violet-200">Em níveis superiores</h3><p class="mt-3 whitespace-pre-line text-sm leading-7 text-app-muted">{{ render(spell.entriesHigherLevel) }}</p></section> }
+@if (spell.classes.length) { <section class="mt-5 border-t border-app-divider pt-4"><div class="app-eyebrow text-violet-200/75">Classes</div><p class="mt-2 text-sm text-app-muted">{{ spell.classes.join(', ') }}</p></section> }

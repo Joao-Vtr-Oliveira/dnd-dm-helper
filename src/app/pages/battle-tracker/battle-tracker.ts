@@ -6,6 +6,8 @@ import { AppNativeSelectDirective } from '../../components/app-select/app-native
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
+import { ConditionReferenceTriggerDirective, SpellReferenceTriggerDirective } from '../../components/reference-overlay/reference-trigger';
+import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type {
 	BattleCombatant,
@@ -99,6 +101,8 @@ type ConfirmModalState = {
 		DialogFocusDirective,
 		FormsModule,
 		SpellQuickViewComponent,
+		ConditionReferenceTriggerDirective,
+		SpellReferenceTriggerDirective,
 	],
 	templateUrl: './battle-tracker.html',
 })
@@ -113,6 +117,7 @@ export class BattleTrackerPage {
 	private readonly compendiumAdapter = inject(CompendiumCreatureAdapterService);
 	private readonly creatureTemplateService = inject(CreatureTemplateService);
 	private readonly spellResolver = inject(SpellReferenceResolverService);
+	private readonly referenceOverlay = inject(ReferenceOverlayService);
 
 	private readonly battleId = this.route.snapshot.paramMap.get('battleId');
 
@@ -537,11 +542,12 @@ export class BattleTrackerPage {
 	}
 
 	openConditionReference(condition: BattleCondition) {
-		this.conditionReference.set({ ...conditionReferenceFor(condition.name), label: condition.label });
+		this.referenceOverlay.openCondition(condition.name);
 	}
 
 	openFeatureConditionReference(name: string) {
-		this.conditionReference.set(conditionReferenceFor(name));
+		this.closeReferenceSheetViewer(false);
+		this.referenceOverlay.openCondition(name);
 	}
 
 	startConcentration(combatantId: string) {
@@ -900,17 +906,8 @@ export class BattleTrackerPage {
 	}
 
 	async openSpellQuickView(spell: BattleCombatant['spells'][number]) {
-		if (!spell.source) return;
-		const resolved = await this.spellResolver.resolveReference({
-			name: spell.name,
-			source: spell.source,
-		});
-		if (resolved) {
-			this.closeReferenceSheetViewer(false);
-			this.quickSpell.set(resolved);
-			return;
-		}
-		this.showToast('error', `Não foi possível localizar ${spell.name} no compêndio.`);
+		this.closeReferenceSheetViewer(false);
+		this.referenceOverlay.openSpell({ name: spell.name, source: spell.source });
 	}
 
 	hasSheetFeatures(combatant: BattleCombatant): boolean {

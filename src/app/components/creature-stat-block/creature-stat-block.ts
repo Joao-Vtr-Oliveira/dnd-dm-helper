@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { ConditionReferenceTriggerDirective, SpellReferenceTriggerDirective } from '../reference-overlay/reference-trigger';
 import type {
 	CreatureAbilityKey,
 	CreatureCategory,
@@ -21,6 +22,7 @@ const CONDITION_PATTERN = /\b(blinded|charmed|deafened|frightened|grappled|incap
 @Component({
 	selector: 'app-creature-stat-block',
 	standalone: true,
+	imports: [ConditionReferenceTriggerDirective, SpellReferenceTriggerDirective],
 	templateUrl: './creature-stat-block.html',
 })
 export class CreatureStatBlockComponent {
@@ -29,6 +31,7 @@ export class CreatureStatBlockComponent {
 	@Input({ required: true }) creature!: CreatureSheet;
 	@Input() category?: CreatureCategory;
 	@Input() variant: 'standalone' | 'embedded' = 'standalone';
+	@Input() referenceInteractions = false;
 	/** Runtime state is supplied only by the Battle Tracker; the creature remains the static definition. */
 	@Input() runtimeCombatant?: Pick<BattleCombatant, 'specialAbilities' | 'spellSlots'>;
 
@@ -203,6 +206,7 @@ export class CreatureStatBlockComponent {
 	}
 
 	selectSpell(spell: CreatureSpell) {
+		if (this.referenceInteractions) return;
 		if (this.hasText(spell.source)) this.selectedSpell.emit(spell);
 	}
 
@@ -214,6 +218,7 @@ export class CreatureStatBlockComponent {
 	}
 
 	selectCondition(condition: string) {
+		if (this.referenceInteractions) return;
 		this.selectedCondition.emit(condition);
 	}
 

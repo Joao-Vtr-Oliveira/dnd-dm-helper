@@ -6,6 +6,8 @@ import { LucideBookOpen } from '@lucide/angular';
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { SpellPickerComponent } from '../../components/spell-picker/spell-picker';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
+import { SpellReferenceTriggerDirective } from '../../components/reference-overlay/reference-trigger';
+import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 
 import {
@@ -117,6 +119,7 @@ function normalizeCreature(raw: CreatureSheet): CreatureSheet {
 		LucideBookOpen,
 		SpellPickerComponent,
 		SpellQuickViewComponent,
+		SpellReferenceTriggerDirective,
 	],
 	templateUrl: './homebrew-builder.html',
 })
@@ -127,6 +130,7 @@ export class HomebrewBuilder {
 	private spellResolver = inject(SpellReferenceResolverService);
 	private suggestions = inject(CompendiumSuggestionsService);
 	private renderer = inject(CompendiumRendererService);
+	private referenceOverlay = inject(ReferenceOverlayService);
 
 	sheetId = signal<string | null>(null);
 	title = signal<string>('');
@@ -1404,13 +1408,8 @@ export class HomebrewBuilder {
 		this.closeSpellPicker();
 	}
 
-	async openSpellQuickView(spell: CreatureSpell) {
-		if (!spell.source) return;
-		const resolved = await this.spellResolver.resolveReference({
-			name: spell.name,
-			source: spell.source,
-		});
-		if (resolved) this.quickSpell.set(resolved);
+	openSpellQuickView(spell: CreatureSpell) {
+		this.referenceOverlay.openSpell({ name: spell.name, source: spell.source });
 	}
 
 	updateSpell(id: string, patch: Partial<CreatureSheet['spells'][number]>) {

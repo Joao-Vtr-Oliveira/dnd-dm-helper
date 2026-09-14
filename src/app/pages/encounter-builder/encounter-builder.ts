@@ -6,6 +6,8 @@ import { LucideBookOpen, LucideSearch } from '@lucide/angular';
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
+import { SpellReferenceTriggerDirective } from '../../components/reference-overlay/reference-trigger';
+import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 
 import type {
 	BattleLairActionFrequency,
@@ -82,6 +84,7 @@ type TrapDraft = {
 		AppNativeSelectDirective,
 		AppSelectComponent,
 		SpellQuickViewComponent,
+		SpellReferenceTriggerDirective,
 		CommonModule,
 		DialogFocusDirective,
 		FormsModule,
@@ -92,6 +95,7 @@ type TrapDraft = {
 })
 export class EncounterBuilder {
 	readonly normalizeArmorClass = normalizeArmorClass;
+	private readonly referenceOverlay = inject(ReferenceOverlayService);
 	readonly encounter = signal<Encounter>(this.createDefaultEncounter());
 	readonly participants = computed(() => this.encounter().participants);
 	readonly savedId = signal<string | null>(null);
@@ -418,13 +422,8 @@ export class EncounterBuilder {
 		return participant.sheet.spellSlots.find((slot) => slot.level === level)?.max ?? null;
 	}
 
-	async openSpellQuickView(spell: CreatureSpell) {
-		if (!spell.source) return;
-		const resolved = await this.spellResolver.resolveReference({
-			name: spell.name,
-			source: spell.source,
-		});
-		if (resolved) this.quickSpell.set(resolved);
+	openSpellQuickView(spell: CreatureSpell) {
+		this.referenceOverlay.openSpell({ name: spell.name, source: spell.source });
 	}
 
 	getSpellDraft(id: string): SpellDraft {

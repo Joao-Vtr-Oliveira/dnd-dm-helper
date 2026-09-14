@@ -6,6 +6,7 @@ import { LucideSearch, LucideX, LucideZoomIn } from '@lucide/angular';
 import { AppSelectComponent, type AppSelectOption } from '../../components/app-select/app-select';
 import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
+import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type { CompendiumMonster } from '../../models/compendium-bestiary-model';
 import type { CreatureSpell } from '../../models/creature-sheet-model';
@@ -37,6 +38,7 @@ export class BestiaryPage {
 	private readonly localStorage = inject(LocalStorageService);
 	private readonly router = inject(Router);
 	private readonly spellResolver = inject(SpellReferenceResolverService);
+	private readonly referenceOverlay = inject(ReferenceOverlayService);
 
 	readonly index = signal<Awaited<
 		ReturnType<CompendiumBestiaryRepositoryService['getIndex']>
@@ -152,12 +154,8 @@ export class BestiaryPage {
 		this.imageLightboxOpen.set(false);
 	}
 
-	async openSpell(spell: CreatureSpell) {
-		const resolved = await this.spellResolver.resolveReference({
-			name: spell.name,
-			source: spell.source,
-		});
-		if (resolved) this.quickSpell.set(resolved);
+	openSpell(spell: CreatureSpell) {
+		this.referenceOverlay.openSpell({ name: spell.name, source: spell.source });
 	}
 
 	isSelected(source: string, name: string) {

@@ -33,6 +33,8 @@
 	--shadow-app-modal: 0 28px 60px rgb(0 0 0 / 0.42);
 	--z-app-header: 40;
 	--z-app-floating: 50;
+	--z-app-reference-peek: 86;
+	--z-app-reference-window: 85;
 	--z-app-popover: 60;
 	--z-app-toast: 100;
 	--z-app-modal: 80;

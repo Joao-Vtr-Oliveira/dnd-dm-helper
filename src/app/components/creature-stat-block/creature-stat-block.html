@@ -110,13 +110,18 @@
 						<span>: </span>
 						@for (spell of group.spells; track spell.id; let last = $last) {
 							@if (spell.source?.trim()) {
-								<button
+								@if (referenceInteractions) {
+									<button
 									type="button"
 									class="rounded px-0.5 text-left font-medium text-violet-100 underline decoration-violet-300/35 underline-offset-2 transition hover:text-violet-50"
+									[appSpellReference]="{ name: spell.name, source: spell.source }"
 									(click)="selectSpell(spell)"
 								>
 									{{ spell.name }}
 								</button>
+								} @else {
+									<button type="button" class="rounded px-0.5 text-left font-medium text-violet-100 underline decoration-violet-300/35 underline-offset-2 transition hover:text-violet-50" (click)="selectSpell(spell)">{{ spell.name }}</button>
+								}
 							} @else {
 								<span class="font-medium text-app-text">{{ spell.name }}</span>
 							}
@@ -186,7 +191,7 @@
 					@if (feature.description?.trim()) {
 						@for (part of featureDescription(feature.description); track $index) {
 							@if (part.condition) {
-								<button type="button" class="rounded px-0.5 font-medium text-sky-100 underline decoration-sky-300/35 underline-offset-2 transition hover:text-sky-50" (click)="selectCondition(part.condition)">{{ part.text }}</button>
+								@if (referenceInteractions) { <button type="button" class="rounded px-0.5 font-medium text-sky-100 underline decoration-sky-300/35 underline-offset-2 transition hover:text-sky-50" [appConditionReference]="part.condition" (click)="selectCondition(part.condition)">{{ part.text }}</button> } @else { <button type="button" class="rounded px-0.5 font-medium text-sky-100 underline decoration-sky-300/35 underline-offset-2 transition hover:text-sky-50" (click)="selectCondition(part.condition)">{{ part.text }}</button> }
 							} @else {
 								<span>{{ part.text }}</span>
 							}

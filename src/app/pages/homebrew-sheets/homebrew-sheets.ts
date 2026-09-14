@@ -13,6 +13,7 @@ import {
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
+import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 
 import {
 	LocalStorageService,
@@ -66,6 +67,7 @@ export class HomebrewSheets {
 	private fiveEToolsService = inject(FiveEToolsHomebrewService);
 	private sheetImportService = inject(HomebrewSheetImportService);
 	private spellResolver = inject(SpellReferenceResolverService);
+	private referenceOverlay = inject(ReferenceOverlayService);
 
 	sheets = signal<SavedSheetInterface[]>(this.ls.listSheets());
 
@@ -222,18 +224,12 @@ export class HomebrewSheets {
 		this.viewerSheet.set(null);
 	}
 
-	async openSpellQuickView(spell: SavedSheetInterface['data']['spells'][number]) {
-		if (!spell.source) {
-			this.showToast({ type: 'warn', text: 'Esta magia não possui uma fonte para consulta.' });
-			return;
-		}
-		const resolved = await this.spellResolver.resolveReference({ name: spell.name, source: spell.source });
-		if (resolved) this.quickSpell.set(resolved);
-		else this.showToast({ type: 'error', text: 'Não foi possível localizar esta magia no compêndio.' });
+	openSpellQuickView(spell: SavedSheetInterface['data']['spells'][number]) {
+		this.referenceOverlay.openSpell({ name: spell.name, source: spell.source });
 	}
 
 	openFeatureConditionReference(name: string) {
-		this.conditionReference.set(conditionReferenceFor(name));
+		this.referenceOverlay.openCondition(name);
 	}
 
 	duplicate(id: string) {

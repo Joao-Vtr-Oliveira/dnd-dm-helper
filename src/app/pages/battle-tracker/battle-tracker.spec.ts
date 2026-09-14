@@ -7,12 +7,14 @@ import { CreatureStatBlockComponent } from '../../components/creature-stat-block
 import { BattleTrackerPage } from './battle-tracker';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
+import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 
 describe('BattleTrackerPage', () => {
 	let component: BattleTrackerPage;
 	let fixture: ComponentFixture<BattleTrackerPage>;
 	let storage: BattleEncounterStorageService;
+	let references: ReferenceOverlayService;
 
 	beforeEach(async () => {
 		localStorage.clear();
@@ -62,6 +64,7 @@ describe('BattleTrackerPage', () => {
 		}).compileComponents();
 
 		storage = TestBed.inject(BattleEncounterStorageService);
+		references = TestBed.inject(ReferenceOverlayService);
 		localStorage.setItem(
 			'dnd-dm-helper.battle-encounters.v1',
 			JSON.stringify([
@@ -339,7 +342,8 @@ describe('BattleTrackerPage', () => {
 		fixture.detectChanges();
 
 		expect(component.referenceSheetViewer()).toBeNull();
-		expect(component.quickSpell()?.spell.name).toBe('Aid');
+		expect(references.floating()?.kind).toBe('spell');
+		expect(references.floating()?.name).toBe('Aid');
 	});
 
 	it('keeps undefined tie breakers and does not expose ability authoring in the combatant view', () => {
@@ -482,8 +486,9 @@ describe('BattleTrackerPage', () => {
 		});
 		fixture.detectChanges();
 
-		expect(component.conditionReference()?.description).toContain('desvantagem nas jogadas de ataque');
-		expect(fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain('Envenenado / Poisoned');
+		const reference = references.floating();
+		expect(reference?.kind).toBe('condition');
+		expect(reference?.kind === 'condition' && reference.condition.description).toContain('desvantagem nas jogadas de ataque');
 	});
 
 	it('controls concentration from the cockpit and creates a check through quick damage', () => {
@@ -629,8 +634,8 @@ describe('BattleTrackerPage', () => {
 		await fixture.whenStable();
 		fixture.detectChanges();
 
-		expect(component.quickSpell()?.spell.name).toBe('Aid');
-		expect(fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain('Aid');
+		expect(references.floating()?.kind).toBe('spell');
+		expect(references.floating()?.name).toBe('Aid');
 	});
 
 	it('shows upcoming turns and the next environment event in the cockpit', () => {

@@ -1068,8 +1068,7 @@
 							><button
 								type="button"
 								class="app-button app-button-ghost"
-								[disabled]="!spell.source"
-								(click)="openSpellQuickView(spell)"
+								[appSpellReference]="{ name: spell.name, source: spell.source }"
 							>
 								Ver</button
 							><button
