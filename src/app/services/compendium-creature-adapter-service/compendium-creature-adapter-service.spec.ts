@@ -87,6 +87,8 @@ describe('CompendiumCreatureAdapterService', () => {
 			'spellcasting',
 		]);
 		expect(sheet.spellSlots).toEqual([{ level: 3, max: 4 }]);
+		expect(sheet.size).toBe('Gargantuan');
+		expect(sheet.alignment).toBe('Chaotic Evil');
 		expect(sheet.spells).toContain(
 			jasmine.objectContaining({ name: 'fireball', source: 'XPHB', level: 3 }),
 		);

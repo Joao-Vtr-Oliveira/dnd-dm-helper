@@ -7,6 +7,7 @@ import { CreatureStatBlockComponent } from '../../components/creature-stat-block
 import { BattleTrackerPage } from './battle-tracker';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
+import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 
 describe('BattleTrackerPage', () => {
 	let component: BattleTrackerPage;
@@ -281,6 +282,39 @@ describe('BattleTrackerPage', () => {
 
 		component.closeReferenceSheetViewer();
 		fixture.detectChanges();
+	});
+
+	it('uses the current saved sheet as the viewer reference without changing battle runtime state', () => {
+		localStorage.setItem(
+			APP_STORAGE_KEYS.sheets,
+			JSON.stringify([
+				{
+					id: 'sheet-hero', externalId: 'sheet-hero', title: 'Hero Reference', createdAt: 1, updatedAt: 1,
+					category: 'pc', tags: [], source: '',
+					data: {
+						name: 'Hero Reference', armorClass: 17, maxHp: 44, size: 'Medium', alignment: 'Neutral Good',
+						spellSlots: [{ level: 2, max: 3 }], spells: [{ id: 'aid', name: 'Aid', source: 'PHB', level: 2 }],
+						specialAbilities: [], features: [{ id: 'feature', name: 'Brave', description: 'Advantage against fear.', kind: 'trait' }],
+					},
+				},
+			]),
+		);
+		component.battle.update((battle) => battle && ({
+			...battle,
+			combatants: battle.combatants.map((combatant) =>
+				combatant.id === 'c1' ? { ...combatant, sourceSheetId: 'sheet-hero' } : combatant,
+			),
+		}));
+
+		component.openReferenceSheetViewer(component.battle()!.combatants[0]);
+
+		expect(component.referenceSheetViewer()?.creature).toEqual(
+			jasmine.objectContaining({
+				name: 'Hero Reference', armorClass: 17, maxHp: 44, alignment: 'Neutral Good',
+				features: [jasmine.objectContaining({ name: 'Brave' })],
+			}),
+		);
+		expect(component.battle()!.combatants[0].maxHp).toBe(20);
 	});
 
 	it('closes the reference sheet with Escape and releases the dialog body lock', () => {

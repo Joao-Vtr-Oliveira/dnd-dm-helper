@@ -27,7 +27,7 @@ export class CompendiumCreatureAdapterService {
 			aliases: monster.aliases.length ? structuredClone(monster.aliases) : undefined,
 			tags: this.tags(monster.tags),
 			source: monster.source,
-			size: monster.sizes.join(', ') || undefined,
+			size: this.sizes(monster.sizes),
 			creatureType: [monster.type, ...monster.subtypes].filter(Boolean).join(' ') || undefined,
 			alignment: this.alignment(monster.alignment),
 			challengeRating: monster.challengeRating,
@@ -217,11 +217,39 @@ export class CompendiumCreatureAdapterService {
 	}
 
 	private alignment(values: unknown[]): string | undefined {
-		const alignment = values
+		const raw = values
 			.map((value) => (typeof value === 'string' ? value : this.renderer.renderText(String(value))))
 			.filter(Boolean)
-			.join(', ');
+			.map((value) => value.trim());
+		const codes: Record<string, string> = {
+			A: 'Any alignment',
+			C: 'Chaotic',
+			E: 'Evil',
+			G: 'Good',
+			L: 'Lawful',
+			N: 'Neutral',
+			NX: 'Neutral',
+			NY: 'Neutral',
+			U: 'Unaligned',
+		};
+		const alignment = raw.every((value) => codes[value.toUpperCase()])
+			? raw.map((value) => codes[value.toUpperCase()]).join(' ')
+			: raw.join(', ');
 		return alignment || undefined;
+	}
+
+	private sizes(values: string[]): string | undefined {
+		const labels: Record<string, string> = {
+			T: 'Tiny',
+			S: 'Small',
+			M: 'Medium',
+			L: 'Large',
+			H: 'Huge',
+			G: 'Gargantuan',
+			V: 'Varies',
+		};
+		const sizes = values.map((value) => labels[value.toUpperCase()] ?? value).filter(Boolean);
+		return sizes.length ? sizes.join(', ') : undefined;
 	}
 
 	private armorClassNote(monster: CompendiumMonster): string | undefined {

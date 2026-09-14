@@ -23,6 +23,19 @@ const unique = (values) => {
 	return [...result.values()];
 };
 
+const sizeLabel = (value) =>
+	({ T: 'Tiny', S: 'Small', M: 'Medium', L: 'Large', H: 'Huge', G: 'Gargantuan', V: 'Varies' })[
+		String(value ?? '').toUpperCase()
+	] ?? value;
+
+const alignmentLabel = (values) => {
+	const codes = { A: 'Any alignment', C: 'Chaotic', E: 'Evil', G: 'Good', L: 'Lawful', N: 'Neutral', NX: 'Neutral', NY: 'Neutral', U: 'Unaligned' };
+	const raw = unique(values ?? []);
+	return raw.every((value) => codes[value.toUpperCase()])
+		? raw.map((value) => codes[value.toUpperCase()]).join(' ')
+		: raw.join(', ');
+};
+
 const renderText = (text) =>
 	String(text ?? '')
 		.replace(/\{@hit\s+([^}]+)}/gi, (_, value) => (value.startsWith('+') ? value : `+${value}`))
@@ -213,9 +226,9 @@ const adaptMonster = (monster, existing) => {
 		tags: unique([...existingTags, ...(monster.group ?? [])]),
 		origin: existing?.data?.origin ?? existing?.origin ?? existing?.source ?? '5eTools',
 		source: monster.source,
-		size: unique(monster.size ?? []).join(', ') || undefined,
+		size: unique(monster.size ?? []).map(sizeLabel).join(', ') || undefined,
 		creatureType: typeof monster.type === 'string' ? monster.type : monster.type?.type,
-		alignment: unique(monster.alignment ?? []).join(', ') || undefined,
+		alignment: alignmentLabel(monster.alignment) || undefined,
 		challengeRating: monster.cr == null ? undefined : String(monster.cr),
 		level: Number.isFinite(monster.level) ? Math.floor(monster.level) : undefined,
 		armorClassNote,

@@ -147,6 +147,16 @@ export class BattleTrackerPage {
 		category?: CreatureCategory;
 	} | null>(null);
 	readonly homebrewSheets = signal<SavedSheetInterface[]>(this.localStorageService.listSheets());
+	readonly homebrewSearch = signal('');
+	readonly filteredHomebrewSheets = computed(() => {
+		const query = this.homebrewSearch().trim().toLocaleLowerCase();
+		if (!query) return this.homebrewSheets();
+		return this.homebrewSheets().filter((sheet) =>
+			`${sheet.title} ${sheet.data.name} ${sheet.category} ${sheet.source} ${sheet.data.origin ?? ''} ${(sheet.data.tags ?? sheet.tags).join(' ')}`
+				.toLocaleLowerCase()
+				.includes(query),
+		);
+	});
 	readonly bestiaryMonsters = signal<CompendiumBestiaryMonsterIndexEntry[]>([]);
 	readonly bestiaryLoading = signal(false);
 	readonly bestiarySearch = signal('');
@@ -389,9 +399,10 @@ export class BattleTrackerPage {
 
 	openReferenceSheetViewer(combatant: BattleCombatant) {
 		this.captureModalTrigger();
+		const savedSheet = this.sourceSheetForCombatant(combatant);
 		this.referenceSheetViewer.set({
 			creature: this.referenceSheetForCombatant(combatant),
-			category: combatant.category,
+			category: savedSheet?.category ?? combatant.category,
 		});
 		this.focusModal();
 	}
@@ -1037,6 +1048,7 @@ export class BattleTrackerPage {
 	openAddCombatantModal() {
 		this.captureModalTrigger();
 		this.homebrewSheets.set(this.localStorageService.listSheets());
+		this.homebrewSearch.set('');
 		this.addCombatantDraft.set(this.createAddCombatantDraft());
 		this.bestiarySearch.set('');
 		this.addCombatantModalOpen.set(true);
@@ -1449,6 +1461,10 @@ export class BattleTrackerPage {
 	}
 
 	private referenceSheetForCombatant(combatant: BattleCombatant): CreatureSheet {
+		const savedSheet = this.sourceSheetForCombatant(combatant);
+		// The combat snapshot governs runtime state; the library sheet provides the current full reference.
+		if (savedSheet) return this.creatureTemplateService.createFromSavedSheet(savedSheet);
+
 		const reference = this.battle()?.referenceSheets.find(
 			(sheet) => sheet.id === combatant.referenceSheetId,
 		);
@@ -1473,6 +1489,10 @@ export class BattleTrackerPage {
 			})),
 			features: structuredClone(combatant.features),
 		};
+	}
+
+	private sourceSheetForCombatant(combatant: BattleCombatant): SavedSheetInterface | null {
+		return combatant.sourceSheetId ? this.localStorageService.getSheet(combatant.sourceSheetId) : null;
 	}
 
 	private defaultSideForSheet(sheet: SavedSheetInterface): BattleCombatantSide {

@@ -9,7 +9,7 @@ const monster = {
 	ac: [14],
 	hp: { average: 20, formula: '3d8 + 6' },
 	size: ['M'],
-	alignment: ['U'],
+	alignment: ['N', 'G'],
 	speed: { walk: 30 },
 	str: 10,
 	dex: 12,
@@ -52,6 +52,8 @@ test('reconciles by name without replacing IDs, preserves origin, and is idempot
 	assert.equal(sheet.id, 'existing');
 	assert.equal(sheet.data.source, 'NAG');
 	assert.equal(sheet.data.origin, 'Campaign');
+	assert.equal(sheet.data.size, 'Medium');
+	assert.equal(sheet.data.alignment, 'Neutral Good');
 	assert.deepEqual(sheet.data.tags, ['ritual']);
 	assert.deepEqual(sheet.data.specialAbilities[0], {
 		id: 'NAG::Ritual Focus::ability::action-1',

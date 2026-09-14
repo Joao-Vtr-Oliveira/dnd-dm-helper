@@ -2061,22 +2061,34 @@
 			</div>
 
 			@if (addCombatantDraft().mode === 'homebrew') {
-				<label class="mt-4 block text-sm">
-					<span class="mb-1 block opacity-70">Ficha</span>
-					<select
-						class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
-						[ngModel]="addCombatantDraft().sheetId"
-						(ngModelChange)="useHomebrewSheet($event)"
-					>
-						<option value="">Selecione uma ficha</option>
-						@for (sheet of homebrewSheets(); track sheet.id) {
-							<option [value]="sheet.id">
-								{{ sheet.title }} ·
-								{{ sheet.category === 'pc' ? 'PC' : (sheet.category | uppercase) }}
-							</option>
+				<div class="mt-4 space-y-3">
+					<label class="block text-sm">
+						<span class="mb-1 block opacity-70">Buscar ficha</span>
+						<input
+							class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+							[ngModel]="homebrewSearch()"
+							(ngModelChange)="homebrewSearch.set($event)"
+							placeholder="Nome, tag, origem ou categoria"
+						/>
+					</label>
+					<div class="max-h-64 space-y-2 overflow-auto rounded-2xl border border-white/10 bg-black/20 p-3">
+						@for (sheet of filteredHomebrewSheets(); track sheet.id) {
+							<div class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+								<div class="min-w-0">
+									<div class="truncate font-semibold">{{ sheet.title }}</div>
+									<div class="mt-1 text-xs opacity-65">
+										{{ sheet.data.name }} · {{ sheet.category }} · CA {{ sheet.data.armorClass ?? '-' }} · PV {{ sheet.data.maxHp }}
+									</div>
+								</div>
+								<button type="button" class="app-button app-button-secondary shrink-0" (click)="useHomebrewSheet(sheet.id)">
+									{{ addCombatantDraft().sheetId === sheet.id ? 'Selecionada' : 'Selecionar' }}
+								</button>
+							</div>
+						} @empty {
+							<p class="p-3 text-sm opacity-70">Nenhuma ficha encontrada.</p>
 						}
-					</select>
-				</label>
+					</div>
+				</div>
 			}
 
 			@if (addCombatantDraft().mode === 'compendium') {
