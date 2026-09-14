@@ -263,6 +263,8 @@ export function reconcile(homebrew, backup) {
 	const sheets = structuredClone(backup.data.homebrewSheets ?? []);
 	const report = { migrated: [], imported: [], skipped: [], review: [] };
 	const seen = [];
+	const reconciledAt = Date.now();
+	let changed = false;
 	for (const monster of homebrew.monster ?? []) {
 		const duplicate = seen.find((candidate) => candidate.source === monster.source && sameMonster(candidate, monster));
 		if (duplicate) {
@@ -273,17 +275,20 @@ export function reconcile(homebrew, backup) {
 		const match = matchSheet(monster, sheets);
 		if (match) {
 			const nextData = adaptMonster(monster, match.sheet);
-			const next = { ...match.sheet, updatedAt: backup.exportedAt ? Date.parse(backup.exportedAt) : match.sheet.updatedAt, data: nextData, tags: nextData.tags ?? [], source: nextData.origin ?? '' };
+			const fields = Object.keys(nextData).filter((key) => JSON.stringify(nextData[key]) !== JSON.stringify(match.sheet.data?.[key]));
+			const next = { ...match.sheet, updatedAt: fields.length ? reconciledAt : match.sheet.updatedAt, data: nextData, tags: nextData.tags ?? [], source: nextData.origin ?? '' };
 			sheets[sheets.findIndex((sheet) => sheet.id === match.sheet.id)] = next;
-			report.migrated.push({ name: monster.name, sheetId: next.id, matchedBy: match.matchedBy, fields: Object.keys(nextData).filter((key) => JSON.stringify(nextData[key]) !== JSON.stringify(match.sheet.data?.[key])) });
+			report.migrated.push({ name: monster.name, sheetId: next.id, matchedBy: match.matchedBy, fields });
+			changed ||= fields.length > 0;
 			continue;
 		}
 		const id = `5etools-${canonical(`${monster.source}-${monster.name}`).replace(/\s+/g, '-')}`;
 		const data = adaptMonster(monster, null);
-		sheets.push({ id, externalId: id, title: monster.name, createdAt: Date.parse(backup.exportedAt) || 0, updatedAt: Date.parse(backup.exportedAt) || 0, category: monster.type === 'humanoid' ? 'npc' : 'monster', tags: data.tags ?? [], source: data.origin ?? '', data });
+		sheets.push({ id, externalId: id, title: monster.name, createdAt: reconciledAt, updatedAt: reconciledAt, category: monster.type === 'humanoid' ? 'npc' : 'monster', tags: data.tags ?? [], source: data.origin ?? '', data });
 		report.imported.push({ name: monster.name, sheetId: id });
+		changed = true;
 	}
-	return { backup: { ...backup, data: { ...backup.data, homebrewSheets: sheets } }, report };
+	return { backup: { ...backup, ...(changed ? { exportedAt: new Date(reconciledAt).toISOString() } : {}), data: { ...backup.data, homebrewSheets: sheets } }, report };
 }
 
 async function main() {

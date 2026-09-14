@@ -202,6 +202,29 @@ describe('AppBackupService', () => {
 			.toBeTrue();
 	});
 
+	it('prefers a newer bundled backup over a stale remote backup', async () => {
+		const nativeFetch = window.fetch.bind(window);
+		const bundled = await nativeFetch('/rpg_files/dnd-dm-helper-backup-v2.json').then((response) =>
+			response.json(),
+		);
+		const staleRemote = { ...bundled, exportedAt: '2026-01-01T00:00:00.000Z' };
+		spyOn(window, 'fetch').and.callFake((input, init) => {
+			if (String(input).includes('raw.githubusercontent.com')) {
+				return Promise.resolve(
+					new Response(JSON.stringify(staleRemote), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' },
+					}),
+				);
+			}
+			return nativeFetch(input, init);
+		});
+
+		const backup = await service.fetchRemoteBackup();
+
+		expect(backup.exportedAt).toBe(bundled.exportedAt);
+	});
+
 	it('accepts canonical calendar payloads and exposes a readable summary', () => {
 		const backup = service.exportAll();
 		backup.data.calendar = {

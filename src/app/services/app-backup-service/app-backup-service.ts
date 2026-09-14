@@ -115,17 +115,23 @@ export class AppBackupService {
 	}
 
 	async fetchRemoteBackup(): Promise<AppBackup> {
-		try {
-			return await this.fetchBackup(environment.defaultSyncBackupUrl);
-		} catch (error) {
-			// The tracked V2 backup is bundled with every build, including production.
-			try {
-				return await this.fetchBackup('/rpg_files/dnd-dm-helper-backup-v2.json');
-			} catch {
-				// Preserve the remote error below: it is more useful to the user.
-			}
-			throw error;
+		// The bundled asset is published with the app while the GitHub backup may lag behind it.
+		// Fetch both and retain the newest valid campaign rather than silently restoring stale sheets.
+		const [bundled, remote] = await Promise.allSettled([
+			this.fetchBackup('/rpg_files/dnd-dm-helper-backup-v2.json'),
+			this.fetchBackup(environment.defaultSyncBackupUrl),
+		]);
+		const backups = [bundled, remote].flatMap((result) =>
+			result.status === 'fulfilled' ? [result.value] : [],
+		);
+		if (backups.length) {
+			return backups.reduce((newest, candidate) =>
+				Date.parse(candidate.exportedAt) > Date.parse(newest.exportedAt) ? candidate : newest,
+			);
 		}
+		throw remote.status === 'rejected'
+			? remote.reason
+			: new Error('Erro ao sincronizar: não foi possível acessar o backup remoto.');
 	}
 
 	private async fetchBackup(url: string): Promise<AppBackup> {
@@ -133,6 +139,7 @@ export class AppBackupService {
 		try {
 			response = await fetch(url, {
 				headers: { Accept: 'application/json' },
+				cache: 'no-store',
 			});
 		} catch {
 			throw new Error('Erro ao sincronizar: não foi possível acessar o backup remoto.');
