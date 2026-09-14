@@ -153,7 +153,13 @@
 						>{{ feature.name }}{{ featureCost(feature) }}.</span
 					>
 					@if (feature.description?.trim()) {
-						<span> {{ feature.description }}</span>
+						@for (part of featureDescription(feature.description); track $index) {
+							@if (part.condition) {
+								<button type="button" class="rounded px-0.5 font-medium text-sky-100 underline decoration-sky-300/35 underline-offset-2 transition hover:text-sky-50" (click)="selectCondition(part.condition)">{{ part.text }}</button>
+							} @else {
+								<span>{{ part.text }}</span>
+							}
+						}
 					}
 				</article>
 			}

@@ -1079,7 +1079,7 @@
 	</div>
 }
 @if (toast(); as message) {
-	<div class="fixed right-4 top-4 z-[55] app-toast border px-4 py-3" role="status">
+	<div class="fixed right-4 top-4 z-[var(--z-app-toast)] app-toast border px-4 py-3" role="status">
 		{{ message.text }}
 	</div>
 }

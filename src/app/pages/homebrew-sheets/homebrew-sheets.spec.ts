@@ -6,6 +6,8 @@ import { provideRouter } from '@angular/router';
 import { HomebrewSheets } from './homebrew-sheets';
 import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
+import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
+import { By } from '@angular/platform-browser';
 
 describe('HomebrewSheets', () => {
   let component: HomebrewSheets;
@@ -26,6 +28,49 @@ describe('HomebrewSheets', () => {
 
 	it('should create', () => {
 		expect(component).toBeTruthy();
+	});
+
+	it('opens a full sheet viewer from the blue eye action', () => {
+		const storage = TestBed.inject(LocalStorageService);
+		const sheet = storage.createSheet({
+			title: 'Watcher',
+			category: 'monster',
+			source: 'HB',
+			data: {
+				name: 'Watcher', armorClass: 15, maxHp: 30, size: 'Medium', alignment: 'Neutral',
+				spellSlots: [], spells: [], specialAbilities: [],
+				features: [{ id: 'watch', name: 'Keen Sight', description: 'The watcher sees all.', kind: 'trait' }],
+			},
+		});
+		component.sheets.set(storage.listSheets());
+		fixture.detectChanges();
+
+		(fixture.nativeElement.querySelector(`[aria-label="Ver ficha ${sheet.title}"]`) as HTMLButtonElement).click();
+		fixture.detectChanges();
+
+		expect(component.viewerSheet()?.id).toBe(sheet.id);
+		expect(fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain('Keen Sight');
+		component.onEscape();
+		expect(component.viewerSheet()).toBeNull();
+	});
+
+	it('opens Quick Spell View when a referenced spell is selected in the viewer', async () => {
+		const storage = TestBed.inject(LocalStorageService);
+		const sheet = storage.createSheet({
+			title: 'Mage', category: 'npc', source: 'HB',
+			data: {
+				name: 'Mage', armorClass: 12, maxHp: 18, spellSlots: [], specialAbilities: [], features: [],
+				spells: [{ id: 'aid', name: 'Aid', source: 'PHB', level: 2 }],
+			},
+		});
+		component.sheets.set(storage.listSheets());
+		const openSpell = spyOn(component, 'openSpellQuickView').and.resolveTo();
+		component.openViewer(sheet.id);
+		fixture.detectChanges();
+
+		fixture.debugElement.query(By.directive(CreatureStatBlockComponent)).componentInstance.selectedSpell.emit(sheet.data.spells[0]);
+
+		expect(openSpell).toHaveBeenCalledWith(sheet.data.spells[0]);
 	});
 
 	it('exports the current homebrew sheets format with externalId', async () => {

@@ -70,6 +70,13 @@ describe('SpellReferenceResolverService', () => {
 		expect(repository.getSpell).toHaveBeenCalledWith('PHB', 'Fireball');
 	});
 
+	it('uses the uniquely named local equivalent when the referenced source is unavailable', async () => {
+		const resolved = await service.resolveReference({ name: 'fireball', source: 'XPHB' });
+
+		expect(resolved?.reference).toEqual({ name: 'Fireball', source: 'PHB' });
+		expect(repository.getSpell).toHaveBeenCalledWith('PHB', 'Fireball');
+	});
+
 	it('does not choose an arbitrary source when an unqualified spell name is ambiguous', async () => {
 		repository.getIndex.and.resolveTo({
 			sources: [

@@ -34,7 +34,7 @@
 	--z-app-header: 40;
 	--z-app-floating: 50;
 	--z-app-popover: 60;
-	--z-app-toast: 70;
+	--z-app-toast: 100;
 	--z-app-modal: 80;
 	--z-app-nested-modal: 90;
 }

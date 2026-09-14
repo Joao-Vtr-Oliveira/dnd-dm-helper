@@ -497,7 +497,7 @@
 }
 
 @if (toast(); as toastMessage) {
-	<div class="pointer-events-none fixed right-4 top-4 z-[55]">
+	<div class="pointer-events-none fixed right-4 top-4 z-[var(--z-app-toast)]">
 		<div
 			class="app-toast pointer-events-auto max-w-sm border px-4 py-3"
 			[class.border-emerald-400/30]="toastMessage.type === 'success'"

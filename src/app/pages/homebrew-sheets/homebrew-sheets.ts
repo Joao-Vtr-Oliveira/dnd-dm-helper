@@ -6,10 +6,13 @@ import {
 	LucideCircleAlert,
 	LucideCircleCheck,
 	LucideEllipsis,
+	LucideEye,
 	LucideTriangleAlert,
 	LucideX,
 } from '@lucide/angular';
 import { AppSelectComponent } from '../../components/app-select/app-select';
+import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
+import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
 
 import {
 	LocalStorageService,
@@ -18,6 +21,9 @@ import {
 } from '../../services/local-storage-service/local-storage-service';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
+import type { ResolvedSpellReference } from '../../models/spell-reference-model';
+import { conditionReferenceFor, type ConditionReference } from '../../models/condition-reference-model';
+import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 import {
 	HomebrewSheetImportService,
 	type HomebrewSheetConflictResolution,
@@ -41,13 +47,16 @@ type ConfirmModalState = {
 	imports: [
 		AppSelectComponent,
 		CommonModule,
+		CreatureStatBlockComponent,
 		DialogFocusDirective,
 		FormsModule,
 		LucideCircleAlert,
 		LucideCircleCheck,
 		LucideEllipsis,
+		LucideEye,
 		LucideTriangleAlert,
 		LucideX,
+		SpellQuickViewComponent,
 	],
 	templateUrl: './homebrew-sheets.html',
 })
@@ -56,6 +65,7 @@ export class HomebrewSheets {
 	private ls = inject(LocalStorageService);
 	private fiveEToolsService = inject(FiveEToolsHomebrewService);
 	private sheetImportService = inject(HomebrewSheetImportService);
+	private spellResolver = inject(SpellReferenceResolverService);
 
 	sheets = signal<SavedSheetInterface[]>(this.ls.listSheets());
 
@@ -74,6 +84,9 @@ export class HomebrewSheets {
 	confirmModal = signal<ConfirmModalState | null>(null);
 	actionMenuSheetId = signal<string | null>(null);
 	fiveEToolsLoading = signal<string | null>(null);
+	viewerSheet = signal<SavedSheetInterface | null>(null);
+	quickSpell = signal<ResolvedSpellReference | null>(null);
+	conditionReference = signal<ConditionReference | null>(null);
 	private importFileInput: HTMLInputElement | null = null;
 	private toastTimer: number | null = null;
 
@@ -97,6 +110,10 @@ export class HomebrewSheets {
 
 	@HostListener('document:keydown.escape')
 	onEscape() {
+		if (this.viewerSheet()) {
+			this.closeViewer();
+			return;
+		}
 		if (this.importOpen()) {
 			this.closeImport();
 			return;
@@ -194,6 +211,29 @@ export class HomebrewSheets {
 
 	edit(id: string) {
 		this.router.navigate(['/home/homebrew-builder', id]);
+	}
+
+	openViewer(id: string) {
+		const sheet = this.sheets().find((item) => item.id === id);
+		if (sheet) this.viewerSheet.set(sheet);
+	}
+
+	closeViewer() {
+		this.viewerSheet.set(null);
+	}
+
+	async openSpellQuickView(spell: SavedSheetInterface['data']['spells'][number]) {
+		if (!spell.source) {
+			this.showToast({ type: 'warn', text: 'Esta magia não possui uma fonte para consulta.' });
+			return;
+		}
+		const resolved = await this.spellResolver.resolveReference({ name: spell.name, source: spell.source });
+		if (resolved) this.quickSpell.set(resolved);
+		else this.showToast({ type: 'error', text: 'Não foi possível localizar esta magia no compêndio.' });
+	}
+
+	openFeatureConditionReference(name: string) {
+		this.conditionReference.set(conditionReferenceFor(name));
 	}
 
 	duplicate(id: string) {

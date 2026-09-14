@@ -12,6 +12,9 @@ type StatBlockDetail = { label: string; value: string };
 type AbilityDisplay = { key: CreatureAbilityKey; label: string; score: number; modifier: string };
 type FeatureSection = { kind: CreatureFeatureKind; label: string; features: CreatureFeature[] };
 type SpellGroup = { key: string; label: string; order: number; spells: CreatureSpell[] };
+type FeatureDescriptionPart = { text: string; condition?: string };
+
+const CONDITION_PATTERN = /\b(blinded|charmed|deafened|frightened|grappled|incapacitated|invisible|paralyzed|petrified|poisoned|prone|restrained|stunned|unconscious)\b/gi;
 
 @Component({
 	selector: 'app-creature-stat-block',
@@ -24,6 +27,7 @@ export class CreatureStatBlockComponent {
 	@Input() variant: 'standalone' | 'embedded' = 'standalone';
 
 	@Output() readonly selectedSpell = new EventEmitter<CreatureSpell>();
+	@Output() readonly selectedCondition = new EventEmitter<string>();
 
 	readonly abilityKeys: Array<{ key: CreatureAbilityKey; label: string }> = [
 		{ key: 'str', label: 'FOR' },
@@ -194,6 +198,17 @@ export class CreatureStatBlockComponent {
 
 	selectSpell(spell: CreatureSpell) {
 		if (this.hasText(spell.source)) this.selectedSpell.emit(spell);
+	}
+
+	featureDescription(description: string | undefined): FeatureDescriptionPart[] {
+		if (!this.hasText(description)) return [];
+		return description.split(CONDITION_PATTERN).flatMap((text, index) =>
+			index % 2 ? [{ text, condition: text.toLocaleLowerCase() }] : text ? [{ text }] : [],
+		);
+	}
+
+	selectCondition(condition: string) {
+		this.selectedCondition.emit(condition);
 	}
 
 	private detail(label: string, value: string | undefined): StatBlockDetail | null {

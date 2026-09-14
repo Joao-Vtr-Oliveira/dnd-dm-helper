@@ -145,6 +145,32 @@ describe('CreatureStatBlockComponent', () => {
 		expect(fixture.nativeElement.textContent).not.toContain('Quick View');
 	});
 
+	it('emits a condition reference from an action description', () => {
+		const selected: string[] = [];
+		component.selectedCondition.subscribe((value) => selected.push(value));
+		fixture.componentRef.setInput(
+			'creature',
+			creatureFixture({
+				features: [
+					{
+						id: 'dagger',
+						name: 'Dagger',
+						description: 'The target has the Poisoned condition.',
+						kind: 'action',
+					},
+				],
+			}),
+		);
+		fixture.detectChanges();
+
+		const conditionButton = Array.from<HTMLButtonElement>(
+			fixture.nativeElement.querySelectorAll('button'),
+		).find((button) => button.textContent?.trim() === 'Poisoned')!;
+		conditionButton.click();
+
+		expect(selected).toEqual(['poisoned']);
+	});
+
 	it('removes the elevated frame when embedded', () => {
 		fixture.componentRef.setInput('creature', creatureFixture());
 		fixture.componentRef.setInput('variant', 'embedded');

@@ -30,9 +30,12 @@ export class SpellReferenceResolverService {
 		try {
 			const index = await this.repository.getIndex();
 			const source = this.value(reference?.source) ?? undefined;
-			const matches = index.spells.filter((spell) =>
-				this.matches(spell, name, source),
-			);
+			const sourceMatches = index.spells.filter((spell) => this.matches(spell, name, source));
+			// Homebrew may reference a newer 5e source which is not bundled locally. In that
+			// case, use the uniquely named local equivalent instead of rejecting the spell.
+			const matches = sourceMatches.length || !source
+				? sourceMatches
+				: index.spells.filter((spell) => this.matches(spell, name));
 			if (matches.length !== 1) return null;
 			return { name: matches[0].name, source: matches[0].source };
 		} catch {

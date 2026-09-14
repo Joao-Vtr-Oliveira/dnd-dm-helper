@@ -421,6 +421,17 @@ describe('BattleTrackerPage', () => {
 		).toBeFalse();
 	});
 
+	it('opens a simple rules reference for an active condition', () => {
+		component.openConditionReference({
+			id: 'poisoned', name: 'poisoned', label: 'Envenenado / Poisoned',
+			appliedAtRound: 1, appliedAtTurnIndex: 0, durationType: 'manual',
+		});
+		fixture.detectChanges();
+
+		expect(component.conditionReference()?.description).toContain('desvantagem nas jogadas de ataque');
+		expect(fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain('Envenenado / Poisoned');
+	});
+
 	it('controls concentration from the cockpit and creates a check through quick damage', () => {
 		fixture.nativeElement.querySelector('[data-testid="cockpit-concentration-toggle"]')?.click();
 		component.setDamageDraft('c1', '24');

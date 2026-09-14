@@ -999,7 +999,14 @@
 															class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
 														>
 															<div>
-																<div class="font-semibold">{{ condition.label }}</div>
+										<button
+											type="button"
+											class="font-semibold text-sky-100 underline decoration-sky-300/35 underline-offset-2 hover:text-sky-50"
+											(click)="openConditionReference(condition)"
+											title="Ver efeito da condição"
+										>
+											{{ condition.label }}
+										</button>
 																<div class="mt-1 text-sm opacity-75">
 																	{{ conditionDurationLabel(condition) }}
 																</div>
@@ -2428,8 +2435,35 @@
 					[category]="viewer.category"
 					variant="embedded"
 					(selectedSpell)="openSpellQuickView($event)"
+					(selectedCondition)="openFeatureConditionReference($event)"
 				/>
 			</div>
+		</section>
+	</div>
+}
+
+@if (conditionReference(); as condition) {
+	<div
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+		(click)="conditionReference.set(null)"
+	>
+		<section
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="condition-reference-title"
+			[appDialogFocus]="true"
+			(appDialogEscape)="conditionReference.set(null)"
+			class="app-dialog w-full max-w-lg p-5"
+			(click)="$event.stopPropagation()"
+		>
+			<div class="flex items-start justify-between gap-3">
+				<div>
+					<div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-100/75">Condição 5e</div>
+					<h2 id="condition-reference-title" class="mt-1 text-xl font-semibold text-app-text">{{ condition.label }}</h2>
+				</div>
+				<button type="button" class="app-button app-modal-close h-10 w-10 shrink-0 p-0" (click)="conditionReference.set(null)" aria-label="Fechar condição">x</button>
+			</div>
+			<p class="mt-4 text-sm leading-6 text-app-muted">{{ condition.description }}</p>
 		</section>
 	</div>
 }
@@ -2441,7 +2475,7 @@
 />
 
 @if (toast(); as toastMessage) {
-	<div class="pointer-events-none fixed right-4 top-4 z-[55]">
+	<div class="pointer-events-none fixed right-4 top-4 z-[var(--z-app-toast)]">
 		<div
 			class="app-toast pointer-events-auto max-w-sm border px-4 py-3"
 			[class.border-emerald-400/30]="toastMessage.type === 'success'"

@@ -25,6 +25,7 @@ import type {
 } from '../../models/battle-encounter-model';
 import type { CreatureCategory, CreatureSheet } from '../../models/creature-sheet-model';
 import type { ResolvedSpellReference } from '../../models/spell-reference-model';
+import { conditionReferenceFor, type ConditionReference } from '../../models/condition-reference-model';
 import {
 	BattleEncounterService,
 	type CreateBattleLairActionInput,
@@ -142,6 +143,7 @@ export class BattleTrackerPage {
 	readonly addCombatantDraft = signal<AddCombatantDraft>(this.createAddCombatantDraft());
 	readonly selectedImportedCreature = signal<CreatureSheet | null>(null);
 	readonly quickSpell = signal<ResolvedSpellReference | null>(null);
+	readonly conditionReference = signal<ConditionReference | null>(null);
 	readonly referenceSheetViewer = signal<{
 		creature: CreatureSheet;
 		category?: CreatureCategory;
@@ -543,6 +545,14 @@ export class BattleTrackerPage {
 		this.updateBattle((battle) =>
 			this.battleService.removeCondition(battle, combatantId, conditionId),
 		);
+	}
+
+	openConditionReference(condition: BattleCondition) {
+		this.conditionReference.set({ ...conditionReferenceFor(condition.name), label: condition.label });
+	}
+
+	openFeatureConditionReference(name: string) {
+		this.conditionReference.set(conditionReferenceFor(name));
 	}
 
 	startConcentration(combatantId: string) {
