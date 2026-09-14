@@ -188,21 +188,57 @@
 						name="title"
 				/></label>
 				<label class="text-sm text-app-muted"
-					><span class="mb-1 block">Tags</span
+					><span class="mb-1 block">Source</span
 					><input
 						class="app-field w-full px-3 py-2"
-						[ngModel]="tagsText()"
-						(ngModelChange)="tagsText.set($event)"
-						name="tags"
+						placeholder="Ex.: Notion, PHB, XPHB"
+						[ngModel]="creature().source ?? ''"
+						(ngModelChange)="setCreatureText('source', $event)"
+						name="source"
 				/></label>
-				<label class="text-sm text-app-muted"
-					><span class="mb-1 block">Origem</span
+				<app-select
+					label="Origem"
+					[options]="knownOrigins().concat('__custom__')"
+					[optionLabels]="{ __custom__: 'Outra / personalizada' }"
+					[value]="originValue()"
+					[searchable]="true"
+					(valueChange)="selectOrigin($event)"
+				/>
+				@if (originCustom() || originValue() === '__custom__') {
+					<label class="text-sm text-app-muted"
+						><span class="mb-1 block">Origem personalizada</span
 					><input
 						class="app-field w-full px-3 py-2"
 						[ngModel]="source()"
 						(ngModelChange)="source.set($event)"
-						name="source"
-				/></label>
+						name="origin"
+					/></label>
+				}
+			</div>
+			<div class="mt-3 border-t border-app-divider pt-3">
+				<div class="flex flex-wrap items-center justify-between gap-2">
+					<span class="text-sm text-app-muted">Tags</span>
+					@if (tagComposerOpen()) {
+						<button type="button" class="app-button app-button-ghost" (click)="cancelTagComposer()">Cancelar</button>
+					} @else {
+						<button type="button" class="app-button app-button-secondary" (click)="openTagComposer()">+ Adicionar</button>
+					}
+				</div>
+				<div class="mt-2 flex flex-wrap gap-1">
+					@for (tag of tagValues(); track tag) {
+						<button type="button" class="app-status bg-app-inset text-app-text" (click)="removeTag(tag)">{{ tag }} ×</button>
+					}
+				</div>
+				@if (tagComposerOpen()) {
+					<div class="mt-3 grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+						@if (tagCustom()) {
+							<label class="text-sm text-app-muted"><span class="mb-1 block">Nova tag</span><input class="app-field w-full px-3 py-2" [ngModel]="tagDraft()" (ngModelChange)="tagDraft.set($event)" placeholder="Criar tag" name="custom-tag" /></label>
+							<button type="button" class="app-button app-button-secondary" (click)="confirmCustomTag()">Criar</button>
+						} @else {
+							<app-select label="Adicionar tag" [options]="knownTags().concat('__custom__')" [optionLabels]="{ __custom__: 'Criar nova tag' }" [value]="''" [searchable]="true" (valueChange)="selectTag($event)" />
+						}
+					</div>
+				}
 			</div>
 		</details>
 	</fieldset>
@@ -1111,6 +1147,7 @@
 									/></label>
 								} @else if (
 									ability.recoveryType === 'uses-per-day' ||
+									ability.recoveryType === 'uses-per-combat' ||
 									ability.recoveryType === 'short-rest' ||
 									ability.recoveryType === 'long-rest'
 								) {
@@ -1191,6 +1228,7 @@
 							/></label>
 						} @else if (
 							abilityDraft().recoveryType === 'uses-per-day' ||
+							abilityDraft().recoveryType === 'uses-per-combat' ||
 							abilityDraft().recoveryType === 'short-rest' ||
 							abilityDraft().recoveryType === 'long-rest'
 						) {

@@ -157,7 +157,7 @@ describe('AppBackupService', () => {
 		expect(validation.summary).toEqual(jasmine.objectContaining({
 			encounters: 7,
 			battleEncounters: 5,
-			homebrewSheets: 17,
+			homebrewSheets: 18,
 			hasCampaignLocation: true,
 			campaignLocationLabel: 'Localidade: Nagawoods',
 		}));

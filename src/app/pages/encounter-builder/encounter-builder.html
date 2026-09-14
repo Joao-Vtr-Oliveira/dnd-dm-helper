@@ -338,7 +338,8 @@
 												<option value="manual">Manual</option>
 												<option value="turn-cooldown">Por turnos</option>
 												<option value="round-cooldown">Por rounds</option>
-												<option value="uses-per-day">Usos por dia</option>
+											<option value="uses-per-day">Usos por dia</option>
+											<option value="uses-per-combat">Usos por combate</option>
 												<option value="short-rest">Descanso curto</option>
 												<option value="long-rest">Descanso longo</option>
 												<option value="dice-recharge">Recharge 5-6</option></select
@@ -393,12 +394,17 @@
 										}
 										@if (
 											ability.recoveryType === 'uses-per-day' ||
+											ability.recoveryType === 'uses-per-combat' ||
 											ability.recoveryType === 'short-rest' ||
 											ability.recoveryType === 'long-rest'
 										) {
 											<label class="mt-2 block text-xs text-app-muted">
 												<span class="mb-1 block">{{
-													ability.recoveryType === 'uses-per-day' ? 'Usos por dia' : 'Usos máximos'
+											ability.recoveryType === 'uses-per-day'
+												? 'Usos por dia'
+												: ability.recoveryType === 'uses-per-combat'
+													? 'Usos por combate'
+													: 'Usos máximos'
 												}}</span>
 												<input
 													type="number"
@@ -446,6 +452,7 @@
 									<option value="turn-cooldown">Por turnos</option>
 									<option value="round-cooldown">Por rounds</option>
 									<option value="uses-per-day">Usos por dia</option>
+									<option value="uses-per-combat">Usos por combate</option>
 									<option value="short-rest">Descanso curto</option>
 									<option value="long-rest">Descanso longo</option>
 									<option value="dice-recharge">Recharge 5-6</option></select
@@ -479,13 +486,16 @@
 							}
 							@if (
 								getAbilityDraft(participant.id).recoveryType === 'uses-per-day' ||
+								getAbilityDraft(participant.id).recoveryType === 'uses-per-combat' ||
 								getAbilityDraft(participant.id).recoveryType === 'short-rest' ||
 								getAbilityDraft(participant.id).recoveryType === 'long-rest'
 							) {
 								<label class="mt-2 block text-xs text-app-muted"
 									><span class="mb-1 block">{{
-										getAbilityDraft(participant.id).recoveryType === 'uses-per-day'
-											? 'Usos por dia'
+									getAbilityDraft(participant.id).recoveryType === 'uses-per-day'
+										? 'Usos por dia'
+										: getAbilityDraft(participant.id).recoveryType === 'uses-per-combat'
+											? 'Usos por combate'
 											: 'Usos máximos'
 									}}</span
 									><input

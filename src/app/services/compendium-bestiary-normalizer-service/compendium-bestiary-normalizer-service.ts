@@ -165,6 +165,7 @@ export class CompendiumBestiaryNormalizerService {
 			languages: this.stringValues(raw.languages),
 			proficiency: this.proficiency(raw),
 			challengeRating: this.challengeRating(raw.cr),
+			level: this.optionalInteger(raw['level']),
 			armorClass,
 			hitPoints: this.integer(raw.hp?.average),
 			hitPointFormula: this.string(raw.hp?.formula),
@@ -173,6 +174,7 @@ export class CompendiumBestiaryNormalizerService {
 			bonusActions: this.features(raw.bonus),
 			reactions: this.features(raw.reaction),
 			legendaryActions: this.features(raw.legendary),
+			legendaryHeader: this.entries(raw['legendaryHeader'] as RawFiveEToolsEntry[] | undefined),
 			mythicActions: this.features(raw.mythic),
 			spellcasting: (raw.spellcasting ?? []).map((block) => this.spellcasting(block)),
 			legendaryGroup: group
@@ -207,6 +209,7 @@ export class CompendiumBestiaryNormalizerService {
 			footerEntries: this.entries(raw.footerEntries),
 			spells: structuredClone(raw.spells ?? {}),
 			spellLists: this.spellLists(raw),
+			...(this.string(raw['displayAs']) ? { displayAs: this.string(raw['displayAs']) } : {}),
 		};
 	}
 

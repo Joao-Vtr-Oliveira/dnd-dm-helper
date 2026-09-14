@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type {
@@ -38,10 +38,14 @@ import type {
 	FiveEToolsMonsterTemplate,
 } from '../../models/fiveetools-homebrew-model';
 import type { SavedSheetInterface } from '../local-storage-service/local-storage-service';
+import { CompendiumBestiaryNormalizerService } from '../compendium-bestiary-normalizer-service/compendium-bestiary-normalizer-service';
+import { CompendiumCreatureAdapterService } from '../compendium-creature-adapter-service/compendium-creature-adapter-service';
 
 const DEFAULT_FILE_NAME = 'homebrew.json';
 @Injectable({ providedIn: 'root' })
 export class FiveEToolsHomebrewService {
+	private readonly bestiaryNormalizer = inject(CompendiumBestiaryNormalizerService);
+	private readonly creatureAdapter = inject(CompendiumCreatureAdapterService);
 	private readonly storageKey = APP_STORAGE_KEYS.fiveEToolsHomebrew;
 	private readonly backupKey = APP_STORAGE_KEYS.fiveEToolsHomebrewBackups;
 	private readonly compositionPackagesKey = APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages;
@@ -795,47 +799,16 @@ export class FiveEToolsHomebrewService {
 
 	convertMonsterToCreature(monster: FiveEToolsMonster, _id = 0): CreatureSheet {
 		void _id;
-		const spellData = this.extractSpellData(monster.spellcasting ?? []);
-		const specialAbilities = this.extractSpecialAbilitiesFromMonster(monster);
+		const normalized = this.bestiaryNormalizer.normalizeMonster(monster);
+		const creature = this.creatureAdapter.toCreatureSheet(normalized);
 		return {
-			name: monster.name,
-			maxHp: this.getMonsterHpAverage(monster),
-			armorClass: this.getMonsterAcValue(monster),
-			spellSlots: spellData.spellSlots,
-			spells: spellData.spells,
-			specialAbilities,
-			features: this.extractCreatureFeatures(monster),
-			aliases: this.optionalStrings(monster.alias),
+			...creature,
 			groups: this.optionalStrings(monster.group),
-			source: monster.source,
-			size: this.uniqueStrings(monster.size).join(', ') || undefined,
-			creatureType: this.getMonsterTypeLabel(monster) ?? undefined,
-			alignment: this.uniqueStrings(monster.alignment).join(', ') || undefined,
-			challengeRating: monster.cr,
-			level: Number.isFinite(monster.level) ? Math.floor(monster.level!) : undefined,
-			armorClassNote: this.monsterAcNote(monster),
-			hitPointFormula: monster.hp?.formula?.trim() || undefined,
-			speed: this.monsterSpeed(monster.speed),
-			abilityScores: this.monsterAbilities(monster),
-			savingThrows: this.monsterSavingThrows(monster.save),
-			skills: this.monsterSkills(monster.skill),
-			passivePerception: Number.isFinite(monster.passive)
-				? Math.floor(monster.passive!)
-				: undefined,
-			damageVulnerabilities: this.monsterDefenses(monster.vulnerable),
-			damageResistances: this.monsterDefenses(monster.resist),
-			damageImmunities: this.monsterDefenses(monster.immune),
-			conditionImmunities: this.optionalStrings(
-				Array.isArray(monster.conditionImmune)
-					? monster.conditionImmune.filter((value): value is string => typeof value === 'string')
-					: undefined,
-			),
-			senses: this.monsterSenses(monster.senses),
-			languages: this.optionalStrings(monster.languages),
-			spellcasting: this.monsterSpellcastingMetadata(monster.spellcasting),
-			legendaryActions: this.monsterLegendaryMetadata(monster.legendary),
-			rawFiveETools: structuredClone(monster),
+			tags: this.optionalStrings(monster.group),
 			fiveEToolsIdentity: { name: monster.name, source: monster.source },
+			origin: '5eTools',
+			officialOrigin: undefined,
+			officialSnapshot: undefined,
 		};
 	}
 

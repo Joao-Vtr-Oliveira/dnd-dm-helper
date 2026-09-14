@@ -33,13 +33,16 @@ describe('CompendiumCreatureAdapterService', () => {
 			tags: {},
 			armorClass: 19,
 			hitPoints: 256,
-			traits: [{ name: 'Magic Resistance', entries: ['Advantage on saves.'] }],
+			traits: [
+				{ name: 'Magic Resistance', entries: ['Advantage on saves.'] },
+				{ name: 'Parry', entries: ['The dragon adds 4 to its AC.'] },
+			],
 			actions: [
 				{ name: 'Fire Breath (Recharge 4-6)', entries: ['{@damage 18d6} fire damage.'] },
 				{ name: 'Frightful Presence (Recharge 6)', entries: ['Targets are frightened.'] },
 			],
 			bonusActions: [{ name: 'Wing Attack (3/Day)', entries: ['The dragon beats its wings.'] }],
-			reactions: [{ name: 'Parry', entries: ['The dragon adds 4 to its AC.'] }],
+			reactions: [{ name: 'Ritual Pulse (1/Combat)', entries: ['The ritual flares.'] }],
 			legendaryActions: [{ name: 'Tail', entries: ['Melee Weapon Attack.'] }],
 			mythicActions: [{ name: 'Mythic Tail', entries: ['The dragon makes a tail attack.'] }],
 			spellcasting: [
@@ -73,6 +76,7 @@ describe('CompendiumCreatureAdapterService', () => {
 
 		expect(sheet.features.map((feature) => feature.kind)).toEqual([
 			'trait',
+			'trait',
 			'action',
 			'action',
 			'bonus',
@@ -96,6 +100,7 @@ describe('CompendiumCreatureAdapterService', () => {
 			jasmine.objectContaining({ name: 'Fire Breath (Recharge 4-6)', rechargeOn: [4, 5, 6] }),
 			jasmine.objectContaining({ name: 'Frightful Presence (Recharge 6)', rechargeOn: [6] }),
 			jasmine.objectContaining({ name: 'Wing Attack (3/Day)', maxUses: 3 }),
+			jasmine.objectContaining({ name: 'Ritual Pulse (1/Combat)', recoveryType: 'uses-per-combat', maxUses: 1 }),
 		]);
 		expect(sheet.officialOrigin).toEqual({
 			provider: '5etools',

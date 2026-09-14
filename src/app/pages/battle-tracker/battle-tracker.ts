@@ -699,6 +699,7 @@ export class BattleTrackerPage {
 				recoveryType: draft.recoveryType,
 				maxUses:
 					draft.recoveryType === 'uses-per-day' ||
+					draft.recoveryType === 'uses-per-combat' ||
 					draft.recoveryType === 'short-rest' ||
 					draft.recoveryType === 'long-rest'
 						? maxUses
@@ -794,6 +795,7 @@ export class BattleTrackerPage {
 		if (ability.recoveryType === 'short-rest') return 'Resetar usos';
 		if (ability.recoveryType === 'long-rest') return 'Resetar usos';
 		if (ability.recoveryType === 'uses-per-day') return 'Resetar usos';
+		if (ability.recoveryType === 'uses-per-combat') return 'Resetar usos';
 		if (ability.recoveryType === 'manual' && !ability.isAvailable) return 'Marcar disponível';
 		return 'Resetar';
 	}
@@ -908,7 +910,7 @@ export class BattleTrackerPage {
 
 	abilityAvailabilityClasses(ability: BattleSpecialAbility): string {
 		if (ability.isAvailable) return 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100';
-		if (ability.recoveryType === 'uses-per-day')
+		if (ability.recoveryType === 'uses-per-day' || ability.recoveryType === 'uses-per-combat')
 			return 'border-rose-400/30 bg-rose-500/10 text-rose-100';
 		if (ability.recoveryType === 'turn-cooldown' || ability.recoveryType === 'round-cooldown') {
 			return 'border-amber-400/30 bg-amber-500/10 text-amber-100';

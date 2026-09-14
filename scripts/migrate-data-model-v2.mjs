@@ -427,6 +427,11 @@ function migrateSheet(raw, report) {
 		return null;
 	}
 	const title = optionalText(raw.title) ?? optionalText(raw.data?.name) ?? 'Untitled Homebrew';
+	const data = migrateCreatureSheet(raw.data, report, title);
+	const tags = optionalStringArray(raw.tags);
+	const origin = optionalText(raw.origin) ?? optionalText(raw.source);
+	if (tags.length) data.tags = tags;
+	if (origin) data.origin = origin;
 	return {
 		id: raw.id.trim(),
 		externalId: optionalText(raw.externalId) ?? raw.id.trim(),
@@ -434,9 +439,9 @@ function migrateSheet(raw, report) {
 		createdAt: raw.createdAt ?? 0,
 		updatedAt: raw.updatedAt ?? raw.createdAt ?? 0,
 		category: legacyCategory(raw.category ?? raw.data?.category),
-		tags: optionalStringArray(raw.tags),
+		tags,
 		source: optionalText(raw.source) ?? '',
-		data: migrateCreatureSheet(raw.data, report, title),
+		data,
 	};
 }
 

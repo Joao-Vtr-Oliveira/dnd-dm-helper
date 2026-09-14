@@ -128,6 +128,22 @@ describe('HomebrewBuilder', () => {
 		expect(component.creature().specialAbilities[0].cooldownTurns).toBeUndefined();
 	});
 
+	it('manages case-insensitive custom tags and keeps origin separate from the source reference', () => {
+		component.openTagComposer();
+		component.tagDraft.set('Boss');
+		component.confirmCustomTag();
+		component.openTagComposer();
+		component.tagDraft.set('boss');
+		component.confirmCustomTag();
+		component.selectOrigin('__custom__');
+		component.source.set('Campanha Nagawoods');
+		component.setCreatureText('source', 'XPHB');
+
+		expect(component.tagValues()).toEqual(['Boss']);
+		expect(component.source()).toBe('Campanha Nagawoods');
+		expect(component.creature().source).toBe('XPHB');
+	});
+
 	it('reveals the matching recovery parameter before a special ability is added', () => {
 		component.openInlineComposer('special-ability');
 		component.setAbilityDraft({ recoveryType: 'turn-cooldown' });

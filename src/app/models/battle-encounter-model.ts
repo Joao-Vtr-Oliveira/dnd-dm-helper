@@ -21,6 +21,7 @@ export type BattleAbilityRecoveryType =
 	| 'turn-cooldown'
 	| 'round-cooldown'
 	| 'uses-per-day'
+	| 'uses-per-combat'
 	| 'short-rest'
 	| 'long-rest'
 	| 'dice-recharge';

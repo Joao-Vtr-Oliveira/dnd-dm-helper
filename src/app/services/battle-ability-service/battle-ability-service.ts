@@ -123,6 +123,7 @@ export class BattleAbilityService {
 
 		if (
 			normalized.recoveryType === 'uses-per-day' ||
+			normalized.recoveryType === 'uses-per-combat' ||
 			normalized.recoveryType === 'short-rest' ||
 			normalized.recoveryType === 'long-rest'
 		) {
@@ -278,6 +279,7 @@ export class BattleAbilityService {
 			return 'Em recarga';
 		}
 		if (normalized.recoveryType === 'uses-per-day') return 'Esgotada';
+		if (normalized.recoveryType === 'uses-per-combat') return 'Esgotada nesta batalha';
 		if (normalized.recoveryType === 'short-rest' || normalized.recoveryType === 'long-rest') {
 			return 'Usada';
 		}
@@ -309,6 +311,9 @@ export class BattleAbilityService {
 		if (normalized.recoveryType === 'uses-per-day') {
 			return normalized.isAvailable ? 'Recupera no próximo dia' : 'Esgotado até o próximo dia';
 		}
+		if (normalized.recoveryType === 'uses-per-combat') {
+			return normalized.isAvailable ? 'Disponível nesta batalha' : 'Esgotado nesta batalha';
+		}
 		if (normalized.recoveryType === 'short-rest') return 'Recupera no descanso curto';
 		if (normalized.recoveryType === 'long-rest') return 'Recupera no descanso longo';
 		if (normalized.recoveryType === 'dice-recharge') {
@@ -334,6 +339,9 @@ export class BattleAbilityService {
 		}
 		if (normalized.recoveryType === 'uses-per-day' && normalized.maxUses) {
 			return normalized.maxUses === 1 ? '1 por dia' : `${normalized.maxUses} por dia`;
+		}
+		if (normalized.recoveryType === 'uses-per-combat' && normalized.maxUses) {
+			return normalized.maxUses === 1 ? '1 por combate' : `${normalized.maxUses} por combate`;
 		}
 		if (normalized.recoveryType === 'dice-recharge') {
 			const targets = (normalized.rechargeOn?.length ? normalized.rechargeOn : [5, 6]).join('–');
@@ -375,6 +383,7 @@ export class BattleAbilityService {
 			recoveryType === 'turn-cooldown' ||
 			recoveryType === 'round-cooldown' ||
 			recoveryType === 'uses-per-day' ||
+			recoveryType === 'uses-per-combat' ||
 			recoveryType === 'short-rest' ||
 			recoveryType === 'long-rest' ||
 			recoveryType === 'dice-recharge'
@@ -414,6 +423,7 @@ export class BattleAbilityService {
 	private usesRecovery(recoveryType: BattleAbilityRecoveryType): boolean {
 		return (
 			recoveryType === 'uses-per-day' ||
+			recoveryType === 'uses-per-combat' ||
 			recoveryType === 'short-rest' ||
 			recoveryType === 'long-rest'
 		);

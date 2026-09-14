@@ -2799,12 +2799,13 @@
         "externalId": "9c1755e8-35f7-4ef1-9e6a-1f60fc108931",
         "title": "Mão do Tronco",
         "createdAt": 1782940339631,
-        "updatedAt": 1782940339631,
+        "updatedAt": 1789193828126,
         "category": "monster",
         "tags": [
           "Nagazav",
           "Nagawoods",
-          "Morto-vivo"
+          "Morto-vivo",
+          "Banshee"
         ],
         "source": "",
         "data": {
@@ -2814,7 +2815,117 @@
           "spellSlots": [],
           "spells": [],
           "specialAbilities": [],
-          "features": []
+          "features": [
+            {
+              "id": "Notion::Mão do Tronco::trait::1",
+              "name": "False Appearance",
+              "description": "While motionless and attached to a tree, the mão is indistinguishable from ordinary bark, roots, or broken branches.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Mão do Tronco::trait::2",
+              "name": "Âncora de Casca",
+              "description": "The mão can't willingly move away from the tree or trunk it is attached to. It can still make attacks with its reach.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Mão do Tronco::trait::3",
+              "name": "Punição de Cover",
+              "description": "The mão has advantage on its first Branching Grasp attack against a creature that is using the attached tree as cover.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Mão do Tronco::action::1",
+              "name": "Branching Grasp",
+              "description": "m attack +5, reach 10 ft. Hit: 6 (1d6 + 3) Bludgeoning damage plus 3 (1d6) Necrotic damage, and the target has the Grappled condition (escape DC 13). Until this grapple ends, the mão can't use Branching Grasp on another target.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Mão do Tronco::reaction::1",
+              "name": "Grab from Cover",
+              "description": "Trigger: A creature within 10 feet of the mão gains cover from the tree the mão is attached to. Response: The mão makes one Branching Grasp attack against that creature.",
+              "kind": "reaction"
+            }
+          ],
+          "aliases": [
+            "Mão da Árvore",
+            "Raiz com Voz",
+            "Mão da Clareira"
+          ],
+          "groups": [
+            "Nagawoods",
+            "Banshee"
+          ],
+          "tags": [
+            "Nagazav",
+            "Nagawoods",
+            "Morto-vivo",
+            "Banshee"
+          ],
+          "origin": "",
+          "source": "Notion",
+          "size": "S",
+          "creatureType": "plant",
+          "alignment": "U",
+          "challengeRating": "1/2",
+          "hitPointFormula": "4d6 + 4",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "0 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 16,
+            "dex": 8,
+            "con": 13,
+            "int": 2,
+            "wis": 10,
+            "cha": 5
+          },
+          "passivePerception": 10,
+          "damageVulnerabilities": [
+            {
+              "types": [
+                "fire"
+              ]
+            },
+            {
+              "types": [
+                "radiant"
+              ]
+            }
+          ],
+          "damageResistances": [],
+          "damageImmunities": [
+            {
+              "types": [
+                "poison"
+              ]
+            },
+            {
+              "types": [
+                "psychic"
+              ]
+            }
+          ],
+          "conditionImmunities": [
+            "charmed",
+            "frightened",
+            "poisoned",
+            "prone"
+          ],
+          "senses": [
+            {
+              "name": "blindsight",
+              "detail": "30 ft. (blind beyond this radius)"
+            }
+          ],
+          "languages": [],
+          "fiveEToolsIdentity": {
+            "name": "Mão do Tronco",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -2822,12 +2933,13 @@
         "externalId": "e98e26ca-1aba-4db5-abd8-9c32e1ac276d",
         "title": "Eco Enraizado",
         "createdAt": 1782940261073,
-        "updatedAt": 1782940261073,
+        "updatedAt": 1789193828126,
         "category": "monster",
         "tags": [
           "Nagazav",
           "Nagawoods",
-          "Morto-vivo"
+          "Morto-vivo",
+          "Banshee"
         ],
         "source": "Homebrew",
         "data": {
@@ -2835,20 +2947,102 @@
           "armorClass": 13,
           "maxHp": 22,
           "spellSlots": [],
-          "spells": [
+          "spells": [],
+          "specialAbilities": [],
+          "features": [
             {
-              "id": "passopelamata",
+              "id": "Notion::Eco Enraizado::trait::1",
               "name": "Passo pela Mata",
-              "uses": 1
+              "description": "The eco ignores nonmagical difficult terrain made of roots, branches, undergrowth, or fallen logs.",
+              "kind": "trait"
             },
             {
-              "id": "sussurroaocair",
+              "id": "Notion::Eco Enraizado::trait::2",
               "name": "Sussurro ao Cair",
-              "uses": 1
+              "description": "When the eco is reduced to 0 hit points, each enemy creature within 5 feet of it must succeed on a WIS Save DC 12 or have disadvantage on the next Wisdom saving throw it makes before the end of its next turn.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Eco Enraizado::action::1",
+              "name": "Grasping Claw",
+              "description": "m attack +4, reach 5 ft. Hit: 6 (1d8 + 2) Slashing damage plus 3 (1d6) Necrotic damage. If the target is within 10 feet of a tree, it must succeed on a STR Save DC 12 or have the Grappled condition until the end of its next turn.",
+              "kind": "action"
             }
           ],
-          "specialAbilities": [],
-          "features": []
+          "aliases": [
+            "Morto do Lamento",
+            "Lenhador Vazio",
+            "Eco da Mata"
+          ],
+          "groups": [
+            "Nagawoods",
+            "Banshee"
+          ],
+          "tags": [
+            "Nagazav",
+            "Nagawoods",
+            "Morto-vivo",
+            "Banshee"
+          ],
+          "origin": "Homebrew",
+          "source": "Notion",
+          "size": "M",
+          "creatureType": "undead",
+          "alignment": "U",
+          "challengeRating": "1",
+          "hitPointFormula": "4d8 + 4",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "25 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 14,
+            "dex": 12,
+            "con": 13,
+            "int": 6,
+            "wis": 10,
+            "cha": 8
+          },
+          "passivePerception": 10,
+          "damageVulnerabilities": [
+            {
+              "types": [
+                "radiant"
+              ]
+            }
+          ],
+          "damageResistances": [
+            {
+              "types": [
+                "necrotic"
+              ]
+            }
+          ],
+          "damageImmunities": [
+            {
+              "types": [
+                "poison"
+              ]
+            }
+          ],
+          "conditionImmunities": [
+            "poisoned"
+          ],
+          "senses": [
+            {
+              "name": "darkvision",
+              "detail": "60 ft."
+            }
+          ],
+          "languages": [
+            "understands Common but can't speak"
+          ],
+          "fiveEToolsIdentity": {
+            "name": "Eco Enraizado",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -2856,40 +3050,251 @@
         "externalId": "ce6803d1-8aec-4a43-aa7e-5e4edc13c98f",
         "title": "Elyra dos Cedros — Banshee de Nagawoods",
         "createdAt": 1782940187192,
-        "updatedAt": 1782940187192,
+        "updatedAt": 1789193828126,
         "category": "monster",
         "tags": [
           "Nagazav",
           "Nagawoods",
-          "morto-vivo"
+          "morto-vivo",
+          "Banshee"
         ],
         "source": "Homebrew",
         "data": {
-          "name": "Elyra dos Cedros — Banshee de Nagawoods",
+          "name": "Elyra dos Cedros",
           "armorClass": 14,
-          "maxHp": 140,
+          "maxHp": 110,
           "spellSlots": [],
           "spells": [],
           "specialAbilities": [
             {
-              "id": "7cabe394-7ffb-4320-8f63-3097d64379b9",
-              "name": "Canto Convocador",
-              "description": "Elyra escolhe até 3 criaturas que possa ver a até 18 m e que possam ouvi-la. Cada alvo faz resistência de Sabedoria CD 15.  Falha: o alvo fica enfeitiçado por Elyra até o fim do próximo turno do alvo. Enquanto estiver enfeitiçado assim, seu deslocamento é reduzido em 3 m, e ele deve usar seu movimento para se aproximar da Árvore Marcada ativa mais próxima pelo caminho mais seguro disponível.",
+              "id": "Notion::Elyra dos Cedros::ability::action-3",
+              "name": "Canto Convocador (Recharge 5–6)",
+              "description": "Elyra chooses up to three creatures she can see within 60 feet that can hear her. Each target must succeed on a WIS Save DC 15 or be Charmed by Elyra until the end of the target's next turn. While charmed this way, the target's speed is reduced by 10 feet, and the target must use its movement to move closer to the nearest active Árvore Marcada by the safest available path.",
+              "recoveryType": "dice-recharge",
               "rechargeDice": "d6",
               "rechargeOn": [
                 5,
                 6
-              ],
-              "recoveryType": "dice-recharge"
+              ]
             },
             {
-              "id": "ae2ca60e-f4cc-4b65-ab07-818fd47e9a0a",
-              "name": "Lamento da Clareira (1/dia)",
-              "description": "Cada criatura viva escolhida por Elyra a até 18 m e capaz de ouvi-la faz resistência de Constituição CD 15.  Falha: 6d6 de dano psíquico e fica amedrontada até o fim do próximo turno.  Sucesso: metade do dano e não fica amedrontada.  Criaturas já amedrontadas por Elyra têm desvantagem nesse teste.",
-              "recoveryType": "manual"
+              "id": "Notion::Elyra dos Cedros::ability::action-4",
+              "name": "Lamento da Clareira (1/Day)",
+              "description": "Each living creature of Elyra's choice within 60 feet that can hear her must make a CON Save DC 15. Failure: 21 (6d6) Psychic damage, and the target has the Frightened condition until the end of its next turn. Success: Half damage, and the target isn't frightened. Creatures already frightened by Elyra have disadvantage on this saving throw.",
+              "recoveryType": "uses-per-day",
+              "maxUses": 1
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::ability::bonus-1",
+              "name": "Passo entre Cedros (Recharge 4–6)",
+              "description": "If Elyra is within 5 feet of a tree, she teleports to an unoccupied space within 5 feet of another tree she can see within 60 feet.",
+              "recoveryType": "dice-recharge",
+              "rechargeDice": "d6",
+              "rechargeOn": [
+                4,
+                5,
+                6
+              ]
             }
           ],
-          "features": []
+          "features": [
+            {
+              "id": "Notion::Elyra dos Cedros::trait::1",
+              "name": "Incorporeal Movement",
+              "description": "Elyra can move through other creatures and objects as if they were difficult terrain. She takes 5 (1d10) Force damage if she ends her turn inside an object.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::trait::2",
+              "name": "Ligada às Árvores Marcadas",
+              "description": "While at least one Árvore Marcada is active in the encounter, Elyra can use Passo entre Cedros and the Mãos da Floresta hazard remains active.\nWhen all marked trees are disabled or destroyed, Elyra loses her resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks until the end of the encounter.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::trait::3",
+              "name": "Anti-TPK — Lamento Quebrado",
+              "description": "If the fight becomes too lethal, describe the marked trees cracking or the trapped spirits resisting Elyra. For 1 round, Elyra cannot use legendary actions, or the Mãos da Floresta hazard loses one active tree for its scaling.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::action::1",
+              "name": "Multiattack",
+              "description": "Elyra makes two Withering Touch attacks, or one Withering Touch attack and uses Canto Convocador if available.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::action::2",
+              "name": "Withering Touch",
+              "description": "m attack +7, reach 5 ft. Hit: 15 (3d6 + 4) Necrotic damage plus 3 (1d6) Psychic damage.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::action::3",
+              "name": "Canto Convocador (Recharge 5–6)",
+              "description": "Elyra chooses up to three creatures she can see within 60 feet that can hear her. Each target must succeed on a WIS Save DC 15 or be Charmed by Elyra until the end of the target's next turn. While charmed this way, the target's speed is reduced by 10 feet, and the target must use its movement to move closer to the nearest active Árvore Marcada by the safest available path.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::action::4",
+              "name": "Lamento da Clareira (1/Day)",
+              "description": "Each living creature of Elyra's choice within 60 feet that can hear her must make a CON Save DC 15. Failure: 21 (6d6) Psychic damage, and the target has the Frightened condition until the end of its next turn. Success: Half damage, and the target isn't frightened. Creatures already frightened by Elyra have disadvantage on this saving throw.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::bonus::1",
+              "name": "Passo entre Cedros (Recharge 4–6)",
+              "description": "If Elyra is within 5 feet of a tree, she teleports to an unoccupied space within 5 feet of another tree she can see within 60 feet.",
+              "kind": "bonus"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::reaction::1",
+              "name": "Sumir na Casca",
+              "description": "Trigger: Elyra is hit by an attack while within 5 feet of an active Árvore Marcada. Response: Elyra reduces the damage by 7 (2d6) and teleports up to 10 feet to a space she can see.",
+              "kind": "reaction"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::legendary::1",
+              "name": "Drift",
+              "description": "Elyra moves up to half her flying speed without provoking opportunity attacks.",
+              "kind": "legendary"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::legendary::2",
+              "name": "Echo Strike",
+              "description": "Elyra makes one Withering Touch attack against a creature within reach.",
+              "kind": "legendary"
+            },
+            {
+              "id": "Notion::Elyra dos Cedros::legendary::3",
+              "name": "Call a Hand (Costs 2 Actions)",
+              "description": "One Mão do Tronco within 60 feet can make one Branching Grasp attack.",
+              "kind": "legendary",
+              "legendaryCost": 2
+            }
+          ],
+          "aliases": [
+            "Banshee de Nagawoods",
+            "O Lamento de Nagawoods",
+            "Espírito da Clareira Antiga"
+          ],
+          "groups": [
+            "Nagawoods",
+            "Banshee"
+          ],
+          "tags": [
+            "Nagazav",
+            "Nagawoods",
+            "morto-vivo",
+            "Banshee"
+          ],
+          "origin": "Homebrew",
+          "source": "Notion",
+          "size": "M",
+          "creatureType": "undead",
+          "alignment": "C, N",
+          "challengeRating": "6",
+          "hitPointFormula": "13d8 + 52",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "0 ft."
+            },
+            {
+              "type": "fly",
+              "distance": "40 ft.",
+              "hover": true
+            }
+          ],
+          "abilityScores": {
+            "str": 7,
+            "dex": 16,
+            "con": 18,
+            "int": 11,
+            "wis": 14,
+            "cha": 18
+          },
+          "savingThrows": [
+            {
+              "ability": "con",
+              "bonus": 7
+            },
+            {
+              "ability": "wis",
+              "bonus": 5
+            },
+            {
+              "ability": "cha",
+              "bonus": 7
+            }
+          ],
+          "skills": [
+            {
+              "name": "perception",
+              "bonus": 5
+            },
+            {
+              "name": "stealth",
+              "bonus": 6
+            }
+          ],
+          "passivePerception": 15,
+          "damageVulnerabilities": [],
+          "damageResistances": [
+            {
+              "types": [
+                "cold"
+              ]
+            },
+            {
+              "types": [
+                "necrotic"
+              ]
+            },
+            {
+              "types": [
+                "bludgeoning",
+                "piercing",
+                "slashing"
+              ],
+              "note": "from nonmagical attacks"
+            }
+          ],
+          "damageImmunities": [
+            {
+              "types": [
+                "poison"
+              ]
+            }
+          ],
+          "conditionImmunities": [
+            "charmed",
+            "exhaustion",
+            "frightened",
+            "grappled",
+            "paralyzed",
+            "petrified",
+            "poisoned",
+            "prone",
+            "restrained"
+          ],
+          "senses": [
+            {
+              "name": "darkvision",
+              "detail": "60 ft."
+            }
+          ],
+          "languages": [
+            "Common",
+            "Sylvan"
+          ],
+          "legendaryActions": {
+            "count": 2,
+            "intro": "Elyra can take 2 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. Elyra regains spent legendary actions at the start of her turn."
+          },
+          "fiveEToolsIdentity": {
+            "name": "Elyra dos Cedros",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -2897,65 +3302,283 @@
         "externalId": "51de9d4e-ea2c-4d86-8d22-68fd31e14ce5",
         "title": "Wen Torger",
         "createdAt": 1782939609458,
-        "updatedAt": 1782939683246,
+        "updatedAt": 1789193828126,
         "category": "npc",
         "tags": [
           "Warlock",
-          "Winterhold"
+          "Winterhold",
+          "Nagawoods"
         ],
         "source": "Notion",
         "data": {
           "name": "Wen Torger",
           "armorClass": 15,
           "maxHp": 58,
-          "spellSlots": [
-            {
-              "level": 1,
-              "max": 2
-            },
-            {
-              "level": 2,
-              "max": 2
-            },
-            {
-              "level": 3,
-              "max": 2
-            }
-          ],
+          "spellSlots": [],
           "spells": [
             {
-              "id": "pactoinfernalcontrolado",
-              "name": "Pacto Infernal Controlado",
-              "uses": 1
+              "id": "Notion::Wen Torger::spell::1",
+              "name": "Eldritch Blast",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
             },
             {
-              "id": "cacadordawinterhold",
-              "name": "Caçador da Winterhold",
-              "uses": 1
+              "id": "Notion::Wen Torger::spell::2",
+              "name": "Mage Hand",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Wen Torger::spell::3",
+              "name": "Minor Illusion",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Wen Torger::spell::4",
+              "name": "Thaumaturgy",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Wen Torger::spell::5",
+              "name": "Armor of Agathys",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Wen Torger::spell::6",
+              "name": "Hex",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Wen Torger::spell::7",
+              "name": "Hellish Rebuke",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Wen Torger::spell::8",
+              "name": "Hold Person",
+              "source": "XPHB",
+              "level": 2,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Wen Torger::spell::9",
+              "name": "Misty Step",
+              "source": "XPHB",
+              "level": 2,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Wen Torger::spell::10",
+              "name": "Counterspell",
+              "source": "XPHB",
+              "level": 3,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Wen Torger::spell::11",
+              "name": "Dispel Magic",
+              "source": "XPHB",
+              "level": 3,
+              "castingGroup": "slot"
             }
           ],
           "specialAbilities": [
             {
-              "id": "51642521-e70e-407f-b7db-42e83a57417d",
-              "name": "Marca Infernal",
-              "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15.  Falha: 3d8 psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem.",
-              "cooldownRounds": 5,
-              "recoveryType": "round-cooldown"
+              "id": "Notion::Wen Torger::ability::action-3",
+              "name": "Infernal Brand (Recharge 5–6)",
+              "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+              "recoveryType": "dice-recharge",
+              "rechargeDice": "d6",
+              "rechargeOn": [
+                5,
+                6
+              ]
             },
             {
-              "id": "6fea14a2-8f66-4a82-8b8d-6e83780d9196",
-              "name": "Passo Infernal",
-              "cooldownRounds": 4,
-              "recoveryType": "round-cooldown"
+              "id": "Notion::Wen Torger::ability::bonus-1",
+              "name": "Fiendish Step (Recharge 4–6)",
+              "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+              "recoveryType": "dice-recharge",
+              "rechargeDice": "d6",
+              "rechargeOn": [
+                4,
+                5,
+                6
+              ]
             },
             {
-              "id": "9cce9f87-e8bc-489a-acd9-44d8b533f626",
-              "name": "Hellish Rebuke (2/dia)",
-              "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15.  Falha: 2d10 fogo.",
-              "recoveryType": "manual"
+              "id": "Notion::Wen Torger::ability::reaction-1",
+              "name": "Hellish Rebuke (2/Day)",
+              "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+              "recoveryType": "uses-per-day",
+              "maxUses": 2
             }
           ],
-          "features": []
+          "features": [
+            {
+              "id": "Notion::Wen Torger::trait::1",
+              "name": "Caçador da Winterhold",
+              "description": "Wen has advantage on Intelligence (Arcana), Intelligence (Investigation), and Wisdom (Survival) checks made to track or identify undead, fiends, curses, or ritual traces.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Wen Torger::trait::2",
+              "name": "Pacto Infernal Controlado",
+              "description": "When Wen reduces a hostile creature to 0 hit points, he gains 5 temporary hit points. If this happens during a scene where his patron's influence is narratively relevant, describe a brief smell of ash, iron, or old parchment.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Wen Torger::trait::3",
+              "name": "NPC de Apoio",
+              "description": "Wen should help the party without stealing the spotlight. In the banshee encounter, prefer using him to identify clues, protect a weakened character, or damage minions instead of solving the main objective alone.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Wen Torger::action::1",
+              "name": "Eldritch Blast",
+              "description": "r attack +7, range 120 ft. (two beams). Hit: 9 (1d10 + 4) Force damage per beam.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Wen Torger::action::2",
+              "name": "Pact Knife",
+              "description": "m,r attack +7, reach 5 ft. or range 20/60 ft. Hit: 6 (1d4 + 4) Piercing damage plus 7 (2d6) Fire damage.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Wen Torger::action::3",
+              "name": "Infernal Brand (Recharge 5–6)",
+              "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Wen Torger::bonus::1",
+              "name": "Fiendish Step (Recharge 4–6)",
+              "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+              "kind": "bonus"
+            },
+            {
+              "id": "Notion::Wen Torger::reaction::1",
+              "name": "Hellish Rebuke (2/Day)",
+              "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+              "kind": "reaction"
+            },
+            {
+              "id": "Notion::Wen Torger::spellcasting::spellcasting-1",
+              "name": "Spellcasting",
+              "description": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest.",
+              "kind": "spellcasting"
+            }
+          ],
+          "aliases": [
+            "Wen",
+            "Caçador da Winterhold",
+            "Bruxo de Belém"
+          ],
+          "groups": [
+            "Winterhold",
+            "Nagawoods"
+          ],
+          "tags": [
+            "Warlock",
+            "Winterhold",
+            "Nagawoods"
+          ],
+          "origin": "Notion",
+          "source": "Notion",
+          "size": "M",
+          "creatureType": "humanoid",
+          "alignment": "N, G",
+          "challengeRating": "4",
+          "armorClassNote": "reinforced coat, defensive magic",
+          "hitPointFormula": "9d8 + 18",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "30 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 10,
+            "dex": 14,
+            "con": 14,
+            "int": 12,
+            "wis": 13,
+            "cha": 18
+          },
+          "savingThrows": [
+            {
+              "ability": "wis",
+              "bonus": 4
+            },
+            {
+              "ability": "cha",
+              "bonus": 7
+            }
+          ],
+          "skills": [
+            {
+              "name": "arcana",
+              "bonus": 4
+            },
+            {
+              "name": "deception",
+              "bonus": 7
+            },
+            {
+              "name": "insight",
+              "bonus": 4
+            },
+            {
+              "name": "investigation",
+              "bonus": 4
+            },
+            {
+              "name": "perception",
+              "bonus": 4
+            },
+            {
+              "name": "religion",
+              "bonus": 4
+            }
+          ],
+          "passivePerception": 14,
+          "damageVulnerabilities": [],
+          "damageResistances": [],
+          "damageImmunities": [],
+          "conditionImmunities": [],
+          "senses": [
+            {
+              "name": "darkvision",
+              "detail": "60 ft."
+            }
+          ],
+          "languages": [
+            "Common",
+            "Infernal"
+          ],
+          "spellcasting": {
+            "ability": "cha",
+            "spellSaveDc": 15,
+            "spellAttackBonus": 7,
+            "header": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest."
+          },
+          "fiveEToolsIdentity": {
+            "name": "Wen Torger",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -2963,32 +3586,99 @@
         "externalId": "4ea74a32-a2c2-4ded-8ad0-c34a1b0136c9",
         "title": "Ritual Focus (Anchor)",
         "createdAt": 1770561110914,
-        "updatedAt": 1770561110914,
+        "updatedAt": 1789193828126,
         "category": "monster",
         "tags": [
           "RedVortex",
-          "Trap"
+          "Trap",
+          "Red Vortex",
+          "Hotead"
         ],
         "source": "Notion",
         "data": {
           "name": "Ritual Focus (Anchor)",
           "armorClass": 12,
-          "maxHp": 20,
+          "maxHp": 18,
           "spellSlots": [],
-          "spells": [
+          "spells": [],
+          "specialAbilities": [],
+          "features": [
             {
-              "id": "sealanchor",
+              "id": "Notion::Ritual Focus (Anchor)::trait::1",
               "name": "Seal Anchor",
-              "uses": 1
-            },
-            {
-              "id": "ritualpulse3focuses",
-              "name": "Ritual Pulse (3 Focuses)",
-              "uses": 1
+              "description": "A ritual focus is a stationary anchor powering the ritual pulses. A creature can use its action to make a Religion or Arcana check (DC 14) to disable one focus (breaking the seal) instead of dealing damage to it. On a failure by 5 or more, the creature takes 3 (1d6) Necrotic damage.",
+              "kind": "trait"
             }
           ],
-          "specialAbilities": [],
-          "features": []
+          "aliases": [
+            "Focus",
+            "Foco do Ritual",
+            "Âncora do Ritual"
+          ],
+          "groups": [
+            "Red Vortex",
+            "Hotead"
+          ],
+          "tags": [
+            "RedVortex",
+            "Trap",
+            "Red Vortex",
+            "Hotead"
+          ],
+          "origin": "Notion",
+          "source": "Notion",
+          "size": "T",
+          "creatureType": "object",
+          "alignment": "U",
+          "challengeRating": "0",
+          "hitPointFormula": "18",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "0 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 0,
+            "dex": 0,
+            "con": 0,
+            "int": 0,
+            "wis": 0,
+            "cha": 0
+          },
+          "passivePerception": 10,
+          "damageVulnerabilities": [
+            {
+              "types": [
+                "radiant"
+              ]
+            }
+          ],
+          "damageResistances": [],
+          "damageImmunities": [
+            {
+              "types": [
+                "poison"
+              ]
+            },
+            {
+              "types": [
+                "psychic"
+              ]
+            }
+          ],
+          "conditionImmunities": [],
+          "senses": [
+            {
+              "name": "blindsight",
+              "detail": "10 ft. (blind beyond this radius)"
+            }
+          ],
+          "languages": [],
+          "fiveEToolsIdentity": {
+            "name": "Ritual Focus (Anchor)",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -2996,36 +3686,142 @@
         "externalId": "bbd99638-69a7-4ccc-82d7-c257cbd39179",
         "title": "Abominação Instável",
         "createdAt": 1770560868108,
-        "updatedAt": 1782939712511,
+        "updatedAt": 1789193828126,
         "category": "monster",
         "tags": [
-          "RedVortex"
+          "RedVortex",
+          "Red Vortex",
+          "Hotead"
         ],
         "source": "Notion",
         "data": {
           "name": "Abominação Instável",
           "armorClass": 15,
-          "maxHp": 96,
+          "maxHp": 92,
           "spellSlots": [],
-          "spells": [
+          "spells": [],
+          "specialAbilities": [
             {
-              "id": "rupture45hp",
-              "name": "Rupture (45 HP)",
-              "uses": 1
+              "id": "Notion::Abominação Instável::ability::trait-2",
+              "name": "Rupture (1/Day)",
+              "description": "When the abomination is reduced to 45 hit points or fewer for the first time, it releases a necrotic rupture. Each creature within 10 feet of it must make a CON Save DC 14. Failure: 7 (2d6) Necrotic damage, and the creature can't regain hit points until the end of the abomination's next turn.",
+              "recoveryType": "uses-per-day",
+              "maxUses": 1
             },
             {
-              "id": "wronginstinct",
-              "name": "Wrong Instinct",
-              "uses": 1
-            },
-            {
-              "id": "impuredashrecharge56",
-              "name": "Impure Dash (Recharge 5–6).",
-              "uses": 1
+              "id": "Notion::Abominação Instável::ability::action-3",
+              "name": "Impure Dash (Recharge 5–6)",
+              "description": "The abomination moves up to 30 feet without provoking opportunity attacks and makes one Claw attack. If the attack hits, the target must succeed on a STR Save DC 14 or have the Prone condition.",
+              "recoveryType": "dice-recharge",
+              "rechargeDice": "d6",
+              "rechargeOn": [
+                5,
+                6
+              ]
             }
           ],
-          "specialAbilities": [],
-          "features": []
+          "features": [
+            {
+              "id": "Notion::Abominação Instável::trait::1",
+              "name": "Wrong Instinct",
+              "description": "At the start of its turn, if a noncombatant or mount is within 30 feet of it and a player character is within 30 feet of it, roll a d6:\n1–3. The abomination attacks the nearest creature.\n4–6. The abomination rushes toward the noncombatant or mount, acting in panicked confusion.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Abominação Instável::trait::2",
+              "name": "Rupture (1/Day)",
+              "description": "When the abomination is reduced to 45 hit points or fewer for the first time, it releases a necrotic rupture. Each creature within 10 feet of it must make a CON Save DC 14. Failure: 7 (2d6) Necrotic damage, and the creature can't regain hit points until the end of the abomination's next turn.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Abominação Instável::action::1",
+              "name": "Multiattack",
+              "description": "The abomination makes two Claw attacks.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Abominação Instável::action::2",
+              "name": "Claw",
+              "description": "m attack +7, reach 5 ft. Hit: 15 (2d6 + 4) Slashing damage plus 3 (1d6) Necrotic damage.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Abominação Instável::action::3",
+              "name": "Impure Dash (Recharge 5–6)",
+              "description": "The abomination moves up to 30 feet without provoking opportunity attacks and makes one Claw attack. If the attack hits, the target must succeed on a STR Save DC 14 or have the Prone condition.",
+              "kind": "action"
+            }
+          ],
+          "aliases": [
+            "Abominação",
+            "Abominação Instável (Red Vortex)"
+          ],
+          "groups": [
+            "Red Vortex",
+            "Hotead"
+          ],
+          "tags": [
+            "RedVortex",
+            "Red Vortex",
+            "Hotead"
+          ],
+          "origin": "Notion",
+          "source": "Notion",
+          "size": "L",
+          "creatureType": "undead",
+          "alignment": "C, E",
+          "challengeRating": "5",
+          "hitPointFormula": "8d10 + 48",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "30 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 19,
+            "dex": 12,
+            "con": 22,
+            "int": 6,
+            "wis": 12,
+            "cha": 7
+          },
+          "passivePerception": 11,
+          "damageVulnerabilities": [
+            {
+              "types": [
+                "radiant"
+              ]
+            }
+          ],
+          "damageResistances": [
+            {
+              "types": [
+                "necrotic"
+              ]
+            },
+            {
+              "types": [
+                "bludgeoning",
+                "piercing",
+                "slashing"
+              ],
+              "note": "from nonmagical attacks while the abomination has more than 40 hit points"
+            }
+          ],
+          "damageImmunities": [],
+          "conditionImmunities": [],
+          "senses": [
+            {
+              "name": "darkvision",
+              "detail": "60 ft."
+            }
+          ],
+          "languages": [],
+          "fiveEToolsIdentity": {
+            "name": "Abominação Instável",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -3033,10 +3829,12 @@
         "externalId": "13b9ed52-b030-431b-a4d2-7725646f9ce7",
         "title": "Condutor do Vórtice",
         "createdAt": 1770560660510,
-        "updatedAt": 1782939722385,
+        "updatedAt": 1789193828126,
         "category": "monster",
         "tags": [
-          "RedVortex"
+          "RedVortex",
+          "Red Vortex",
+          "Hotead"
         ],
         "source": "Notion",
         "data": {
@@ -3059,18 +3857,211 @@
           ],
           "spells": [
             {
-              "id": "unholystep",
-              "name": "Unholy Step",
-              "uses": 1
+              "id": "Notion::Condutor do Vórtice::spell::1",
+              "name": "Toll the Dead",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
             },
             {
-              "id": "ritualpulse",
-              "name": "Ritual Pulse",
-              "uses": 1
+              "id": "Notion::Condutor do Vórtice::spell::2",
+              "name": "Thaumaturgy",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::spell::3",
+              "name": "Chill Touch",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::spell::4",
+              "name": "Command",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::spell::5",
+              "name": "Inflict Wounds",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::spell::6",
+              "name": "Shield of Faith",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::spell::7",
+              "name": "Hold Person",
+              "source": "XPHB",
+              "level": 2,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::spell::8",
+              "name": "Blindness/Deafness",
+              "source": "XPHB",
+              "level": 2,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::spell::9",
+              "name": "Misty Step",
+              "source": "XPHB",
+              "level": 2,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::spell::10",
+              "name": "Bestow Curse",
+              "source": "XPHB",
+              "level": 3,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::spell::11",
+              "name": "Spirit Guardians",
+              "source": "XPHB",
+              "level": 3,
+              "castingGroup": "slot"
             }
           ],
-          "specialAbilities": [],
-          "features": []
+          "specialAbilities": [
+            {
+              "id": "Notion::Condutor do Vórtice::ability::trait-1",
+              "name": "Unholy Step (Recharge 4–6)",
+              "description": "As a bonus action, the conductor teleports up to 30 feet to an unoccupied space it can see. This movement leaves behind a brief, unsettling afterimage of the ritual.",
+              "recoveryType": "dice-recharge",
+              "rechargeDice": "d6",
+              "rechargeOn": [
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::ability::action-2",
+              "name": "Ritual Pulse (1/Combat)",
+              "description": "The conductor triggers the ritual pulse immediately (as if it were Initiative count 20). This doesn't cause an extra pulse for the round; it only makes the next pulse happen early.",
+              "recoveryType": "uses-per-combat",
+              "maxUses": 1
+            }
+          ],
+          "features": [
+            {
+              "id": "Notion::Condutor do Vórtice::trait::1",
+              "name": "Unholy Step (Recharge 4–6)",
+              "description": "As a bonus action, the conductor teleports up to 30 feet to an unoccupied space it can see. This movement leaves behind a brief, unsettling afterimage of the ritual.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::trait::2",
+              "name": "Calculated Retreat",
+              "description": "When the conductor is reduced to 30 hit points or fewer, it prioritizes escape over victory, disengaging and using Unholy Step whenever possible.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::action::1",
+              "name": "Ritual Dagger",
+              "description": "m attack +5, reach 5 ft. Hit: 4 (1d4 + 2) Piercing damage plus 7 (2d6) Necrotic damage.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::action::2",
+              "name": "Ritual Pulse (1/Combat)",
+              "description": "The conductor triggers the ritual pulse immediately (as if it were Initiative count 20). This doesn't cause an extra pulse for the round; it only makes the next pulse happen early.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Condutor do Vórtice::spellcasting::spellcasting-1",
+              "name": "Spellcasting",
+              "description": "The conductor is a spellcaster. Its spellcasting ability is Wisdom (spell save DC 15, +7 to hit with spell attacks).",
+              "kind": "spellcasting"
+            }
+          ],
+          "aliases": [
+            "Condutor",
+            "Condutor do Vórtice (Red Vortex)"
+          ],
+          "groups": [
+            "Red Vortex",
+            "Hotead"
+          ],
+          "tags": [
+            "RedVortex",
+            "Red Vortex",
+            "Hotead"
+          ],
+          "origin": "Notion",
+          "source": "Notion",
+          "size": "M",
+          "creatureType": "humanoid",
+          "alignment": "C, E",
+          "challengeRating": "6",
+          "armorClassNote": "ritual protections",
+          "hitPointFormula": "12d8 + 24",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "30 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 11,
+            "dex": 14,
+            "con": 14,
+            "int": 12,
+            "wis": 16,
+            "cha": 14
+          },
+          "skills": [
+            {
+              "name": "religion",
+              "bonus": 4
+            },
+            {
+              "name": "insight",
+              "bonus": 6
+            },
+            {
+              "name": "perception",
+              "bonus": 6
+            }
+          ],
+          "passivePerception": 16,
+          "damageVulnerabilities": [],
+          "damageResistances": [
+            {
+              "types": [
+                "necrotic"
+              ]
+            }
+          ],
+          "damageImmunities": [],
+          "conditionImmunities": [],
+          "senses": [],
+          "languages": [
+            "Common",
+            "Vozc Cant"
+          ],
+          "spellcasting": {
+            "ability": "wis",
+            "spellSaveDc": 15,
+            "spellAttackBonus": 7,
+            "header": "The conductor is a spellcaster. Its spellcasting ability is Wisdom (spell save DC 15, +7 to hit with spell attacks)."
+          },
+          "fiveEToolsIdentity": {
+            "name": "Condutor do Vórtice",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -3078,7 +4069,7 @@
         "externalId": "2e298c43-7a7c-4b22-853a-14d8ad2768f5",
         "title": "Dodman Jac",
         "createdAt": 1770560171963,
-        "updatedAt": 1782939695768,
+        "updatedAt": 1789193828126,
         "category": "npc",
         "tags": [
           "Komic",
@@ -3088,17 +4079,168 @@
         "data": {
           "name": "Dodman Jac",
           "armorClass": 14,
-          "maxHp": 80,
-          "spellSlots": [],
+          "maxHp": 72,
+          "spellSlots": [
+            {
+              "level": 2,
+              "max": 2
+            }
+          ],
           "spells": [
             {
-              "id": "veteranofwar",
-              "name": "Veteran of War",
-              "uses": 1
+              "id": "Notion::Dodman Jac::spell::1",
+              "name": "Eldritch Blast",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Dodman Jac::spell::2",
+              "name": "Mage Hand",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Dodman Jac::spell::3",
+              "name": "Minor Illusion",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Dodman Jac::spell::4",
+              "name": "Armor of Agathys",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Dodman Jac::spell::5",
+              "name": "Hex",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Dodman Jac::spell::6",
+              "name": "Misty Step",
+              "source": "XPHB",
+              "level": 2,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Dodman Jac::spell::7",
+              "name": "Hold Person",
+              "source": "XPHB",
+              "level": 2,
+              "castingGroup": "slot"
             }
           ],
           "specialAbilities": [],
-          "features": []
+          "features": [
+            {
+              "id": "Notion::Dodman Jac::trait::1",
+              "name": "Agonizing Blast",
+              "description": "Dodman's Eldritch Blast adds his Charisma modifier to the damage it deals on a hit.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Dodman Jac::trait::2",
+              "name": "Veteran of War",
+              "description": "Once on each of his turns, Dodman can impose disadvantage on the first attack roll made against him before the start of his next turn.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Dodman Jac::action::1",
+              "name": "Eldritch Blast",
+              "description": "r attack +7, range 120 ft. (two beams). Hit: 9 (1d10 + 4) Force damage per beam.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Dodman Jac::action::2",
+              "name": "Staff",
+              "description": "m attack +4, reach 5 ft. Hit: 5 (1d6 + 2) Bludgeoning damage.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Dodman Jac::spellcasting::spellcasting-1",
+              "name": "Spellcasting",
+              "description": "Dodman is a 7th-level spellcaster. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Dodman has two 2nd-level spell slots, which he regains when he finishes a short or long rest.",
+              "kind": "spellcasting"
+            }
+          ],
+          "aliases": [
+            "Dodman",
+            "Warlock Veterano de Komic"
+          ],
+          "groups": [
+            "Komic"
+          ],
+          "tags": [
+            "Komic",
+            "Warlock"
+          ],
+          "origin": "Notion",
+          "source": "Notion",
+          "size": "M",
+          "creatureType": "humanoid",
+          "alignment": "L, N",
+          "challengeRating": "4",
+          "armorClassNote": "reinforced leather",
+          "hitPointFormula": "13d8 + 13",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "30 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 10,
+            "dex": 14,
+            "con": 12,
+            "int": 12,
+            "wis": 14,
+            "cha": 18
+          },
+          "skills": [
+            {
+              "name": "arcana",
+              "bonus": 4
+            },
+            {
+              "name": "insight",
+              "bonus": 5
+            },
+            {
+              "name": "persuasion",
+              "bonus": 7
+            },
+            {
+              "name": "perception",
+              "bonus": 5
+            }
+          ],
+          "passivePerception": 15,
+          "damageVulnerabilities": [],
+          "damageResistances": [],
+          "damageImmunities": [],
+          "conditionImmunities": [],
+          "senses": [],
+          "languages": [
+            "Common",
+            "Komic"
+          ],
+          "spellcasting": {
+            "ability": "cha",
+            "spellSaveDc": 15,
+            "spellAttackBonus": 7,
+            "header": "Dodman is a 7th-level spellcaster. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Dodman has two 2nd-level spell slots, which he regains when he finishes a short or long rest."
+          },
+          "fiveEToolsIdentity": {
+            "name": "Dodman Jac",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -3106,7 +4248,7 @@
         "externalId": "2672cb08-eb37-4d3d-8ce6-00c535b8c1b0",
         "title": "He Xiao",
         "createdAt": 1770560059918,
-        "updatedAt": 1770560059918,
+        "updatedAt": 1789193828126,
         "category": "npc",
         "tags": [
           "Komic",
@@ -3117,22 +4259,140 @@
         "data": {
           "name": "He Xiao",
           "armorClass": 15,
-          "maxHp": 70,
+          "maxHp": 66,
           "spellSlots": [],
-          "spells": [
+          "spells": [],
+          "specialAbilities": [],
+          "features": [
             {
-              "id": "assassinate",
-              "name": "Assassinate",
-              "uses": 1
+              "id": "Notion::He Xiao::trait::1",
+              "name": "Cunning Action",
+              "description": "On each of its turns, He Xiao can take the Dash, Disengage, or Hide action as a bonus action.",
+              "kind": "trait"
             },
             {
-              "id": "uncannydodge",
+              "id": "Notion::He Xiao::trait::2",
+              "name": "Sneak Attack (1/Turn)",
+              "description": "He Xiao deals an extra 10 (3d6) damage when it hits a target with a weapon attack and has advantage on the attack roll, or when the target is within 5 feet of an ally of He Xiao that isn't incapacitated and He Xiao doesn't have disadvantage on the attack roll.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::He Xiao::trait::3",
+              "name": "Assassinate",
+              "description": "He Xiao has advantage on attack rolls against any creature that hasn't taken a turn in the combat yet. Any hit He Xiao scores against a surprised creature is a critical hit.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::He Xiao::trait::4",
               "name": "Uncanny Dodge",
-              "uses": 1
+              "description": "He Xiao can use its reaction to halve the damage of an attack that hits it.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::He Xiao::trait::5",
+              "name": "Evasion",
+              "description": "If He Xiao is subjected to an effect that allows it to make a Dexterity saving throw to take only half damage, He Xiao instead takes no damage if it succeeds on the saving throw, and only half damage if it fails.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::He Xiao::action::1",
+              "name": "Multiattack",
+              "description": "He Xiao makes two attacks with its Dagger or two attacks with its Hand Crossbow.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::He Xiao::action::2",
+              "name": "Dagger",
+              "description": "m,r attack +7, reach 5 ft. or range 20/60 ft. Hit: 6 (1d4 + 4) Piercing damage plus 7 (2d6) Poison damage.\nCON Save DC 13. Failure: The target has the Poisoned condition until the end of He Xiao's next turn.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::He Xiao::action::3",
+              "name": "Hand Crossbow",
+              "description": "r attack +7, range 30/120 ft. Hit: 7 (1d6 + 4) Piercing damage, plus Sneak Attack if applicable.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::He Xiao::reaction::1",
+              "name": "Uncanny Dodge",
+              "description": "Trigger: He Xiao is hit by an attack. Response: He Xiao halves the attack's damage against it.",
+              "kind": "reaction"
             }
           ],
-          "specialAbilities": [],
-          "features": []
+          "aliases": [
+            "He Xiao",
+            "Assassino de Komic"
+          ],
+          "groups": [
+            "Komic"
+          ],
+          "tags": [
+            "Komic",
+            "Rogue",
+            "Assassin"
+          ],
+          "origin": "Notion",
+          "source": "Notion",
+          "size": "M",
+          "creatureType": "humanoid",
+          "alignment": "L, E",
+          "challengeRating": "4",
+          "armorClassNote": "studded leather",
+          "hitPointFormula": "12d8 + 12",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "30 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 10,
+            "dex": 18,
+            "con": 12,
+            "int": 13,
+            "wis": 12,
+            "cha": 11
+          },
+          "skills": [
+            {
+              "name": "acrobatics",
+              "bonus": 7
+            },
+            {
+              "name": "athletics",
+              "bonus": 3
+            },
+            {
+              "name": "stealth",
+              "bonus": 10
+            },
+            {
+              "name": "investigation",
+              "bonus": 4
+            },
+            {
+              "name": "perception",
+              "bonus": 4
+            },
+            {
+              "name": "sleight of hand",
+              "bonus": 7
+            }
+          ],
+          "passivePerception": 14,
+          "damageVulnerabilities": [],
+          "damageResistances": [],
+          "damageImmunities": [],
+          "conditionImmunities": [],
+          "senses": [],
+          "languages": [
+            "Common",
+            "Komic"
+          ],
+          "fiveEToolsIdentity": {
+            "name": "He Xiao",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -3140,7 +4400,7 @@
         "externalId": "b504f25f-36c5-4be1-8407-0a03379d5b57",
         "title": "Thorn V.",
         "createdAt": 1770559768471,
-        "updatedAt": 1770559768471,
+        "updatedAt": 1789193828126,
         "category": "npc",
         "tags": [
           "Komic",
@@ -3152,15 +4412,115 @@
           "armorClass": 16,
           "maxHp": 95,
           "spellSlots": [],
-          "spells": [
+          "spells": [],
+          "specialAbilities": [
             {
-              "id": "rage",
-              "name": "Rage.",
-              "uses": 2
+              "id": "Notion::Thorn V.::ability::trait-1",
+              "name": "Rage (2/Day)",
+              "description": "As a bonus action, Thorn enters a rage for 1 minute. While raging, Thorn has advantage on Strength checks and Strength saving throws, deals 2 extra damage with melee weapon attacks, and has resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks. The rage ends early if Thorn is knocked unconscious or if Thorn's turn ends and she hasn't attacked a hostile creature since her last turn or taken damage since then.",
+              "recoveryType": "uses-per-day",
+              "maxUses": 2
             }
           ],
-          "specialAbilities": [],
-          "features": []
+          "features": [
+            {
+              "id": "Notion::Thorn V.::trait::1",
+              "name": "Rage (2/Day)",
+              "description": "As a bonus action, Thorn enters a rage for 1 minute. While raging, Thorn has advantage on Strength checks and Strength saving throws, deals 2 extra damage with melee weapon attacks, and has resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks. The rage ends early if Thorn is knocked unconscious or if Thorn's turn ends and she hasn't attacked a hostile creature since her last turn or taken damage since then.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Thorn V.::trait::2",
+              "name": "Reckless Attack",
+              "description": "At the start of her turn, Thorn can gain advantage on the first melee weapon attack roll she makes during that turn, but attack rolls against her have advantage until the start of her next turn.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Thorn V.::trait::3",
+              "name": "Brutal Charge",
+              "description": "If Thorn moves at least 20 feet straight toward a creature and then hits it with a melee weapon attack on the same turn, the target takes an extra 4 (1d8) damage and must succeed on a STR Save DC 15 or be pushed up to 10 feet away.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Thorn V.::trait::4",
+              "name": "Stop the Fight",
+              "description": "Komic's intent is to measure, not to kill. Thorn calls the fight when two enemies drop to 0 hit points, or when Thorn is reduced to 45 hit points or fewer.",
+              "kind": "trait"
+            },
+            {
+              "id": "Notion::Thorn V.::action::1",
+              "name": "Multiattack",
+              "description": "Thorn makes two Greatsword attacks.",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Thorn V.::action::2",
+              "name": "Greatsword",
+              "description": "m attack +8, reach 5 ft. Hit: 12 (2d6 + 5) Slashing damage. While Thorn is raging, the attack deals 14 (2d6 + 7) Slashing damage instead.",
+              "kind": "action"
+            }
+          ],
+          "aliases": [
+            "Thorn",
+            "Campeã Sanguínea"
+          ],
+          "groups": [
+            "Komic"
+          ],
+          "tags": [
+            "Komic",
+            "Barbarian"
+          ],
+          "origin": "Notion",
+          "source": "Notion",
+          "size": "M",
+          "creatureType": "humanoid",
+          "alignment": "L, E",
+          "challengeRating": "5",
+          "armorClassNote": "breastplate",
+          "hitPointFormula": "10d8 + 50",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "40 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 20,
+            "dex": 14,
+            "con": 20,
+            "int": 9,
+            "wis": 12,
+            "cha": 11
+          },
+          "skills": [
+            {
+              "name": "athletics",
+              "bonus": 8
+            },
+            {
+              "name": "intimidation",
+              "bonus": 3
+            },
+            {
+              "name": "perception",
+              "bonus": 4
+            }
+          ],
+          "passivePerception": 14,
+          "damageVulnerabilities": [],
+          "damageResistances": [],
+          "damageImmunities": [],
+          "conditionImmunities": [],
+          "senses": [],
+          "languages": [
+            "Common",
+            "Komic"
+          ],
+          "fiveEToolsIdentity": {
+            "name": "Thorn V.",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -3190,7 +4550,7 @@
         "externalId": "73e2ebe7-8960-4ec3-be5c-96f71a73f01b",
         "title": "Rosa V.",
         "createdAt": 1769180700878,
-        "updatedAt": 1769180764606,
+        "updatedAt": 1789193828126,
         "category": "npc",
         "tags": [
           "Winterhold",
@@ -3213,26 +4573,203 @@
             {
               "level": 3,
               "max": 2
-            },
-            {
-              "level": 4,
-              "max": 0
             }
           ],
           "spells": [
             {
-              "id": "teoricadawinterhold",
-              "name": "Teórica da Winterhold",
-              "uses": 1
+              "id": "Notion::Rosa V.::spell::1",
+              "name": "Fire Bolt",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
             },
             {
-              "id": "marcadomentor",
-              "name": "Marca do Mentor",
-              "uses": 1
+              "id": "Notion::Rosa V.::spell::2",
+              "name": "Mage Hand",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::3",
+              "name": "Minor Illusion",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::4",
+              "name": "Prestidigitation",
+              "source": "XPHB",
+              "level": 0,
+              "castingGroup": "at-will"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::5",
+              "name": "Comprehend Languages",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::6",
+              "name": "Detect Magic",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::7",
+              "name": "Mage Armor",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::8",
+              "name": "Shield",
+              "source": "XPHB",
+              "level": 1,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::9",
+              "name": "Detect Thoughts",
+              "source": "XPHB",
+              "level": 2,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::10",
+              "name": "Hold Person",
+              "source": "XPHB",
+              "level": 2,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::11",
+              "name": "Misty Step",
+              "source": "XPHB",
+              "level": 2,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::12",
+              "name": "Counterspell",
+              "source": "XPHB",
+              "level": 3,
+              "castingGroup": "slot"
+            },
+            {
+              "id": "Notion::Rosa V.::spell::13",
+              "name": "Dispel Magic",
+              "source": "XPHB",
+              "level": 3,
+              "castingGroup": "slot"
             }
           ],
           "specialAbilities": [],
-          "features": []
+          "features": [
+            {
+              "id": "Notion::Rosa V.::spellcasting::spellcasting-1",
+              "name": "Spellcasting",
+              "description": "Classe: Mago (Escola da Abjuração)\nCD de Magia: 14\nAtaque Mágico: +6",
+              "kind": "spellcasting"
+            },
+            {
+              "id": "Notion::Rosa V.::action::spellcasting-6",
+              "name": "Teórica da Winterhold",
+              "description": "Rosa tem vantagem em testes de **Arcana ou Investigação** relacionados a:\n- contratos mágicos\n- selos\n- runas\n- documentos encantados",
+              "kind": "action"
+            },
+            {
+              "id": "Notion::Rosa V.::action::spellcasting-7",
+              "name": "Marca do Mentor",
+              "description": "Uma vez por descanso longo, quando Rosa falha um teste de magia importante, ela pode:\n- repetir o teste\n- mas fica Abalada (desvantagem no próximo teste de Sabedoria)",
+              "kind": "action"
+            }
+          ],
+          "aliases": [
+            "Rosa",
+            "Winterhold"
+          ],
+          "groups": [
+            "Winterhold"
+          ],
+          "tags": [
+            "Winterhold",
+            "Wizard"
+          ],
+          "origin": "Notion",
+          "source": "Notion",
+          "size": "M",
+          "creatureType": "humanoid",
+          "alignment": "L, G",
+          "level": 5,
+          "armorClassNote": "Mage Armor",
+          "hitPointFormula": "5d6 + 5",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "30 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 8,
+            "dex": 14,
+            "con": 13,
+            "int": 17,
+            "wis": 12,
+            "cha": 10
+          },
+          "savingThrows": [
+            {
+              "ability": "wis",
+              "bonus": 4
+            },
+            {
+              "ability": "int",
+              "bonus": 6
+            }
+          ],
+          "skills": [
+            {
+              "name": "arcana",
+              "bonus": 6
+            },
+            {
+              "name": "history",
+              "bonus": 6
+            },
+            {
+              "name": "investigation",
+              "bonus": 6
+            },
+            {
+              "name": "religion",
+              "bonus": 6
+            },
+            {
+              "name": "insight",
+              "bonus": 4
+            }
+          ],
+          "passivePerception": 11,
+          "damageVulnerabilities": [],
+          "damageResistances": [],
+          "damageImmunities": [],
+          "conditionImmunities": [],
+          "senses": [],
+          "languages": [],
+          "spellcasting": {
+            "spellSaveDc": 14,
+            "spellAttackBonus": 6,
+            "header": "Classe: Mago (Escola da Abjuração)\nCD de Magia: 14\nAtaque Mágico: +6\nRosa tem vantagem em testes de **Arcana ou Investigação** relacionados a:\n- contratos mágicos\n- selos\n- runas\n- documentos encantados\nUma vez por descanso longo, quando Rosa falha um teste de magia importante, ela pode:\n- repetir o teste\n- mas fica Abalada (desvantagem no próximo teste de Sabedoria)"
+          },
+          "fiveEToolsIdentity": {
+            "name": "Rosa V.",
+            "source": "Notion"
+          }
         }
       },
       {
@@ -3277,6 +4814,107 @@
           "spells": [],
           "specialAbilities": [],
           "features": []
+        }
+      },
+      {
+        "id": "5etools-notion-arvore-marcada",
+        "externalId": "5etools-notion-arvore-marcada",
+        "title": "Árvore Marcada",
+        "createdAt": 1789193828126,
+        "updatedAt": 1789193828126,
+        "category": "monster",
+        "tags": [
+          "Nagawoods",
+          "Banshee"
+        ],
+        "source": "5eTools",
+        "data": {
+          "name": "Árvore Marcada",
+          "armorClass": 12,
+          "maxHp": 25,
+          "spellSlots": [],
+          "spells": [],
+          "specialAbilities": [],
+          "features": [
+            {
+              "id": "Notion::Árvore Marcada::trait::1",
+              "name": "Marca do Lamento",
+              "description": "This tree anchors Elyra's grief and empowers the Mãos da Floresta hazard. A creature can use its action to make an Intelligence (Arcana), Wisdom (Nature), or Intelligence (Religion) check (DC 14) to disable one tree instead of damaging it.\nA creature can also make a Charisma (Performance) or Charisma (Persuasion) check (DC 15) if it tries to calm or release one of the trapped echoes. On a failure by 5 or more, the creature takes 3 (1d6) Psychic damage.",
+              "kind": "trait"
+            }
+          ],
+          "aliases": [
+            "Árvore do Lamento",
+            "Foco da Clareira",
+            "Coração Menor da Mata"
+          ],
+          "groups": [
+            "Nagawoods",
+            "Banshee"
+          ],
+          "tags": [
+            "Nagawoods",
+            "Banshee"
+          ],
+          "origin": "5eTools",
+          "source": "Notion",
+          "size": "L",
+          "creatureType": "object",
+          "alignment": "U",
+          "challengeRating": "0",
+          "hitPointFormula": "25",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "0 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 0,
+            "dex": 0,
+            "con": 0,
+            "int": 0,
+            "wis": 0,
+            "cha": 0
+          },
+          "passivePerception": 10,
+          "damageVulnerabilities": [
+            {
+              "types": [
+                "fire"
+              ]
+            },
+            {
+              "types": [
+                "radiant"
+              ]
+            }
+          ],
+          "damageResistances": [],
+          "damageImmunities": [
+            {
+              "types": [
+                "poison"
+              ]
+            },
+            {
+              "types": [
+                "psychic"
+              ]
+            }
+          ],
+          "conditionImmunities": [],
+          "senses": [
+            {
+              "name": "blindsight",
+              "detail": "10 ft. (blind beyond this radius)"
+            }
+          ],
+          "languages": [],
+          "fiveEToolsIdentity": {
+            "name": "Árvore Marcada",
+            "source": "Notion"
+          }
         }
       }
     ],

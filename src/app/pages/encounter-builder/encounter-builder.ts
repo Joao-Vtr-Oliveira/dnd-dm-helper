@@ -817,6 +817,7 @@ export class EncounterBuilder {
 			description: draft.description.trim() || undefined,
 			recoveryType: draft.recoveryType,
 			...(draft.recoveryType === 'uses-per-day' ||
+			draft.recoveryType === 'uses-per-combat' ||
 			draft.recoveryType === 'short-rest' ||
 			draft.recoveryType === 'long-rest'
 				? { maxUses: Math.max(1, this.nonNegativeInt(draft.maxUses)) }

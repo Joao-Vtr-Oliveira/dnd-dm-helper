@@ -1259,7 +1259,8 @@
 													<option value="manual">Manual</option>
 													<option value="turn-cooldown">Cooldown por turnos</option>
 													<option value="round-cooldown">Cooldown por rounds</option>
-													<option value="uses-per-day">Usos por dia</option>
+											<option value="uses-per-day">Usos por dia</option>
+											<option value="uses-per-combat">Usos por combate</option>
 													<option value="short-rest">Descanso curto</option>
 													<option value="long-rest">Descanso longo</option>
 													<option value="dice-recharge">Recharge 5-6</option>
@@ -1301,6 +1302,7 @@
 
 										@if (
 											getAbilityDraft(combatant.id).recoveryType === 'uses-per-day' ||
+											getAbilityDraft(combatant.id).recoveryType === 'uses-per-combat' ||
 											getAbilityDraft(combatant.id).recoveryType === 'short-rest' ||
 											getAbilityDraft(combatant.id).recoveryType === 'long-rest'
 										) {

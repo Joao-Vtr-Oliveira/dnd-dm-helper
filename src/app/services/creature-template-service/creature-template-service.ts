@@ -66,6 +66,8 @@ export class CreatureTemplateService {
 			...normalized,
 			...this.optionalStringArray('aliases', raw.aliases),
 			...this.optionalStringArray('groups', raw.groups),
+			...this.optionalStringArray('tags', raw.tags),
+			...this.optionalText('origin', raw.origin),
 			...this.optionalText('source', raw.source),
 			...this.optionalText('size', raw.size),
 			...this.optionalText('creatureType', raw.creatureType),

@@ -20,6 +20,16 @@ const finiteNumber = (value) => {
 	return Number.isFinite(numeric) ? numeric : null;
 };
 const nonNegativeInt = (value) => Math.max(0, Math.floor(finiteNumber(value) ?? 0));
+const uniqueStrings = (values) => {
+	const result = new Map();
+	for (const value of values ?? []) {
+		if (!hasText(value)) continue;
+		const text = value.trim();
+		const key = text.normalize('NFC').toLocaleLowerCase('pt-BR');
+		if (!result.has(key)) result.set(key, text);
+	}
+	return [...result.values()];
+};
 
 function createReport(input) {
 	return {
@@ -65,6 +75,7 @@ function normalizeArmorClass(value, report, context) {
 function normalizeSheetData(raw, report, fallbackName) {
 	const source = isRecord(raw) ? raw : {};
 	return {
+		...clone(source),
 		name: hasText(source.name) ? source.name.trim() : fallbackName,
 		armorClass: normalizeArmorClass(source.armorClass, report, fallbackName),
 		maxHp: nonNegativeInt(source.maxHp),
@@ -72,6 +83,8 @@ function normalizeSheetData(raw, report, fallbackName) {
 		spells: Array.isArray(source.spells) ? clone(source.spells) : [],
 		specialAbilities: Array.isArray(source.specialAbilities) ? clone(source.specialAbilities) : [],
 		features: Array.isArray(source.features) ? clone(source.features) : [],
+		...(Array.isArray(source.tags) ? { tags: uniqueStrings(source.tags) } : {}),
+		...(hasText(source.origin) ? { origin: source.origin.trim() } : {}),
 		...(isRecord(source.rawFiveETools) ? { rawFiveETools: clone(source.rawFiveETools) } : {}),
 		...(isRecord(source.fiveEToolsIdentity) ? { fiveEToolsIdentity: clone(source.fiveEToolsIdentity) } : {}),
 	};
@@ -80,6 +93,9 @@ function normalizeSheetData(raw, report, fallbackName) {
 function normalizeSheet(raw, index, report) {
 	const source = isRecord(raw) ? raw : {};
 	const title = hasText(source.title) ? source.title.trim() : `Sheet ${index + 1}`;
+	const data = normalizeSheetData(source.data, report, title);
+	if (!data.origin && hasText(source.origin ?? source.source)) data.origin = String(source.origin ?? source.source).trim();
+	if (!data.tags?.length && Array.isArray(source.tags)) data.tags = uniqueStrings(source.tags);
 	return {
 		id: hasText(source.id) ? source.id.trim() : `sheet-${index + 1}`,
 		externalId: hasText(source.externalId) ? source.externalId.trim() : hasText(source.id) ? source.id.trim() : `sheet-${index + 1}`,
@@ -89,7 +105,7 @@ function normalizeSheet(raw, index, report) {
 		category: category(source.category),
 		tags: Array.isArray(source.tags) ? source.tags.filter(hasText).map((tag) => tag.trim()) : [],
 		source: hasText(source.source) ? source.source.trim() : '',
-		data: normalizeSheetData(source.data, report, title),
+		data,
 	};
 }
 

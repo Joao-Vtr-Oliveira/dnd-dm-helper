@@ -13,6 +13,7 @@ export type CreatureAbilityRecoveryType =
 	| 'turn-cooldown'
 	| 'round-cooldown'
 	| 'uses-per-day'
+	| 'uses-per-combat'
 	| 'short-rest'
 	| 'long-rest'
 	| 'dice-recharge';
@@ -116,6 +117,9 @@ export interface CreatureSheet {
 	features: CreatureFeature[];
 	aliases?: string[];
 	groups?: string[];
+	tags?: string[];
+	/** Project-local provenance, deliberately separate from the bibliographic source. */
+	origin?: string;
 	source?: string;
 	size?: string;
 	creatureType?: string;

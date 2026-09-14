@@ -15,6 +15,7 @@ export class CompendiumCreatureAdapterService {
 
 	toCreatureSheet(monster: CompendiumMonster): CreatureSheet {
 		const spellData = this.spellData(monster);
+		const features = this.features(monster);
 		return {
 			name: monster.name,
 			armorClass: monster.armorClass,
@@ -22,13 +23,15 @@ export class CompendiumCreatureAdapterService {
 			spellSlots: spellData.spellSlots,
 			spells: spellData.spells,
 			specialAbilities: this.specialAbilities(monster),
-			features: this.features(monster),
+			features,
 			aliases: monster.aliases.length ? structuredClone(monster.aliases) : undefined,
+			tags: this.tags(monster.tags),
 			source: monster.source,
 			size: monster.sizes.join(', ') || undefined,
 			creatureType: [monster.type, ...monster.subtypes].filter(Boolean).join(' ') || undefined,
 			alignment: this.alignment(monster.alignment),
 			challengeRating: monster.challengeRating,
+			level: monster.level,
 			armorClassNote: this.armorClassNote(monster),
 			hitPointFormula: monster.hitPointFormula,
 			speed: this.speed(monster.speed),
@@ -44,6 +47,7 @@ export class CompendiumCreatureAdapterService {
 			languages: monster.languages.length ? structuredClone(monster.languages) : undefined,
 			spellcasting: this.spellcastingMetadata(monster),
 			legendaryActions: this.legendaryMetadata(monster),
+			fiveEToolsIdentity: { name: monster.name, source: monster.source },
 			officialOrigin: { provider: '5etools', name: monster.name, source: monster.source },
 			officialSnapshot: structuredClone(monster),
 		};
@@ -58,6 +62,7 @@ export class CompendiumCreatureAdapterService {
 					name: feature.name,
 					description: this.renderer.renderEntries(feature.entries) || undefined,
 					kind,
+					...(kind === 'legendary' ? this.legendaryCost(feature.name) : {}),
 				});
 			}
 		};
@@ -68,8 +73,9 @@ export class CompendiumCreatureAdapterService {
 		add(monster.legendaryActions, 'legendary');
 		add(monster.mythicActions, 'legendary');
 		for (const [index, block] of monster.spellcasting.entries()) {
+			const kind = this.spellcastingKind(block.displayAs);
 			features.push({
-				id: `${monster.id}::spellcasting::${index + 1}`,
+				id: `${monster.id}::${kind}::spellcasting-${index + 1}`,
 				name: block.name,
 				description:
 					[
@@ -79,7 +85,7 @@ export class CompendiumCreatureAdapterService {
 					]
 						.filter(Boolean)
 						.join('\n') || undefined,
-				kind: 'spellcasting',
+				kind,
 			});
 		}
 		return features;
@@ -99,10 +105,11 @@ export class CompendiumCreatureAdapterService {
 				/\(\s*Recharge\s+([1-6])(?:\s*[-\u2013]\s*([1-6]))?\s*\)/i,
 			);
 			const perDay = feature.name.match(/\(\s*(\d+)\s*\/\s*Day(?:\s+Each)?\s*\)/i);
+			const perCombat = feature.name.match(/\(\s*(\d+)\s*\/\s*Combat\s*\)/i);
 			const rechargeStart = Number(recharge?.[1]);
 			const rechargeEnd = Number(recharge?.[2] ?? recharge?.[1]);
 			const validRecharge = !!recharge && rechargeStart <= rechargeEnd;
-			if (!validRecharge && !perDay) return [];
+			if (!validRecharge && !perDay && !perCombat) return [];
 			return [
 				{
 					id: `${monster.id}::ability::${index + 1}`,
@@ -117,7 +124,12 @@ export class CompendiumCreatureAdapterService {
 									(_, offset) => rechargeStart + offset,
 								),
 							}
-						: {
+						: perCombat
+							? {
+									recoveryType: 'uses-per-combat' as const,
+									maxUses: Number(perCombat[1]),
+								}
+							: {
 								recoveryType: 'uses-per-day' as const,
 								maxUses: Number(perDay?.[1]),
 							}),
@@ -327,8 +339,10 @@ export class CompendiumCreatureAdapterService {
 			wisdom: 'wis',
 			charisma: 'cha',
 		};
-		const saveDc = text.match(/spell save DC\s*(\d+)/i)?.[1];
-		const attack = text.match(/\+\s*(\d+)\s*to hit with spell attacks/i)?.[1];
+		const saveDc = text.match(/(?:spell save DC|CD\s*(?:de\s*)?magia)\s*:?\s*(\d+)/i)?.[1];
+		const attack = text.match(
+			/(?:\+\s*(\d+)\s*to hit with spell attacks|ataque\s+m[aá]gico\s*:\s*\+?\s*(\d+))/i,
+		)?.slice(1).find(Boolean);
 		const normalized = {
 			...(ability && abilityMap[ability.toLocaleLowerCase()]
 				? { ability: abilityMap[ability.toLocaleLowerCase()] }
@@ -341,9 +355,12 @@ export class CompendiumCreatureAdapterService {
 	}
 
 	private legendaryMetadata(monster: CompendiumMonster): CreatureSheet['legendaryActions'] {
-		const intro = monster.legendaryActions
+		const intro = [
+			this.renderer.renderEntries(monster.legendaryHeader ?? []),
+			...monster.legendaryActions
 			.map((feature) => this.renderer.renderEntries(feature.entries))
-			.find((text) => /legendary actions?/i.test(text));
+				.filter((text) => /legendary actions?/i.test(text)),
+		].find(Boolean);
 		const count = intro?.match(/(\d+)\s+legendary actions?/i)?.[1];
 		return intro || count
 			? { ...(count ? { count: Number(count) } : {}), ...(intro ? { intro } : {}) }
@@ -353,5 +370,23 @@ export class CompendiumCreatureAdapterService {
 	private bonus(value: string): number | undefined {
 		const match = value.trim().match(/^[+\-]?\d+/);
 		return match ? Number(match[0]) : undefined;
+	}
+
+	private spellcastingKind(displayAs: string | undefined): CreatureFeature['kind'] {
+		if (displayAs === 'action') return 'action';
+		if (displayAs === 'bonus') return 'bonus';
+		if (displayAs === 'reaction') return 'reaction';
+		if (displayAs === 'trait') return 'trait';
+		return 'spellcasting';
+	}
+
+	private tags(tags: CompendiumMonster['tags']): string[] | undefined {
+		const values = [...(tags['traitTags'] ?? []), ...(tags['actionTags'] ?? [])];
+		return values.length ? [...new Set(values)] : undefined;
+	}
+
+	private legendaryCost(name: string): Pick<CreatureFeature, 'legendaryCost'> {
+		const cost = name.match(/\(\s*Costs?\s+(\d+)\s+Actions?\s*\)/i)?.[1];
+		return cost ? { legendaryCost: Number(cost) } : {};
 	}
 }

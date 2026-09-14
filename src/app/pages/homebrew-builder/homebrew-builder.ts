@@ -136,6 +136,31 @@ export class HomebrewBuilder {
 	category = signal<HomebrewCategory>('monster');
 	tagsText = signal<string>('');
 	source = signal<string>('');
+	tagComposerOpen = signal(false);
+	tagCustom = signal(false);
+	tagDraft = signal('');
+	originCustom = signal(false);
+	readonly knownTags = computed(() =>
+		this.uniqueTextList([
+			...this.ls.listSheets().flatMap((sheet) => [
+				...(sheet.data.tags ?? []),
+				...(sheet.tags ?? []),
+			]),
+			'boss',
+			'spellcaster',
+			'undead',
+		]),
+	);
+	readonly knownOrigins = computed(() =>
+		this.uniqueTextList([
+			'Homebrew',
+			'5eTools',
+			'Manual',
+			'Notion',
+			'Imported',
+			...this.ls.listSheets().flatMap((sheet) => [sheet.data.origin ?? '', sheet.source ?? '']),
+		]),
+	);
 
 	// draft de magia nova
 	spellDraft = signal<SpellDraft>({ name: '', uses: 1, level: 0 });
@@ -297,6 +322,7 @@ export class HomebrewBuilder {
 		{ value: 'round-cooldown', label: 'Por rounds' },
 		{ value: 'dice-recharge', label: 'Recharge por dado' },
 		{ value: 'uses-per-day', label: 'Usos por dia' },
+		{ value: 'uses-per-combat', label: 'Usos por combate' },
 		{ value: 'short-rest', label: 'Descanso curto' },
 		{ value: 'long-rest', label: 'Descanso longo' },
 	];
@@ -348,13 +374,18 @@ export class HomebrewBuilder {
 			if (sheet) {
 				this.sheetId.set(id);
 				this.title.set(sheet.title);
-				this.creature.set(normalizeCreature(sheet.data));
+				const data = normalizeCreature({
+					...sheet.data,
+					tags: sheet.data.tags ?? sheet.tags,
+					origin: sheet.data.origin ?? sheet.source,
+				});
+				this.creature.set(data);
 				this.lastAutoCreatureName.set(sheet.data.name === sheet.title ? sheet.title : '');
 
 				// 👇 popula meta
 				this.category.set(sheet.category ?? 'monster');
-				this.tagsText.set((sheet.tags ?? []).join(', '));
-				this.source.set(sheet.source ?? '');
+				this.tagsText.set((data.tags ?? []).join(', '));
+				this.source.set(data.origin ?? '');
 			}
 		}
 		this.syncCreatureType();
@@ -560,6 +591,64 @@ export class HomebrewBuilder {
 			else delete next[key];
 			return next;
 		});
+	}
+
+	tagValues() {
+		return this.parseTextList(this.tagsText());
+	}
+
+	openTagComposer() {
+		this.tagComposerOpen.set(true);
+		this.tagCustom.set(false);
+		this.tagDraft.set('');
+	}
+
+	cancelTagComposer() {
+		this.tagComposerOpen.set(false);
+		this.tagCustom.set(false);
+		this.tagDraft.set('');
+	}
+
+	selectTag(value: string) {
+		if (value === '__custom__') {
+			this.tagCustom.set(true);
+			return;
+		}
+		this.addTag(value);
+		this.cancelTagComposer();
+	}
+
+	confirmCustomTag() {
+		this.addTag(this.tagDraft());
+		if (this.tagValues().some((tag) => tag.toLocaleLowerCase() === this.tagDraft().trim().toLocaleLowerCase()))
+			this.cancelTagComposer();
+	}
+
+	removeTag(value: string) {
+		this.tagsText.set(
+			this.tagValues()
+				.filter((tag) => tag.toLocaleLowerCase() !== value.toLocaleLowerCase())
+				.join(', '),
+		);
+	}
+
+	selectOrigin(value: string) {
+		if (value === '__custom__') {
+			this.originCustom.set(true);
+			return;
+		}
+		this.originCustom.set(false);
+		this.source.set(value);
+	}
+
+	originValue() {
+		const origin = this.source().trim();
+		return origin && this.knownOrigins().includes(origin) ? origin : origin ? '__custom__' : '';
+	}
+
+	private addTag(value: string) {
+		const tags = this.uniqueTextList([...this.tagValues(), value]);
+		this.tagsText.set(tags.join(', '));
 	}
 
 	setAbilityScore(ability: CreatureAbilityKey, value: unknown) {
@@ -1180,7 +1269,8 @@ export class HomebrewBuilder {
 		const unique = new Map<string, string>();
 		for (const value of values) {
 			const trimmed = value.trim();
-			if (trimmed) unique.set(trimmed.toLocaleLowerCase(), trimmed);
+			if (trimmed && !unique.has(trimmed.toLocaleLowerCase()))
+				unique.set(trimmed.toLocaleLowerCase(), trimmed);
 		}
 		return [...unique.values()];
 	}
@@ -1368,6 +1458,7 @@ export class HomebrewBuilder {
 			recoveryType: draft.recoveryType,
 			maxUses:
 				draft.recoveryType === 'uses-per-day' ||
+				draft.recoveryType === 'uses-per-combat' ||
 				draft.recoveryType === 'short-rest' ||
 				draft.recoveryType === 'long-rest'
 					? Math.max(1, this.parseNonNegInt(draft.maxUses) || 1)
@@ -1425,6 +1516,7 @@ export class HomebrewBuilder {
 			rechargeOn: recoveryType === 'dice-recharge' ? (ability.rechargeOn ?? [5, 6]) : undefined,
 			maxUses:
 				recoveryType === 'uses-per-day' ||
+				recoveryType === 'uses-per-combat' ||
 				recoveryType === 'short-rest' ||
 				recoveryType === 'long-rest'
 					? (ability.maxUses ?? 1)
@@ -1490,6 +1582,10 @@ export class HomebrewBuilder {
 			const uses = Math.max(1, ability.maxUses ?? 1);
 			return uses === 1 ? '1 uso por dia' : `${uses} usos por dia`;
 		}
+		if (ability.recoveryType === 'uses-per-combat') {
+			const uses = Math.max(1, ability.maxUses ?? 1);
+			return uses === 1 ? '1 uso por combate' : `${uses} usos por combate`;
+		}
 		if (ability.recoveryType === 'short-rest') {
 			const uses = Math.max(1, ability.maxUses ?? 1);
 			return uses === 1 ? '1 uso por descanso curto' : `${uses} usos por descanso curto`;
@@ -1505,7 +1601,7 @@ export class HomebrewBuilder {
 	save() {
 		const title = this.title().trim() || this.creature().name;
 		const category = this.category();
-		const data = this.creature();
+		const data = structuredClone(this.creature());
 
 		if (!data.name.trim()) {
 			this.showToast({ type: 'warn', text: 'Defina um nome para a criatura.' });
@@ -1517,6 +1613,10 @@ export class HomebrewBuilder {
 			.map((t) => t.trim())
 			.filter(Boolean);
 		const source = this.source().trim();
+		if (rawTags.length) data.tags = this.uniqueTextList(rawTags);
+		else delete data.tags;
+		if (source) data.origin = source;
+		else delete data.origin;
 
 		const id = this.sheetId();
 		if (!id) {

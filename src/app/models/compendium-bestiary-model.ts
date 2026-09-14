@@ -131,6 +131,7 @@ export interface CompendiumSpellcasting {
 	footerEntries: RawFiveEToolsEntry[];
 	spells: Record<string, RawFiveEToolsSpellLevel>;
 	spellLists: Record<string, string[]>;
+	displayAs?: string;
 }
 
 export interface CompendiumLegendaryGroupSnapshot {
@@ -172,6 +173,7 @@ export interface CompendiumMonster {
 	languages: string[];
 	proficiency?: string | number;
 	challengeRating?: string;
+	level?: number;
 	armorClass: number | null;
 	hitPoints: number;
 	hitPointFormula?: string;
@@ -180,6 +182,7 @@ export interface CompendiumMonster {
 	bonusActions: CompendiumFeature[];
 	reactions: CompendiumFeature[];
 	legendaryActions: CompendiumFeature[];
+	legendaryHeader?: RawFiveEToolsEntry[];
 	mythicActions: CompendiumFeature[];
 	spellcasting: CompendiumSpellcasting[];
 	legendaryGroup?: CompendiumLegendaryGroupSnapshot;
