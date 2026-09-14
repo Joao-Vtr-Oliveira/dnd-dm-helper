@@ -2,7 +2,7 @@
   "app": "dnd-dm-helper",
   "schemaVersion": 2,
   "type": "campaign-backup",
-  "exportedAt": "2026-09-14T05:56:25.569Z",
+  "exportedAt": "2026-09-14T11:03:50.372Z",
   "data": {
     "encounters": [
       {
@@ -3302,7 +3302,7 @@
         "externalId": "51de9d4e-ea2c-4d86-8d22-68fd31e14ce5",
         "title": "Wen Torger",
         "createdAt": 1782939609458,
-        "updatedAt": 1789365385569,
+        "updatedAt": 1789383689158,
         "category": "npc",
         "tags": [
           "Warlock",
@@ -3314,7 +3314,12 @@
           "name": "Wen Torger",
           "armorClass": 15,
           "maxHp": 58,
-          "spellSlots": [],
+          "spellSlots": [
+            {
+              "level": 3,
+              "max": 2
+            }
+          ],
           "spells": [
             {
               "id": "Notion::Wen Torger::spell::1",

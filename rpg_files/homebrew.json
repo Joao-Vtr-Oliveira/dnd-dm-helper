@@ -1075,6 +1075,7 @@
               ]
             },
             "3": {
+              "slots": 2,
               "spells": [
                 "{@spell Counterspell|XPHB}",
                 "{@spell Dispel Magic|XPHB}"

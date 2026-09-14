@@ -367,6 +367,47 @@ describe('BattleTrackerPage', () => {
 		expect(dialog.textContent).toContain('Aguardando recharge');
 	});
 
+	it('keeps static spells and sheet details collapsed in the cockpit', () => {
+		const battle = component.battle()!;
+		component.battle.set({
+			...battle,
+			combatants: battle.combatants.map((combatant) =>
+				combatant.id === 'c1'
+					? {
+							...combatant,
+							features: [{ id: 'trait', name: 'Keen Senses', kind: 'trait' }],
+							spellSlots: [{ level: 3, max: 2, used: 0 }],
+							specialAbilities: [
+								{
+									...combatant.specialAbilities[0],
+									recoveryType: 'uses-per-day',
+									maxUses: 2,
+									currentUses: 0,
+									isAvailable: true,
+								},
+							],
+						}
+					: combatant,
+			),
+		});
+		component.toggleCombatantInspector('c1');
+		fixture.detectChanges();
+
+		const spells = fixture.nativeElement.querySelector('[data-testid="known-spells-panel"]') as HTMLDetailsElement;
+		const sheet = fixture.nativeElement.querySelector('[data-testid="sheet-details-panel"]') as HTMLDetailsElement;
+		expect(spells.open).toBeFalse();
+			expect(sheet.open).toBeFalse();
+			expect(fixture.nativeElement.textContent).toContain('Espaços de magia');
+			expect(fixture.nativeElement.textContent).toContain('2/2 slots disponíveis');
+			expect(fixture.nativeElement.textContent).toContain('2 / 2 disponíveis');
+			expect(fixture.nativeElement.textContent).toContain('Magias conhecidas (1)');
+
+		spells.open = true;
+		spells.dispatchEvent(new Event('toggle'));
+		fixture.detectChanges();
+		expect(spells.open).toBeTrue();
+	});
+
 	it('uses an accessible dialog that closes with Escape', () => {
 		component.openAddCombatantModal();
 		fixture.detectChanges();

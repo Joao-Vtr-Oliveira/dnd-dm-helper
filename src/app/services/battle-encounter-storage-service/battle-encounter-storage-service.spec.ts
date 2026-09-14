@@ -68,6 +68,7 @@ describe('BattleEncounterStorageService', () => {
 			title: 'Wen Torger', category: 'npc', source: 'Notion',
 			data: {
 				name: 'Wen Torger', armorClass: 15, maxHp: 58, spellSlots: [],
+				fiveEToolsIdentity: { name: 'Wen Torger', source: 'Notion' },
 				spells: [{ id: 'eldritch-blast', name: 'Eldritch Blast', source: 'XPHB', level: 0 }],
 				specialAbilities: [
 					{ id: 'brand', name: 'Infernal Brand', recoveryType: 'dice-recharge', rechargeDice: 'd6', rechargeOn: [5, 6] },
@@ -84,7 +85,7 @@ describe('BattleEncounterStorageService', () => {
 			id: 'wen-legacy', name: 'Old Wen', status: 'active', round: 2, activeTurnIndex: 0,
 			createdAt: '2026-01-01T10:00:00Z', startedAt: '2026-01-01T10:00:00Z', updatedAt: '2026-01-01T10:00:00Z',
 			combatants: [{
-				id: 'wen', sourceSheetId: wen.id, name: 'Wen Torger', category: 'npc', side: 'ally',
+				id: 'wen', name: 'Wen Torger', category: 'npc', side: 'ally',
 				initiative: 12, turnOrder: 0, armorClass: 15, maxHp: 58, currentHp: 41, temporaryHp: 3,
 				defeated: false, hidden: false, collapsed: false, spellSlotsCollapsed: true, pendingAdd: false,
 				conditions: [], spellSlots: [], features: [],
@@ -101,6 +102,8 @@ describe('BattleEncounterStorageService', () => {
 		const wenRuntime = loaded.combatants[0];
 		expect(wenRuntime.currentHp).toBe(41);
 		expect(wenRuntime.temporaryHp).toBe(3);
+		expect(wenRuntime.sourceSheetId).toBe(wen.id);
+		expect(wenRuntime.spellSlots).toEqual([{ level: 3, max: 2, used: 0 }]);
 		expect(wenRuntime.spells.map((spell) => spell.name)).toEqual(['Eldritch Blast']);
 		expect(wenRuntime.features.map((feature) => feature.name)).toEqual([
 			'Caçador da Winterhold', 'Pacto Infernal Controlado',

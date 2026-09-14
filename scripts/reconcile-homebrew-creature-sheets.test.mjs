@@ -69,6 +69,19 @@ test('reconciles by name without replacing IDs, preserves origin, and is idempot
 	assert.deepEqual(second.backup, first.backup);
 });
 
+test('removes sheets created for duplicate source monsters', () => {
+	const duplicateBackup = structuredClone(backup);
+	duplicateBackup.data.homebrewSheets.push({
+		id: 'duplicate',
+		externalId: 'duplicate',
+		title: 'Ritual Focus (1)',
+		data: { fiveEToolsIdentity: { name: 'Ritual Focus (1)', source: 'NAG' } },
+	});
+
+	const result = reconcile({ monster: [monster, { ...monster, name: 'Ritual Focus (1)' }] }, duplicateBackup);
+	assert.equal(result.backup.data.homebrewSheets.length, 1);
+});
+
 test('keeps the native Wen Torger sheet as the canonical runtime definition', async () => {
 	const backup = JSON.parse(
 		await readFile(new URL('../rpg_files/dnd-dm-helper-backup-v2.json', import.meta.url), 'utf8'),
@@ -91,4 +104,5 @@ test('keeps the native Wen Torger sheet as the canonical runtime definition', as
 		['Caçador da Winterhold', 'Pacto Infernal Controlado', 'NPC de Apoio'],
 	);
 	assert.ok(wen.data.spells.some((spell) => spell.name === 'Eldritch Blast'));
+	assert.deepEqual(wen.data.spellSlots, [{ level: 3, max: 2 }]);
 });

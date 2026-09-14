@@ -269,7 +269,16 @@ export class LocalStorageService {
 	}
 
 	private normalizeCreatureSheet(raw: Partial<CreatureSheet> | undefined): CreatureSheet {
-		return this.creatureTemplate.normalizeCreature(raw ?? {});
+		const sheet = this.creatureTemplate.normalizeCreature(raw ?? {});
+		const identity = sheet.fiveEToolsIdentity;
+		if (
+			identity?.name === 'Wen Torger' &&
+			identity.source === 'Notion' &&
+			!sheet.spellSlots.some((slot) => slot.level === 3)
+		) {
+			return { ...sheet, spellSlots: [...sheet.spellSlots, { level: 3, max: 2 }] };
+		}
+		return sheet;
 	}
 
 	private normalizeEncounter(

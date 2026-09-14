@@ -235,11 +235,23 @@ export class BattleEncounterService {
 	): BattleEncounter {
 		const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
 		const refreshCombatant = (combatant: BattleCombatant) => {
-			const source = combatant.sourceSheetId ? sheetsById.get(combatant.sourceSheetId) : undefined;
+			const matchingSheets = combatant.sourceSheetId
+				? []
+				: sheets.filter(
+					(sheet) =>
+						!!sheet.data.fiveEToolsIdentity &&
+						(sheet.data.name === combatant.name || sheet.title === combatant.name),
+				);
+			const source = combatant.sourceSheetId
+				? sheetsById.get(combatant.sourceSheetId)
+				: matchingSheets.length === 1
+					? matchingSheets[0]
+					: undefined;
 			if (!source) return combatant;
 			const sheet = source.data;
 			return {
 				...combatant,
+				...(combatant.sourceSheetId ? {} : { sourceSheetId: source.id }),
 				category: source.category,
 				armorClass: sheet.armorClass,
 				maxHp: sheet.maxHp,

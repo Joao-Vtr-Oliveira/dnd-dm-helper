@@ -281,6 +281,15 @@ export function reconcile(homebrew, backup) {
 	for (const monster of homebrew.monster ?? []) {
 		const duplicate = seen.find((candidate) => candidate.source === monster.source && sameMonster(candidate, monster));
 		if (duplicate) {
+			const duplicateIndex = sheets.findIndex(
+				(sheet) =>
+					sheet.data?.fiveEToolsIdentity?.name === monster.name &&
+					sheet.data?.fiveEToolsIdentity?.source === monster.source,
+			);
+			if (duplicateIndex >= 0) {
+				sheets.splice(duplicateIndex, 1);
+				changed = true;
+			}
 			report.skipped.push({ name: monster.name, reason: `duplicate of ${duplicate.name}` });
 			continue;
 		}
@@ -309,8 +318,8 @@ async function main() {
 	const [homebrew, backup] = await Promise.all([HOME_BREW_PATH, BACKUP_PATH].map((path) => readFile(path, 'utf8').then(JSON.parse)));
 	const result = reconcile(homebrew, backup);
 	if (write) {
-		await writeFile(BACKUP_PATH, `${JSON.stringify(result.backup, null, 2)}\n`);
-		await writeFile(REPORT_PATH, `${JSON.stringify(result.report, null, 2)}\n`);
+		await writeFile(BACKUP_PATH, JSON.stringify(result.backup, null, 2));
+		await writeFile(REPORT_PATH, JSON.stringify(result.report, null, 2));
 	}
 	console.log(JSON.stringify(result.report, null, 2));
 }
