@@ -1,0 +1,14 @@
+<div class="space-y-4 text-sm">
+	@for (section of [
+		{ label: 'Vulnerabilidades', values: defenseLines(combatant.damageVulnerabilities) },
+		{ label: 'Resistências', values: defenseLines(combatant.damageResistances) },
+		{ label: 'Imunidades a dano', values: defenseLines(combatant.damageImmunities) },
+	]; track section.label) {
+		@if (section.values.length) {
+			<section><h3 class="font-semibold text-app-text">{{ section.label }}</h3>@for (defense of section.values; track $index) { <p class="mt-1 text-app-muted">{{ defense.types.join(', ') }}@if (defense.note) { <span> ({{ defense.note }})</span> }</p> }</section>
+		}
+	}
+	@if (combatant.conditionImmunities?.length) {
+		<section><h3 class="font-semibold text-app-text">Imunidades a condição</h3><p class="mt-1 text-app-muted">{{ combatant.conditionImmunities!.join(', ') }}</p></section>
+	}
+</div>

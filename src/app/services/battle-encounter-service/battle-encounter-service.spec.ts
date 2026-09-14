@@ -29,6 +29,9 @@ describe('BattleEncounterService', () => {
 				},
 			],
 			features: [{ id: 'nimble', name: 'Nimble Escape', kind: 'bonus' }],
+			damageResistances: [{ types: ['fire'], note: 'while wearing the ring' }],
+			damageImmunities: [{ types: ['poison'] }],
+			conditionImmunities: ['poisoned'],
 		},
 	};
 
@@ -127,6 +130,10 @@ describe('BattleEncounterService', () => {
 		expect(combatant.spellSlots).toEqual([{ level: 1, max: 2, used: 0 }]);
 		expect(combatant.spells).toEqual(boss.sheet.spells);
 		expect(combatant.features).toEqual(boss.sheet.features);
+		expect(combatant.damageResistances).toEqual(boss.sheet.damageResistances);
+		expect(combatant.damageResistances).not.toBe(boss.sheet.damageResistances);
+		expect(combatant.damageImmunities).toEqual(boss.sheet.damageImmunities);
+		expect(combatant.conditionImmunities).toEqual(['poisoned']);
 		expect(combatant.specialAbilities[0]).toEqual(
 			jasmine.objectContaining({
 				id: 'fire-breath',
@@ -366,6 +373,7 @@ describe('BattleEncounterService', () => {
 					spellSlots: [],
 					spells: [{ id: 'MM:mage::spell::1', name: 'Magic Missile', level: 1 }],
 					features: [{ id: 'feature-1', name: 'Spellcasting', kind: 'spellcasting' }],
+					damageResistances: [{ types: ['fire'], note: 'while shielded' }],
 				},
 			],
 			referenceSheets: [
@@ -396,6 +404,9 @@ describe('BattleEncounterService', () => {
 		expect(normalized.combatants[0].spells[0].name).toBe('Magic Missile');
 		expect(normalized.combatants[0].spells[0].source).toBe('PHB');
 		expect(normalized.combatants[0].features[0].name).toBe('Spellcasting');
+		expect(normalized.combatants[0].damageResistances).toEqual([
+			{ types: ['fire'], note: 'while shielded' },
+		]);
 		expect(normalized.referenceSheets[0].sheet).toEqual(
 			jasmine.objectContaining({ name: 'Mage reference', size: 'Medium' }),
 		);

@@ -233,13 +233,29 @@ describe('BattleTrackerPage', () => {
 		).toContain('Dodman');
 	});
 
+	it('opens the current combatant panel and collapses the cockpit before navigating to its sheet', () => {
+		component.cockpitDetailsOpen.set(true);
+
+		component.goToCurrentCombatantSheet();
+
+		expect(component.selectedCombatantId()).toBe('c1');
+		expect(component.cockpitDetailsOpen()).toBeFalse();
+	});
+
 	it('scrolls from the cockpit to the current combatant card', () => {
 		const card = fixture.nativeElement.querySelector('#battle-combatant-c1') as HTMLElement;
 		const scrollIntoView = spyOn(card, 'scrollIntoView');
+		const requestAnimationFrame = spyOn(window, 'requestAnimationFrame').and.callFake(
+			(callback: FrameRequestCallback) => {
+				callback(0);
+				return 0;
+			},
+		);
 
 		fixture.nativeElement.querySelector('[data-testid="cockpit-scroll-to-combatant"]')?.click();
 
-		expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+		expect(requestAnimationFrame).toHaveBeenCalledTimes(2);
+		expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
 	});
 
 	it('allows collapsing cockpit details while keeping the current turn header available', () => {
@@ -647,6 +663,32 @@ describe('BattleTrackerPage', () => {
 
 		expect(references.floating()?.kind).toBe('spell');
 		expect(references.floating()?.name).toBe('Aid');
+	});
+
+	it('opens the stored defense snapshot from a combatant card', () => {
+		component.battle.update((battle) =>
+			battle
+				? {
+						...battle,
+						combatants: battle.combatants.map((combatant) =>
+							combatant.id === 'c1'
+								? {
+										...combatant,
+										damageResistances: [{ types: ['fire'], note: 'while warded' }],
+									}
+								: combatant,
+						),
+					}
+				: null,
+		);
+		fixture.detectChanges();
+
+		references.openDefense(component.battle()!.combatants[0]);
+		const reference = references.floating();
+		expect(reference?.kind).toBe('defense');
+		expect(reference?.kind === 'defense' ? reference.combatant.damageResistances : undefined).toEqual([
+			{ types: ['fire'], note: 'while warded' },
+		]);
 	});
 
 	it('shows upcoming turns and the next environment event in the cockpit', () => {

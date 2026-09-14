@@ -1,12 +1,14 @@
 import { Injectable, Injector, signal } from '@angular/core';
 import type { CompendiumSpell } from '../../models/compendium-spell-model';
+import type { BattleCombatant } from '../../models/battle-encounter-model';
 import { conditionReferenceFor, type ConditionReference } from '../../models/condition-reference-model';
 import type { SpellReference } from '../../models/spell-reference-model';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 
 export type ReferenceView =
 	| { kind: 'spell'; name: string; spell: CompendiumSpell | null; loading: boolean }
-	| { kind: 'condition'; name: string; condition: ConditionReference; loading: false };
+	| { kind: 'condition'; name: string; condition: ConditionReference; loading: false }
+	| { kind: 'defense'; name: string; combatant: BattleCombatant; loading: false };
 
 export type PeekReferenceView = ReferenceView & { anchor: HTMLElement };
 
@@ -65,6 +67,19 @@ export class ReferenceOverlayService {
 		this.peek.set(null);
 		const condition = conditionReferenceFor(name);
 		this.floating.set({ kind: 'condition', name: condition.label, condition, loading: false });
+	}
+
+	peekDefense(combatant: BattleCombatant, anchor: HTMLElement) {
+		this.clearPeekTimers();
+		this.peekTimer = setTimeout(() => {
+			this.peek.set({ kind: 'defense', name: 'Defesas', combatant, loading: false, anchor });
+		}, 150);
+	}
+
+	openDefense(combatant: BattleCombatant) {
+		this.clearPeekTimers();
+		this.peek.set(null);
+		this.floating.set({ kind: 'defense', name: 'Defesas', combatant, loading: false });
 	}
 
 	schedulePeekClose() {

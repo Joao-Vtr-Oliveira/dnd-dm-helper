@@ -135,9 +135,13 @@
 										class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold"
 										[class]="sideBadgeClasses(combatant.side)"
 									>
-										<span class="h-2 w-2 rounded-full bg-current opacity-80"></span>
-										{{ sideLabel(combatant.side) }}
-									</span>
+											<span class="h-2 w-2 rounded-full bg-current opacity-80"></span>
+											{{ sideLabel(combatant.side) }}
+										</span>
+
+										@if (combatant.damageVulnerabilities?.length || combatant.damageResistances?.length || combatant.damageImmunities?.length || combatant.conditionImmunities?.length) {
+											<button type="button" data-testid="combatant-defense-reference" class="rounded-full border border-sky-300/30 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-100 hover:bg-sky-500/20" [appDefenseReference]="combatant">Defesas</button>
+										}
 									@if (combatant.defeated) {
 										<span
 											class="rounded-full border border-red-400/30 bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-100"
@@ -168,10 +172,19 @@
 									type="button"
 									data-testid="cockpit-scroll-to-combatant"
 									class="app-button h-12 border-violet-300/30 bg-violet-500/10 px-4 text-violet-100 hover:border-violet-300/55 hover:bg-violet-500/25 hover:text-violet-50"
-									(click)="scrollToCurrentCombatant()"
+									(click)="goToCurrentCombatantSheet()"
 								>
 									<svg lucideBookOpen [size]="17" [strokeWidth]="2.25" aria-hidden="true"></svg>
-									Ver ficha
+									Ir até ficha
+								</button>
+								<button
+									type="button"
+									data-testid="cockpit-reference-sheet"
+									class="app-button h-12 border-violet-300/30 bg-violet-500/10 px-4 text-violet-100 hover:border-violet-300/55 hover:bg-violet-500/25 hover:text-violet-50"
+									(click)="openReferenceSheetViewer(combatant)"
+								>
+									<svg lucideBookOpen [size]="17" [strokeWidth]="2.25" aria-hidden="true"></svg>
+									Abrir ficha completa
 								</button>
 								@if (battle()!.status === 'active') {
 									<button
@@ -186,12 +199,10 @@
 							</div>
 						</div>
 
-						<details open class="mt-4">
+						<details [open]="cockpitDetailsOpen()" class="mt-4" (toggle)="setCockpitDetailsOpen($event)">
 							<summary
 								class="cursor-pointer text-sm font-semibold text-amber-100 hover:text-amber-50"
-							>
-								Retrair detalhes
-							</summary>
+							>{{ cockpitDetailsOpen() ? 'Retrair detalhes' : 'Exibir detalhes' }}</summary>
 							@if (pendingActions().length > 0) {
 								<div
 									data-testid="pending-actions"
@@ -341,66 +352,26 @@
 								</button>
 							</div>
 
-							<div
-								class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(9rem,0.7fr)_auto]"
-							>
-								<input
-									type="number"
-									min="0"
-									data-testid="cockpit-damage-input"
-									class="app-field h-11 min-w-0 border-red-400/20 px-3"
-									aria-label="Dano para o turno atual"
-									placeholder="Dano"
-									[ngModel]="damageDrafts()[combatant.id] || ''"
-									(ngModelChange)="setDamageDraft(combatant.id, $event)"
+							<div class="mt-4 grid gap-3 lg:grid-cols-[minmax(20rem,1.35fr)_minmax(0,1fr)]">
+								<app-battle-damage-control
+									class="min-w-0"
+									data-testid="cockpit-damage-control"
+									testId="cockpit"
+									[combatant]="combatant"
+									[amount]="damageDrafts()[combatant.id] || ''"
+									[damageType]="damageTypeDrafts()[combatant.id] || ''"
+									[quickTypePicker]="true"
+									[showDamageTypeLabel]="false"
+									(amountChange)="setDamageDraft(combatant.id, $event)"
+									(damageTypeChange)="setDamageTypeDraft(combatant.id, $event)"
+									(apply)="applyDamageAmount(combatant.id, $event)"
 								/>
-								<button
-									type="button"
-									data-testid="cockpit-apply-damage"
-									class="h-10 cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 text-sm hover:bg-red-500/20"
-									(click)="applyDamage(combatant.id)"
-								>
-									Dano
-								</button>
-								<input
-									type="number"
-									min="0"
-									data-testid="cockpit-healing-input"
-									class="app-field h-11 min-w-0 border-emerald-400/20 px-3"
-									aria-label="Cura para o turno atual"
-									placeholder="Cura"
-									[ngModel]="healingDrafts()[combatant.id] || ''"
-									(ngModelChange)="setHealingDraft(combatant.id, $event)"
-								/>
-								<button
-									type="button"
-									data-testid="cockpit-apply-healing"
-									class="h-10 cursor-pointer rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 text-sm hover:bg-emerald-500/20"
-									(click)="applyHealing(combatant.id)"
-								>
-									Cura
-								</button>
-								<label class="relative min-w-0">
-									<span
-										class="pointer-events-none absolute left-3 top-1.5 text-[11px] font-medium text-app-subtle"
-										>HP temporário</span
-									>
-									<input
-										type="number"
-										min="0"
-										class="app-field h-11 w-full min-w-0 px-3 pb-1 pt-5"
-										aria-label="HP temporário para o turno atual"
-										[ngModel]="combatant.temporaryHp"
-										(ngModelChange)="setTemporaryHp(combatant.id, $event)"
-									/>
-								</label>
-								<button
-									type="button"
-									class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 text-sm hover:bg-white/15"
-									(click)="toggleDefeated(combatant.id, !combatant.defeated)"
-								>
-									{{ combatant.defeated ? 'Reerguer' : 'Derrotar' }}
-								</button>
+								<div class="grid gap-2 sm:grid-cols-2">
+									<input type="number" min="0" data-testid="cockpit-healing-input" class="app-field h-11 min-w-0 border-emerald-400/20 px-3" aria-label="Cura para o turno atual" placeholder="Cura" [ngModel]="healingDrafts()[combatant.id] || ''" (ngModelChange)="setHealingDraft(combatant.id, $event)" />
+									<button type="button" data-testid="cockpit-apply-healing" class="h-10 cursor-pointer rounded-2xl border border-emerald-400/30 bg-emerald-500/15 px-4 text-sm hover:bg-emerald-500/20" (click)="applyHealing(combatant.id)">Cura</button>
+									<label class="relative min-w-0"><span class="pointer-events-none absolute left-3 top-1.5 text-[11px] font-medium text-app-subtle">HP temporário</span><input type="number" min="0" class="app-field h-11 w-full min-w-0 px-3 pb-1 pt-5" aria-label="HP temporário para o turno atual" [ngModel]="combatant.temporaryHp" (ngModelChange)="setTemporaryHp(combatant.id, $event)" /></label>
+									<button type="button" class="h-10 cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 text-sm hover:bg-white/15" (click)="toggleDefeated(combatant.id, !combatant.defeated)">{{ combatant.defeated ? 'Reerguer' : 'Derrotar' }}</button>
+								</div>
 							</div>
 
 							<div class="mt-3 flex flex-wrap gap-2">
@@ -796,23 +767,7 @@
 								@if (selectedCombatantId() !== combatant.id) {
 									<div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
 										<div class="mb-2 text-sm font-semibold">Dano rapido</div>
-										<div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
-											<input
-												type="number"
-												min="0"
-												class="h-10 w-full min-w-0 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-												placeholder="0"
-												[ngModel]="damageDrafts()[combatant.id] || ''"
-												(ngModelChange)="setDamageDraft(combatant.id, $event)"
-											/>
-											<button
-												type="button"
-												class="h-10 cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 hover:bg-red-500/20"
-												(click)="applyDamage(combatant.id)"
-											>
-												Aplicar dano
-											</button>
-										</div>
+										<app-battle-damage-control [combatant]="combatant" [amount]="damageDrafts()[combatant.id] || ''" [damageType]="damageTypeDrafts()[combatant.id] || ''" [compact]="true" [quickTypePicker]="true" (amountChange)="setDamageDraft(combatant.id, $event)" (damageTypeChange)="setDamageTypeDraft(combatant.id, $event)" (apply)="applyDamageAmount(combatant.id, $event)" />
 									</div>
 								}
 
@@ -915,23 +870,7 @@
 									<div class="mt-4 grid gap-3 xl:grid-cols-2">
 										<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
 											<div class="mb-2 text-sm font-semibold">Dano</div>
-											<div class="grid gap-2">
-												<input
-													type="number"
-													min="0"
-													class="h-10 w-full min-w-0 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-													placeholder="0"
-													[ngModel]="damageDrafts()[combatant.id] || ''"
-													(ngModelChange)="setDamageDraft(combatant.id, $event)"
-												/>
-												<button
-													type="button"
-													class="h-10 w-full cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-4 hover:bg-red-500/20"
-													(click)="applyDamage(combatant.id)"
-												>
-													Aplicar dano
-												</button>
-											</div>
+											<app-battle-damage-control [combatant]="combatant" [amount]="damageDrafts()[combatant.id] || ''" [damageType]="damageTypeDrafts()[combatant.id] || ''" [compact]="true" [quickTypePicker]="true" (amountChange)="setDamageDraft(combatant.id, $event)" (damageTypeChange)="setDamageTypeDraft(combatant.id, $event)" (apply)="applyDamageAmount(combatant.id, $event)" />
 										</div>
 
 										<div class="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">

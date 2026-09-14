@@ -2,6 +2,7 @@ import { Component, HostListener, computed, effect, inject, signal } from '@angu
 import { Router } from '@angular/router';
 import { LucideExternalLink, LucideMaximize2, LucideMinimize2 } from '@lucide/angular';
 import { ConditionReferenceContentComponent } from '../condition-reference-content/condition-reference-content';
+import { DamageDefenseReferenceContentComponent } from '../damage-defense-reference-content/damage-defense-reference-content';
 import { SpellReferenceContentComponent } from '../spell-reference-content/spell-reference-content';
 import { ReferenceOverlayService, type ReferenceView } from './reference-overlay-service';
 
@@ -10,6 +11,7 @@ import { ReferenceOverlayService, type ReferenceView } from './reference-overlay
 	standalone: true,
 	imports: [
 		ConditionReferenceContentComponent,
+		DamageDefenseReferenceContentComponent,
 		LucideExternalLink,
 		LucideMaximize2,
 		LucideMinimize2,

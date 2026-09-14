@@ -1,5 +1,6 @@
 import type {
 	CreatureCategory,
+	CreatureDamageDefense,
 	CreatureSheet,
 	CreatureFeature,
 	CreatureSpell,
@@ -189,6 +190,10 @@ export interface BattleCombatant {
 	spellSlots: BattleSpellSlotLevel[];
 	spells: CreatureSpell[];
 	features: CreatureFeature[];
+	damageVulnerabilities?: CreatureDamageDefense[];
+	damageResistances?: CreatureDamageDefense[];
+	damageImmunities?: CreatureDamageDefense[];
+	conditionImmunities?: string[];
 	privateNotes?: string;
 }
 

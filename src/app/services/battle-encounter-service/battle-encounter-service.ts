@@ -21,6 +21,7 @@ import type {
 } from '../../models/battle-encounter-model';
 import type {
 	CreatureCategory,
+	CreatureDamageDefense,
 	CreatureFeature,
 	CreatureSheet,
 	CreatureSpecialAbility,
@@ -1659,6 +1660,18 @@ export class BattleEncounterService {
 			spellSlots: this.spellSlotService.normalizeSpellSlots(raw.spellSlots),
 			spells: this.normalizeSpells(raw.spells),
 			features: this.normalizeFeatures(raw.features),
+			...(this.normalizeDamageDefenses(raw.damageVulnerabilities)
+				? { damageVulnerabilities: this.normalizeDamageDefenses(raw.damageVulnerabilities) }
+				: {}),
+			...(this.normalizeDamageDefenses(raw.damageResistances)
+				? { damageResistances: this.normalizeDamageDefenses(raw.damageResistances) }
+				: {}),
+			...(this.normalizeDamageDefenses(raw.damageImmunities)
+				? { damageImmunities: this.normalizeDamageDefenses(raw.damageImmunities) }
+				: {}),
+			...(this.normalizeStringList(raw.conditionImmunities)
+				? { conditionImmunities: this.normalizeStringList(raw.conditionImmunities) }
+				: {}),
 			privateNotes: typeof raw.privateNotes === 'string' ? raw.privateNotes : undefined,
 		};
 	}
@@ -1805,12 +1818,46 @@ export class BattleEncounterService {
 			spellSlots: this.createRuntimeSpellSlots(sheet.spellSlots),
 			spells: structuredClone(sheet.spells),
 			features: structuredClone(sheet.features),
+			...(this.normalizeDamageDefenses(sheet.damageVulnerabilities)
+				? { damageVulnerabilities: this.normalizeDamageDefenses(sheet.damageVulnerabilities) }
+				: {}),
+			...(this.normalizeDamageDefenses(sheet.damageResistances)
+				? { damageResistances: this.normalizeDamageDefenses(sheet.damageResistances) }
+				: {}),
+			...(this.normalizeDamageDefenses(sheet.damageImmunities)
+				? { damageImmunities: this.normalizeDamageDefenses(sheet.damageImmunities) }
+				: {}),
+			...(this.normalizeStringList(sheet.conditionImmunities)
+				? { conditionImmunities: this.normalizeStringList(sheet.conditionImmunities) }
+				: {}),
 			privateNotes: participant.notes?.trim() || undefined,
 		};
 	}
 
 	private createReferenceSheet(sheet: CreatureSheet, id = this.createId()): BattleReferenceSheet {
 		return { id, sheet: structuredClone(sheet) };
+	}
+
+	private normalizeDamageDefenses(values: unknown): CreatureDamageDefense[] | undefined {
+		if (!Array.isArray(values)) return undefined;
+		const normalized = values.flatMap((value) => {
+			if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+			const defense = value as Partial<CreatureDamageDefense>;
+			const types = this.normalizeStringList(defense.types);
+			const note = typeof defense.note === 'string' ? defense.note.trim() : '';
+			return types?.length ? [{ types, ...(note ? { note } : {}) }] : [];
+		});
+		return normalized.length ? normalized : undefined;
+	}
+
+	private normalizeStringList(values: unknown): string[] | undefined {
+		if (!Array.isArray(values)) return undefined;
+		const unique = new Set<string>();
+		for (const value of values) {
+			if (typeof value !== 'string' || !value.trim()) continue;
+			unique.add(value.trim());
+		}
+		return unique.size ? [...unique] : undefined;
 	}
 
 	private normalizeReferenceSheets(raw: unknown): BattleReferenceSheet[] {

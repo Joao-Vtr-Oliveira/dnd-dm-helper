@@ -5,9 +5,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { LucideBookOpen } from '@lucide/angular';
 import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
 import { AppSelectComponent } from '../../components/app-select/app-select';
+import { BattleDamageControlComponent } from '../../components/battle-damage-control/battle-damage-control';
 import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
-import { ConditionReferenceTriggerDirective, SpellReferenceTriggerDirective } from '../../components/reference-overlay/reference-trigger';
+import { ConditionReferenceTriggerDirective, DefenseReferenceTriggerDirective, SpellReferenceTriggerDirective } from '../../components/reference-overlay/reference-trigger';
 import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type {
@@ -97,6 +98,7 @@ type ConfirmModalState = {
 	imports: [
 		AppNativeSelectDirective,
 		AppSelectComponent,
+		BattleDamageControlComponent,
 		CommonModule,
 		CreatureStatBlockComponent,
 		DialogFocusDirective,
@@ -104,6 +106,7 @@ type ConfirmModalState = {
 		LucideBookOpen,
 		SpellQuickViewComponent,
 		ConditionReferenceTriggerDirective,
+		DefenseReferenceTriggerDirective,
 		SpellReferenceTriggerDirective,
 	],
 	templateUrl: './battle-tracker.html',
@@ -128,6 +131,7 @@ export class BattleTrackerPage {
 	);
 	readonly now = signal(Date.now());
 	readonly damageDrafts = signal<Record<string, string>>({});
+	readonly damageTypeDrafts = signal<Record<string, string>>({});
 	readonly healingDrafts = signal<Record<string, string>>({});
 	readonly conditionDrafts = signal<Record<string, ConditionDraft>>({});
 	readonly lairActionDraft = signal<LairActionDraft>(this.createLairActionDraft());
@@ -160,6 +164,7 @@ export class BattleTrackerPage {
 	readonly bestiaryLoading = signal(false);
 	readonly bestiarySearch = signal('');
 	readonly cockpitAbilitiesExpanded = signal(false);
+	readonly cockpitDetailsOpen = signal(true);
 	readonly filteredBestiaryMonsters = computed(() => {
 		const query = this.bestiarySearch().trim().toLowerCase();
 		if (!query) return this.bestiaryMonsters();
@@ -405,12 +410,22 @@ export class BattleTrackerPage {
 		this.focusModal();
 	}
 
-	scrollToCurrentCombatant() {
+	goToCurrentCombatantSheet() {
 		const combatant = this.currentCombatant();
 		if (!combatant) return;
-		document
-			.getElementById(`battle-combatant-${combatant.id}`)
-			?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		this.selectedCombatantId.set(combatant.id);
+		this.cockpitDetailsOpen.set(false);
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() =>
+				document
+					.getElementById(`battle-combatant-${combatant.id}`)
+					?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+			);
+		});
+	}
+
+	setCockpitDetailsOpen(event: Event) {
+		this.cockpitDetailsOpen.set((event.target as HTMLDetailsElement).open);
 	}
 
 	closeReferenceSheetViewer(restoreFocus = true) {
@@ -420,9 +435,12 @@ export class BattleTrackerPage {
 
 	applyDamage(combatantId: string) {
 		const amount = this.parseNonNegativeInt(this.damageDrafts()[combatantId]);
-		if (!amount) return;
+		this.applyDamageAmount(combatantId, amount);
+	}
 
-		this.updateBattle((battle) => this.battleService.applyDamage(battle, combatantId, amount));
+	applyDamageAmount(combatantId: string, amount: number) {
+		if (!Number.isFinite(amount) || amount < 0) return;
+		if (amount) this.updateBattle((battle) => this.battleService.applyDamage(battle, combatantId, amount));
 		this.setDamageDraft(combatantId, '');
 	}
 
@@ -436,6 +454,10 @@ export class BattleTrackerPage {
 
 	setDamageDraft(combatantId: string, value: string) {
 		this.damageDrafts.update((drafts) => ({ ...drafts, [combatantId]: value }));
+	}
+
+	setDamageTypeDraft(combatantId: string, value: string) {
+		this.damageTypeDrafts.update((drafts) => ({ ...drafts, [combatantId]: value }));
 	}
 
 	setHealingDraft(combatantId: string, value: string) {
@@ -1295,7 +1317,7 @@ export class BattleTrackerPage {
 
 	cardClasses(combatant: BattleCombatant): string {
 		const isCurrent = this.currentCombatant()?.id === combatant.id;
-		const base = 'rounded-3xl border p-4 transition';
+		const base = 'scroll-mt-64 rounded-3xl border p-4 transition';
 
 		if (combatant.pendingAdd) return `${base} border-dashed border-white/15 bg-white/5 opacity-90`;
 		if (combatant.defeated) return `${base} border-red-400/30 bg-red-500/10 opacity-75`;

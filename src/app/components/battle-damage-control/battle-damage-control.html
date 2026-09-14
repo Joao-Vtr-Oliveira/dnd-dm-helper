@@ -1,0 +1,42 @@
+<div class="grid gap-2" [class.md:grid-cols-2]="!compact">
+	<input type="number" min="0" class="app-field h-10 min-w-0 border-red-400/20 px-3" aria-label="Dano" placeholder="Dano" [ngModel]="amount" (ngModelChange)="setAmount($event)" />
+	@if (quickTypePicker) {
+		<div class="relative min-w-0">
+			<button type="button" class="app-field flex h-11 w-full items-center justify-between gap-2 px-3 text-left" [attr.aria-expanded]="typeMenuOpen" aria-haspopup="listbox" aria-label="Tipo de dano" (click)="typeMenuOpen = !typeMenuOpen"><span class="truncate">{{ selectedDamageTypeLabel() }}</span><span class="text-app-subtle" aria-hidden="true">⌄</span></button>
+			@if (typeMenuOpen) {
+				<div class="absolute left-0 top-[calc(100%+0.5rem)] z-[var(--z-app-popover)] grid w-80 grid-cols-2 gap-1 rounded-app-panel border border-violet-300/35 bg-app-surface-raised p-2 shadow-app-panel" role="listbox" aria-label="Tipos de dano">
+					<button type="button" class="col-span-2 rounded-app-control px-3 py-2 text-left text-sm" [class.bg-violet-500/20]="!damageType" [class.text-violet-50]="!damageType" role="option" [attr.aria-selected]="!damageType" (click)="chooseDamageType('')">Sem tipo</button>
+					@for (type of damageTypes; track type.value) {
+						<button type="button" class="rounded-app-control px-3 py-2 text-left text-sm hover:bg-white/8" [class.bg-violet-500/20]="damageType === type.value" [class.text-violet-50]="damageType === type.value" role="option" [attr.aria-selected]="damageType === type.value" (click)="chooseDamageType(type.value)">{{ type.label }}</button>
+					}
+				</div>
+			}
+		</div>
+	} @else {
+		<app-select [label]="showDamageTypeLabel ? 'Tipo de dano' : ''" ariaLabel="Tipo de dano" [options]="damageTypes" [value]="damageType" emptyLabel="Tipo de dano" (valueChange)="setDamageType($event)" />
+	}
+</div>
+<div class="mt-2 flex flex-wrap gap-2">
+	<button type="button" [attr.data-testid]="testId ? testId + '-apply-damage' : null" class="h-9 cursor-pointer rounded-2xl border border-red-400/30 bg-red-500/15 px-3 text-sm hover:bg-red-500/20" (click)="applyDamage()">{{ buttonLabel(1) }}</button>
+	<button type="button" class="h-9 cursor-pointer rounded-2xl border border-white/15 bg-white/10 px-3 text-sm hover:bg-white/15" (click)="applyDamage(0.5)">{{ buttonLabel(0.5) }}</button>
+	<button type="button" class="h-9 cursor-pointer rounded-2xl border border-white/15 bg-white/10 px-3 text-sm hover:bg-white/15" (click)="applyDamage(2)">{{ buttonLabel(2) }}</button>
+	<button type="button" class="h-9 cursor-pointer rounded-2xl border border-white/15 bg-white/10 px-3 text-sm hover:bg-white/15" (click)="applyDamage(0)">{{ buttonLabel(0) }}</button>
+</div>
+@if (defenses.matches.length) {
+	<div class="mt-2 rounded-xl border border-amber-300/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-50">
+		<div class="font-semibold">
+			@if (defenses.conflicted) { Conflito de defesas: } @else { Defesa encontrada: }
+			{{ defenseLabels() }}
+		</div>
+		@for (match of defenses.matches; track $index) {
+			@if (match.note) { <div class="mt-1">{{ match.label }}: {{ match.note }}</div> }
+		}
+		@if (defenses.suggestedMultiplier; as multiplier) {
+			<button type="button" class="mt-2 rounded-lg border border-amber-200/35 px-2 py-1 font-semibold hover:bg-amber-200/10" (click)="applyDamage(multiplier)">Aplicar {{ multiplier === 0.5 ? '½' : multiplier === 2 ? '×2' : '0' }} ({{ adjustedDamage(rawAmount, multiplier) }})</button>
+		} @else if (hasConditionalDefense()) {
+			<div class="mt-1 text-amber-100/80">Escolha manualmente entre dano normal e os atalhos conforme a condição.</div>
+		} @else if (defenses.conflicted) {
+			<div class="mt-1 text-amber-100/80">Nenhum ajuste foi escolhido automaticamente.</div>
+		}
+	</div>
+}
