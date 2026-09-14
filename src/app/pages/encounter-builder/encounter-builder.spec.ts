@@ -111,16 +111,42 @@ describe('EncounterBuilder', () => {
 		expect(navigate).toHaveBeenCalledWith(['/home/encounter-builder', component.savedId()]);
 	});
 
-	it('saves before creating a battle', () => {
+	it('asks for initiatives before creating a battle', () => {
 		const router = TestBed.inject(Router);
 		const navigate = spyOn(router, 'navigate').and.resolveTo(true);
 		component.addParticipants();
 		component.saveAndStartBattle();
+		fixture.detectChanges();
+
+		expect(fixture.nativeElement.textContent).toContain('Definir iniciativas');
+		expect(navigate).not.toHaveBeenCalled();
+		component.setInitiativeDraft(component.participants()[0].id, '17');
+		component.confirmInitiativeSetup();
 
 		const battle = TestBed.inject(BattleEncounterStorageService).getActiveBattleByEncounterId(
 			component.savedId()!,
 		);
 		expect(battle).not.toBeNull();
+		expect(battle?.combatants[0].initiative).toBe(17);
 		expect(navigate).toHaveBeenCalledWith(['/home/battle-tracker', battle?.id]);
+	});
+
+	it('asks for initiatives again when continuing an existing battle', () => {
+		component.addParticipants();
+		const participantId = component.participants()[0].id;
+		component.saveAndStartBattle();
+		component.setInitiativeDraft(participantId, '12');
+		component.confirmInitiativeSetup();
+		const storage = TestBed.inject(BattleEncounterStorageService);
+		const firstBattle = storage.getActiveBattleByEncounterId(component.savedId()!);
+
+		component.saveAndStartBattle();
+		expect(component.initiativeSetupOpen()).toBeTrue();
+		component.setInitiativeDraft(participantId, '18');
+		component.confirmInitiativeSetup();
+
+		const continuedBattle = storage.getActiveBattleByEncounterId(component.savedId()!);
+		expect(continuedBattle?.id).toBe(firstBattle?.id);
+		expect(continuedBattle?.combatants[0].initiative).toBe(18);
 	});
 });

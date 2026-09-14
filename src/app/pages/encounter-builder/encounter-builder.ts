@@ -10,6 +10,7 @@ import { SpellReferenceTriggerDirective } from '../../components/reference-overl
 import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 
 import type {
+	BattleEncounter,
 	BattleLairActionFrequency,
 	BattleTrapFrequency,
 	BattleTrapTriggerType,
@@ -32,6 +33,7 @@ import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type { CompendiumBestiaryMonsterIndexEntry } from '../../models/compendium-bestiary-model';
 import type { ResolvedSpellReference } from '../../models/spell-reference-model';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
+import { BattleEncounterService } from '../../services/battle-encounter-service/battle-encounter-service';
 import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
 import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
 import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
@@ -116,6 +118,8 @@ export class EncounterBuilder {
 	readonly sheetQ = signal('');
 	readonly toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
 	readonly unsavedChangesModal = signal(false);
+	readonly initiativeSetupOpen = signal(false);
+	readonly initiativeDrafts = signal<Record<string, string>>({});
 	readonly draft = signal<ParticipantDraft>(this.createParticipantDraft());
 	readonly spellDrafts = signal<Record<string, SpellDraft>>({});
 	readonly abilityDrafts = signal<Record<string, AbilityDraft>>({});
@@ -164,6 +168,7 @@ export class EncounterBuilder {
 	private readonly router = inject(Router);
 	private readonly ls = inject(LocalStorageService);
 	private readonly battleStorage = inject(BattleEncounterStorageService);
+	private readonly battleService = inject(BattleEncounterService);
 	private readonly creatureTemplates = inject(CreatureTemplateService);
 	private readonly bestiary = inject(CompendiumBestiaryRepositoryService);
 	private readonly compendiumAdapter = inject(CompendiumCreatureAdapterService);
@@ -635,13 +640,47 @@ export class EncounterBuilder {
 	}
 
 	saveAndStartBattle() {
+		this.initiativeDrafts.set(
+			Object.fromEntries(
+				this.participants().map((participant) => [
+					participant.id,
+					participant.initiative == null ? '' : String(participant.initiative),
+				]),
+			),
+		);
+		this.initiativeSetupOpen.set(true);
+	}
+
+	cancelInitiativeSetup() {
+		this.initiativeSetupOpen.set(false);
+	}
+
+	setInitiativeDraft(participantId: string, value: string) {
+		this.initiativeDrafts.update((drafts) => ({ ...drafts, [participantId]: value }));
+	}
+
+	confirmInitiativeSetup() {
+		const initiativeOverrides: Record<string, number> = {};
+		const participants = this.participants().map((participant) => {
+			const initiative = this.parseNullableNumber(this.initiativeDrafts()[participant.id]);
+			if (initiative != null) initiativeOverrides[participant.id] = initiative;
+			return { ...participant, initiative };
+		});
+		this.updateEncounter({ participants });
 		const result = this.persistEncounter();
 		if (!result) return;
-		const prepared = this.battleStorage.getOrCreateBattleFromEncounter(result.encounter);
-		const battle =
+		const prepared = this.battleStorage.getOrCreateBattleFromEncounter(result.encounter, {
+			initiativeOverrides,
+		});
+		let battle =
 			prepared.kind === 'existing' && prepared.battle.status === 'paused'
 				? (this.battleStorage.resumeBattleEncounter(prepared.battle.id) ?? prepared.battle)
 				: prepared.battle;
+		if (prepared.kind === 'existing' && Object.keys(initiativeOverrides).length) {
+			battle = this.applyInitiativesToExistingBattle(battle, initiativeOverrides);
+			this.battleStorage.saveBattleEncounter(battle);
+		}
+		this.initiativeSetupOpen.set(false);
 		this.router.navigate(['/home/battle-tracker', battle.id]);
 	}
 
@@ -665,6 +704,29 @@ export class EncounterBuilder {
 				}) satisfies EncounterParticipant,
 		);
 		this.updateEncounter({ participants: [...this.encounter().participants, ...participants] });
+	}
+
+	private applyInitiativesToExistingBattle(
+		battle: BattleEncounter,
+		initiativeOverrides: Record<string, number>,
+	): BattleEncounter {
+		const activeCombatantId = battle.combatants[battle.activeTurnIndex]?.id;
+		const combatants = this.battleService.orderCombatants(
+			battle.combatants.map((combatant) => {
+				const initiative = combatant.sourceParticipantId
+					? initiativeOverrides[combatant.sourceParticipantId]
+					: undefined;
+				return initiative == null ? combatant : { ...combatant, initiative };
+			}),
+		);
+		return {
+			...battle,
+			combatants,
+			activeTurnIndex: activeCombatantId
+				? Math.max(0, combatants.findIndex((combatant) => combatant.id === activeCombatantId))
+				: battle.activeTurnIndex,
+			updatedAt: new Date().toISOString(),
+		};
 	}
 
 	private bestiaryFilterValues(

@@ -1,6 +1,24 @@
 export type ConditionReference = { label: string; description: string };
 
 export const CONDITION_REFERENCES: Readonly<Record<string, ConditionReference>> = {
+	blinded: {
+		label: 'Cego / Blinded',
+		description:
+			'A criatura não consegue ver e falha automaticamente em testes de habilidade que exigem visão. Jogadas de ataque contra ela têm vantagem, e as jogadas de ataque dela têm desvantagem.',
+	},
+	charmed: {
+		label: 'Enfeitiçado / Charmed',
+		description:
+			'A criatura não pode atacar quem a enfeitiçou nem usar habilidades ou efeitos mágicos prejudiciais contra essa criatura. Quem a enfeitiçou tem vantagem em testes de habilidade para interagir socialmente com ela.',
+	},
+	deafened: {
+		label: 'Surdo / Deafened',
+		description: 'A criatura não consegue ouvir e falha automaticamente em testes de habilidade que exigem audição.',
+	},
+	incapacitated: {
+		label: 'Incapacitado / Incapacitated',
+		description: 'A criatura não pode realizar ações nem reações.',
+	},
 	poisoned: {
 		label: 'Envenenado / Poisoned',
 		description: 'A criatura tem desvantagem nas jogadas de ataque e testes de habilidade.',
@@ -32,6 +50,16 @@ export const CONDITION_REFERENCES: Readonly<Record<string, ConditionReference>> 
 	invisible: {
 		label: 'Invisível / Invisible',
 		description: 'A criatura é impossível de ver sem magia ou sentido especial. Ataques contra ela têm desvantagem e os ataques dela têm vantagem.',
+	},
+	paralyzed: {
+		label: 'Paralisado / Paralyzed',
+		description:
+			'A criatura fica incapacitada, não pode se mover ou falar e falha automaticamente em testes de resistência de Força e Destreza. Ataques contra ela têm vantagem; qualquer ataque que atinja a criatura é um acerto crítico se o atacante estiver a até 1,5 m.',
+	},
+	petrified: {
+		label: 'Petrificado / Petrified',
+		description:
+			'A criatura é transformada, junto com objetos não mágicos que veste ou carrega, em uma substância sólida inanimada. Ela fica incapacitada, não pode se mover ou falar, não percebe o ambiente, tem resistência a todo dano e é imune a veneno e doença.',
 	},
 };
 

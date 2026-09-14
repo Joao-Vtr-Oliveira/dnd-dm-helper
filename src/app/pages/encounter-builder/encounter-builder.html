@@ -1062,6 +1062,25 @@
 	(closed)="quickSpell.set(null)"
 />
 
+@if (initiativeSetupOpen()) {
+	<div class="fixed inset-0 z-[var(--z-app-modal)] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" (click)="cancelInitiativeSetup()">
+		<section role="dialog" aria-modal="true" aria-labelledby="initiative-setup-title" [appDialogFocus]="true" (appDialogEscape)="cancelInitiativeSetup()" class="app-dialog max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto p-5" (click)="$event.stopPropagation()">
+			<div class="flex items-start justify-between gap-4 border-b border-app-divider pb-4">
+				<div><div class="app-eyebrow text-violet-200/75">Preparar batalha</div><h2 id="initiative-setup-title" class="mt-1 text-xl font-semibold text-app-text">Definir iniciativas</h2><p class="mt-1 text-sm text-app-muted">Confirme a iniciativa de cada participante antes de abrir o Battle Tracker.</p></div>
+				<button type="button" class="app-button app-modal-close h-10 w-10 shrink-0 p-0" data-dialog-initial-focus (click)="cancelInitiativeSetup()" aria-label="Fechar iniciativas">x</button>
+			</div>
+			<div class="mt-4 space-y-2">
+				@for (participant of participants(); track participant.id) {
+					<label class="flex items-center justify-between gap-4 rounded-app-control border border-app-border bg-app-inset px-3 py-2"><span class="min-w-0 truncate font-medium text-app-text">{{ participant.name }}</span><input type="number" class="app-field w-24 px-3 py-2 text-right" [ngModel]="initiativeDrafts()[participant.id]" (ngModelChange)="setInitiativeDraft(participant.id, $event)" [attr.aria-label]="'Iniciativa de ' + participant.name" /></label>
+				} @empty {
+					<p class="rounded-app-control border border-dashed border-app-border p-4 text-sm text-app-muted">Nenhum participante foi adicionado ao encounter.</p>
+				}
+			</div>
+			<div class="mt-5 flex justify-end gap-2 border-t border-app-divider pt-4"><button type="button" class="app-button app-button-secondary" (click)="cancelInitiativeSetup()">Cancelar</button><button type="button" class="app-button app-button-primary" (click)="confirmInitiativeSetup()">Salvar e abrir batalha</button></div>
+		</section>
+	</div>
+}
+
 @if (unsavedChangesModal()) {
 	<div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
 		<section class="app-dialog w-full max-w-lg p-5">
