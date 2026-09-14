@@ -1135,8 +1135,8 @@
 										<summary class="cursor-pointer text-sm font-semibold text-app-text">
 											@if (combatant.specialAbilities.length > 0) {
 												Habilidades especiais
-											} @else {
-												Adicionar habilidade especial
+										} @else {
+											Nenhuma habilidade especial
 											}
 										</summary>
 										@if (combatant.specialAbilities.length > 0) {
@@ -1208,133 +1208,21 @@
 																	{{ abilityUseLabel(ability) }}
 																</button>
 
-																<button
+																@if (ability.recoveryType !== 'dice-recharge') {
+																	<button
 																	type="button"
 																	class="h-9 cursor-pointer rounded-2xl border border-white/10 bg-black/30 px-3 text-sm hover:bg-black/40"
 																	(click)="resetAbility(combatant.id, ability.id)"
 																>
 																	{{ abilityResetLabel(ability) }}
-																</button>
+																	</button>
+																}
 
-																<button
-																	type="button"
-																	class="h-9 cursor-pointer rounded-2xl border border-red-400/20 bg-red-500/15 px-3 text-sm hover:bg-red-500/20"
-																	(click)="removeAbility(combatant.id, ability.id)"
-																>
-																	Remover
-																</button>
 															</div>
 														</div>
 													</div>
 												}
 											</div>
-										}
-
-										<div class="border-t border-white/10 pt-3 text-sm font-semibold">
-											Nova habilidade especial
-										</div>
-										<div
-											class="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)]"
-										>
-											<label class="text-sm">
-												<span class="mb-1 block opacity-70">Nome</span>
-												<input
-													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="getAbilityDraft(combatant.id).name"
-													(ngModelChange)="setAbilityDraft(combatant.id, { name: $event })"
-													placeholder="Ex: Sopro Flamejante"
-												/>
-											</label>
-
-											<label class="text-sm">
-												<span class="mb-1 block opacity-70">Descrição</span>
-												<input
-													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="getAbilityDraft(combatant.id).description"
-													(ngModelChange)="setAbilityDraft(combatant.id, { description: $event })"
-													placeholder="Opcional"
-												/>
-											</label>
-
-											<label class="text-sm">
-												<span class="mb-1 block opacity-70">Recuperação</span>
-												<select
-													class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="getAbilityDraft(combatant.id).recoveryType"
-													(ngModelChange)="setAbilityDraft(combatant.id, { recoveryType: $event })"
-												>
-													<option value="manual">Manual</option>
-													<option value="turn-cooldown">Cooldown por turnos</option>
-													<option value="round-cooldown">Cooldown por rounds</option>
-											<option value="uses-per-day">Usos por dia</option>
-											<option value="uses-per-combat">Usos por combate</option>
-													<option value="short-rest">Descanso curto</option>
-													<option value="long-rest">Descanso longo</option>
-													<option value="dice-recharge">Recharge 5-6</option>
-												</select>
-											</label>
-										</div>
-
-										<div class="flex justify-end">
-											<button
-												type="button"
-												class="h-10 w-full cursor-pointer rounded-2xl border border-white/10 bg-white/10 px-4 hover:bg-white/15 sm:w-auto sm:min-w-56"
-												(click)="addAbility(combatant.id)"
-											>
-												Adicionar habilidade
-											</button>
-										</div>
-
-										@if (
-											getAbilityDraft(combatant.id).recoveryType === 'turn-cooldown' ||
-											getAbilityDraft(combatant.id).recoveryType === 'round-cooldown'
-										) {
-											<label class="text-sm">
-												<span class="mb-1 block opacity-70">
-													@if (getAbilityDraft(combatant.id).recoveryType === 'turn-cooldown') {
-														Volta em quantos turnos?
-													} @else {
-														Volta em quantos rounds?
-													}
-												</span>
-												<input
-													type="number"
-													min="1"
-													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="getAbilityDraft(combatant.id).cooldownValue"
-													(ngModelChange)="setAbilityDraft(combatant.id, { cooldownValue: $event })"
-												/>
-											</label>
-										}
-
-										@if (
-											getAbilityDraft(combatant.id).recoveryType === 'uses-per-day' ||
-											getAbilityDraft(combatant.id).recoveryType === 'uses-per-combat' ||
-											getAbilityDraft(combatant.id).recoveryType === 'short-rest' ||
-											getAbilityDraft(combatant.id).recoveryType === 'long-rest'
-										) {
-											<label class="text-sm">
-												<span class="mb-1 block opacity-70">Usos máximos</span>
-												<input
-													type="number"
-													min="1"
-													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="getAbilityDraft(combatant.id).maxUses"
-													(ngModelChange)="setAbilityDraft(combatant.id, { maxUses: $event })"
-												/>
-											</label>
-										}
-
-										@if (getAbilityDraft(combatant.id).recoveryType === 'dice-recharge') {
-											<label class="text-sm">
-												<span class="mb-1 block opacity-70">Resultados que recarregam</span>
-												<input
-													class="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="getAbilityDraft(combatant.id).rechargeOn"
-													(ngModelChange)="setAbilityDraft(combatant.id, { rechargeOn: $event })"
-													placeholder="Ex: 5,6"
-												/>
-											</label>
 										}
 									</details>
 
@@ -2433,6 +2321,7 @@
 				<app-creature-stat-block
 					[creature]="viewer.creature"
 					[category]="viewer.category"
+					[runtimeCombatant]="viewer.combatant"
 					variant="embedded"
 					(selectedSpell)="openSpellQuickView($event)"
 					(selectedCondition)="openFeatureConditionReference($event)"

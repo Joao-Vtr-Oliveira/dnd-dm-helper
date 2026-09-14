@@ -1893,16 +1893,17 @@ export class FiveEToolsHomebrewService {
 	): CreatureSpecialAbility | null {
 		const name = (block.name || '').trim();
 		if (!name) return null;
-		const recharge = name.match(/Recharge\s*(\d)\s*[\-\u2013]\s*(\d)/i);
+		const recharge = name.match(/Recharge\s*(\d)(?:\s*[\-\u2013]\s*(\d))?/i);
 		if (recharge) {
 			const min = Math.max(1, Number(recharge[1] || 5));
+			const max = Math.min(6, Math.max(min, Number(recharge[2] || min)));
 			return {
 				id: `5etools-ability-${index + 1}`,
 				name,
 				description: this.flattenEntries(block.entries),
 				recoveryType: 'dice-recharge',
 				rechargeDice: 'd6',
-				rechargeOn: this.range(min, 6),
+				rechargeOn: this.range(min, max),
 			};
 		}
 
@@ -1923,7 +1924,8 @@ export class FiveEToolsHomebrewService {
 				id: `5etools-ability-${index + 1}`,
 				name,
 				description: this.flattenEntries(block.entries),
-				recoveryType: 'manual',
+				recoveryType: 'uses-per-combat',
+				maxUses: Math.max(1, Number(perCombat[1] || 1)),
 			};
 		}
 

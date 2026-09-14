@@ -6,6 +6,7 @@ import type {
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import { BattleEncounterService } from '../battle-encounter-service/battle-encounter-service';
 import type { SavedEncounter } from '../local-storage-service/local-storage-service';
+import { LocalStorageService } from '../local-storage-service/local-storage-service';
 
 export type BattlePreparationResult =
 	| { kind: 'existing'; battle: BattleEncounter }
@@ -15,6 +16,7 @@ export type BattlePreparationResult =
 export class BattleEncounterStorageService {
 	private readonly storageKey = APP_STORAGE_KEYS.battleEncounters;
 	private readonly battleEncounterService = inject(BattleEncounterService);
+	private readonly localStorageService = inject(LocalStorageService);
 
 	getBattleEncounters(): BattleEncounter[] {
 		const raw = localStorage.getItem(this.storageKey);
@@ -26,7 +28,12 @@ export class BattleEncounterStorageService {
 
 			const normalized = parsed
 				.filter((battle) => this.isBattleEncounterLike(battle))
-				.map((battle) => this.battleEncounterService.normalizeBattleEncounter(battle))
+				.map((battle) =>
+					this.battleEncounterService.refreshLinkedSheetSnapshots(
+						this.battleEncounterService.normalizeBattleEncounter(battle),
+						this.localStorageService.listSheets(),
+					),
+				)
 				.sort(
 					(left, right) =>
 						Date.parse(right.updatedAt || '') - Date.parse(left.updatedAt || '')

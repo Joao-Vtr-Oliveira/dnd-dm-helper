@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import type {
 	CreatureAbilityKey,
+	CreatureAbilityRecoveryType,
 	CreatureCategory,
 	CreatureDamageDefense,
 	CreatureFeature,
@@ -141,21 +142,58 @@ export class CreatureTemplateService {
 			const featureId = typeof ability?.featureId === 'string' ? ability.featureId.trim() : '';
 			const name = typeof ability?.name === 'string' ? ability.name.trim() : '';
 			if (!featureId && !name) return [];
-			return [
-				{
-					...structuredClone(ability),
-					id:
-						typeof ability.id === 'string' && ability.id.trim()
-							? ability.id
-							: `ability-${index + 1}`,
-					...(featureId ? { featureId } : {}),
-					...(name ? { name } : {}),
-					...(typeof ability.description === 'string' && ability.description.trim()
-						? { description: ability.description.trim() }
-						: {}),
-				},
-			];
+			const recoveryType = this.normalizeAbilityRecoveryType(ability.recoveryType);
+			const limitedUses =
+				recoveryType === 'uses-per-day' ||
+				recoveryType === 'uses-per-combat' ||
+				recoveryType === 'short-rest' ||
+				recoveryType === 'long-rest';
+			const rechargeOn = Array.isArray(ability.rechargeOn)
+				? ability.rechargeOn
+						.map((value) => this.toNonNegativeInt(value))
+						.filter((value) => value >= 1 && value <= 6)
+				: [];
+			return [{
+				id:
+					typeof ability.id === 'string' && ability.id.trim()
+						? ability.id
+						: `ability-${index + 1}`,
+				recoveryType,
+				...(featureId ? { featureId } : {}),
+				...(name ? { name } : {}),
+				...(typeof ability.description === 'string' && ability.description.trim()
+					? { description: ability.description.trim() }
+					: {}),
+				...(limitedUses ? this.optionalPositiveInteger('maxUses', ability.maxUses) : {}),
+				...(recoveryType === 'turn-cooldown'
+					? this.optionalPositiveInteger('cooldownTurns', ability.cooldownTurns)
+					: {}),
+				...(recoveryType === 'round-cooldown'
+					? this.optionalPositiveInteger('cooldownRounds', ability.cooldownRounds)
+					: {}),
+				...(recoveryType === 'dice-recharge'
+					? {
+						rechargeDice: 'd6' as const,
+						...(rechargeOn.length ? { rechargeOn } : {}),
+					}
+					: {}),
+			}];
 		});
+	}
+
+	private normalizeAbilityRecoveryType(value: unknown): CreatureAbilityRecoveryType {
+		if (
+			value === 'turn-cooldown' ||
+			value === 'round-cooldown' ||
+			value === 'uses-per-day' ||
+			value === 'uses-per-combat' ||
+			value === 'short-rest' ||
+			value === 'long-rest' ||
+			value === 'dice-recharge'
+		) {
+			return value;
+		}
+		return 'manual';
 	}
 
 	private normalizeFeatures(features: CreatureFeature[] | undefined): CreatureFeature[] {

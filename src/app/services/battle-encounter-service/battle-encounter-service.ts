@@ -40,9 +40,9 @@ import {
 } from '../battle-condition-service/battle-condition-service';
 import {
 	BattleAbilityService,
-	type CreateBattleAbilityInput,
 } from '../battle-ability-service/battle-ability-service';
 import { BattleSpellSlotService } from '../battle-spell-slot-service/battle-spell-slot-service';
+import type { SavedSheetInterface } from '../local-storage-service/local-storage-service';
 
 const DEFAULT_SIDE: BattleCombatantSide = 'enemy';
 const DEFAULT_CREATURE_CATEGORY: CreatureCategory = 'monster';
@@ -222,6 +222,67 @@ export class BattleEncounterService {
 			pendingActions,
 			turnSnapshots: this.normalizeTurnSnapshots(raw.turnSnapshots),
 		};
+	}
+
+	/**
+	 * Replaces legacy stat-block projections with their linked canonical sheets while retaining
+	 * combat-only state. This prevents obsolete snapshot spells and recovery rules from leaking
+	 * into active battles after a sheet migration.
+	 */
+	refreshLinkedSheetSnapshots(
+		battle: BattleEncounter,
+		sheets: SavedSheetInterface[],
+	): BattleEncounter {
+		const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
+		const refreshCombatant = (combatant: BattleCombatant) => {
+			const source = combatant.sourceSheetId ? sheetsById.get(combatant.sourceSheetId) : undefined;
+			if (!source) return combatant;
+			const sheet = source.data;
+			return {
+				...combatant,
+				category: source.category,
+				armorClass: sheet.armorClass,
+				maxHp: sheet.maxHp,
+				currentHp: Math.min(combatant.currentHp, sheet.maxHp),
+				specialAbilities: this.refreshRuntimeAbilities(
+					combatant.specialAbilities,
+					sheet.specialAbilities,
+					sheet.features,
+					combatant.features.length === 0,
+				),
+				spellSlots: this.refreshRuntimeSpellSlots(combatant.spellSlots, sheet.spellSlots),
+				spells: structuredClone(sheet.spells),
+				features: structuredClone(sheet.features),
+			};
+		};
+		const combatants = battle.combatants.map(refreshCombatant);
+		const pendingCombatants = battle.pendingCombatants.map(refreshCombatant);
+		const referenceSheets = battle.referenceSheets.map((reference) => {
+			const combatant = [...combatants, ...pendingCombatants].find(
+				(candidate) => candidate.referenceSheetId === reference.id,
+			);
+			const source = combatant?.sourceSheetId ? sheetsById.get(combatant.sourceSheetId) : undefined;
+			return source ? { ...reference, sheet: structuredClone(source.data) } : reference;
+		});
+		return this.normalizeBattleEncounter({
+			...battle,
+			combatants,
+			pendingCombatants,
+			referenceSheets,
+			pendingActions: this.reconcilePendingActionsForCombatants(
+				battle.pendingActions,
+				combatants,
+				pendingCombatants,
+			),
+			turnSnapshots: battle.turnSnapshots.map((snapshot) => ({
+				...snapshot,
+				state: {
+					...snapshot.state,
+					combatants: snapshot.state.combatants.map(refreshCombatant),
+					pendingCombatants: snapshot.state.pendingCombatants.map(refreshCombatant),
+				},
+			})),
+		});
 	}
 
 	orderCombatants(combatants: BattleCombatant[]): BattleCombatant[] {
@@ -1070,17 +1131,6 @@ export class BattleEncounterService {
 		return this.conditionService.describeConditionDuration(condition, battle);
 	}
 
-	addSpecialAbility(
-		battle: BattleEncounter,
-		combatantId: string,
-		input: CreateBattleAbilityInput,
-	): BattleEncounter {
-		return this.mapCombatant(battle, combatantId, (combatant) => ({
-			...combatant,
-			specialAbilities: [...combatant.specialAbilities, this.abilityService.createAbility(input)],
-		}));
-	}
-
 	useSpecialAbility(
 		battle: BattleEncounter,
 		combatantId: string,
@@ -1104,17 +1154,6 @@ export class BattleEncounterService {
 			specialAbilities: combatant.specialAbilities.map((ability) =>
 				ability.id === abilityId ? this.abilityService.resetAbility(ability) : ability,
 			),
-		}));
-	}
-
-	removeSpecialAbility(
-		battle: BattleEncounter,
-		combatantId: string,
-		abilityId: string,
-	): BattleEncounter {
-		return this.mapCombatant(battle, combatantId, (combatant) => ({
-			...combatant,
-			specialAbilities: combatant.specialAbilities.filter((ability) => ability.id !== abilityId),
 		}));
 	}
 
@@ -1750,7 +1789,7 @@ export class BattleEncounterService {
 			pendingAdd: overrides?.pendingAdd === true,
 			joinsAtRound: overrides?.joinsAtRound,
 			conditions: [],
-			specialAbilities: this.createRuntimeAbilities(sheet.specialAbilities),
+			specialAbilities: this.createRuntimeAbilities(sheet.specialAbilities, sheet.features),
 			spellSlots: this.createRuntimeSpellSlots(sheet.spellSlots),
 			spells: structuredClone(sheet.spells),
 			features: structuredClone(sheet.features),
@@ -2109,12 +2148,20 @@ export class BattleEncounterService {
 		return [...(battle.turnSnapshots ?? []), snapshot].slice(-MAX_BATTLE_TURN_SNAPSHOTS);
 	}
 
-	private createRuntimeAbilities(abilities: CreatureSpecialAbility[]): BattleSpecialAbility[] {
+	private createRuntimeAbilities(
+		abilities: CreatureSpecialAbility[],
+		features: CreatureFeature[],
+	): BattleSpecialAbility[] {
 		return abilities.map((ability, index) =>
 			this.abilityService.normalizeAbility({
 				...this.abilityService.createAbility({
-					name: ability.name ?? 'Habilidade especial',
-					description: ability.description,
+					name:
+						ability.name ??
+						features.find((feature) => feature.id === ability.featureId)?.name ??
+						'Habilidade especial',
+					description:
+						ability.description ??
+						features.find((feature) => feature.id === ability.featureId)?.description,
 					recoveryType: ability.recoveryType,
 					maxUses: ability.maxUses,
 					cooldownTurns: ability.cooldownTurns,
@@ -2125,6 +2172,64 @@ export class BattleEncounterService {
 				id: ability.id || `creature-ability-${index + 1}`,
 			}),
 		);
+	}
+
+	private refreshRuntimeAbilities(
+		current: BattleSpecialAbility[],
+		source: CreatureSpecialAbility[],
+		features: CreatureFeature[],
+		allowLegacyPositionMatch: boolean,
+	): BattleSpecialAbility[] {
+		const fresh = this.createRuntimeAbilities(source, features);
+		const currentByName = new Map(
+			current.map((ability) => [this.abilityMatchKey(ability.name), ability]),
+		);
+		return fresh.map((ability, index) => {
+			const prior = currentByName.get(this.abilityMatchKey(ability.name)) ??
+				(allowLegacyPositionMatch && current.length === fresh.length ? current[index] : undefined);
+			if (!prior) return ability;
+			const wasUnavailable = prior.isAvailable === false;
+			const usedCount =
+				ability.recoveryType === 'uses-per-day' || ability.recoveryType === 'uses-per-combat'
+					? Math.min(
+							ability.maxUses ?? 1,
+							prior.usedCount && prior.usedCount > 0
+								? prior.usedCount
+								: wasUnavailable
+									? ability.maxUses ?? 1
+									: 0,
+						)
+					: 0;
+			return this.abilityService.normalizeAbility({
+				...ability,
+				usedCount,
+				isAvailable: ability.recoveryType === 'dice-recharge' ? !wasUnavailable : undefined,
+				lastUsedAtRound: prior.lastUsedAtRound,
+				lastUsedAtTurnIndex: prior.lastUsedAtTurnIndex,
+				lastUsedAt: prior.lastUsedAt,
+				lastRechargeRoll: prior.lastRechargeRoll,
+				lastRechargeAttemptAtRound: prior.lastRechargeAttemptAtRound,
+			});
+		});
+	}
+
+	private refreshRuntimeSpellSlots(
+		current: BattleSpellSlotLevel[],
+		source: CreatureSpellSlot[],
+	): BattleSpellSlotLevel[] {
+		const usedByLevel = new Map(current.map((slot) => [slot.level, slot.used]));
+		return this.createRuntimeSpellSlots(source).map((slot) => ({
+			...slot,
+			used: Math.min(slot.max, usedByLevel.get(slot.level) ?? 0),
+		}));
+	}
+
+	private abilityMatchKey(name: string) {
+		return name
+			.toLocaleLowerCase()
+			.replace(/\([^)]*\)/g, '')
+			.replace(/[^\p{L}\p{N}]+/gu, ' ')
+			.trim();
 	}
 
 	private createRuntimeSpellSlots(slots: CreatureSpellSlot[]): BattleSpellSlotLevel[] {

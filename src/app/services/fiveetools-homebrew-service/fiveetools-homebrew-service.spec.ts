@@ -203,6 +203,21 @@ describe('FiveEToolsHomebrewService', () => {
 		expect(creature.features.some((feature) => feature.name === 'Fire Breath (Recharge 5–6)')).toBeTrue();
 	});
 
+	it('preserves singleton recharge and combat-limited uses as operational abilities', () => {
+		const creature = service.convertMonsterToCreature({
+			name: 'Ability Test', source: 'Notion', type: 'fiend', ac: [14], hp: { average: 30 },
+			action: [
+				{ name: 'Infernal Pulse (Recharge 6)', entries: [] },
+				{ name: 'Battle Cry (2/Combat)', entries: [] },
+			],
+		});
+
+		expect(creature.specialAbilities).toEqual([
+			jasmine.objectContaining({ recoveryType: 'dice-recharge', rechargeDice: 'd6', rechargeOn: [6] }),
+			jasmine.objectContaining({ recoveryType: 'uses-per-combat', maxUses: 2 }),
+		]);
+	});
+
 	it('preserves raw 5etools data when a converted sheet is exported again', () => {
 		const monster = {
 			name: 'Arcane Warden',

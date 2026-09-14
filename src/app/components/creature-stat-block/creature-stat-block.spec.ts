@@ -171,6 +171,33 @@ describe('CreatureStatBlockComponent', () => {
 		expect(selected).toEqual(['poisoned']);
 	});
 
+	it('renders battle runtime without changing the static creature definition', () => {
+		const creature = creatureFixture();
+		fixture.componentRef.setInput('creature', creature);
+		fixture.componentRef.setInput('runtimeCombatant', {
+			specialAbilities: [
+				{
+					id: 'rebuke', name: 'Hellish Rebuke', recoveryType: 'uses-per-day', maxUses: 2,
+					usedCount: 1, isAvailable: true,
+				},
+				{
+					id: 'brand', name: 'Infernal Brand', recoveryType: 'dice-recharge', rechargeDice: 'd6',
+					rechargeOn: [5, 6], usedCount: 0, isAvailable: false,
+				},
+			],
+			spellSlots: [{ level: 3, max: 2, used: 1 }],
+		});
+		fixture.detectChanges();
+
+		const text = fixture.nativeElement.textContent;
+		expect(text).toContain('Estado na batalha');
+		expect(text).toContain('1 / 2 disponível');
+		expect(text).toContain('Recharge 5–6');
+		expect(text).toContain('Aguardando recharge');
+		expect(text).toContain('Slots de 3º. 1 / 2 disponíveis');
+		expect(creature.specialAbilities).toEqual([]);
+	});
+
 	it('removes the elevated frame when embedded', () => {
 		fixture.componentRef.setInput('creature', creatureFixture());
 		fixture.componentRef.setInput('variant', 'embedded');

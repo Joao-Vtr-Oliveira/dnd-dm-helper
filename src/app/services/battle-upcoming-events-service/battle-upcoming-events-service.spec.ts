@@ -100,14 +100,24 @@ describe('BattleUpcomingEventsService', () => {
 	});
 
 	it('shows ability cooldown recovery in the timeline', () => {
-		const battle = battleService.createBattleFromEncounter(encounter);
-		const withAbility = battleService.addSpecialAbility(battle, battle.combatants[0].id, {
-			name: 'Sopro Flamejante',
-			recoveryType: 'turn-cooldown',
-			cooldownTurns: 2,
+		const battle = battleService.createBattleFromEncounter({
+			...encounter,
+			participants: encounter.participants.map((participant, index) =>
+				index === 0
+					? {
+							...participant,
+							sheet: {
+								...participant.sheet,
+								specialAbilities: [
+									{ id: 'flame-breath', name: 'Sopro Flamejante', recoveryType: 'turn-cooldown', cooldownTurns: 2 },
+								],
+							},
+						}
+					: participant,
+			),
 		});
-		const abilityId = withAbility.combatants[0].specialAbilities[0].id;
-		const used = battleService.useSpecialAbility(withAbility, battle.combatants[0].id, abilityId);
+		const abilityId = battle.combatants[0].specialAbilities[0].id;
+		const used = battleService.useSpecialAbility(battle, battle.combatants[0].id, abilityId);
 		const events = service.buildUpcomingBattleEvents(used, 8);
 
 		expect(events.some((event) => event.type === 'ability-recharge' && event.label.includes('Sopro Flamejante'))).toBeTrue();

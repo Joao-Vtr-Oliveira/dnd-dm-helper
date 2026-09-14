@@ -8,7 +8,6 @@ import { CreatureStatBlockComponent } from '../../components/creature-stat-block
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type {
-	BattleAbilityRecoveryType,
 	BattleCombatant,
 	BattleCombatantSide,
 	BattleConcentrationCheckPendingAction,
@@ -51,15 +50,6 @@ type ConditionDraft = {
 	customLabel: string;
 	durationMode: ConditionDurationMode;
 	durationValue: string;
-};
-
-type AbilityDraft = {
-	name: string;
-	description: string;
-	recoveryType: BattleAbilityRecoveryType;
-	maxUses: string;
-	cooldownValue: string;
-	rechargeOn: string;
 };
 
 type LairActionDraft = {
@@ -133,7 +123,6 @@ export class BattleTrackerPage {
 	readonly damageDrafts = signal<Record<string, string>>({});
 	readonly healingDrafts = signal<Record<string, string>>({});
 	readonly conditionDrafts = signal<Record<string, ConditionDraft>>({});
-	readonly abilityDrafts = signal<Record<string, AbilityDraft>>({});
 	readonly lairActionDraft = signal<LairActionDraft>(this.createLairActionDraft());
 	readonly trapDraft = signal<TrapDraft>(this.createTrapDraft());
 	readonly initiativeDrafts = signal<Record<string, string>>({});
@@ -147,6 +136,7 @@ export class BattleTrackerPage {
 	readonly referenceSheetViewer = signal<{
 		creature: CreatureSheet;
 		category?: CreatureCategory;
+		combatant: BattleCombatant;
 	} | null>(null);
 	readonly homebrewSheets = signal<SavedSheetInterface[]>(this.localStorageService.listSheets());
 	readonly homebrewSearch = signal('');
@@ -223,9 +213,7 @@ export class BattleTrackerPage {
 		const pendingAbilityIds = new Set(
 			this.pendingDiceRechargeAbilities().map((ability) => ability.id),
 		);
-		return combatant.specialAbilities
-			.filter((ability) => ability.recoveryType !== 'manual')
-			.sort(
+		return [...combatant.specialAbilities].sort(
 				(left, right) =>
 					Number(pendingAbilityIds.has(right.id)) - Number(pendingAbilityIds.has(left.id)),
 			);
@@ -405,6 +393,7 @@ export class BattleTrackerPage {
 		this.referenceSheetViewer.set({
 			creature: this.referenceSheetForCombatant(combatant),
 			category: savedSheet?.category ?? combatant.category,
+			combatant,
 		});
 		this.focusModal();
 	}
@@ -675,76 +664,6 @@ export class BattleTrackerPage {
 		);
 	}
 
-	getAbilityDraft(combatantId: string): AbilityDraft {
-		return (
-			this.abilityDrafts()[combatantId] ?? {
-				name: '',
-				description: '',
-				recoveryType: 'manual',
-				maxUses: '1',
-				cooldownValue: '1',
-				rechargeOn: '5,6',
-			}
-		);
-	}
-
-	setAbilityDraft(combatantId: string, patch: Partial<AbilityDraft>) {
-		this.abilityDrafts.update((drafts) => ({
-			...drafts,
-			[combatantId]: {
-				...this.getAbilityDraft(combatantId),
-				...patch,
-			},
-		}));
-	}
-
-	addAbility(combatantId: string) {
-		const draft = this.getAbilityDraft(combatantId);
-		const name = draft.name.trim();
-		if (!name) {
-			this.showToast('error', 'Informe o nome da habilidade.');
-			return;
-		}
-
-		const cooldownValue = Math.max(1, this.parseNonNegativeInt(draft.cooldownValue) || 1);
-		const maxUses = Math.max(1, this.parseNonNegativeInt(draft.maxUses) || 1);
-		const rechargeOn = draft.rechargeOn
-			.split(',')
-			.map((item) => this.parseNonNegativeInt(item))
-			.filter((item) => item > 0);
-
-		this.updateBattle((battle) =>
-			this.battleService.addSpecialAbility(battle, combatantId, {
-				name,
-				description: draft.description,
-				recoveryType: draft.recoveryType,
-				maxUses:
-					draft.recoveryType === 'uses-per-day' ||
-					draft.recoveryType === 'uses-per-combat' ||
-					draft.recoveryType === 'short-rest' ||
-					draft.recoveryType === 'long-rest'
-						? maxUses
-						: undefined,
-				cooldownTurns: draft.recoveryType === 'turn-cooldown' ? cooldownValue : undefined,
-				cooldownRounds: draft.recoveryType === 'round-cooldown' ? cooldownValue : undefined,
-				rechargeDice: draft.recoveryType === 'dice-recharge' ? 'd6' : undefined,
-				rechargeOn: draft.recoveryType === 'dice-recharge' ? rechargeOn : undefined,
-			}),
-		);
-
-		this.abilityDrafts.update((drafts) => ({
-			...drafts,
-			[combatantId]: {
-				name: '',
-				description: '',
-				recoveryType: 'manual',
-				maxUses: '1',
-				cooldownValue: '1',
-				rechargeOn: '5,6',
-			},
-		}));
-	}
-
 	useAbility(combatantId: string, abilityId: string) {
 		this.updateBattle((battle) =>
 			this.battleService.useSpecialAbility(battle, combatantId, abilityId),
@@ -754,12 +673,6 @@ export class BattleTrackerPage {
 	resetAbility(combatantId: string, abilityId: string) {
 		this.updateBattle((battle) =>
 			this.battleService.resetSpecialAbility(battle, combatantId, abilityId),
-		);
-	}
-
-	removeAbility(combatantId: string, abilityId: string) {
-		this.updateBattle((battle) =>
-			this.battleService.removeSpecialAbility(battle, combatantId, abilityId),
 		);
 	}
 

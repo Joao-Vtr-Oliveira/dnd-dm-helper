@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { SavedEncounter } from '../local-storage-service/local-storage-service';
+import { LocalStorageService, type SavedEncounter } from '../local-storage-service/local-storage-service';
 import { BattleEncounterStorageService } from './battle-encounter-storage-service';
 
 describe('BattleEncounterStorageService', () => {
@@ -60,5 +60,55 @@ describe('BattleEncounterStorageService', () => {
 
 		expect(service.getBattleEncounterById('old-battle')?.turnSnapshots).toEqual([]);
 		expect(service.getBattleEncounterById('old-battle')?.pendingActions).toEqual([]);
+	});
+
+	it('replaces a linked legacy Wen snapshot with the current rich sheet while keeping combat state', () => {
+		const sheets = TestBed.inject(LocalStorageService);
+		const wen = sheets.createSheet({
+			title: 'Wen Torger', category: 'npc', source: 'Notion',
+			data: {
+				name: 'Wen Torger', armorClass: 15, maxHp: 58, spellSlots: [],
+				spells: [{ id: 'eldritch-blast', name: 'Eldritch Blast', source: 'XPHB', level: 0 }],
+				specialAbilities: [
+					{ id: 'brand', name: 'Infernal Brand', recoveryType: 'dice-recharge', rechargeDice: 'd6', rechargeOn: [5, 6] },
+					{ id: 'step', name: 'Fiendish Step', recoveryType: 'dice-recharge', rechargeDice: 'd6', rechargeOn: [4, 5, 6] },
+					{ id: 'rebuke', name: 'Hellish Rebuke', recoveryType: 'uses-per-day', maxUses: 2 },
+				],
+				features: [
+					{ id: 'hunter', name: 'Caçador da Winterhold', kind: 'trait' },
+					{ id: 'pact', name: 'Pacto Infernal Controlado', kind: 'trait' },
+				],
+			},
+		});
+		localStorage.setItem('dnd-dm-helper.battle-encounters.v1', JSON.stringify([{
+			id: 'wen-legacy', name: 'Old Wen', status: 'active', round: 2, activeTurnIndex: 0,
+			createdAt: '2026-01-01T10:00:00Z', startedAt: '2026-01-01T10:00:00Z', updatedAt: '2026-01-01T10:00:00Z',
+			combatants: [{
+				id: 'wen', sourceSheetId: wen.id, name: 'Wen Torger', category: 'npc', side: 'ally',
+				initiative: 12, turnOrder: 0, armorClass: 15, maxHp: 58, currentHp: 41, temporaryHp: 3,
+				defeated: false, hidden: false, collapsed: false, spellSlotsCollapsed: true, pendingAdd: false,
+				conditions: [], spellSlots: [], features: [],
+				spells: [{ id: 'pact', name: 'Pacto Infernal Controlado', uses: 1 }],
+				specialAbilities: [
+					{ id: 'brand-old', name: 'Marca Infernal', recoveryType: 'round-cooldown', cooldownRounds: 5, currentCooldownRounds: 5, isAvailable: false },
+					{ id: 'step-old', name: 'Passo Infernal', recoveryType: 'round-cooldown', cooldownRounds: 4, currentCooldownRounds: 4, isAvailable: false },
+					{ id: 'rebuke-old', name: 'Hellish Rebuke', recoveryType: 'manual', isAvailable: false },
+				],
+			}], pendingCombatants: [], lairActions: [], traps: [], turnHistory: [], pendingActions: [], turnSnapshots: [],
+		}]));
+
+		const loaded = service.getBattleEncounterById('wen-legacy')!;
+		const wenRuntime = loaded.combatants[0];
+		expect(wenRuntime.currentHp).toBe(41);
+		expect(wenRuntime.temporaryHp).toBe(3);
+		expect(wenRuntime.spells.map((spell) => spell.name)).toEqual(['Eldritch Blast']);
+		expect(wenRuntime.features.map((feature) => feature.name)).toEqual([
+			'Caçador da Winterhold', 'Pacto Infernal Controlado',
+		]);
+		expect(wenRuntime.specialAbilities).toEqual([
+			jasmine.objectContaining({ name: 'Infernal Brand', recoveryType: 'dice-recharge', rechargeOn: [5, 6], currentCooldownRounds: 0, isAvailable: false }),
+			jasmine.objectContaining({ name: 'Fiendish Step', recoveryType: 'dice-recharge', rechargeOn: [4, 5, 6], currentCooldownRounds: 0, isAvailable: false }),
+			jasmine.objectContaining({ name: 'Hellish Rebuke', recoveryType: 'uses-per-day', maxUses: 2, usedCount: 2, isAvailable: false }),
+		]);
 	});
 });

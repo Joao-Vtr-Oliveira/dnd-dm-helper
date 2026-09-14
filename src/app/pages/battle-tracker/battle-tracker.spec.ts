@@ -342,7 +342,7 @@ describe('BattleTrackerPage', () => {
 		expect(component.quickSpell()?.spell.name).toBe('Aid');
 	});
 
-	it('keeps undefined tie breakers and empty ability states out of the combatant view', () => {
+	it('keeps undefined tie breakers and does not expose ability authoring in the combatant view', () => {
 		expect(component.initiativeSummary(component.battle()!.combatants[0])).toBe('Iniciativa 15');
 
 		component.toggleCombatantInspector('c2');
@@ -350,8 +350,21 @@ describe('BattleTrackerPage', () => {
 		const dodmanCard = fixture.nativeElement.querySelector(
 			'[data-testid="combatant-card"][data-combatant-id="c2"]',
 		) as HTMLElement;
-		expect(dodmanCard?.textContent).toContain('Adicionar habilidade especial');
+		expect(dodmanCard?.textContent).toContain('Nenhuma habilidade especial');
 		expect(dodmanCard?.textContent).not.toContain('Habilidades especiais');
+		expect(dodmanCard?.textContent).not.toContain('Nova habilidade especial');
+		expect(dodmanCard?.textContent).not.toContain('Adicionar habilidade');
+	});
+
+	it('shows the combatant runtime state in the full stat block', () => {
+		component.openReferenceSheetViewer(component.battle()!.combatants[0]);
+		fixture.detectChanges();
+
+		const dialog = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
+		expect(dialog.textContent).toContain('Estado na batalha');
+		expect(dialog.textContent).toContain('Fire Breath');
+		expect(dialog.textContent).toContain('Recharge 5–6');
+		expect(dialog.textContent).toContain('Aguardando recharge');
 	});
 
 	it('uses an accessible dialog that closes with Escape', () => {

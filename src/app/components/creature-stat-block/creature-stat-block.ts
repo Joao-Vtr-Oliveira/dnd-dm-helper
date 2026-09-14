@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import type {
 	CreatureAbilityKey,
 	CreatureCategory,
@@ -7,6 +7,8 @@ import type {
 	CreatureSheet,
 	CreatureSpell,
 } from '../../models/creature-sheet-model';
+import type { BattleCombatant, BattleSpecialAbility } from '../../models/battle-encounter-model';
+import { BattleAbilityService } from '../../services/battle-ability-service/battle-ability-service';
 
 type StatBlockDetail = { label: string; value: string };
 type AbilityDisplay = { key: CreatureAbilityKey; label: string; score: number; modifier: string };
@@ -22,9 +24,13 @@ const CONDITION_PATTERN = /\b(blinded|charmed|deafened|frightened|grappled|incap
 	templateUrl: './creature-stat-block.html',
 })
 export class CreatureStatBlockComponent {
+	private readonly battleAbilityService = inject(BattleAbilityService);
+
 	@Input({ required: true }) creature!: CreatureSheet;
 	@Input() category?: CreatureCategory;
 	@Input() variant: 'standalone' | 'embedded' = 'standalone';
+	/** Runtime state is supplied only by the Battle Tracker; the creature remains the static definition. */
+	@Input() runtimeCombatant?: Pick<BattleCombatant, 'specialAbilities' | 'spellSlots'>;
 
 	@Output() readonly selectedSpell = new EventEmitter<CreatureSpell>();
 	@Output() readonly selectedCondition = new EventEmitter<string>();
@@ -209,6 +215,22 @@ export class CreatureStatBlockComponent {
 
 	selectCondition(condition: string) {
 		this.selectedCondition.emit(condition);
+	}
+
+	runtimeAbilityRule(ability: BattleSpecialAbility) {
+		return this.battleAbilityService.describeAbilityRule(ability);
+	}
+
+	runtimeAbilityStatus(ability: BattleSpecialAbility) {
+		return this.battleAbilityService.describeAbilityStatus(ability);
+	}
+
+	runtimeAbilityUsage(ability: BattleSpecialAbility) {
+		return this.battleAbilityService.describeAbilityUsage(ability);
+	}
+
+	runtimeAvailableSlots(slot: NonNullable<CreatureStatBlockComponent['runtimeCombatant']>['spellSlots'][number]) {
+		return Math.max(0, slot.max - slot.used);
 	}
 
 	private detail(label: string, value: string | undefined): StatBlockDetail | null {

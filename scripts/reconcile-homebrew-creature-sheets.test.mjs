@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { reconcile } from './reconcile-homebrew-creature-sheets.mjs';
 
@@ -66,4 +67,28 @@ test('reconciles by name without replacing IDs, preserves origin, and is idempot
 
 	const second = reconcile({ monster: [monster, { ...monster, name: 'Ritual Focus (1)' }] }, first.backup);
 	assert.deepEqual(second.backup, first.backup);
+});
+
+test('keeps the native Wen Torger sheet as the canonical runtime definition', async () => {
+	const backup = JSON.parse(
+		await readFile(new URL('../rpg_files/dnd-dm-helper-backup-v2.json', import.meta.url), 'utf8'),
+	);
+	const wen = backup.data.homebrewSheets.find((sheet) => sheet.data?.name === 'Wen Torger');
+
+	assert.ok(wen);
+	assert.deepEqual(
+		wen.data.specialAbilities.map(({ name, recoveryType, maxUses, rechargeOn }) => ({
+			name, recoveryType, maxUses, rechargeOn,
+		})),
+		[
+			{ name: 'Infernal Brand (Recharge 5–6)', recoveryType: 'dice-recharge', maxUses: undefined, rechargeOn: [5, 6] },
+			{ name: 'Fiendish Step (Recharge 4–6)', recoveryType: 'dice-recharge', maxUses: undefined, rechargeOn: [4, 5, 6] },
+			{ name: 'Hellish Rebuke (2/Day)', recoveryType: 'uses-per-day', maxUses: 2, rechargeOn: undefined },
+		],
+	);
+	assert.deepEqual(
+		wen.data.features.filter((feature) => feature.kind === 'trait').map((feature) => feature.name),
+		['Caçador da Winterhold', 'Pacto Infernal Controlado', 'NPC de Apoio'],
+	);
+	assert.ok(wen.data.spells.some((spell) => spell.name === 'Eldritch Blast'));
 });

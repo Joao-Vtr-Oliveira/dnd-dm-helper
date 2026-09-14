@@ -283,7 +283,7 @@ export class BattleAbilityService {
 		if (normalized.recoveryType === 'short-rest' || normalized.recoveryType === 'long-rest') {
 			return 'Usada';
 		}
-		if (normalized.recoveryType === 'dice-recharge') return 'Em recarga';
+		if (normalized.recoveryType === 'dice-recharge') return 'Aguardando recharge';
 		return 'Usada';
 	}
 
@@ -293,7 +293,7 @@ export class BattleAbilityService {
 
 		const maxUses = this.normalizeMaxUses(normalized.recoveryType, normalized.maxUses) ?? 1;
 		const remaining = Math.max(0, maxUses - Math.min(maxUses, normalized.usedCount ?? 0));
-		return remaining === 1 ? `1/${maxUses} uso restante` : `${remaining}/${maxUses} usos restantes`;
+		return `${remaining} / ${maxUses} ${remaining === 1 ? 'disponível' : 'disponíveis'}`;
 	}
 
 	describeAbilityRecovery(ability: BattleSpecialAbility): string {
@@ -394,6 +394,8 @@ export class BattleAbilityService {
 		if (legacyRechargeType === 'turns') return 'turn-cooldown';
 		if (legacyRechargeType === 'rounds') return 'round-cooldown';
 		if (legacyRechargeType === 'dice') return 'dice-recharge';
+		if (legacyRechargeType === 'per-day') return 'uses-per-day';
+		if (legacyRechargeType === 'per-combat') return 'uses-per-combat';
 		return 'manual';
 	}
 

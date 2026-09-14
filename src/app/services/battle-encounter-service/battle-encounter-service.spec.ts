@@ -73,6 +73,32 @@ describe('BattleEncounterService', () => {
 		],
 	};
 
+	const wenTorger: EncounterParticipant = {
+		id: '51de9d4e-ea2c-4d86-8d22-68fd31e14ce5',
+		sourceSheetId: '51de9d4e-ea2c-4d86-8d22-68fd31e14ce5',
+		name: 'Wen Torger', category: 'npc', initiative: 12,
+		sheet: {
+			name: 'Wen Torger', armorClass: 15, maxHp: 58, spellSlots: [],
+			spells: [
+				{ id: 'eldritch-blast', name: 'Eldritch Blast', source: 'XPHB', level: 0 },
+				{ id: 'mage-hand', name: 'Mage Hand', source: 'XPHB', level: 0 },
+				{ id: 'armor-of-agathys', name: 'Armor of Agathys', source: 'XPHB', level: 1 },
+				{ id: 'hex', name: 'Hex', source: 'XPHB', level: 1 },
+				{ id: 'hellish-rebuke-spell', name: 'Hellish Rebuke', source: 'XPHB', level: 1 },
+			],
+			specialAbilities: [
+				{ id: 'infernal-brand', name: 'Infernal Brand', recoveryType: 'dice-recharge', rechargeDice: 'd6', rechargeOn: [5, 6] },
+				{ id: 'fiendish-step', name: 'Fiendish Step', recoveryType: 'dice-recharge', rechargeDice: 'd6', rechargeOn: [4, 5, 6] },
+				{ id: 'hellish-rebuke', name: 'Hellish Rebuke', recoveryType: 'uses-per-day', maxUses: 2 },
+			],
+			features: [
+				{ id: 'winterhold-hunter', name: 'Caçador da Winterhold', kind: 'trait' },
+				{ id: 'controlled-pact', name: 'Pacto Infernal Controlado', kind: 'trait' },
+				{ id: 'infernal-brand-action', name: 'Infernal Brand', kind: 'action' },
+			],
+		},
+	};
+
 	beforeEach(() => {
 		TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
 		service = TestBed.inject(BattleEncounterService);
@@ -113,6 +139,32 @@ describe('BattleEncounterService', () => {
 		);
 		expect(combatant.privateNotes).toBe(boss.notes);
 		expect(source).toEqual(encounter);
+	});
+
+	it('creates Wen Torger from the current rich sheet without pseudo-spells or converted recharge', () => {
+		const source = { ...encounter, participants: [structuredClone(wenTorger)] };
+		const battle = service.createBattleFromEncounter(source);
+		const wen = battle.combatants[0];
+
+		expect(wen.specialAbilities).toEqual([
+			jasmine.objectContaining({ name: 'Infernal Brand', recoveryType: 'dice-recharge', rechargeOn: [5, 6], currentCooldownRounds: 0 }),
+			jasmine.objectContaining({ name: 'Fiendish Step', recoveryType: 'dice-recharge', rechargeOn: [4, 5, 6], currentCooldownRounds: 0 }),
+			jasmine.objectContaining({ name: 'Hellish Rebuke', recoveryType: 'uses-per-day', maxUses: 2, usedCount: 0 }),
+		]);
+		expect(wen.spells.map((spell) => spell.name)).toEqual([
+			'Eldritch Blast', 'Mage Hand', 'Armor of Agathys', 'Hex', 'Hellish Rebuke',
+		]);
+		expect(wen.features.filter((feature) => feature.kind === 'trait').map((feature) => feature.name)).toEqual([
+			'Caçador da Winterhold', 'Pacto Infernal Controlado',
+		]);
+
+		const firstUse = service.useSpecialAbility(battle, wen.id, 'hellish-rebuke');
+		const secondUse = service.useSpecialAbility(firstUse, wen.id, 'hellish-rebuke');
+		expect(firstUse.combatants[0].specialAbilities[2]).toEqual(jasmine.objectContaining({ usedCount: 1, isAvailable: true }));
+		expect(secondUse.combatants[0].specialAbilities[2]).toEqual(jasmine.objectContaining({ usedCount: 2, isAvailable: false }));
+		expect(service.resetSpecialAbility(secondUse, wen.id, 'hellish-rebuke').combatants[0].specialAbilities[2]).toEqual(jasmine.objectContaining({ usedCount: 0, isAvailable: true }));
+		expect(source.participants[0].sheet.specialAbilities[2]).toEqual(jasmine.objectContaining({ maxUses: 2 }));
+		expect('usedCount' in source.participants[0].sheet.specialAbilities[2]).toBeFalse();
 	});
 
 	it('uses participant ids for side and initiative setup while keeping ties stable', () => {
@@ -243,6 +295,42 @@ describe('BattleEncounterService', () => {
 		expect(
 			service.recordSpecialAbilityRecharge(resolved.battle, combatantId, abilityId, 6),
 		).toBeNull();
+	});
+
+	it('keeps dice recharge, round cooldown, and combat uses as distinct runtime mechanics', () => {
+		const source = structuredClone(encounter);
+		source.participants[0].sheet.specialAbilities = [
+			{ id: 'recharge', name: 'Recharge 4-6', recoveryType: 'dice-recharge', rechargeDice: 'd6', rechargeOn: [4, 5, 6] },
+			{ id: 'rounds', name: 'Round cooldown', recoveryType: 'round-cooldown', cooldownRounds: 2 },
+			{ id: 'combat', name: 'Combat use', recoveryType: 'uses-per-combat', maxUses: 2 },
+		];
+		const battle = service.createBattleFromEncounter(source);
+		const combatantId = battle.combatants[0].id;
+		const usedRecharge = service.useSpecialAbility(battle, combatantId, 'recharge');
+		const usedCooldown = service.useSpecialAbility(usedRecharge, combatantId, 'rounds');
+		const usedCombat = service.useSpecialAbility(usedCooldown, combatantId, 'combat');
+		const nextRound = service.advanceTurn(service.advanceTurn(usedCombat));
+		const failedRecharge = service.recordSpecialAbilityRecharge(nextRound, combatantId, 'recharge', 1)!;
+
+		expect(usedRecharge.combatants[0].specialAbilities[0]).toEqual(
+			jasmine.objectContaining({ recoveryType: 'dice-recharge', rechargeOn: [4, 5, 6], currentCooldownRounds: 0, isAvailable: false }),
+		);
+		expect(usedCooldown.combatants[0].specialAbilities[1]).toEqual(
+			jasmine.objectContaining({ recoveryType: 'round-cooldown', currentCooldownRounds: 2 }),
+		);
+		expect(nextRound.combatants[0].specialAbilities[1]).toEqual(
+			jasmine.objectContaining({ currentCooldownRounds: 1, isAvailable: false }),
+		);
+		expect(failedRecharge).toEqual(jasmine.objectContaining({ success: false }));
+		expect(failedRecharge.battle.combatants[0].specialAbilities[0]).toEqual(
+			jasmine.objectContaining({ isAvailable: false, lastRechargeRoll: 1 }),
+		);
+		expect(usedCombat.combatants[0].specialAbilities[2]).toEqual(
+			jasmine.objectContaining({ recoveryType: 'uses-per-combat', maxUses: 2, usedCount: 1, isAvailable: true }),
+		);
+		expect(service.resetSpecialAbility(usedCombat, combatantId, 'combat').combatants[0].specialAbilities[2]).toEqual(
+			jasmine.objectContaining({ usedCount: 0, isAvailable: true }),
+		);
 	});
 
 	it('normalizes persisted battles to canonical runtime fields only', () => {

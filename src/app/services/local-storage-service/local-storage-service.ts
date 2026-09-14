@@ -37,9 +37,10 @@ export class LocalStorageService {
 		try {
 			const parsed = JSON.parse(raw);
 			if (!Array.isArray(parsed)) return [];
+			const sheetsById = new Map(this.listSheets().map((sheet) => [sheet.id, sheet]));
 			const normalized = parsed
 				.filter((encounter) => this.isEncounter(encounter))
-				.map((encounter) => this.normalizeEncounter(encounter));
+				.map((encounter) => this.normalizeEncounter(encounter, sheetsById));
 			if (JSON.stringify(normalized) !== JSON.stringify(parsed)) {
 				localStorage.setItem(this.KEYEncounters, JSON.stringify(normalized));
 			}
@@ -271,23 +272,35 @@ export class LocalStorageService {
 		return this.creatureTemplate.normalizeCreature(raw ?? {});
 	}
 
-	private normalizeEncounter(encounter: Encounter): SavedEncounter {
+	private normalizeEncounter(
+		encounter: Encounter,
+		sheetsById = new Map<string, SavedSheetInterface>(),
+	): SavedEncounter {
 		return {
 			...structuredClone(encounter),
 			participants: encounter.participants.map((participant, index) =>
-				this.normalizeParticipant(participant, index),
+				this.normalizeParticipant(participant, index, sheetsById),
 			),
 			lairActions: encounter.lairActions.map((action, index) => this.normalizeLairAction(action, index)),
 			traps: encounter.traps.map((trap, index) => this.normalizeTrap(trap, index)),
 		};
 	}
 
-	private normalizeParticipant(raw: EncounterParticipant, index: number): EncounterParticipant {
+	private normalizeParticipant(
+		raw: EncounterParticipant,
+		index: number,
+		sheetsById: Map<string, SavedSheetInterface>,
+	): EncounterParticipant {
 		const initiative = Number(raw.initiative);
+		const sourceSheetId =
+			typeof raw.sourceSheetId === 'string' && raw.sourceSheetId.trim()
+				? raw.sourceSheetId.trim()
+				: undefined;
+		const sourceSheet = sourceSheetId ? sheetsById.get(sourceSheetId) : undefined;
 		return {
 			id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : crypto.randomUUID(),
-			...(typeof raw.sourceSheetId === 'string' && raw.sourceSheetId.trim()
-				? { sourceSheetId: raw.sourceSheetId.trim() }
+			...(sourceSheetId
+				? { sourceSheetId }
 				: {}),
 			name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : `Creature ${index + 1}`,
 			category: this.normalizeHomebrewCategory(raw.category),
@@ -295,7 +308,9 @@ export class LocalStorageService {
 				? { side: raw.side }
 				: {}),
 			initiative: raw.initiative == null || !Number.isFinite(initiative) ? null : initiative,
-			sheet: this.normalizeCreatureSheet(raw.sheet),
+			sheet: sourceSheet
+				? this.creatureTemplate.createFromSavedSheet(sourceSheet)
+				: this.normalizeCreatureSheet(raw.sheet),
 			...(typeof raw.notes === 'string' && raw.notes.trim() ? { notes: raw.notes.trim() } : {}),
 		};
 	}
