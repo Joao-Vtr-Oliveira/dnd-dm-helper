@@ -25,6 +25,14 @@ import type {
 	CreatureSpell,
 } from '../../models/creature-sheet-model';
 import { normalizeArmorClass } from '../../models/creature-sheet-model';
+import {
+	abilityModifier,
+	applyCreatureDerivedValues,
+	proficiencyBonusForCreature,
+	resolvePassivePerception,
+	skillAbilityForName,
+	validateCreatureSheet,
+} from '../../models/creature-sheet-rules';
 import type { CompendiumSpellListEntry } from '../../models/compendium-spell-model';
 import {
 	CompendiumSuggestionsService,
@@ -89,7 +97,7 @@ function createEmptyCreature(): CreatureSheet {
 }
 
 function normalizeCreature(raw: CreatureSheet): CreatureSheet {
-	return {
+	return applyCreatureDerivedValues({
 		...createEmptyCreature(),
 		...structuredClone(raw),
 		spellSlots: Array.isArray(raw.spellSlots) ? raw.spellSlots : [],
@@ -105,7 +113,7 @@ function normalizeCreature(raw: CreatureSheet): CreatureSheet {
 		fiveEToolsIdentity: raw.fiveEToolsIdentity
 			? structuredClone(raw.fiveEToolsIdentity)
 			: undefined,
-	};
+	});
 }
 
 @Component({
@@ -195,6 +203,7 @@ export class HomebrewBuilder {
 	conditionDraft = signal('');
 	skillDraft = signal('');
 	customSkill = signal(false);
+	customSkillAbility = signal<CreatureAbilityKey | ''>('');
 	customSave = signal(false);
 	customSaveDraft = signal('');
 	customLanguage = signal(false);
@@ -526,7 +535,7 @@ export class HomebrewBuilder {
 			const text = value.trim();
 			if (text) next[key] = text;
 			else delete next[key];
-			return next;
+			return applyCreatureDerivedValues(next);
 		});
 	}
 
@@ -578,7 +587,7 @@ export class HomebrewBuilder {
 		this.setCreatureText('creatureType', base ? `${base}${subtype ? ` (${subtype})` : ''}` : '');
 	}
 
-	setOptionalNumber(key: 'level' | 'passivePerception', value: unknown) {
+	setOptionalNumber(key: 'level', value: unknown) {
 		this.creature.update((creature) => {
 			const next = { ...creature };
 			if (value === '' || value == null || !Number.isFinite(Number(value))) delete next[key];
@@ -661,11 +670,11 @@ export class HomebrewBuilder {
 			if (value === '' || value == null || !Number.isFinite(Number(value)))
 				delete abilityScores[ability];
 			else abilityScores[ability] = Math.floor(Number(value));
-			return this.replaceOptional(
+			return applyCreatureDerivedValues(this.replaceOptional(
 				creature,
 				'abilityScores',
 				Object.keys(abilityScores).length ? abilityScores : undefined,
-			);
+			));
 		});
 	}
 
@@ -676,8 +685,19 @@ export class HomebrewBuilder {
 	}
 
 	private abilityModifierValue(ability: CreatureAbilityKey): number | null {
-		const score = this.creature().abilityScores?.[ability];
-		return score === undefined ? null : Math.floor((score - 10) / 2);
+		return abilityModifier(this.creature().abilityScores?.[ability]);
+	}
+
+	proficiencyBonus(): number | null {
+		return proficiencyBonusForCreature(this.creature());
+	}
+
+	passivePerception(): number {
+		return resolvePassivePerception(this.creature());
+	}
+
+	formatBonus(value: number): string {
+		return `${value >= 0 ? '+' : ''}${value}`;
 	}
 
 	setSpeedDraft(patch: Partial<SpeedDraft>) {
@@ -698,6 +718,11 @@ export class HomebrewBuilder {
 		if (composer === 'save') {
 			this.customSave.set(false);
 			this.customSaveDraft.set('');
+		}
+		if (composer === 'skill') {
+			this.customSkill.set(false);
+			this.customSkillAbility.set('');
+			this.skillDraft.set('');
 		}
 		if (composer === 'skill') {
 			this.customSkill.set(false);
@@ -793,13 +818,15 @@ export class HomebrewBuilder {
 			this.creature().savingThrows?.some((save) => save.ability === ability)
 		)
 			return;
-		this.creature.update((creature) => ({
-			...creature,
-			savingThrows: [
-				...(creature.savingThrows ?? []),
-				{ ability, bonus: this.abilityModifierValue(ability) ?? 0 },
-			],
-		}));
+		this.creature.update((creature) =>
+			applyCreatureDerivedValues({
+				...creature,
+				savingThrows: [
+					...(creature.savingThrows ?? []),
+					{ ability, bonus: this.abilityModifierValue(ability) ?? 0 },
+				],
+			}),
+		);
 	}
 
 	selectSavingThrow(value: string) {
@@ -827,39 +854,38 @@ export class HomebrewBuilder {
 	}
 
 	updateSavingThrow(ability: CreatureAbilityKey, bonus: unknown) {
-		this.creature.update((creature) => ({
-			...creature,
-			savingThrows: (creature.savingThrows ?? []).map((save) =>
-				save.ability === ability ? { ...save, bonus: this.parseSignedInt(bonus) } : save,
-			),
-		}));
+		void bonus;
+		this.creature.update((creature) => applyCreatureDerivedValues(creature));
 	}
 
 	removeSavingThrow(ability: CreatureAbilityKey) {
 		this.creature.update((creature) => {
 			const savingThrows = (creature.savingThrows ?? []).filter((save) => save.ability !== ability);
-			return this.replaceOptional(
+			return applyCreatureDerivedValues(this.replaceOptional(
 				creature,
 				'savingThrows',
 				savingThrows.length ? savingThrows : undefined,
-			);
+			));
 		});
 	}
 
-	addSkill(name: string) {
+	addSkill(name: string, customAbility?: CreatureAbilityKey) {
 		const trimmed = name.trim();
 		if (
 			!trimmed ||
 			this.creature().skills?.some((skill) => skill.name.toLowerCase() === trimmed.toLowerCase())
 		)
 			return;
-		this.creature.update((creature) => ({
-			...creature,
-			skills: [
-				...(creature.skills ?? []),
-				{ name: trimmed, bonus: this.skillDefaultBonus(trimmed) },
-			],
-		}));
+		this.creature.update((creature) => {
+			const ability = customAbility ?? skillAbilityForName(trimmed);
+			return applyCreatureDerivedValues({
+				...creature,
+				skills: [
+					...(creature.skills ?? []),
+					{ name: trimmed, bonus: 0, ...(ability ? { ability } : {}), proficiencyMultiplier: 1 },
+				],
+			});
+		});
 	}
 
 	selectSkill(value: string) {
@@ -873,24 +899,35 @@ export class HomebrewBuilder {
 	}
 
 	confirmCustomSkill() {
-		if (!this.skillDraft().trim()) return;
-		this.addSkill(this.skillDraft());
+		const ability = this.customSkillAbility();
+		if (!this.skillDraft().trim() || !ability) return;
+		this.addSkill(this.skillDraft(), ability);
 		this.cancelInlineComposer();
 	}
 
 	updateSkill(name: string, bonus: unknown) {
-		this.creature.update((creature) => ({
-			...creature,
-			skills: (creature.skills ?? []).map((skill) =>
-				skill.name === name ? { ...skill, bonus: this.parseSignedInt(bonus) } : skill,
-			),
-		}));
+		void name;
+		void bonus;
+		this.creature.update((creature) => applyCreatureDerivedValues(creature));
+	}
+
+	setSkillProficiencyMultiplier(name: string, expertise: boolean) {
+		this.creature.update((creature) =>
+			applyCreatureDerivedValues({
+				...creature,
+				skills: (creature.skills ?? []).map((skill) =>
+					skill.name === name ? { ...skill, proficiencyMultiplier: expertise ? 2 : 1 } : skill,
+				),
+			}),
+		);
 	}
 
 	removeSkill(name: string) {
 		this.creature.update((creature) => {
 			const skills = (creature.skills ?? []).filter((skill) => skill.name !== name);
-			return this.replaceOptional(creature, 'skills', skills.length ? skills : undefined);
+			return applyCreatureDerivedValues(
+				this.replaceOptional(creature, 'skills', skills.length ? skills : undefined),
+			);
 		});
 	}
 
@@ -1148,31 +1185,6 @@ export class HomebrewBuilder {
 
 	featDescription(feat: CompendiumFeat) {
 		return this.renderer.renderEntries(feat.entries as RawFiveEToolsEntry[]);
-	}
-
-	private skillDefaultBonus(name: string): number {
-		const skillAbilities: Record<string, CreatureAbilityKey> = {
-			acrobatics: 'dex',
-			'animal handling': 'wis',
-			arcana: 'int',
-			athletics: 'str',
-			deception: 'cha',
-			history: 'int',
-			insight: 'wis',
-			intimidation: 'cha',
-			investigation: 'int',
-			medicine: 'wis',
-			nature: 'int',
-			perception: 'wis',
-			performance: 'cha',
-			persuasion: 'cha',
-			religion: 'int',
-			'sleight of hand': 'dex',
-			stealth: 'dex',
-			survival: 'wis',
-		};
-		const ability = skillAbilities[name.trim().toLocaleLowerCase()];
-		return ability ? (this.abilityModifierValue(ability) ?? 0) : 0;
 	}
 
 	updateFeature(id: string, patch: Partial<CreatureFeature>) {
@@ -1600,10 +1612,15 @@ export class HomebrewBuilder {
 	save() {
 		const title = this.title().trim() || this.creature().name;
 		const category = this.category();
-		const data = structuredClone(this.creature());
+		const data = applyCreatureDerivedValues(structuredClone(this.creature()));
 
 		if (!data.name.trim()) {
 			this.showToast({ type: 'warn', text: 'Defina um nome para a criatura.' });
+			return;
+		}
+		const validationIssues = validateCreatureSheet(data);
+		if (validationIssues.length) {
+			this.showToast({ type: 'warn', text: validationIssues[0].message });
 			return;
 		}
 

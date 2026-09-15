@@ -96,16 +96,24 @@ describe('HomebrewBuilder', () => {
 		expect(component.abilityModifier('con')).toBe('—');
 	});
 
-	it('prefills new saves and known skills from their governing ability while keeping them editable', () => {
+	it('calculates new saves and known skills from ability, CR, and expertise', () => {
 		component.setAbilityScore('dex', 14);
+		component.setAbilityScore('wis', 12);
+		component.setCreatureText('challengeRating', '5');
 		component.addSavingThrow('dex');
 		component.addSkill('Acrobatics');
+		component.addSkill('Perception');
 
-		expect(component.creature().savingThrows).toEqual([{ ability: 'dex', bonus: 2 }]);
-		expect(component.creature().skills).toEqual([{ name: 'Acrobatics', bonus: 2 }]);
+		expect(component.creature().savingThrows).toEqual([{ ability: 'dex', bonus: 5 }]);
+		expect(component.creature().skills).toEqual([
+			{ name: 'Acrobatics', ability: 'dex', proficiencyMultiplier: 1, bonus: 5 },
+			{ name: 'Perception', ability: 'wis', proficiencyMultiplier: 1, bonus: 4 },
+		]);
+		expect(component.passivePerception()).toBe(14);
 
-		component.updateSkill('Acrobatics', 5);
-		expect(component.creature().skills?.[0].bonus).toBe(5);
+		component.setSkillProficiencyMultiplier('Perception', true);
+		expect(component.creature().skills?.[1].bonus).toBe(7);
+		expect(component.passivePerception()).toBe(17);
 	});
 
 	it('keeps special ability recovery data consistent when changing its recovery type', () => {

@@ -16,6 +16,7 @@ import type {
 	BattleEncounterCreateOptions,
 } from '../../models/battle-encounter-model';
 import type { EncounterParticipant } from '../../models/encounter-model';
+import { abilityModifier } from '../../models/creature-sheet-rules';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 import { BattleEncounterService } from '../../services/battle-encounter-service/battle-encounter-service';
 import {
@@ -233,7 +234,7 @@ export class EncounterHub {
 			battleName: encounter.title,
 			sides,
 			initiatives,
-			initiativeTieBreakers: {},
+			initiativeTieBreakers: this.automaticTieBreakers(encounter.participants, initiatives, {}),
 		});
 	}
 
@@ -262,17 +263,22 @@ export class EncounterHub {
 	setBattleSetupInitiative(participantId: string, value: unknown) {
 		const text = String(value ?? '').trim();
 		const numeric = Number(text);
-		this.battleSetupModal.update((modal) =>
-			modal
-				? {
-						...modal,
-						initiatives: {
-							...modal.initiatives,
-							[participantId]: text && Number.isFinite(numeric) ? numeric : null,
-						},
-					}
-				: modal,
-		);
+		this.battleSetupModal.update((modal) => {
+			if (!modal) return modal;
+			const initiatives = {
+				...modal.initiatives,
+				[participantId]: text && Number.isFinite(numeric) ? numeric : null,
+			};
+			return {
+				...modal,
+				initiatives,
+				initiativeTieBreakers: this.automaticTieBreakers(
+					this.getBattleSetupEncounter()?.participants ?? [],
+					initiatives,
+					modal.initiativeTieBreakers,
+				),
+			};
+		});
 	}
 
 	setBattleSetupInitiativeTieBreaker(participantId: string, value: unknown) {
@@ -450,6 +456,11 @@ export class EncounterHub {
 		return this.isBattleSetupTieResolved(participantId) ? 'Empate resolvido por DES' : 'Empate';
 	}
 
+	battleSetupInitiativeModifier(participant: EncounterParticipant): string {
+		const modifier = abilityModifier(participant.sheet.abilityScores?.dex) ?? 0;
+		return `${modifier >= 0 ? '+' : ''}${modifier}`;
+	}
+
 	battleSetupRowClasses(participantId: string): string {
 		const base = 'app-inset grid gap-3 p-3 md:grid-cols-4 md:items-end';
 		if (!this.isBattleSetupInitiativeTied(participantId)) return base;
@@ -480,6 +491,25 @@ export class EncounterHub {
 		const initiative = modal.initiatives[participantId];
 		if (initiative == null) return [];
 		return participants.filter((participant) => modal.initiatives[participant.id] === initiative);
+	}
+
+	private automaticTieBreakers(
+		participants: EncounterParticipant[],
+		initiatives: Record<string, number | null>,
+		current: Record<string, number>,
+	): Record<string, number> {
+		return Object.fromEntries(
+			participants.flatMap((participant) => {
+				const initiative = initiatives[participant.id];
+				const tied =
+					initiative != null &&
+					participants.filter((candidate) => initiatives[candidate.id] === initiative).length > 1;
+				if (!tied) return [];
+				const dexterity = participant.sheet.abilityScores?.dex;
+				const tieBreaker = current[participant.id] ?? dexterity;
+				return Number.isFinite(tieBreaker) ? [[participant.id, tieBreaker] as const] : [];
+			}),
+		);
 	}
 
 	updateQuery(value: string) {

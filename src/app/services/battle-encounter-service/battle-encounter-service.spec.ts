@@ -188,6 +188,23 @@ describe('BattleEncounterService', () => {
 		expect(battle.combatants.map((combatant) => combatant.side)).toEqual(['player', 'ally']);
 	});
 
+	it('applies setup changes to an existing battle with the same tie ordering', () => {
+		const battle = service.createBattleFromEncounter(encounter);
+		const updated = service.applyBattleSetup(battle, {
+			name: 'Updated battle',
+			combatantSides: { 'participant-boss': 'ally', 'participant-minion': 'player' },
+			initiativeOverrides: { 'participant-boss': 18, 'participant-minion': 18 },
+			initiativeTieBreakerOverrides: { 'participant-boss': 12, 'participant-minion': 16 },
+		});
+
+		expect(updated.name).toBe('Updated battle');
+		expect(updated.combatants.map((combatant) => combatant.name)).toEqual([
+			'Goblin Minion',
+			'Goblin Boss',
+		]);
+		expect(updated.combatants.map((combatant) => combatant.side)).toEqual(['player', 'ally']);
+	});
+
 	it('initializes encounter event runtime state without changing the source', () => {
 		const battle = service.createBattleFromEncounter(encounter);
 

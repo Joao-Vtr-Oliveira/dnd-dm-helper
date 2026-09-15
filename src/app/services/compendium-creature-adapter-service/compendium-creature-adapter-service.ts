@@ -7,6 +7,7 @@ import type {
 	CreatureSheet,
 	CreatureSpecialAbility,
 } from '../../models/creature-sheet-model';
+import { skillAbilityForName } from '../../models/creature-sheet-rules';
 import { CompendiumRendererService } from '../compendium-renderer-service/compendium-renderer-service';
 
 @Injectable({ providedIn: 'root' })
@@ -306,7 +307,10 @@ export class CompendiumCreatureAdapterService {
 	private skills(skills: Record<string, string>): CreatureSheet['skills'] {
 		const values = Object.entries(skills).flatMap(([name, bonus]) => {
 			const parsed = this.bonus(bonus);
-			return parsed === undefined ? [] : [{ name, bonus: parsed }];
+			const ability = skillAbilityForName(name);
+			return parsed === undefined
+				? []
+				: [{ name, bonus: parsed, ...(ability ? { ability } : {}), proficiencyMultiplier: 1 as const }];
 		});
 		return values.length ? values : undefined;
 	}

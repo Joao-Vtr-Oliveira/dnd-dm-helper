@@ -149,4 +149,27 @@ describe('EncounterBuilder', () => {
 		expect(continuedBattle?.id).toBe(firstBattle?.id);
 		expect(continuedBattle?.combatants[0].initiative).toBe(18);
 	});
+
+	it('fills tied initiatives with sheet Dexterity and orders the direct battle by it', () => {
+		const router = TestBed.inject(Router);
+		spyOn(router, 'navigate').and.resolveTo(true);
+		component.setDraftName('First');
+		component.addParticipants();
+		component.setDraftName('Second');
+		component.addParticipants();
+		const [first, second] = component.participants();
+		component.updateSheet(first.id, { abilityScores: { dex: 12 } });
+		component.updateSheet(second.id, { abilityScores: { dex: 16 } });
+
+		component.saveAndStartBattle();
+		component.setInitiativeDraft(first.id, '14');
+		component.setInitiativeDraft(second.id, '14');
+		expect(component.initiativeTieBreakerDrafts()).toEqual({ [first.id]: '12', [second.id]: '16' });
+		component.confirmInitiativeSetup();
+
+		const battle = TestBed.inject(BattleEncounterStorageService).getActiveBattleByEncounterId(
+			component.savedId()!,
+		);
+		expect(battle?.combatants.map((combatant) => combatant.name)).toEqual(['Second', 'First']);
+	});
 });

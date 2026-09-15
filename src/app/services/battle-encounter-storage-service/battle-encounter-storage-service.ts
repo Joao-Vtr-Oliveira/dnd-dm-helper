@@ -91,7 +91,13 @@ export class BattleEncounterStorageService {
 	): BattlePreparationResult {
 		if (!allowConcurrent) {
 			const existing = this.getActiveBattleByEncounterId(encounter.id);
-			if (existing) return { kind: 'existing', battle: existing };
+			if (existing) {
+				const battle = options
+					? this.battleEncounterService.applyBattleSetup(existing, options)
+					: existing;
+				if (options) this.saveBattleEncounter(battle);
+				return { kind: 'existing', battle };
+			}
 		}
 
 		return { kind: 'created', battle: this.createBattleFromEncounter(encounter, options) };

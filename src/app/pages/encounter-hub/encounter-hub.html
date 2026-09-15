@@ -358,7 +358,7 @@
 									</span>
 								</div>
 								<div class="mt-1 text-sm text-app-muted">
-									HP {{ participant.sheet.maxHp }} · CA {{ participant.sheet.armorClass || '-' }}
+									HP {{ participant.sheet.maxHp }} · CA {{ participant.sheet.armorClass || '-' }} · Iniciativa {{ battleSetupInitiativeModifier(participant) }}
 								</div>
 								@if (battleSetupTieLabel(participant.id); as tieLabel) {
 									<span [class]="battleSetupTieBadgeClasses(participant.id)">{{ tieLabel }}</span>

@@ -12,6 +12,7 @@ import type {
 	CreatureSpecialAbility,
 } from '../../models/creature-sheet-model';
 import type { EncounterTrap } from '../../models/encounter-model';
+import { resolvePassivePerception } from '../../models/creature-sheet-rules';
 import type {
 	FiveEToolsConflictComparisonRow,
 	FiveEToolsConflictResolution,
@@ -922,7 +923,7 @@ export class FiveEToolsHomebrewService {
 			cha: sheet.data.abilityScores?.cha ?? base.cha,
 			save: sheet.data.savingThrows ? this.toMonsterSaves(sheet.data.savingThrows) : base.save,
 			skill: sheet.data.skills ? this.toMonsterSkills(sheet.data.skills) : base.skill,
-			passive: sheet.data.passivePerception ?? base.passive,
+			passive: resolvePassivePerception(sheet.data),
 			vulnerable: sheet.data.damageVulnerabilities
 				? this.toMonsterDefenses(sheet.data.damageVulnerabilities, 'vulnerable')
 				: base.vulnerable,

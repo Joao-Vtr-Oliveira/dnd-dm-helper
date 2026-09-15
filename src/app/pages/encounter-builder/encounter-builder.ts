@@ -10,7 +10,6 @@ import { SpellReferenceTriggerDirective } from '../../components/reference-overl
 import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 
 import type {
-	BattleEncounter,
 	BattleLairActionFrequency,
 	BattleTrapFrequency,
 	BattleTrapTriggerType,
@@ -23,6 +22,7 @@ import type {
 	CreatureSpell,
 } from '../../models/creature-sheet-model';
 import { normalizeArmorClass } from '../../models/creature-sheet-model';
+import { abilityModifier } from '../../models/creature-sheet-rules';
 import type {
 	Encounter,
 	EncounterLairAction,
@@ -33,7 +33,6 @@ import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type { CompendiumBestiaryMonsterIndexEntry } from '../../models/compendium-bestiary-model';
 import type { ResolvedSpellReference } from '../../models/spell-reference-model';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
-import { BattleEncounterService } from '../../services/battle-encounter-service/battle-encounter-service';
 import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
 import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
 import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
@@ -120,6 +119,7 @@ export class EncounterBuilder {
 	readonly unsavedChangesModal = signal(false);
 	readonly initiativeSetupOpen = signal(false);
 	readonly initiativeDrafts = signal<Record<string, string>>({});
+	readonly initiativeTieBreakerDrafts = signal<Record<string, string>>({});
 	readonly draft = signal<ParticipantDraft>(this.createParticipantDraft());
 	readonly spellDrafts = signal<Record<string, SpellDraft>>({});
 	readonly abilityDrafts = signal<Record<string, AbilityDraft>>({});
@@ -168,7 +168,6 @@ export class EncounterBuilder {
 	private readonly router = inject(Router);
 	private readonly ls = inject(LocalStorageService);
 	private readonly battleStorage = inject(BattleEncounterStorageService);
-	private readonly battleService = inject(BattleEncounterService);
 	private readonly creatureTemplates = inject(CreatureTemplateService);
 	private readonly bestiary = inject(CompendiumBestiaryRepositoryService);
 	private readonly compendiumAdapter = inject(CompendiumCreatureAdapterService);
@@ -640,30 +639,75 @@ export class EncounterBuilder {
 	}
 
 	saveAndStartBattle() {
-		this.initiativeDrafts.set(
-			Object.fromEntries(
-				this.participants().map((participant) => [
-					participant.id,
-					participant.initiative == null ? '' : String(participant.initiative),
-				]),
-			),
+		const initiatives = Object.fromEntries(
+			this.participants().map((participant) => [
+				participant.id,
+				participant.initiative == null ? '' : String(participant.initiative),
+			]),
 		);
+		this.initiativeDrafts.set(initiatives);
+		this.initiativeTieBreakerDrafts.set(this.automaticTieBreakers(initiatives, {}));
 		this.initiativeSetupOpen.set(true);
 	}
 
 	cancelInitiativeSetup() {
 		this.initiativeSetupOpen.set(false);
+		this.initiativeTieBreakerDrafts.set({});
 	}
 
 	setInitiativeDraft(participantId: string, value: string) {
-		this.initiativeDrafts.update((drafts) => ({ ...drafts, [participantId]: value }));
+		this.initiativeDrafts.update((drafts) => {
+			const next = { ...drafts, [participantId]: value };
+			this.initiativeTieBreakerDrafts.update((tieBreakers) =>
+				this.automaticTieBreakers(next, tieBreakers),
+			);
+			return next;
+		});
+	}
+
+	setInitiativeTieBreakerDraft(participantId: string, value: string) {
+		this.initiativeTieBreakerDrafts.update((drafts) => ({ ...drafts, [participantId]: value }));
+	}
+
+	isInitiativeTied(participantId: string): boolean {
+		const initiative = this.parseNullableNumber(this.initiativeDrafts()[participantId]);
+		return (
+			initiative != null &&
+			this.participants().filter(
+				(participant) =>
+					this.parseNullableNumber(this.initiativeDrafts()[participant.id]) === initiative,
+			).length > 1
+		);
+	}
+
+	initiativeTieLabel(participantId: string): string | null {
+		if (!this.isInitiativeTied(participantId)) return null;
+		const tied = this.participants().filter(
+			(participant) =>
+				this.parseNullableNumber(this.initiativeDrafts()[participant.id]) ===
+				this.parseNullableNumber(this.initiativeDrafts()[participantId]),
+		);
+		const values = tied.map((participant) =>
+			this.parseNullableNumber(this.initiativeTieBreakerDrafts()[participant.id]),
+		);
+		return values.every((value) => value != null) && new Set(values).size === values.length
+			? 'Empate resolvido por DES'
+			: 'Empate';
+	}
+
+	initiativeModifier(participant: EncounterParticipant): string {
+		const modifier = abilityModifier(participant.sheet.abilityScores?.dex) ?? 0;
+		return `${modifier >= 0 ? '+' : ''}${modifier}`;
 	}
 
 	confirmInitiativeSetup() {
 		const initiativeOverrides: Record<string, number> = {};
+		const initiativeTieBreakerOverrides: Record<string, number> = {};
 		const participants = this.participants().map((participant) => {
 			const initiative = this.parseNullableNumber(this.initiativeDrafts()[participant.id]);
 			if (initiative != null) initiativeOverrides[participant.id] = initiative;
+			const tieBreaker = this.parseNullableNumber(this.initiativeTieBreakerDrafts()[participant.id]);
+			if (tieBreaker != null) initiativeTieBreakerOverrides[participant.id] = tieBreaker;
 			return { ...participant, initiative };
 		});
 		this.updateEncounter({ participants });
@@ -671,16 +715,14 @@ export class EncounterBuilder {
 		if (!result) return;
 		const prepared = this.battleStorage.getOrCreateBattleFromEncounter(result.encounter, {
 			initiativeOverrides,
+			initiativeTieBreakerOverrides,
 		});
 		let battle =
 			prepared.kind === 'existing' && prepared.battle.status === 'paused'
 				? (this.battleStorage.resumeBattleEncounter(prepared.battle.id) ?? prepared.battle)
 				: prepared.battle;
-		if (prepared.kind === 'existing' && Object.keys(initiativeOverrides).length) {
-			battle = this.applyInitiativesToExistingBattle(battle, initiativeOverrides);
-			this.battleStorage.saveBattleEncounter(battle);
-		}
 		this.initiativeSetupOpen.set(false);
+		this.initiativeTieBreakerDrafts.set({});
 		this.router.navigate(['/home/battle-tracker', battle.id]);
 	}
 
@@ -706,27 +748,26 @@ export class EncounterBuilder {
 		this.updateEncounter({ participants: [...this.encounter().participants, ...participants] });
 	}
 
-	private applyInitiativesToExistingBattle(
-		battle: BattleEncounter,
-		initiativeOverrides: Record<string, number>,
-	): BattleEncounter {
-		const activeCombatantId = battle.combatants[battle.activeTurnIndex]?.id;
-		const combatants = this.battleService.orderCombatants(
-			battle.combatants.map((combatant) => {
-				const initiative = combatant.sourceParticipantId
-					? initiativeOverrides[combatant.sourceParticipantId]
-					: undefined;
-				return initiative == null ? combatant : { ...combatant, initiative };
+
+	private automaticTieBreakers(
+		initiatives: Record<string, string>,
+		current: Record<string, string>,
+	): Record<string, string> {
+		return Object.fromEntries(
+			this.participants().flatMap((participant) => {
+				const initiative = this.parseNullableNumber(initiatives[participant.id]);
+				const tied =
+					initiative != null &&
+					this.participants().filter(
+						(candidate) => this.parseNullableNumber(initiatives[candidate.id]) === initiative,
+					).length > 1;
+				if (!tied) return [];
+				const tieBreaker = current[participant.id] ?? participant.sheet.abilityScores?.dex;
+				return Number.isFinite(Number(tieBreaker))
+					? [[participant.id, String(tieBreaker)] as const]
+					: [];
 			}),
 		);
-		return {
-			...battle,
-			combatants,
-			activeTurnIndex: activeCombatantId
-				? Math.max(0, combatants.findIndex((combatant) => combatant.id === activeCombatantId))
-				: battle.activeTurnIndex,
-			updatedAt: new Date().toISOString(),
-		};
 	}
 
 	private bestiaryFilterValues(

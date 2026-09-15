@@ -377,14 +377,14 @@
       "wis": 12,
       "cha": 11,
       "skill": {
-        "acrobatics": "+7",
-        "athletics": "+3",
-        "stealth": "+10",
-        "investigation": "+4",
-        "perception": "+4",
-        "sleight of hand": "+7"
+        "acrobatics": "+6",
+        "athletics": "+2",
+        "stealth": "+8",
+        "investigation": "+3",
+        "perception": "+3",
+        "sleight of hand": "+6"
       },
-      "passive": 14,
+      "passive": 13,
       "languages": [
         "Common",
         "Komic"
@@ -583,12 +583,12 @@
       "wis": 14,
       "cha": 18,
       "skill": {
-        "arcana": "+4",
-        "insight": "+5",
-        "persuasion": "+7",
-        "perception": "+5"
+        "arcana": "+3",
+        "insight": "+4",
+        "persuasion": "+6",
+        "perception": "+4"
       },
-      "passive": 15,
+      "passive": 14,
       "languages": [
         "Common",
         "Komic"
@@ -941,7 +941,7 @@
       "senses": [
         "blindsight 10 ft. (blind beyond this radius)"
       ],
-      "passive": 10,
+      "passive": 5,
       "cr": "0",
       "trait": [
         {
@@ -995,21 +995,21 @@
       "wis": 13,
       "cha": 18,
       "save": {
-        "wis": "+4",
-        "cha": "+7"
+        "wis": "+3",
+        "cha": "+6"
       },
       "skill": {
-        "arcana": "+4",
-        "deception": "+7",
-        "insight": "+4",
-        "investigation": "+4",
-        "perception": "+4",
-        "religion": "+4"
+        "arcana": "+3",
+        "deception": "+6",
+        "insight": "+3",
+        "investigation": "+3",
+        "perception": "+3",
+        "religion": "+3"
       },
       "senses": [
         "darkvision 60 ft."
       ],
-      "passive": 14,
+      "passive": 13,
       "languages": [
         "Common",
         "Infernal"
@@ -1552,7 +1552,7 @@
       "senses": [
         "blindsight 10 ft. (blind beyond this radius)"
       ],
-      "passive": 10,
+      "passive": 5,
       "cr": "0",
       "trait": [
         {

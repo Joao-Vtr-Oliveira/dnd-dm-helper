@@ -47,6 +47,7 @@ describe('EncounterHub', () => {
 						spells: [],
 						specialAbilities: [],
 						features: [],
+						abilityScores: { dex: 14 },
 					},
 				},
 				{
@@ -62,6 +63,7 @@ describe('EncounterHub', () => {
 						spells: [],
 						specialAbilities: [],
 						features: [],
+						abilityScores: { dex: 8 },
 					},
 				},
 			],
@@ -73,9 +75,7 @@ describe('EncounterHub', () => {
 		const modal = component.battleSetupModal()!;
 		expect(modal.sides).toEqual({ 'pc-uuid': 'player', 'monster-uuid': 'enemy' });
 		expect(modal.initiatives).toEqual({ 'pc-uuid': 15, 'monster-uuid': 15 });
-		expect(component.battleSetupTieLabel('pc-uuid')).toBe('Empate');
-		component.setBattleSetupInitiativeTieBreaker('pc-uuid', 16);
-		component.setBattleSetupInitiativeTieBreaker('monster-uuid', 12);
+		expect(modal.initiativeTieBreakers).toEqual({ 'pc-uuid': 14, 'monster-uuid': 8 });
 		expect(component.battleSetupTieLabel('pc-uuid')).toBe('Empate resolvido por DES');
 	});
 

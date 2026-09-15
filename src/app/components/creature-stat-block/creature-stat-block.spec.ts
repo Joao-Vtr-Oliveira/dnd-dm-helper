@@ -74,6 +74,7 @@ describe('CreatureStatBlockComponent', () => {
 		expect(text).toContain('Archmage');
 		expect(text).toContain('Medium, humanoid, neutral good');
 		expect(text).toContain('CR 12');
+		expect(text).toContain('Proficiência +4');
 		expect(text).toContain('Fonte MM');
 		expect(text).toContain('CA 12 (mage armor)');
 		expect(text).toContain('FOR');

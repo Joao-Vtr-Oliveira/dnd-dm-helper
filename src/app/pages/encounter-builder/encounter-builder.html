@@ -1098,16 +1098,36 @@
 			</div>
 			<div class="mt-4 space-y-2">
 				@for (participant of participants(); track participant.id) {
-					<label
-						class="flex items-center justify-between gap-4 rounded-app-control border border-app-border bg-app-inset px-3 py-2"
-						><span class="min-w-0 truncate font-medium text-app-text">{{ participant.name }}</span
-						><input
-							type="number"
-							class="app-field w-24 px-3 py-2 text-right"
-							[ngModel]="initiativeDrafts()[participant.id]"
-							(ngModelChange)="setInitiativeDraft(participant.id, $event)"
-							[attr.aria-label]="'Iniciativa de ' + participant.name"
-					/></label>
+					<div class="rounded-app-control border border-app-border bg-app-inset px-3 py-2">
+						<div class="flex items-center justify-between gap-3">
+							<div class="min-w-0">
+								<div class="truncate font-medium text-app-text">{{ participant.name }}</div>
+								<div class="text-xs text-app-muted">Bônus de iniciativa {{ initiativeModifier(participant) }}</div>
+							</div>
+							<label class="text-sm text-app-muted"
+								><span class="sr-only">Iniciativa</span
+								><input
+									type="number"
+									class="app-field w-24 px-3 py-2 text-right"
+									[ngModel]="initiativeDrafts()[participant.id]"
+									(ngModelChange)="setInitiativeDraft(participant.id, $event)"
+									[attr.aria-label]="'Iniciativa de ' + participant.name"
+								/></label
+							>
+						</div>
+						@if (isInitiativeTied(participant.id)) {
+							<label class="mt-2 block text-sm text-app-muted">
+								<span class="mb-1 block">DES (desempate): {{ initiativeTieLabel(participant.id) }}</span>
+								<input
+									type="number"
+									class="app-field w-full px-3 py-2"
+									[ngModel]="initiativeTieBreakerDrafts()[participant.id]"
+									(ngModelChange)="setInitiativeTieBreakerDraft(participant.id, $event)"
+									[attr.aria-label]="'DES para desempatar ' + participant.name"
+								/>
+							</label>
+						}
+					</div>
 				} @empty {
 					<p
 						class="rounded-app-control border border-dashed border-app-border p-4 text-sm text-app-muted"

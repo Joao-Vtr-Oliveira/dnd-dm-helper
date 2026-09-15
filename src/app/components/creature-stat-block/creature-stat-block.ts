@@ -9,6 +9,7 @@ import type {
 	CreatureSpell,
 } from '../../models/creature-sheet-model';
 import type { BattleCombatant, BattleSpecialAbility } from '../../models/battle-encounter-model';
+import { proficiencyBonusForCreature, resolvePassivePerception } from '../../models/creature-sheet-rules';
 import { BattleAbilityService } from '../../services/battle-ability-service/battle-ability-service';
 
 type StatBlockDetail = { label: string; value: string };
@@ -65,8 +66,10 @@ export class CreatureStatBlockComponent {
 	}
 
 	referenceDetails(): StatBlockDetail[] {
+		const proficiency = proficiencyBonusForCreature(this.creature);
 		return [
 			this.detail('CR', this.creature.challengeRating),
+			proficiency == null ? null : { label: 'Proficiência', value: this.signedValue(proficiency) },
 			this.detail('Fonte', this.creature.source),
 		].filter((detail): detail is StatBlockDetail => detail !== null);
 	}
@@ -119,7 +122,7 @@ export class CreatureStatBlockComponent {
 			);
 		return [
 			senses.length ? { label: 'Sentidos', value: senses.join(', ') } : null,
-			this.numberDetail('Percepção passiva', this.creature.passivePerception),
+			{ label: 'Percepção passiva', value: String(resolvePassivePerception(this.creature)) },
 			this.listDetail('Idiomas', this.creature.languages),
 		].filter((detail): detail is StatBlockDetail => detail !== null);
 	}

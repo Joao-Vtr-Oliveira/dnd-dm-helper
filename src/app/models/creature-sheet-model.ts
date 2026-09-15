@@ -69,6 +69,10 @@ export interface CreatureSavingThrow {
 export interface CreatureSkill {
 	name: string;
 	bonus: number;
+	/** Governing ability. Required for custom skills and inferred for standard D&D skills. */
+	ability?: CreatureAbilityKey;
+	/** One proficiency bonus normally, two for expertise. */
+	proficiencyMultiplier?: 1 | 2;
 }
 
 /** A single line in a damage defense section, optionally with a condition/note. */

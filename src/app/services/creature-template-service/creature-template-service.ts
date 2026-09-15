@@ -11,6 +11,12 @@ import type {
 	CreatureSavingThrow,
 } from '../../models/creature-sheet-model';
 import { normalizeArmorClass } from '../../models/creature-sheet-model';
+import {
+	abilityModifier,
+	applyCreatureDerivedValues,
+	proficiencyBonusForCreature,
+	skillAbilityForName,
+} from '../../models/creature-sheet-rules';
 import type { SavedSheetInterface } from '../local-storage-service/local-storage-service';
 
 @Injectable({ providedIn: 'root' })
@@ -43,6 +49,14 @@ export class CreatureTemplateService {
 	}
 
 	normalizeCreature(raw: Partial<CreatureSheet>): CreatureSheet {
+		const challengeRating =
+			typeof raw.challengeRating === 'string' && raw.challengeRating.trim()
+				? raw.challengeRating.trim()
+				: undefined;
+		const abilityScores = this.normalizeAbilityScores(raw.abilityScores);
+		const level = Number.isFinite(raw.level) ? this.toNonNegativeInt(raw.level) : undefined;
+		const savingThrows = this.normalizeSavingThrows(raw.savingThrows, abilityScores, challengeRating, level);
+		const skills = this.normalizeSkills(raw.skills, abilityScores, challengeRating, level);
 		const normalized: CreatureSheet = {
 			name: typeof raw.name === 'string' ? raw.name.trim() || 'Creature' : 'Creature',
 			maxHp: this.toNonNegativeInt(raw.maxHp),
@@ -63,7 +77,7 @@ export class CreatureTemplateService {
 			officialOrigin: raw.officialOrigin ? structuredClone(raw.officialOrigin) : undefined,
 			officialSnapshot: raw.officialSnapshot ? structuredClone(raw.officialSnapshot) : undefined,
 		};
-		return {
+		return applyCreatureDerivedValues({
 			...normalized,
 			...this.optionalStringArray('aliases', raw.aliases),
 			...this.optionalStringArray('groups', raw.groups),
@@ -73,15 +87,14 @@ export class CreatureTemplateService {
 			...this.optionalText('size', raw.size),
 			...this.optionalText('creatureType', raw.creatureType),
 			...this.optionalText('alignment', raw.alignment),
-			...this.optionalText('challengeRating', raw.challengeRating),
-			...this.optionalNonNegativeInteger('level', raw.level),
+			...this.optionalValue('challengeRating', challengeRating),
+			...this.optionalValue('level', level),
 			...this.optionalText('armorClassNote', raw.armorClassNote),
 			...this.optionalText('hitPointFormula', raw.hitPointFormula),
 			...this.optionalValue('speed', this.normalizeSpeed(raw.speed)),
-			...this.optionalValue('abilityScores', this.normalizeAbilityScores(raw.abilityScores)),
-			...this.optionalValue('savingThrows', this.normalizeSavingThrows(raw.savingThrows)),
-			...this.optionalValue('skills', this.normalizeSkills(raw.skills)),
-			...this.optionalNonNegativeInteger('passivePerception', raw.passivePerception),
+			...this.optionalValue('abilityScores', abilityScores),
+			...this.optionalValue('savingThrows', savingThrows),
+			...this.optionalValue('skills', skills),
 			...this.optionalValue(
 				'damageVulnerabilities',
 				this.normalizeDefenses(raw.damageVulnerabilities),
@@ -96,7 +109,7 @@ export class CreatureTemplateService {
 				'legendaryActions',
 				this.normalizeLegendaryActions(raw.legendaryActions),
 			),
-		};
+		});
 	}
 
 	private normalizeSlots(
@@ -245,6 +258,9 @@ export class CreatureTemplateService {
 
 	private normalizeSavingThrows(
 		values: CreatureSheet['savingThrows'] | undefined,
+		abilityScores: CreatureSheet['abilityScores'],
+		challengeRating: string | undefined,
+		level: number | undefined,
 	): CreatureSavingThrow[] | undefined {
 		if (!Array.isArray(values)) return undefined;
 		const unique = new Set<CreatureAbilityKey>();
@@ -256,13 +272,24 @@ export class CreatureTemplateService {
 			)
 				return [];
 			unique.add(entry.ability);
-			return [{ ability: entry.ability, bonus: Math.floor(entry.bonus) }];
+			const modifier = abilityModifier(abilityScores?.[entry.ability]);
+			const proficiency = proficiencyBonusForCreature({ challengeRating, level });
+			return [{
+				ability: entry.ability,
+				bonus:
+					modifier == null || proficiency == null
+						? Math.floor(entry.bonus)
+						: modifier + proficiency,
+			}];
 		});
 		return normalized.length ? normalized : undefined;
 	}
 
 	private normalizeSkills(
 		values: CreatureSheet['skills'] | undefined,
+		abilityScores: CreatureSheet['abilityScores'],
+		challengeRating: string | undefined,
+		level: number | undefined,
 	): CreatureSkill[] | undefined {
 		if (!Array.isArray(values)) return undefined;
 		const unique = new Set<string>();
@@ -271,7 +298,24 @@ export class CreatureTemplateService {
 			const key = name.toLocaleLowerCase();
 			if (!name || unique.has(key) || !Number.isFinite(entry.bonus)) return [];
 			unique.add(key);
-			return [{ name, bonus: Math.floor(entry.bonus) }];
+			const ability = this.isAbilityKey(entry.ability) ? entry.ability : skillAbilityForName(name);
+			const modifier = ability ? abilityModifier(abilityScores?.[ability]) : null;
+			const proficiency = proficiencyBonusForCreature({ challengeRating, level });
+			const inferredExpertise =
+				modifier != null &&
+				proficiency != null &&
+				Math.floor(entry.bonus) - modifier >= proficiency * 2;
+			const proficiencyMultiplier: 1 | 2 =
+				entry.proficiencyMultiplier === 2 || inferredExpertise ? 2 : 1;
+			return [{
+				name,
+				bonus:
+					modifier == null || proficiency == null
+						? Math.floor(entry.bonus)
+						: modifier + proficiency * proficiencyMultiplier,
+				...(ability ? { ability } : {}),
+				proficiencyMultiplier,
+			}];
 		});
 		return normalized.length ? normalized : undefined;
 	}

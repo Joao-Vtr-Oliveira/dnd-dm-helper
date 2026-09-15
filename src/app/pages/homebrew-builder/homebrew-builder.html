@@ -142,6 +142,10 @@
 				emptyLabel="Selecionar"
 				(valueChange)="selectCatalogText('challengeRating', $event)"
 			/>
+			<div class="self-end pb-2 text-sm text-app-muted">
+				Bônus de proficiência:
+				<span class="font-semibold text-app-text">{{ proficiencyBonus() === null ? '—' : '+' + proficiencyBonus() }}</span>
+			</div>
 			@if (
 				customTextFields().challengeRating ||
 				(creature().challengeRating && !challengeRatings.includes(creature().challengeRating!))
@@ -357,13 +361,8 @@
 					@for (save of creature().savingThrows ?? []; track save.ability) {
 						<div class="grid items-center gap-2 py-2 sm:grid-cols-[minmax(0,1fr)_5rem_auto]">
 							<div class="font-medium text-app-text">{{ savingThrowLabel(save.ability) }}</div>
-							<input
-									type="number"
-									class="app-field w-full px-2 py-2 text-center"
-									[ngModel]="save.bonus"
-									(ngModelChange)="updateSavingThrow(save.ability, $event)"
-									[name]="'save-bonus-' + save.ability"
-							/><button
+							<span class="app-status justify-self-stretch bg-violet-500/15 py-2 text-center font-semibold text-violet-100">{{ formatBonus(save.bonus) }}</span
+							><button
 								type="button"
 								class="app-button app-button-danger px-3"
 								aria-label="Remover salvaguarda {{ savingThrowLabel(save.ability) }}"
@@ -395,21 +394,30 @@
 								[ngModel]="skillDraft()"
 								(ngModelChange)="skillDraft.set($event)"
 								name="custom-skill"
+							/><app-select
+								label="Habilidade"
+								[options]="abilityKeys"
+								[value]="customSkillAbility()"
+								emptyLabel="Selecionar"
+								(valueChange)="customSkillAbility.set($any($event))"
 							/><button type="button" class="app-button app-button-secondary" (click)="confirmCustomSkill()">Confirmar</button>
 							}
 						</div>
 					}
 					<div class="mt-2 divide-y divide-app-divider">
 						@for (skill of creature().skills ?? []; track skill.name) {
-							<div class="grid grid-cols-[minmax(0,1fr)_5rem_auto] items-center gap-2 py-2">
-								<div class="min-w-0 truncate font-medium text-app-text">{{ skill.name }}</div>
-								<input
-										type="number"
-										class="app-field w-full px-2 py-2 text-center"
-										[ngModel]="skill.bonus"
-										(ngModelChange)="updateSkill(skill.name, $event)"
-										[name]="'skill-bonus-' + skill.name"
-								/><button
+						<div class="grid items-center gap-2 py-2 sm:grid-cols-[minmax(0,1fr)_5rem_auto_auto]">
+							<div class="min-w-0 truncate font-medium text-app-text">{{ skill.name }}</div>
+							<span class="app-status justify-self-stretch bg-violet-500/15 py-2 text-center font-semibold text-violet-100">{{ formatBonus(skill.bonus) }}</span
+							><label class="flex items-center gap-2 text-sm text-app-muted"
+								><input
+									type="checkbox"
+									[ngModel]="skill.proficiencyMultiplier === 2"
+									(ngModelChange)="setSkillProficiencyMultiplier(skill.name, $event)"
+									[name]="'skill-expertise-' + skill.name"
+								/>
+								Expertise</label
+							><button
 									type="button"
 									class="app-button app-button-danger px-3"
 									aria-label="Remover perícia {{ skill.name }}"
@@ -630,16 +638,11 @@
 				}
 			</section>
 			<section>
-				<label class="block text-sm text-app-muted"
-					><span class="mb-1 block font-medium text-app-text">Percepção passiva</span
-					><input
-						type="number"
-						min="0"
-						class="app-field w-full px-3 py-2"
-						[ngModel]="creature().passivePerception ?? ''"
-						(ngModelChange)="setOptionalNumber('passivePerception', $event)"
-						name="passive-perception"
-				/></label>
+				<div class="text-sm text-app-muted">
+					<span class="mb-1 block font-medium text-app-text">Percepção passiva</span>
+					<div class="app-field w-full px-3 py-2 font-semibold text-app-text">{{ passivePerception() }}</div>
+					<p class="mt-1 text-xs">Calculada automaticamente a partir de Percepção ou SAB.</p>
+				</div>
 			</section>
 			<section>
 				<div class="flex items-center justify-between gap-3">

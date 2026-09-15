@@ -162,6 +162,39 @@ export class BattleEncounterService {
 		};
 	}
 
+	applyBattleSetup(
+		battle: BattleEncounter,
+		options: BattleEncounterCreateOptions,
+		now = new Date(),
+	): BattleEncounter {
+		const activeCombatantId = battle.combatants[battle.activeTurnIndex]?.id;
+		const combatants = this.orderCombatants(
+			battle.combatants.map((combatant) => {
+				const participantId = combatant.sourceParticipantId;
+				if (!participantId) return combatant;
+				const initiative = options.initiativeOverrides?.[participantId];
+				const side = options.combatantSides?.[participantId];
+				const hasTieBreakers = options.initiativeTieBreakerOverrides !== undefined;
+				const tieBreaker = options.initiativeTieBreakerOverrides?.[participantId];
+				return {
+					...combatant,
+					...(initiative == null ? {} : { initiative }),
+					...(side ? { side } : {}),
+					...(hasTieBreakers ? { initiativeTieBreaker: tieBreaker } : {}),
+				};
+			}),
+		);
+		return {
+			...battle,
+			...(options.name?.trim() ? { name: options.name.trim() } : {}),
+			combatants,
+			activeTurnIndex: activeCombatantId
+				? Math.max(0, combatants.findIndex((combatant) => combatant.id === activeCombatantId))
+				: battle.activeTurnIndex,
+			updatedAt: this.toIso(now),
+		};
+	}
+
 	normalizeBattleEncounter(raw: Partial<BattleEncounter>): BattleEncounter {
 		const createdAt = this.normalizeIso(raw.createdAt);
 		const updatedAt = this.normalizeIso(raw.updatedAt ?? raw.createdAt);
