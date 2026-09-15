@@ -2,7 +2,7 @@
   "app": "dnd-dm-helper",
   "schemaVersion": 2,
   "type": "campaign-backup",
-  "exportedAt": "2026-09-14T11:03:50.372Z",
+  "exportedAt": "2026-09-15T10:46:47.512Z",
   "data": {
     "encounters": [
       {
@@ -4071,21 +4071,26 @@
       },
       {
         "id": "2e298c43-7a7c-4b22-853a-14d8ad2768f5",
-        "externalId": "2e298c43-7a7c-4b22-853a-14d8ad2768f5",
+        "externalId": "npc-dodman-jac",
         "title": "Dodman Jac",
         "createdAt": 1770560171963,
-        "updatedAt": 1789365385569,
+        "updatedAt": 1789469207512,
         "category": "npc",
         "tags": [
           "Komic",
-          "Warlock"
+          "Warlock",
+          "draft"
         ],
         "source": "Notion",
         "data": {
           "name": "Dodman Jac",
-          "armorClass": 14,
-          "maxHp": 72,
+          "armorClass": 15,
+          "maxHp": 88,
           "spellSlots": [
+            {
+              "level": 1,
+              "max": 4
+            },
             {
               "level": 2,
               "max": 2
@@ -4093,85 +4098,116 @@
           ],
           "spells": [
             {
-              "id": "Notion::Dodman Jac::spell::1",
+              "id": "npc-dodman-jac::spell::eldritch-blast",
               "name": "Eldritch Blast",
               "source": "XPHB",
               "level": 0,
               "castingGroup": "at-will"
             },
             {
-              "id": "Notion::Dodman Jac::spell::2",
+              "id": "npc-dodman-jac::spell::mage-hand",
               "name": "Mage Hand",
               "source": "XPHB",
               "level": 0,
               "castingGroup": "at-will"
             },
             {
-              "id": "Notion::Dodman Jac::spell::3",
+              "id": "npc-dodman-jac::spell::minor-illusion",
               "name": "Minor Illusion",
               "source": "XPHB",
               "level": 0,
               "castingGroup": "at-will"
             },
             {
-              "id": "Notion::Dodman Jac::spell::4",
+              "id": "npc-dodman-jac::spell::armor-of-agathys",
               "name": "Armor of Agathys",
               "source": "XPHB",
               "level": 1,
               "castingGroup": "slot"
             },
             {
-              "id": "Notion::Dodman Jac::spell::5",
+              "id": "npc-dodman-jac::spell::hex",
               "name": "Hex",
               "source": "XPHB",
               "level": 1,
               "castingGroup": "slot"
             },
             {
-              "id": "Notion::Dodman Jac::spell::6",
+              "id": "npc-dodman-jac::spell::misty-step",
               "name": "Misty Step",
               "source": "XPHB",
               "level": 2,
               "castingGroup": "slot"
             },
             {
-              "id": "Notion::Dodman Jac::spell::7",
+              "id": "npc-dodman-jac::spell::hold-person",
               "name": "Hold Person",
               "source": "XPHB",
               "level": 2,
               "castingGroup": "slot"
             }
           ],
-          "specialAbilities": [],
+          "specialAbilities": [
+            {
+              "id": "npc-dodman-jac::ability::pact",
+              "featureId": "npc-dodman-jac::reaction::pact",
+              "recoveryType": "round-cooldown",
+              "cooldownRounds": 1
+            },
+            {
+              "id": "npc-dodman-jac::ability::hold-person-limit",
+              "featureId": "npc-dodman-jac::note::hold-person-limit",
+              "recoveryType": "uses-per-combat",
+              "maxUses": 1
+            }
+          ],
           "features": [
             {
-              "id": "Notion::Dodman Jac::trait::1",
-              "name": "Agonizing Blast",
-              "description": "Dodman's Eldritch Blast adds his Charisma modifier to the damage it deals on a hit.",
+              "id": "npc-dodman-jac::trait::agonizing-blast",
+              "name": "Rajada Agonizante",
+              "description": "Eldritch Blast adiciona o modificador de Carisma de Dodman ao dano causado em cada acerto.",
               "kind": "trait"
             },
             {
-              "id": "Notion::Dodman Jac::trait::2",
-              "name": "Veteran of War",
-              "description": "Once on each of his turns, Dodman can impose disadvantage on the first attack roll made against him before the start of his next turn.",
+              "id": "npc-dodman-jac::trait::veteran-of-war",
+              "name": "Velho de Guerra",
+              "description": "Uma vez por turno, Dodman pode impor desvantagem ao primeiro ataque que o atingir antes do início do próximo turno dele. Isso não usa reação.",
               "kind": "trait"
             },
             {
-              "id": "Notion::Dodman Jac::action::1",
-              "name": "Eldritch Blast",
-              "description": "r attack +7, range 120 ft. (two beams). Hit: 9 (1d10 + 4) Force damage per beam.",
+              "id": "npc-dodman-jac::note::hold-person-limit",
+              "name": "Limite de Hold Person",
+              "description": "Hold Person pode ser usado apenas uma vez neste combate. O alvo repete a resistência no fim de cada turno.",
+              "kind": "note"
+            },
+            {
+              "id": "npc-dodman-jac::trait::stop-the-fight",
+              "name": "Parar a Briga",
+              "description": "Se Thorn der a ordem de recuar, Dodman protege a retirada em vez de continuar a escalada.",
+              "kind": "trait"
+            },
+            {
+              "id": "npc-dodman-jac::action::eldritch-blast",
+              "name": "Rajada Mística",
+              "description": "Ataque mágico à distância: +7 para atingir, alcance 36 m, dois raios. Acerto: 9 (1d10 + 4) de dano de força por raio.",
               "kind": "action"
             },
             {
-              "id": "Notion::Dodman Jac::action::2",
-              "name": "Staff",
-              "description": "m attack +4, reach 5 ft. Hit: 5 (1d6 + 2) Bludgeoning damage.",
+              "id": "npc-dodman-jac::action::staff",
+              "name": "Cajado",
+              "description": "Ataque corpo a corpo com arma: +4 para atingir, alcance 1,5 m, um alvo. Acerto: 5 (1d6 + 2) de dano de concussão.",
               "kind": "action"
             },
             {
-              "id": "Notion::Dodman Jac::spellcasting::spellcasting-1",
-              "name": "Spellcasting",
-              "description": "Dodman is a 7th-level spellcaster. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Dodman has two 2nd-level spell slots, which he regains when he finishes a short or long rest.",
+              "id": "npc-dodman-jac::reaction::pact",
+              "name": "Pacto do Caçador Cansado (1/rodada)",
+              "description": "Quando um aliado de Komic a até 9 m sofre dano ou falha em uma resistência, Dodman reduz o dano em 1d8 + 4 ou permite que o aliado se mova 3 m sem provocar ataques de oportunidade. Não pode ser usado se Dodman tiver usado Misty Step no mesmo turno.",
+              "kind": "reaction"
+            },
+            {
+              "id": "npc-dodman-jac::spellcasting::warlock",
+              "name": "Conjuração de Warlock",
+              "description": "Dodman é um conjurador de 7º nível. Sua habilidade de conjuração é Carisma (CD 15, +7 para atingir). Recupera seus espaços de magia em um descanso curto ou longo.",
               "kind": "spellcasting"
             }
           ],
@@ -4184,16 +4220,17 @@
           ],
           "tags": [
             "Komic",
-            "Warlock"
+            "Warlock",
+            "draft"
           ],
           "origin": "Notion",
           "source": "Notion",
           "size": "Medium",
           "creatureType": "humanoid",
           "alignment": "Lawful Neutral",
-          "challengeRating": "4",
-          "armorClassNote": "reinforced leather",
-          "hitPointFormula": "13d8 + 13",
+          "challengeRating": "5",
+          "armorClassNote": "reinforced leather and patron protection",
+          "hitPointFormula": "16d8 + 16",
           "speed": [
             {
               "type": "walk",
@@ -4208,6 +4245,16 @@
             "wis": 14,
             "cha": 18
           },
+          "savingThrows": [
+            {
+              "ability": "wis",
+              "bonus": 5
+            },
+            {
+              "ability": "cha",
+              "bonus": 7
+            }
+          ],
           "skills": [
             {
               "name": "arcana",
@@ -4231,7 +4278,6 @@
           "damageResistances": [],
           "damageImmunities": [],
           "conditionImmunities": [],
-          "senses": [],
           "languages": [
             "Common",
             "Komic"
@@ -4240,92 +4286,95 @@
             "ability": "cha",
             "spellSaveDc": 15,
             "spellAttackBonus": 7,
-            "header": "Dodman is a 7th-level spellcaster. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Dodman has two 2nd-level spell slots, which he regains when he finishes a short or long rest."
-          },
-          "fiveEToolsIdentity": {
-            "name": "Dodman Jac",
-            "source": "Notion"
+            "header": "Dodman é um conjurador de 7º nível e recupera seus dois espaços de 2º círculo em um descanso curto ou longo.",
+            "slotRecovery": "short-rest"
           }
         }
       },
       {
         "id": "2672cb08-eb37-4d3d-8ce6-00c535b8c1b0",
-        "externalId": "2672cb08-eb37-4d3d-8ce6-00c535b8c1b0",
+        "externalId": "npc-he-xiao",
         "title": "He Xiao",
         "createdAt": 1770560059918,
-        "updatedAt": 1789365385569,
+        "updatedAt": 1789469207512,
         "category": "npc",
         "tags": [
           "Komic",
           "Rogue",
-          "Assassin"
+          "Assassin",
+          "draft"
         ],
         "source": "Notion",
         "data": {
           "name": "He Xiao",
-          "armorClass": 15,
-          "maxHp": 66,
+          "armorClass": 16,
+          "maxHp": 78,
           "spellSlots": [],
           "spells": [],
           "specialAbilities": [],
           "features": [
             {
-              "id": "Notion::He Xiao::trait::1",
-              "name": "Cunning Action",
-              "description": "On each of its turns, He Xiao can take the Dash, Disengage, or Hide action as a bonus action.",
+              "id": "npc-he-xiao::trait::cunning-action",
+              "name": "Ação Ardilosa",
+              "description": "Como ação bônus, He Xiao pode realizar as ações Correr, Desengajar ou Esconder-se.",
               "kind": "trait"
             },
             {
-              "id": "Notion::He Xiao::trait::2",
-              "name": "Sneak Attack (1/Turn)",
-              "description": "He Xiao deals an extra 10 (3d6) damage when it hits a target with a weapon attack and has advantage on the attack roll, or when the target is within 5 feet of an ally of He Xiao that isn't incapacitated and He Xiao doesn't have disadvantage on the attack roll.",
+              "id": "npc-he-xiao::trait::sneak-attack",
+              "name": "Ataque Furtivo (1/turno)",
+              "description": "He Xiao causa 3d6 de dano extra quando acerta um ataque com arma e tem vantagem, ou quando o alvo está a até 1,5 m de um aliado de He Xiao que não esteja incapacitado e He Xiao não tem desvantagem.",
               "kind": "trait"
             },
             {
-              "id": "Notion::He Xiao::trait::3",
-              "name": "Assassinate",
-              "description": "He Xiao has advantage on attack rolls against any creature that hasn't taken a turn in the combat yet. Any hit He Xiao scores against a surprised creature is a critical hit.",
+              "id": "npc-he-xiao::trait::assassinate",
+              "name": "Assassinar",
+              "description": "He Xiao tem vantagem contra criaturas que ainda não agiram no combate. Se acertar uma criatura surpresa, causa 2d6 de dano extra em vez de um acerto crítico.",
               "kind": "trait"
             },
             {
-              "id": "Notion::He Xiao::trait::4",
-              "name": "Uncanny Dodge",
-              "description": "He Xiao can use its reaction to halve the damage of an attack that hits it.",
+              "id": "npc-he-xiao::trait::evasion",
+              "name": "Evasão",
+              "description": "Em um efeito que permita resistência de Destreza para sofrer metade do dano, He Xiao não sofre dano em um sucesso e sofre metade em uma falha.",
               "kind": "trait"
             },
             {
-              "id": "Notion::He Xiao::trait::5",
-              "name": "Evasion",
-              "description": "If He Xiao is subjected to an effect that allows it to make a Dexterity saving throw to take only half damage, He Xiao instead takes no damage if it succeeds on the saving throw, and only half damage if it fails.",
+              "id": "npc-he-xiao::trait::stop-the-fight",
+              "name": "Parar a Briga",
+              "description": "Quando Thorn ordenar a retirada, He Xiao abandona o alvo e desaparece da linha de combate.",
               "kind": "trait"
             },
             {
-              "id": "Notion::He Xiao::action::1",
-              "name": "Multiattack",
-              "description": "He Xiao makes two attacks with its Dagger or two attacks with its Hand Crossbow.",
+              "id": "npc-he-xiao::action::multiattack",
+              "name": "Multiataque",
+              "description": "He Xiao faz dois ataques de Adaga ou dois ataques de Besta de Mão.",
               "kind": "action"
             },
             {
-              "id": "Notion::He Xiao::action::2",
-              "name": "Dagger",
-              "description": "m,r attack +7, reach 5 ft. or range 20/60 ft. Hit: 6 (1d4 + 4) Piercing damage plus 7 (2d6) Poison damage.\nCON Save DC 13. Failure: The target has the Poisoned condition until the end of He Xiao's next turn.",
+              "id": "npc-he-xiao::action::dagger",
+              "name": "Adaga",
+              "description": "Ataque corpo a corpo ou à distância: +7 para atingir, alcance 1,5 m ou 6/18 m. Acerto: 1d4 + 4 perfurante mais 1d6 veneno. Resistência de Constituição CD 13 ou Envenenado até o fim do próximo turno de He Xiao.",
               "kind": "action"
             },
             {
-              "id": "Notion::He Xiao::action::3",
-              "name": "Hand Crossbow",
-              "description": "r attack +7, range 30/120 ft. Hit: 7 (1d6 + 4) Piercing damage, plus Sneak Attack if applicable.",
+              "id": "npc-he-xiao::action::hand-crossbow",
+              "name": "Besta de Mão",
+              "description": "Ataque à distância: +7 para atingir, alcance 9/36 m. Acerto: 1d6 + 4 perfurante, mais Ataque Furtivo se aplicável.",
               "kind": "action"
             },
             {
-              "id": "Notion::He Xiao::reaction::1",
-              "name": "Uncanny Dodge",
-              "description": "Trigger: He Xiao is hit by an attack. Response: He Xiao halves the attack's damage against it.",
+              "id": "npc-he-xiao::bonus::blind-spot",
+              "name": "Ponto Cego",
+              "description": "Como ação bônus, He Xiao marca uma criatura a até 18 m. Se ela não tiver um aliado a até 1,5 m, He Xiao tem vantagem no primeiro ataque contra ela e pode se mover 3 m sem provocar ataques de oportunidade depois do ataque. Não pode usar Ação Ardilosa no mesmo turno.",
+              "kind": "bonus"
+            },
+            {
+              "id": "npc-he-xiao::reaction::uncanny-dodge",
+              "name": "Esquiva Sobrenatural",
+              "description": "Quando um ataque acerta He Xiao, ele reduz pela metade o dano sofrido.",
               "kind": "reaction"
             }
           ],
           "aliases": [
-            "He Xiao",
             "Assassino de Komic"
           ],
           "groups": [
@@ -4334,16 +4383,17 @@
           "tags": [
             "Komic",
             "Rogue",
-            "Assassin"
+            "Assassin",
+            "draft"
           ],
           "origin": "Notion",
           "source": "Notion",
           "size": "Medium",
           "creatureType": "humanoid",
           "alignment": "Lawful Evil",
-          "challengeRating": "4",
-          "armorClassNote": "studded leather",
-          "hitPointFormula": "12d8 + 12",
+          "challengeRating": "5",
+          "armorClassNote": "reinforced studded leather",
+          "hitPointFormula": "12d8 + 24",
           "speed": [
             {
               "type": "walk",
@@ -4358,6 +4408,16 @@
             "wis": 12,
             "cha": 11
           },
+          "savingThrows": [
+            {
+              "ability": "dex",
+              "bonus": 7
+            },
+            {
+              "ability": "int",
+              "bonus": 4
+            }
+          ],
           "skills": [
             {
               "name": "acrobatics",
@@ -4389,80 +4449,105 @@
           "damageResistances": [],
           "damageImmunities": [],
           "conditionImmunities": [],
-          "senses": [],
           "languages": [
             "Common",
             "Komic"
-          ],
-          "fiveEToolsIdentity": {
-            "name": "He Xiao",
-            "source": "Notion"
-          }
+          ]
         }
       },
       {
         "id": "b504f25f-36c5-4be1-8407-0a03379d5b57",
-        "externalId": "b504f25f-36c5-4be1-8407-0a03379d5b57",
+        "externalId": "npc-thorn-v",
         "title": "Thorn V.",
         "createdAt": 1770559768471,
-        "updatedAt": 1789365385569,
+        "updatedAt": 1789469207512,
         "category": "npc",
         "tags": [
           "Komic",
-          "Barbarian"
+          "Barbarian",
+          "draft"
         ],
         "source": "Notion",
         "data": {
           "name": "Thorn V.",
-          "armorClass": 16,
-          "maxHp": 95,
+          "armorClass": 17,
+          "maxHp": 112,
           "spellSlots": [],
           "spells": [],
           "specialAbilities": [
             {
-              "id": "Notion::Thorn V.::ability::trait-1",
-              "name": "Rage (2/Day)",
-              "description": "As a bonus action, Thorn enters a rage for 1 minute. While raging, Thorn has advantage on Strength checks and Strength saving throws, deals 2 extra damage with melee weapon attacks, and has resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks. The rage ends early if Thorn is knocked unconscious or if Thorn's turn ends and she hasn't attacked a hostile creature since her last turn or taken damage since then.",
+              "id": "npc-thorn-v::ability::rage",
+              "featureId": "npc-thorn-v::trait::rage",
               "recoveryType": "uses-per-day",
               "maxUses": 2
+            },
+            {
+              "id": "npc-thorn-v::ability::rupture-cut",
+              "featureId": "npc-thorn-v::action::rupture-cut",
+              "recoveryType": "uses-per-combat",
+              "maxUses": 1
+            },
+            {
+              "id": "npc-thorn-v::ability::komic-command",
+              "featureId": "npc-thorn-v::reaction::komic-command",
+              "recoveryType": "round-cooldown",
+              "cooldownRounds": 1
             }
           ],
           "features": [
             {
-              "id": "Notion::Thorn V.::trait::1",
-              "name": "Rage (2/Day)",
-              "description": "As a bonus action, Thorn enters a rage for 1 minute. While raging, Thorn has advantage on Strength checks and Strength saving throws, deals 2 extra damage with melee weapon attacks, and has resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks. The rage ends early if Thorn is knocked unconscious or if Thorn's turn ends and she hasn't attacked a hostile creature since her last turn or taken damage since then.",
+              "id": "npc-thorn-v::trait::rage",
+              "name": "Fúria (2/dia)",
+              "description": "Como ação bônus, Thorn entra em Fúria por 1 minuto. Enquanto estiver em Fúria, tem vantagem em testes e resistências de Força, causa 2 de dano extra com ataques corpo a corpo e possui resistência a dano de concussão, cortante e perfurante não mágico. A Fúria termina se Thorn ficar inconsciente ou terminar um turno sem ter atacado uma criatura hostil ou sofrido dano desde o turno anterior.",
               "kind": "trait"
             },
             {
-              "id": "Notion::Thorn V.::trait::2",
-              "name": "Reckless Attack",
-              "description": "At the start of her turn, Thorn can gain advantage on the first melee weapon attack roll she makes during that turn, but attack rolls against her have advantage until the start of her next turn.",
+              "id": "npc-thorn-v::trait::reckless-attack",
+              "name": "Ataque Descuidado",
+              "description": "No início do turno, Thorn pode ganhar vantagem no primeiro ataque corpo a corpo que fizer nesse turno. Até o início do próximo turno dela, ataques contra Thorn têm vantagem.",
               "kind": "trait"
             },
             {
-              "id": "Notion::Thorn V.::trait::3",
-              "name": "Brutal Charge",
-              "description": "If Thorn moves at least 20 feet straight toward a creature and then hits it with a melee weapon attack on the same turn, the target takes an extra 4 (1d8) damage and must succeed on a STR Save DC 15 or be pushed up to 10 feet away.",
+              "id": "npc-thorn-v::trait::brutal-charge",
+              "name": "Investida Brutal",
+              "description": "Se Thorn mover pelo menos 6 m em linha reta até uma criatura e acertá-la com um ataque corpo a corpo no mesmo turno, o alvo sofre 1d8 de dano cortante adicional e faz resistência de Força CD 16. Em uma falha, é empurrado 3 m.",
               "kind": "trait"
             },
             {
-              "id": "Notion::Thorn V.::trait::4",
-              "name": "Stop the Fight",
-              "description": "Komic's intent is to measure, not to kill. Thorn calls the fight when two enemies drop to 0 hit points, or when Thorn is reduced to 45 hit points or fewer.",
+              "id": "npc-thorn-v::trait::siege-greatsword",
+              "name": "Espada de Cerco",
+              "description": "A espada gigante tem alcance de 3 m. Uma vez por turno, ao acertar, Thorn escolhe empurrar 3 m, derrubar ou transformar o espaço do alvo e os adjacentes em terreno difícil até o início do próximo turno dela; os efeitos de empurrar e derrubar exigem resistência de Força CD 16.",
               "kind": "trait"
             },
             {
-              "id": "Notion::Thorn V.::action::1",
-              "name": "Multiattack",
-              "description": "Thorn makes two Greatsword attacks.",
+              "id": "npc-thorn-v::trait::stop-the-fight",
+              "name": "Parar a Briga",
+              "description": "Thorn encerra o teste quando um personagem cai a 0 PV, quando três personagens estão com metade dos PV ou menos, ou quando Thorn chega a 45 PV ou menos.",
+              "kind": "trait"
+            },
+            {
+              "id": "npc-thorn-v::action::multiattack",
+              "name": "Multiataque",
+              "description": "Thorn faz dois ataques de Espada Gigante.",
               "kind": "action"
             },
             {
-              "id": "Notion::Thorn V.::action::2",
-              "name": "Greatsword",
-              "description": "m attack +8, reach 5 ft. Hit: 12 (2d6 + 5) Slashing damage. While Thorn is raging, the attack deals 14 (2d6 + 7) Slashing damage instead.",
+              "id": "npc-thorn-v::action::greatsword",
+              "name": "Espada Gigante",
+              "description": "Ataque corpo a corpo com arma: +8 para atingir, alcance 3 m, um alvo. Acerto: 12 (2d6 + 5) de dano cortante, ou 14 (2d6 + 7) enquanto Thorn estiver em Fúria. Depois do acerto, Thorn pode usar Espada de Cerco.",
               "kind": "action"
+            },
+            {
+              "id": "npc-thorn-v::action::rupture-cut",
+              "name": "Corte de Ruptura (1/combate)",
+              "description": "Thorn desfere um corte em uma linha de 6 m por 1,5 m. Cada criatura faz resistência de Força CD 16; em uma falha sofre 4d8 de dano cortante, é empurrada 3 m e fica caída; em um sucesso sofre metade do dano.",
+              "kind": "action"
+            },
+            {
+              "id": "npc-thorn-v::reaction::komic-command",
+              "name": "Comando de Komic (1/rodada)",
+              "description": "Quando outro aliado de Komic a até 9 m é atingido, Thorn permite que esse aliado se mova até metade do deslocamento sem provocar ataques de oportunidade.",
+              "kind": "reaction"
             }
           ],
           "aliases": [
@@ -4474,16 +4559,17 @@
           ],
           "tags": [
             "Komic",
-            "Barbarian"
+            "Barbarian",
+            "draft"
           ],
           "origin": "Notion",
           "source": "Notion",
           "size": "Medium",
           "creatureType": "humanoid",
           "alignment": "Lawful Evil",
-          "challengeRating": "5",
-          "armorClassNote": "breastplate",
-          "hitPointFormula": "10d8 + 50",
+          "challengeRating": "6",
+          "armorClassNote": "reinforced breastplate",
+          "hitPointFormula": "15d8 + 45",
           "speed": [
             {
               "type": "walk",
@@ -4498,6 +4584,16 @@
             "wis": 12,
             "cha": 11
           },
+          "savingThrows": [
+            {
+              "ability": "str",
+              "bonus": 8
+            },
+            {
+              "ability": "con",
+              "bonus": 8
+            }
+          ],
           "skills": [
             {
               "name": "athletics",
@@ -4513,19 +4609,23 @@
             }
           ],
           "passivePerception": 14,
+          "damageResistances": [
+            {
+              "types": [
+                "bludgeoning",
+                "piercing",
+                "slashing"
+              ],
+              "note": "while raging, from nonmagical attacks"
+            }
+          ],
           "damageVulnerabilities": [],
-          "damageResistances": [],
           "damageImmunities": [],
           "conditionImmunities": [],
-          "senses": [],
           "languages": [
             "Common",
             "Komic"
-          ],
-          "fiveEToolsIdentity": {
-            "name": "Thorn V.",
-            "source": "Notion"
-          }
+          ]
         }
       },
       {
@@ -4920,6 +5020,197 @@
             "name": "Árvore Marcada",
             "source": "Notion"
           }
+        }
+      },
+      {
+        "id": "bd3a3454-789f-456f-9f35-9b5fbba7651c",
+        "externalId": "npc-talha-trusk",
+        "title": "Talha Trusk",
+        "createdAt": 1789469207512,
+        "updatedAt": 1789469207512,
+        "category": "npc",
+        "tags": [
+          "Mornk",
+          "Feng",
+          "Feudal",
+          "draft"
+        ],
+        "source": "Notion",
+        "data": {
+          "name": "Talha Trusk",
+          "armorClass": 18,
+          "maxHp": 128,
+          "spellSlots": [],
+          "spells": [],
+          "specialAbilities": [
+            {
+              "id": "npc-talha-trusk::ability::martial-training",
+              "featureId": "npc-talha-trusk::trait::martial-training",
+              "recoveryType": "uses-per-combat",
+              "maxUses": 4
+            },
+            {
+              "id": "npc-talha-trusk::ability::open-blade",
+              "featureId": "npc-talha-trusk::bonus::open-blade",
+              "recoveryType": "uses-per-combat",
+              "maxUses": 1
+            },
+            {
+              "id": "npc-talha-trusk::ability::mornk-sequence",
+              "featureId": "npc-talha-trusk::action::mornk-sequence",
+              "recoveryType": "uses-per-combat",
+              "maxUses": 1
+            },
+            {
+              "id": "npc-talha-trusk::ability::master-response",
+              "featureId": "npc-talha-trusk::reaction::master-response",
+              "recoveryType": "round-cooldown",
+              "cooldownRounds": 1
+            }
+          ],
+          "features": [
+            {
+              "id": "npc-talha-trusk::trait::threat-reading",
+              "name": "Leitura de Ameaça",
+              "description": "Talha tem vantagem em iniciativa e não pode ser surpreendida enquanto estiver consciente.",
+              "kind": "trait"
+            },
+            {
+              "id": "npc-talha-trusk::trait::body-discipline",
+              "name": "Disciplina Corporal",
+              "description": "Talha tem vantagem em testes para evitar ser derrubada ou desarmada. Levantar-se custa apenas 1,5 m de deslocamento.",
+              "kind": "trait"
+            },
+            {
+              "id": "npc-talha-trusk::trait::martial-training",
+              "name": "Treinamento de Endevor Trusk (4/combate)",
+              "description": "O treinamento de Endevor ensinou Talha a reconhecer abertura, distância e intenção antes de atacar. Quando Talha acerta um ataque com a Espada Longa de Mornk, pode gastar uma manobra para causar 2d8 de dano adicional, desarmar, derrubar ou empurrar 3 m e remover reações do alvo. Os efeitos de Desarme, Queda e Ruptura exigem resistência de Força CD 16.",
+              "kind": "trait"
+            },
+            {
+              "id": "npc-talha-trusk::trait::nonlethal-combat",
+              "name": "Combate Não Letal",
+              "description": "Quando Talha reduz uma criatura a 0 PV com um ataque corpo a corpo, pode deixá-la estável e inconsciente em vez de matá-la. Em Lâmina Aberta, ela só escolhe essa opção se isso não deixar outra pessoa em risco imediato.",
+              "kind": "trait"
+            },
+            {
+              "id": "npc-talha-trusk::trait::stop-the-fight",
+              "name": "Parar a Briga",
+              "description": "Talha não persegue criaturas que estejam fugindo quando as pessoas sob sua responsabilidade estão seguras. Ela prefere chamar a guarda, negociar ou encerrar a demonstração de força.",
+              "kind": "trait"
+            },
+            {
+              "id": "npc-talha-trusk::action::multiattack",
+              "name": "Multiataque",
+              "description": "Talha faz dois ataques de Espada Longa de Mornk. Ela pode substituir um ataque por Sequência de Mornk se ainda não tiver usado essa ação.",
+              "kind": "action"
+            },
+            {
+              "id": "npc-talha-trusk::action::longsword",
+              "name": "Espada Longa de Mornk",
+              "description": "Ataque corpo a corpo com arma: +8 para atingir, alcance 1,5 m. Acerto: 1d10 + 4 de dano cortante, ou 1d8 + 4 se usada com uma mão e a outra estiver livre. Talha pode gastar uma manobra depois do acerto.",
+              "kind": "action"
+            },
+            {
+              "id": "npc-talha-trusk::action::mornk-sequence",
+              "name": "Sequência de Mornk (1/combate)",
+              "description": "Talha faz três ataques de Espada Longa de Mornk. Ela pode gastar no máximo uma manobra durante essa sequência.",
+              "kind": "action"
+            },
+            {
+              "id": "npc-talha-trusk::bonus::open-blade",
+              "name": "Lâmina Aberta (1/combate)",
+              "description": "Talha entra em sua postura mortal por 1 minuto. A primeira vez que acertar um ataque de Espada Longa de Mornk em cada turno, causa 1d8 de dano cortante adicional. Enquanto estiver nessa postura, não escolhe automaticamente a opção não letal contra uma criatura reduzida a 0 PV.",
+              "kind": "bonus"
+            },
+            {
+              "id": "npc-talha-trusk::reaction::master-response",
+              "name": "Resposta do Mestre (1/rodada)",
+              "description": "Quando uma criatura a até 1,5 m errar um ataque corpo a corpo contra Talha, ela faz um ataque de Espada Longa de Mornk contra essa criatura. Como alternativa, quando uma criatura que Talha possa ver a até 3 m sofre dano, Talha reduz o dano em 1d10 + 5 e pode se mover até 3 m em direção ao alvo sem provocar ataques de oportunidade.",
+              "kind": "reaction"
+            }
+          ],
+          "aliases": [
+            "Talha"
+          ],
+          "groups": [
+            "Mornk",
+            "Feng"
+          ],
+          "tags": [
+            "Mornk",
+            "Feng",
+            "Feudal",
+            "draft"
+          ],
+          "origin": "Notion",
+          "source": "Notion",
+          "size": "Medium",
+          "creatureType": "humanoid",
+          "alignment": "Lawful Good",
+          "challengeRating": "8",
+          "level": 7,
+          "armorClassNote": "disciplined defense",
+          "hitPointFormula": "15d8 + 60",
+          "speed": [
+            {
+              "type": "walk",
+              "distance": "40 ft."
+            }
+          ],
+          "abilityScores": {
+            "str": 18,
+            "dex": 18,
+            "con": 18,
+            "int": 12,
+            "wis": 16,
+            "cha": 14
+          },
+          "savingThrows": [
+            {
+              "ability": "str",
+              "bonus": 8
+            },
+            {
+              "ability": "dex",
+              "bonus": 8
+            },
+            {
+              "ability": "wis",
+              "bonus": 7
+            }
+          ],
+          "skills": [
+            {
+              "name": "acrobatics",
+              "bonus": 8
+            },
+            {
+              "name": "athletics",
+              "bonus": 8
+            },
+            {
+              "name": "insight",
+              "bonus": 7
+            },
+            {
+              "name": "perception",
+              "bonus": 7
+            },
+            {
+              "name": "persuasion",
+              "bonus": 6
+            }
+          ],
+          "passivePerception": 17,
+          "damageVulnerabilities": [],
+          "damageResistances": [],
+          "damageImmunities": [],
+          "conditionImmunities": [],
+          "languages": [
+            "Common",
+            "Komic"
+          ]
         }
       }
     ],
