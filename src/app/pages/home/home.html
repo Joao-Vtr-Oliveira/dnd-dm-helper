@@ -105,8 +105,11 @@
 								<button
 									type="button"
 									class="app-nav-link w-full text-left"
-									[disabled]="syncLoading()"
-									[class.opacity-55]="syncLoading()"
+									[disabled]="syncLoading() || !canSync()"
+									[class.opacity-55]="syncLoading() || !canSync()"
+									[attr.title]="
+										canSync() ? action.description : 'Configure Backup e Mundo no workspace ativo.'
+									"
 									(click)="runAction(action.action)"
 								>
 									<svg
@@ -170,9 +173,13 @@
 									<button
 										type="button"
 										class="app-nav-link w-full text-left"
-										[attr.title]="action.description"
-										[disabled]="syncLoading()"
-										[class.opacity-55]="syncLoading()"
+										[attr.title]="
+											canSync()
+												? action.description
+												: 'Configure Backup e Mundo no workspace ativo.'
+										"
+										[disabled]="syncLoading() || !canSync()"
+										[class.opacity-55]="syncLoading() || !canSync()"
 										(click)="runAction(action.action)"
 									>
 										<svg

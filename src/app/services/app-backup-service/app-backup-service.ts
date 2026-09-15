@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import type { WorldDate } from '../../models/calendar-model';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
+import type { CampaignWorld } from '../../models/campaign-world-model';
 import type { FiveEToolsCompositionPackage } from '../../models/fiveetools-homebrew-model';
 import type {
 	FiveEToolsHomebrewFile,
@@ -354,7 +355,7 @@ export class AppBackupService {
 		this.storage.setItem(APP_STORAGE_KEYS.safetyBackupBeforeSync, JSON.stringify(backup));
 	}
 
-	buildSummary(backup: AppBackup): AppBackupSummary {
+	buildSummary(backup: AppBackup, world?: CampaignWorld): AppBackupSummary {
 		return {
 			encounters: backup.data.encounters.length,
 			battleEncounters: backup.data.battleEncounters.length,
@@ -362,7 +363,7 @@ export class AppBackupService {
 			hasCalendar: backup.data.calendar != null,
 			calendarLabel: this.formatCalendarLabel(backup.data.calendar),
 			hasCampaignLocation: backup.data.campaignContext?.currentLocation != null,
-			campaignLocationLabel: this.formatCampaignLocation(backup.data.campaignContext ?? null),
+			campaignLocationLabel: this.formatCampaignLocation(backup.data.campaignContext ?? null, world),
 			exportedAt: backup.exportedAt,
 		};
 	}
@@ -626,7 +627,7 @@ export class AppBackupService {
 		return `${seasonLabel}, Ano ${calendar.year}, Dia ${calendar.day}, ${String(calendar.hour).padStart(2, '0')}:${String(calendar.minute ?? 0).padStart(2, '0')}`;
 	}
 
-	private formatCampaignLocation(context: CampaignContextState | null): string | null {
+	private formatCampaignLocation(context: CampaignContextState | null, world?: CampaignWorld): string | null {
 		const location = context?.currentLocation;
 		if (!location) return null;
 		const typeLabels = {
@@ -634,6 +635,17 @@ export class AppBackupService {
 			state: 'Estado',
 			settlement: 'Localidade',
 		} as const;
+		if (world) {
+			const entity =
+				location.scopeType === 'empire'
+					? world.empires.find((item) => item.id === location.scopeId)
+					: location.scopeType === 'state'
+						? world.states.find((item) => item.id === location.scopeId)
+						: world.settlements.find((item) => item.id === location.scopeId);
+			return entity
+				? `${typeLabels[location.scopeType]}: ${entity.name}`
+				: `${typeLabels[location.scopeType]}: não encontrada no Mundo importado`;
+		}
 		const name = location.scopeId
 			.split('-')
 			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))

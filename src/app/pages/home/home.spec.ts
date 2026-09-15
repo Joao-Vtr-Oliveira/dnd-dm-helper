@@ -6,6 +6,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { Home } from './home';
 import { AppBackupService } from '../../services/app-backup-service/app-backup-service';
+import { WorkspaceService } from '../../services/workspace-service/workspace-service';
 
 describe('Home', () => {
 	let component: Home;
@@ -71,6 +72,18 @@ describe('Home', () => {
 		expect(component.mobileNavigationOpen()).toBeFalse();
 	});
 
+	it('only enables synchronization after both workspace URLs are configured', () => {
+		const workspaces = TestBed.inject(WorkspaceService);
+		const workspace = workspaces.createWorkspace('Local');
+
+		expect(component.canSync()).toBeFalse();
+		workspaces.configureRemote(workspace.id, {
+			backupUrl: 'https://example.com/backup.json',
+			worldUrl: 'https://example.com/world.json',
+		});
+		expect(component.canSync()).toBeTrue();
+	});
+
 	it('applies a confirmed sync without reloading the app', async () => {
 		const backup = { exportedAt: '2026-01-01T10:00:00.000Z' } as any;
 
@@ -103,10 +116,10 @@ describe('Home', () => {
 			battleEncounters: 5,
 			homebrewSheets: 17,
 			hasCalendar: true,
-				calendarLabel: 'Primavera',
-				hasCampaignLocation: true,
-				campaignLocationLabel: 'Localidade: Nagawoods',
-				exportedAt: backup.exportedAt,
+			calendarLabel: 'Primavera',
+			hasCampaignLocation: true,
+			campaignLocationLabel: 'Localidade: Nagawoods',
+			exportedAt: backup.exportedAt,
 		});
 		localStorage.setItem('dnd-dm-helper.encounters.v1', '[]');
 

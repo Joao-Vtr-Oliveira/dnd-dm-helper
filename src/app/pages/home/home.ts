@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterModule, RouterOutlet } from '@angular/router';
 import {
 	LucideArchive,
@@ -89,6 +89,10 @@ export class Home {
 	private readonly transfers = inject(WorkspaceTransferService);
 	private readonly campaignWorld = inject(CampaignWorldService);
 	readonly activeWorkspace = this.workspaces.activeWorkspace;
+	readonly canSync = computed(() => {
+		const remote = this.activeWorkspace()?.remote;
+		return !!remote?.backupUrl && !!remote.worldUrl;
+	});
 
 	dmCalendarEnabled = environment.showDmCalendar;
 	syncLoading = signal(false);
@@ -290,27 +294,26 @@ export class Home {
 
 	private async prepareSync() {
 		if (this.syncLoading()) return;
+		const workspace = this.workspaces.activeWorkspace();
+		if (!workspace?.remote?.backupUrl || !workspace.remote.worldUrl) {
+			this.showToast(
+				'error',
+				'Configure as URLs de Backup e Mundo neste workspace antes de sincronizar.',
+			);
+			return;
+		}
 		this.syncLoading.set(true);
 		this.syncPreview.set(null);
 
 		try {
-			const workspace = this.workspaces.activeWorkspace();
-			if (workspace?.remote?.backupUrl && workspace.remote.worldUrl) {
-				const remote = await this.transfers.validateRemote(
-					workspace.remote.backupUrl,
-					workspace.remote.worldUrl,
-				);
-				this.syncPreview.set({
-					backup: remote.backup!,
-					world: remote.world!,
-					summary: this.appBackupService.buildSummary(remote.backup!),
-				});
-				return;
-			}
-			const backup = await this.appBackupService.fetchRemoteBackup();
+			const remote = await this.transfers.validateRemote(
+				workspace.remote.backupUrl,
+				workspace.remote.worldUrl,
+			);
 			this.syncPreview.set({
-				backup,
-				summary: this.appBackupService.buildSummary(backup),
+				backup: remote.backup!,
+				world: remote.world!,
+				summary: this.appBackupService.buildSummary(remote.backup!, remote.world!),
 			});
 		} catch (error) {
 			this.showToast('error', this.getErrorMessage(error, 'Erro ao sincronizar.'));

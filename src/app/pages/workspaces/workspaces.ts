@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideDatabaseArrowDown, LucideFileDown, LucideGlobe2 } from '@lucide/angular';
 import { Router } from '@angular/router';
@@ -8,7 +8,17 @@ import { CampaignWorldService } from '../../services/campaign-world-service/camp
 import { WorkspaceService } from '../../services/workspace-service/workspace-service';
 import { WorkspaceTransferService } from '../../services/workspace-service/workspace-transfer-service';
 import { validateCampaignWorld } from '../../models/campaign-world-model';
+import {
+	isWorkspaceRemoteUrl,
+	normalizeWorkspaceRemoteUrl,
+	validateWorkspaceManifest,
+} from '../../models/workspace-model';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
+
+type RemoteUrlValidation = {
+	status: 'valid' | 'invalid';
+	message: string;
+};
 
 @Component({
 	selector: 'app-workspaces',
@@ -35,6 +45,13 @@ export class WorkspacesPage {
 	message = signal<string | null>(null);
 	busy = signal(false);
 	removeConfirmationOpen = signal(false);
+	manifestSelected = signal(false);
+	backupRemoteValidation = signal<RemoteUrlValidation | null>(null);
+	worldRemoteValidation = signal<RemoteUrlValidation | null>(null);
+	readonly hasRemoteConfiguration = computed(() => {
+		const remote = this.workspaces.activeWorkspace()?.remote;
+		return !!remote?.backupUrl && !!remote.worldUrl;
+	});
 
 	create(): void {
 		const workspace = this.transfer.createLocalWorkspace(this.newName || 'Nova Campanha');
@@ -102,12 +119,20 @@ export class WorkspacesPage {
 		this.busy.set(true);
 		this.message.set(null);
 		try {
-			await this.transfer.validateRemote(this.remoteBackupUrl.trim(), this.remoteWorldUrl.trim());
+			const backupUrl = normalizeWorkspaceRemoteUrl(this.remoteBackupUrl);
+			const worldUrl = normalizeWorkspaceRemoteUrl(this.remoteWorldUrl);
+			if (!isWorkspaceRemoteUrl(backupUrl) || !isWorkspaceRemoteUrl(worldUrl)) {
+				throw new Error('Informe URLs HTTP(S) públicas e válidas para Backup e Mundo.');
+			}
+			this.remoteBackupUrl = backupUrl;
+			this.remoteWorldUrl = worldUrl;
 			this.workspaces.configureRemote(workspace.id, {
-				backupUrl: this.remoteBackupUrl.trim(),
-				worldUrl: this.remoteWorldUrl.trim(),
+				backupUrl,
+				worldUrl,
 			});
-			this.message.set('Sincronização remota configurada.');
+			this.message.set(
+				'URLs configuradas. Teste Backup e Mundo individualmente antes de sincronizar.',
+			);
 		} catch (error) {
 			this.message.set(
 				error instanceof Error ? error.message : 'Não foi possível validar as URLs.',
@@ -117,8 +142,76 @@ export class WorkspacesPage {
 		}
 	}
 
+	async testRemoteUrl(kind: 'backup' | 'world'): Promise<void> {
+		this.busy.set(true);
+		this.message.set(null);
+		try {
+			if (kind === 'backup') {
+				await this.transfer.validateBackupUrl(this.remoteBackupUrl);
+				this.remoteBackupUrl = normalizeWorkspaceRemoteUrl(this.remoteBackupUrl);
+				this.backupRemoteValidation.set({ status: 'valid', message: 'Backup acessível e válido.' });
+				return;
+			}
+			await this.transfer.validateWorldUrl(this.remoteWorldUrl);
+			this.remoteWorldUrl = normalizeWorkspaceRemoteUrl(this.remoteWorldUrl);
+			this.worldRemoteValidation.set({ status: 'valid', message: 'Mundo acessível e válido.' });
+		} catch (error) {
+			const validation = {
+				status: 'invalid' as const,
+				message: error instanceof Error ? error.message : 'Não foi possível validar esta URL.',
+			};
+			if (kind === 'backup') this.backupRemoteValidation.set(validation);
+			else this.worldRemoteValidation.set(validation);
+		} finally {
+			this.busy.set(false);
+		}
+	}
+
+	resetRemoteUrlValidation(kind: 'backup' | 'world'): void {
+		if (kind === 'backup') this.backupRemoteValidation.set(null);
+		else this.worldRemoteValidation.set(null);
+	}
+
+	async importManifest(file: File | null): Promise<void> {
+		const workspace = this.workspaces.activeWorkspace();
+		if (!workspace || !file) return;
+		this.busy.set(true);
+		this.message.set(null);
+		try {
+			const validation = validateWorkspaceManifest(await this.readJson(file));
+			if (!validation.valid || !validation.manifest) {
+				throw new Error(validation.error ?? 'workspace.json inválido.');
+			}
+			await this.transfer.validateRemote(
+				validation.manifest.backupUrl,
+				validation.manifest.worldUrl,
+			);
+			this.remoteBackupUrl = validation.manifest.backupUrl;
+			this.remoteWorldUrl = validation.manifest.worldUrl;
+			this.backupRemoteValidation.set({ status: 'valid', message: 'Backup acessível e válido.' });
+			this.worldRemoteValidation.set({ status: 'valid', message: 'Mundo acessível e válido.' });
+			this.workspaces.configureRemote(workspace.id, {
+				backupUrl: validation.manifest.backupUrl,
+				worldUrl: validation.manifest.worldUrl,
+			});
+			this.message.set(
+				'workspace.json validado. As URLs foram configuradas; agora você pode sincronizar.',
+			);
+		} catch (error) {
+			this.message.set(
+				error instanceof Error ? error.message : 'Não foi possível importar o workspace.json.',
+			);
+		} finally {
+			this.busy.set(false);
+		}
+	}
+
 	async sync(): Promise<void> {
 		const workspace = this.workspaces.activeWorkspace();
+		if (!this.hasRemoteConfiguration()) {
+			this.message.set('Configure ou importe um workspace.json antes de sincronizar.');
+			return;
+		}
 		if (
 			!workspace ||
 			!confirm('A sincronização substituirá Backup e Mundo locais desta campanha. Continuar?')

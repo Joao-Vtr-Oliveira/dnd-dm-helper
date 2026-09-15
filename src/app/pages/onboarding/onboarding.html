@@ -72,8 +72,9 @@
 							<div>
 								<strong class="text-sm">Conexão remota</strong>
 								<p class="mt-1 text-sm text-app-muted">
-									Cole o endereço do <code>workspace.json</code> e cheque a campanha. As URLs são
-									preenchidas automaticamente depois da validação.
+									Dropbox é recomendado para publicação simples: links compartilhados são
+									convertidos automaticamente para a versão raw. GitHub Raw e outros hosts públicos
+									também funcionam.
 								</p>
 							</div>
 						</div>
@@ -94,16 +95,52 @@
 						>Backup URL<input
 							class="app-field mt-2 w-full"
 							[(ngModel)]="backupUrl"
-							(ngModelChange)="resetRemoteValidation()"
+							(ngModelChange)="resetRemoteValidation('backup')"
 							placeholder="https://.../dnd-dm-helper-backup-v2.json"
 					/></label>
+					<div class="mt-2 flex flex-wrap items-center gap-3">
+						<button
+							type="button"
+							class="app-button app-button-secondary text-sm"
+							[disabled]="loading()"
+							(click)="testRemoteUrl('backup')"
+						>
+							Testar Backup
+						</button>
+						@if (backupRemoteValidation(); as validation) {
+							<span
+								class="text-xs"
+								[class.text-emerald-200]="validation.status === 'valid'"
+								[class.text-rose-200]="validation.status === 'invalid'"
+								>{{ validation.message }}</span
+							>
+						}
+					</div>
 					<label class="mt-4 block text-sm font-semibold"
 						>Campaign World URL<input
 							class="app-field mt-2 w-full"
 							[(ngModel)]="worldUrl"
-							(ngModelChange)="resetRemoteValidation()"
+							(ngModelChange)="resetRemoteValidation('world')"
 							placeholder="https://.../campaign-world.json"
 					/></label>
+					<div class="mt-2 flex flex-wrap items-center gap-3">
+						<button
+							type="button"
+							class="app-button app-button-secondary text-sm"
+							[disabled]="loading()"
+							(click)="testRemoteUrl('world')"
+						>
+							Testar Mundo
+						</button>
+						@if (worldRemoteValidation(); as validation) {
+							<span
+								class="text-xs"
+								[class.text-emerald-200]="validation.status === 'valid'"
+								[class.text-rose-200]="validation.status === 'invalid'"
+								>{{ validation.message }}</span
+							>
+						}
+					</div>
 					<div class="mt-5 flex flex-wrap items-center gap-3">
 						<button
 							type="button"

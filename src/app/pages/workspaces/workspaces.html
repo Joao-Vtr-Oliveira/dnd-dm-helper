@@ -68,10 +68,15 @@
 				</div>
 			</section>
 			<section class="app-panel p-5 sm:p-6">
-				<div class="app-eyebrow">Portabilidade</div>
+				<div class="app-eyebrow">1. Publicar campanha</div>
 				<h2 class="mt-1 text-lg font-semibold">Backup e Mundo</h2>
 				<p class="mt-2 text-sm text-app-muted">
-					Exporte os dois arquivos para guardar ou publicar sua campanha.
+					Exporte os dois arquivos, publique-os em URLs públicas e estáveis, depois configure a
+					conexão abaixo.
+				</p>
+				<p class="mt-2 text-xs leading-5 text-app-subtle">
+					Dropbox é recomendado para publicação simples: links compartilhados são convertidos
+					automaticamente para arquivos raw. GitHub Raw e outros hosts públicos também funcionam.
 				</p>
 				<div class="mt-5 grid gap-3 sm:grid-cols-2">
 					<button
@@ -101,21 +106,28 @@
 						>
 					</button>
 				</div>
-				<button
-					type="button"
-					class="app-button app-button-ghost mt-4 text-sm"
-					(click)="exportManifest()"
-				>
-					<svg lucideFileDown [size]="17" aria-hidden="true"></svg>Exportar workspace.json
-				</button>
+				@if (hasRemoteConfiguration()) {
+					<button
+						type="button"
+						class="app-button app-button-ghost mt-4 text-sm"
+						(click)="exportManifest()"
+					>
+						<svg lucideFileDown [size]="17" aria-hidden="true"></svg>Exportar workspace.json
+					</button>
+				} @else {
+					<p class="mt-4 text-xs text-amber-100">
+						O workspace.json fica disponível depois que as URLs de Backup e Mundo forem
+						configuradas.
+					</p>
+				}
 				<div class="mt-6 border-t border-app-divider pt-5">
 					<div class="text-sm font-semibold">Importar neste workspace</div>
 					<p class="mt-1 text-sm text-app-muted">
 						Cada arquivo é validado antes de substituir os dados locais.
 					</p>
 					<div class="mt-4 grid gap-3 sm:grid-cols-2">
-						<label class="rounded-xl border border-violet-300/25 bg-violet-500/5 p-4"
-							><span class="block text-sm font-semibold text-violet-100">1. Arquivo de Backup</span
+						<label class="rounded-xl border border-sky-300/25 bg-sky-500/10 p-4"
+							><span class="block text-sm font-semibold text-sky-100">1. Arquivo de Backup</span
 							><span class="mt-1 block text-xs text-app-muted"
 								>Fichas, encontros e dados da campanha.</span
 							><input
@@ -147,16 +159,97 @@
 				</div>
 			</section>
 			<section class="app-panel p-5 sm:p-6">
-				<div class="app-eyebrow">Sincronização avançada</div>
+				<div class="app-eyebrow">2. Conectar e sincronizar</div>
 				<p class="mt-2 text-sm text-app-muted">
-					Use URLs públicas do seu Backup e Campaign World. Alterações locais não são enviadas
-					automaticamente.
+					Importe um workspace.json ou informe as duas URLs públicas. Sincronizar sempre baixa os
+					dois arquivos e substitui os dados locais após confirmação.
 				</p>
+				<div class="mt-5 rounded-xl border border-violet-300/20 bg-violet-500/5 p-4">
+					<div class="text-sm font-semibold text-violet-100">Importar workspace.json</div>
+					<p class="mt-1 text-xs leading-5 text-app-muted">
+						Use este arquivo em outro aparelho para configurar a campanha sem copiar URLs
+						manualmente.
+					</p>
+					<label class="mt-3 block"
+						><span class="sr-only">Arquivo workspace.json</span
+						><input
+							#manifestInput
+							class="app-file-input block w-full text-xs"
+							type="file"
+							accept="application/json"
+							(change)="manifestSelected.set(!!manifestInput.files?.item(0))"
+					/></label>
+					<button
+						type="button"
+						class="app-button app-button-secondary mt-3 text-sm"
+						[disabled]="busy() || !manifestSelected()"
+						(click)="importManifest(manifestInput.files?.item(0) ?? null)"
+					>
+						{{ busy() ? 'Validando...' : 'Importar e validar workspace.json' }}
+					</button>
+				</div>
+				<div class="my-5 flex items-center gap-3 text-xs text-app-subtle">
+					<span class="h-px flex-1 bg-app-divider"></span>ou informe as URLs<span
+						class="h-px flex-1 bg-app-divider"
+					></span>
+				</div>
 				<label class="mt-4 block text-sm font-semibold"
-					>Backup URL<input class="app-field mt-2 w-full" [(ngModel)]="remoteBackupUrl" /></label
+					>Backup URL<input
+						class="app-field mt-2 w-full"
+						[(ngModel)]="remoteBackupUrl"
+						(ngModelChange)="resetRemoteUrlValidation('backup')" /></label
 				><label class="mt-4 block text-sm font-semibold"
-					>Campaign World URL<input class="app-field mt-2 w-full" [(ngModel)]="remoteWorldUrl"
+					>Campaign World URL<input
+						class="app-field mt-2 w-full"
+						[(ngModel)]="remoteWorldUrl"
+						(ngModelChange)="resetRemoteUrlValidation('world')"
 				/></label>
+				<div class="mt-3 grid gap-3 sm:grid-cols-2">
+					<div class="app-inset p-3">
+						<div class="flex flex-wrap items-center justify-between gap-2">
+							<span class="text-sm font-semibold">Backup</span
+							><button
+								type="button"
+								class="app-button app-button-secondary text-xs"
+								[disabled]="busy()"
+								(click)="testRemoteUrl('backup')"
+							>
+								Testar Backup
+							</button>
+						</div>
+						@if (backupRemoteValidation(); as validation) {
+							<p
+								class="mt-2 text-xs"
+								[class.text-emerald-200]="validation.status === 'valid'"
+								[class.text-rose-200]="validation.status === 'invalid'"
+							>
+								{{ validation.message }}
+							</p>
+						}
+					</div>
+					<div class="app-inset p-3">
+						<div class="flex flex-wrap items-center justify-between gap-2">
+							<span class="text-sm font-semibold">Mundo</span
+							><button
+								type="button"
+								class="app-button app-button-secondary text-xs"
+								[disabled]="busy()"
+								(click)="testRemoteUrl('world')"
+							>
+								Testar Mundo
+							</button>
+						</div>
+						@if (worldRemoteValidation(); as validation) {
+							<p
+								class="mt-2 text-xs"
+								[class.text-emerald-200]="validation.status === 'valid'"
+								[class.text-rose-200]="validation.status === 'invalid'"
+							>
+								{{ validation.message }}
+							</p>
+						}
+					</div>
+				</div>
 				<div class="mt-4 flex flex-wrap gap-2">
 					<button
 						type="button"
@@ -164,15 +257,29 @@
 						[disabled]="busy()"
 						(click)="saveRemote()"
 					>
-						Validar e salvar URLs</button
+						Salvar URLs</button
 					><button
 						type="button"
 						class="app-button app-button-primary"
-						[disabled]="busy()"
+						[disabled]="busy() || !hasRemoteConfiguration()"
 						(click)="sync()"
 					>
 						Sincronizar Backup e Mundo
 					</button>
+				</div>
+				<div class="mt-6 border-t border-app-divider pt-5">
+					<div class="app-eyebrow">Como usar em outro aparelho</div>
+					<ol class="mt-3 space-y-2 text-sm leading-6 text-app-muted">
+						<li>
+							1. Exporte Backup e Mundo e publique cada arquivo em uma URL pública. Dropbox é
+							recomendado; GitHub Raw também funciona.
+						</li>
+						<li>2. Salve as URLs e teste Backup e Mundo individualmente.</li>
+						<li>3. Exporte o workspace.json e mantenha-o junto aos links da campanha.</li>
+						<li>
+							4. No outro aparelho, importe o workspace.json e clique em Sincronizar Backup e Mundo.
+						</li>
+					</ol>
 				</div>
 			</section>
 			@if (message()) {

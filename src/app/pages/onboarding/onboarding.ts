@@ -17,9 +17,14 @@ import {
 	type WorkspaceImportPreview,
 } from '../../services/workspace-service/workspace-transfer-service';
 import { validateCampaignWorld } from '../../models/campaign-world-model';
+import { normalizeWorkspaceRemoteUrl } from '../../models/workspace-model';
 
 type ImportFileKind = 'backup' | 'world';
 type ImportFileValidation = {
+	status: 'valid' | 'invalid';
+	message: string;
+};
+type RemoteUrlValidation = {
 	status: 'valid' | 'invalid';
 	message: string;
 };
@@ -54,6 +59,8 @@ export class OnboardingPage {
 	message = signal<string | null>(null);
 	loading = signal(false);
 	remoteValidation = signal<'idle' | 'valid' | 'invalid'>('idle');
+	backupRemoteValidation = signal<RemoteUrlValidation | null>(null);
+	worldRemoteValidation = signal<RemoteUrlValidation | null>(null);
 	backupFileValidation = signal<ImportFileValidation | null>(null);
 	worldFileValidation = signal<ImportFileValidation | null>(null);
 
@@ -79,6 +86,8 @@ export class OnboardingPage {
 					await this.transfer.validateRemote(this.backupUrl.trim(), this.worldUrl.trim()),
 				);
 			}
+			this.backupRemoteValidation.set({ status: 'valid', message: 'Backup acessível e válido.' });
+			this.worldRemoteValidation.set({ status: 'valid', message: 'Mundo acessível e válido.' });
 			this.remoteValidation.set('valid');
 		} catch (error) {
 			this.message.set(
@@ -90,11 +99,38 @@ export class OnboardingPage {
 		}
 	}
 
-	resetRemoteValidation(): void {
+	async testRemoteUrl(kind: 'backup' | 'world'): Promise<void> {
+		this.loading.set(true);
+		this.message.set(null);
+		try {
+			if (kind === 'backup') {
+				await this.transfer.validateBackupUrl(this.backupUrl);
+				this.backupUrl = normalizeWorkspaceRemoteUrl(this.backupUrl);
+				this.backupRemoteValidation.set({ status: 'valid', message: 'Backup acessível e válido.' });
+				return;
+			}
+			await this.transfer.validateWorldUrl(this.worldUrl);
+			this.worldUrl = normalizeWorkspaceRemoteUrl(this.worldUrl);
+			this.worldRemoteValidation.set({ status: 'valid', message: 'Mundo acessível e válido.' });
+		} catch (error) {
+			const validation = {
+				status: 'invalid' as const,
+				message: error instanceof Error ? error.message : 'Não foi possível validar esta URL.',
+			};
+			if (kind === 'backup') this.backupRemoteValidation.set(validation);
+			else this.worldRemoteValidation.set(validation);
+		} finally {
+			this.loading.set(false);
+		}
+	}
+
+	resetRemoteValidation(kind?: 'backup' | 'world'): void {
 		if (this.loading()) return;
 		this.preview.set(null);
 		this.remoteValidation.set('idle');
 		this.message.set(null);
+		if (!kind || kind === 'backup') this.backupRemoteValidation.set(null);
+		if (!kind || kind === 'world') this.worldRemoteValidation.set(null);
 	}
 
 	async connect(): Promise<void> {

@@ -41,9 +41,24 @@ function isPublicHttpUrl(value: unknown): value is string {
 	if (typeof value !== 'string' || !value.trim()) return false;
 	try {
 		const url = new URL(value);
-		return (url.protocol === 'https:' || url.protocol === 'http:') && !url.username && !url.password;
+		return (
+			(url.protocol === 'https:' || url.protocol === 'http:') && !url.username && !url.password
+		);
 	} catch {
 		return false;
+	}
+}
+
+export function normalizeWorkspaceRemoteUrl(value: string): string {
+	const trimmed = value.trim();
+	try {
+		const url = new URL(trimmed);
+		if (url.hostname.toLocaleLowerCase() === 'www.dropbox.com') {
+			url.hostname = 'dl.dropboxusercontent.com';
+		}
+		return url.toString();
+	} catch {
+		return trimmed;
 	}
 }
 
@@ -52,10 +67,16 @@ export function validateWorkspaceManifest(raw: unknown): WorkspaceManifestValida
 		return { valid: false, error: 'Workspace inválido.' };
 	}
 	const candidate = raw as Partial<WorkspaceManifest>;
-	if (candidate.schemaVersion !== 1 || typeof candidate.name !== 'string' || !candidate.name.trim()) {
+	if (
+		candidate.schemaVersion !== 1 ||
+		typeof candidate.name !== 'string' ||
+		!candidate.name.trim()
+	) {
 		return { valid: false, error: 'Workspace inválido.' };
 	}
-	if (!isPublicHttpUrl(candidate.backupUrl) || !isPublicHttpUrl(candidate.worldUrl)) {
+	const backupUrl = normalizeWorkspaceRemoteUrl(candidate.backupUrl ?? '');
+	const worldUrl = normalizeWorkspaceRemoteUrl(candidate.worldUrl ?? '');
+	if (!isPublicHttpUrl(backupUrl) || !isPublicHttpUrl(worldUrl)) {
 		return { valid: false, error: 'As URLs do workspace precisam ser HTTP(S) públicas e válidas.' };
 	}
 	if (candidate.id !== undefined && (typeof candidate.id !== 'string' || !candidate.id.trim())) {
@@ -66,13 +87,13 @@ export function validateWorkspaceManifest(raw: unknown): WorkspaceManifestValida
 		manifest: {
 			schemaVersion: 1,
 			name: candidate.name.trim(),
-			backupUrl: candidate.backupUrl,
-			worldUrl: candidate.worldUrl,
+			backupUrl,
+			worldUrl,
 			...(candidate.id ? { id: candidate.id } : {}),
 		},
 	};
 }
 
 export function isWorkspaceRemoteUrl(value: string): boolean {
-	return isPublicHttpUrl(value);
+	return isPublicHttpUrl(normalizeWorkspaceRemoteUrl(value));
 }

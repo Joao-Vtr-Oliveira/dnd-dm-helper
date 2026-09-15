@@ -260,6 +260,24 @@ describe('AppBackupService', () => {
 		expect(summary.calendarLabel).toContain('Verão');
 	});
 
+	it('resolves the party location name from the imported world in a sync summary', () => {
+		const backup = service.exportAll();
+		backup.data.campaignContext = {
+			currentLocation: { scopeType: 'settlement', scopeId: 'rockbell' },
+		};
+		const world = {
+			settlements: [{ id: 'rockbell', name: 'Rockbell' }],
+		} as unknown as import('../../models/campaign-world-model').CampaignWorld;
+
+		expect(service.buildSummary(backup, world).campaignLocationLabel).toBe('Localidade: Rockbell');
+		expect(
+			service.buildSummary(backup, {
+				settlements: [],
+			} as unknown as import('../../models/campaign-world-model').CampaignWorld)
+				.campaignLocationLabel,
+		).toBe('Localidade: não encontrada no Mundo importado');
+	});
+
 	it('rejects V1 backups and malformed canonical encounters', () => {
 		const backup = service.exportAll();
 		const v1Backup = { ...backup, schemaVersion: 1 };
