@@ -9,8 +9,8 @@ import { WorldClockService } from '../../services/WorldClockService/world-clock-
 import { CampaignContextService } from '../../services/campaign-context-service/campaign-context-service';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
-import { SEASONS } from '../../utils/calendar-utils/calendar-constants';
 import { getWeekdayLabel } from '../../utils/calendar-utils/calendar-util';
+import { CampaignCalendarService } from '../../services/campaign-calendar-service/campaign-calendar-service';
 
 @Component({
 	selector: 'app-campaign-clock',
@@ -22,6 +22,7 @@ export class CampaignClock {
 	private readonly destroyRef = inject(DestroyRef);
 	private readonly router = inject(Router);
 	private readonly worldClock = inject(WorldClockService);
+	private readonly calendarRules = inject(CampaignCalendarService);
 	private readonly campaignContext = inject(CampaignContextService);
 	readonly campaignWorld = inject(CampaignWorldService);
 
@@ -29,9 +30,13 @@ export class CampaignClock {
 	readonly isOpen = signal(false);
 	readonly isCalendarPage = signal(this.router.url.startsWith('/home/calendar'));
 	readonly seasonLabel = computed(
-		() => SEASONS.find((season) => season.id === this.current().season)?.label ?? this.current().season,
+		() =>
+			this.calendarRules.calendar().seasons.find((season) => season.id === this.current().season)
+				?.label ?? this.current().season,
 	);
-	readonly weekdayLabel = computed(() => getWeekdayLabel(this.current()));
+	readonly weekdayLabel = computed(() =>
+		getWeekdayLabel(this.calendarRules.calendar(), this.current()),
+	);
 	readonly timeLabel = computed(() => {
 		const { hour, minute } = this.current();
 		return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;

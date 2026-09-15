@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type { SavedEncounter } from '../local-storage-service/local-storage-service';
+import { WorkspaceStorageService } from '../workspace-service/workspace-storage-service';
 
 export type EncounterHubStatusFilter = 'all' | 'prepared' | 'active' | 'paused' | 'completed';
 export type EncounterHubSortOption = 'smart' | 'recent' | 'oldest' | 'updated' | 'name';
@@ -30,10 +31,11 @@ export interface EncounterHubItem {
 @Injectable({ providedIn: 'root' })
 export class EncounterHubFilterService {
 	private readonly storageKey = APP_STORAGE_KEYS.encounterHubFilters;
+	private readonly storage = inject(WorkspaceStorageService);
 
 	loadFilters(): EncounterHubFilters {
 		try {
-			const raw = localStorage.getItem(this.storageKey);
+			const raw = this.storage.getItem(this.storageKey);
 			if (!raw) return this.defaultFilters();
 
 			const parsed = JSON.parse(raw) as Partial<EncounterHubFilters>;
@@ -48,7 +50,7 @@ export class EncounterHubFilterService {
 	}
 
 	saveFilters(filters: EncounterHubFilters) {
-		localStorage.setItem(this.storageKey, JSON.stringify(filters));
+		this.storage.setItem(this.storageKey, JSON.stringify(filters));
 	}
 
 	buildItems(encounters: SavedEncounter[], battles: BattleEncounter[]): EncounterHubItem[] {

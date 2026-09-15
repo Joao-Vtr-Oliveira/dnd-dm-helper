@@ -1,5 +1,6 @@
 import {
 	CalendarEvent,
+	CampaignCalendar,
 	MoonInfo,
 	MoonPhase,
 	Season,
@@ -7,24 +8,12 @@ import {
 	WEEKDAY_LABELS,
 	WorldDate,
 } from '../../models/calendar-model';
-import {
-	CALENDAR_EVENTS,
-	DAYS_PER_SEASON,
-	EPOCH_DATE,
-	SEASON_ORDER,
-} from './calendar-constants';
-
-const SEASONS_PER_YEAR = SEASON_ORDER.length;
-const DAYS_PER_YEAR = DAYS_PER_SEASON * SEASONS_PER_YEAR;
-
 const HOURS_PER_DAY = 24;
 const MINUTES_PER_HOUR = 60;
 const MINUTES_PER_DAY = HOURS_PER_DAY * MINUTES_PER_HOUR;
 
-export { EPOCH_DATE } from './calendar-constants';
-
-function seasonIndex(season: Season): number {
-	return SEASON_ORDER.indexOf(season);
+function seasonIndex(calendar: CampaignCalendar, season: Season): number {
+	return calendar.seasons.findIndex((item) => item.id === season);
 }
 
 function clampMinute(min: number): number {
@@ -34,41 +23,41 @@ function clampMinute(min: number): number {
 	return x;
 }
 
-function absoluteDayIndex(d: WorldDate): number {
-	return d.year * DAYS_PER_YEAR + seasonIndex(d.season) * DAYS_PER_SEASON + (d.day - 1);
+function absoluteDayIndex(calendar: CampaignCalendar, d: WorldDate): number {
+	const daysPerYear = calendar.daysPerSeason * calendar.seasons.length;
+	return d.year * daysPerYear + seasonIndex(calendar, d.season) * calendar.daysPerSeason + (d.day - 1);
 }
 
-const EPOCH_DAY_INDEX = absoluteDayIndex(EPOCH_DATE);
-
-export function worldDateToDayIndex(d: WorldDate): number {
-	return absoluteDayIndex(d) - EPOCH_DAY_INDEX;
+export function worldDateToDayIndex(calendar: CampaignCalendar, d: WorldDate): number {
+	return absoluteDayIndex(calendar, d) - absoluteDayIndex(calendar, calendar.epochDate);
 }
 
-export function dayIndexToWorldDate(idx: number, hour = 6, minute = 0): WorldDate {
+export function dayIndexToWorldDate(calendar: CampaignCalendar, idx: number, hour = 6, minute = 0): WorldDate {
 	if (idx < 0) idx = 0;
 
-	const absoluteIndex = EPOCH_DAY_INDEX + idx;
-	const year = Math.floor(absoluteIndex / DAYS_PER_YEAR);
+	const daysPerYear = calendar.daysPerSeason * calendar.seasons.length;
+	const absoluteIndex = absoluteDayIndex(calendar, calendar.epochDate) + idx;
+	const year = Math.floor(absoluteIndex / daysPerYear);
 
-	const dayOfYear = absoluteIndex % DAYS_PER_YEAR;
-	const sIdx = Math.floor(dayOfYear / DAYS_PER_SEASON);
-	const dayInSeason = (dayOfYear % DAYS_PER_SEASON) + 1;
+	const dayOfYear = absoluteIndex % daysPerYear;
+	const sIdx = Math.floor(dayOfYear / calendar.daysPerSeason);
+	const dayInSeason = (dayOfYear % calendar.daysPerSeason) + 1;
 
 	return {
 		year,
-		season: SEASON_ORDER[sIdx],
+		season: calendar.seasons[sIdx]?.id ?? calendar.epochDate.season,
 		day: dayInSeason,
 		hour,
 		minute,
 	};
 }
 
-export function worldDateToMinutesSinceEpoch(d: WorldDate): number {
-	const dayIndex = worldDateToDayIndex(d);
+export function worldDateToMinutesSinceEpoch(calendar: CampaignCalendar, d: WorldDate): number {
+	const dayIndex = worldDateToDayIndex(calendar, d);
 	return dayIndex * MINUTES_PER_DAY + d.hour * MINUTES_PER_HOUR + d.minute;
 }
 
-export function minutesSinceEpochToWorldDate(totalMinutes: number): WorldDate {
+export function minutesSinceEpochToWorldDate(calendar: CampaignCalendar, totalMinutes: number): WorldDate {
 	if (totalMinutes < 0) totalMinutes = 0;
 
 	const dayIndex = Math.floor(totalMinutes / MINUTES_PER_DAY);
@@ -77,7 +66,7 @@ export function minutesSinceEpochToWorldDate(totalMinutes: number): WorldDate {
 	const hour = Math.floor(minutesInDay / MINUTES_PER_HOUR);
 	const minute = minutesInDay % MINUTES_PER_HOUR;
 
-	const base = dayIndexToWorldDate(dayIndex, hour, minute);
+	const base = dayIndexToWorldDate(calendar, dayIndex, hour, minute);
 	return {
 		...base,
 		hour,
@@ -85,48 +74,48 @@ export function minutesSinceEpochToWorldDate(totalMinutes: number): WorldDate {
 	};
 }
 
-export function addMinutes(d: WorldDate, delta: number): WorldDate {
-	const total = worldDateToMinutesSinceEpoch(d) + delta;
-	return minutesSinceEpochToWorldDate(total);
+export function addMinutes(calendar: CampaignCalendar, d: WorldDate, delta: number): WorldDate {
+	const total = worldDateToMinutesSinceEpoch(calendar, d) + delta;
+	return minutesSinceEpochToWorldDate(calendar, total);
 }
 
-export function addHours(d: WorldDate, delta: number): WorldDate {
-	return addMinutes(d, delta * MINUTES_PER_HOUR);
+export function addHours(calendar: CampaignCalendar, d: WorldDate, delta: number): WorldDate {
+	return addMinutes(calendar, d, delta * MINUTES_PER_HOUR);
 }
 
-export function addDays(d: WorldDate, delta: number): WorldDate {
-	return addMinutes(d, delta * MINUTES_PER_DAY);
+export function addDays(calendar: CampaignCalendar, d: WorldDate, delta: number): WorldDate {
+	return addMinutes(calendar, d, delta * MINUTES_PER_DAY);
 }
 
-export function getWeekday(d: WorldDate): Weekday {
-	const idx = worldDateToDayIndex(d);
+export function getWeekday(calendar: CampaignCalendar, d: WorldDate): Weekday {
+	const idx = worldDateToDayIndex(calendar, d);
 	return (idx % 7) as Weekday;
 }
 
-export function getWeekdayLabel(d: WorldDate): string {
-	return WEEKDAY_LABELS[getWeekday(d)];
+export function getWeekdayLabel(calendar: CampaignCalendar, d: WorldDate): string {
+	return WEEKDAY_LABELS[getWeekday(calendar, d)];
 }
 
-export function getEventsForDate(d: WorldDate): CalendarEvent[] {
-	return CALENDAR_EVENTS.filter((e) => e.season === d.season && e.day === d.day);
+export function getEventsForDate(calendar: CampaignCalendar, d: WorldDate): CalendarEvent[] {
+	return calendar.events.filter((e) => e.season === d.season && e.day === d.day);
 }
 
-export function getMoonPhaseForDayIndex(dayIndex: number): MoonPhase {
-	const dayInCycle = (dayIndex % DAYS_PER_SEASON) + 1;
-	const waxingEnd = Math.max(2, Math.floor((DAYS_PER_SEASON * 7) / 30));
-	const fullEnd = Math.max(waxingEnd + 1, Math.floor((DAYS_PER_SEASON * 17) / 30));
+export function getMoonPhaseForDayIndex(calendar: CampaignCalendar, dayIndex: number): MoonPhase {
+	const dayInCycle = (dayIndex % calendar.daysPerSeason) + 1;
+	const waxingEnd = Math.max(2, Math.floor((calendar.daysPerSeason * 7) / 30));
+	const fullEnd = Math.max(waxingEnd + 1, Math.floor((calendar.daysPerSeason * 17) / 30));
 
-	if (dayInCycle === 1 || dayInCycle === DAYS_PER_SEASON) return 'new';
+	if (dayInCycle === 1 || dayInCycle === calendar.daysPerSeason) return 'new';
 	if (dayInCycle >= 2 && dayInCycle <= waxingEnd) return 'waxing';
 	if (dayInCycle <= fullEnd) return 'full';
-	if (dayInCycle < DAYS_PER_SEASON) return 'waning';
+	if (dayInCycle < calendar.daysPerSeason) return 'waning';
 
 	return 'new';
 }
 
-export function getMoonInfo(d: WorldDate): MoonInfo {
-	const idx = worldDateToDayIndex(d);
-	const phase = getMoonPhaseForDayIndex(idx);
+export function getMoonInfo(calendar: CampaignCalendar, d: WorldDate): MoonInfo {
+	const idx = worldDateToDayIndex(calendar, d);
+	const phase = getMoonPhaseForDayIndex(calendar, idx);
 
 	let label: string;
 	switch (phase) {
@@ -154,10 +143,10 @@ export interface CalendarDayCell {
 	events: CalendarEvent[];
 }
 
-export function buildSeasonGrid(year: number, season: Season): CalendarDayCell[] {
+export function buildSeasonGrid(calendar: CampaignCalendar, year: number, season: Season): CalendarDayCell[] {
 	const result: CalendarDayCell[] = [];
 
-	for (let day = 1; day <= DAYS_PER_SEASON; day++) {
+	for (let day = 1; day <= calendar.daysPerSeason; day++) {
 		const date: WorldDate = {
 			year,
 			season,
@@ -168,9 +157,9 @@ export function buildSeasonGrid(year: number, season: Season): CalendarDayCell[]
 
 		result.push({
 			day,
-			weekday: getWeekday(date),
-			moon: getMoonInfo(date),
-			events: getEventsForDate(date),
+			weekday: getWeekday(calendar, date),
+			moon: getMoonInfo(calendar, date),
+			events: getEventsForDate(calendar, date),
 		});
 	}
 

@@ -214,4 +214,25 @@ describe('WorldPage', () => {
 			'Nenhum Estado catalogado neste Império ainda.',
 		);
 	});
+
+	it('starts a contextual editor with a normalized alias', async () => {
+		await createPage();
+		component.selectLocation({ scopeType: 'empire', scopeId: 'mornk' });
+		component.openEditor('state');
+		component.onEditorNameChange('S');
+		component.onEditorNameChange('São Áureo');
+
+		expect(component.editorParentId).toBe('mornk');
+		expect(component.editorAliases).toEqual(['sao aureo']);
+	});
+
+	it('commits typed aliases as distinct chips', async () => {
+		await createPage();
+		component.openEditor('empire');
+		component.editorAliasInput = 'Vale, Costa Vale';
+		component.commitAlias();
+
+		expect(component.editorAliases).toEqual(['Vale', 'Costa']);
+		expect(component.editorAliasInput).toBe('');
+	});
 });

@@ -1,23 +1,8 @@
 import type { CampaignCalendar, DeityId, Season } from './calendar-model';
 
-export type CampaignSettlementType = 'village' | 'city' | 'capital' | 'other';
-export type CampaignOrganizationType = 'guild' | 'group' | 'cult' | 'family';
-export type CampaignPointOfInterestType =
-	| 'academy'
-	| 'district'
-	| 'government'
-	| 'inn'
-	| 'landmark'
-	| 'market'
-	| 'natural'
-	| 'organization'
-	| 'other'
-	| 'port'
-	| 'residence'
-	| 'shop'
-	| 'tavern'
-	| 'temple'
-	| 'workshop';
+export type CampaignSettlementType = string;
+export type CampaignOrganizationType = string;
+export type CampaignPointOfInterestType = string;
 export type CampaignWorldScopeType = 'global' | 'empire' | 'state' | 'settlement';
 export type CampaignLocationScope = Exclude<CampaignWorldScopeType, 'global'>;
 
@@ -25,7 +10,7 @@ export interface CampaignEmpire {
 	id: string;
 	name: string;
 	aliases: string[];
-	sourcePath: string;
+	sourcePath?: string;
 }
 
 export interface CampaignState extends CampaignEmpire {
@@ -105,14 +90,14 @@ export interface RelevantCampaignOrganization {
 	broaderPresences: CampaignOrganizationPresence[];
 }
 
-export const SETTLEMENT_TYPE_LABELS: Record<CampaignSettlementType, string> = {
+export const SETTLEMENT_TYPE_LABELS: Record<string, string> = {
 	village: 'Vila',
 	city: 'Cidade',
 	capital: 'Capital',
-	other: 'Localidade',
+	other: 'Custom',
 };
 
-export const POINT_OF_INTEREST_TYPE_LABELS: Record<CampaignPointOfInterestType, string> = {
+export const POINT_OF_INTEREST_TYPE_LABELS: Record<string, string> = {
 	academy: 'Academia',
 	district: 'Distrito',
 	government: 'Governo',
@@ -121,7 +106,7 @@ export const POINT_OF_INTEREST_TYPE_LABELS: Record<CampaignPointOfInterestType, 
 	market: 'Mercado',
 	natural: 'Natural',
 	organization: 'Organização',
-	other: 'Outro',
+	other: 'Custom',
 	port: 'Porto',
 	residence: 'Residência',
 	shop: 'Loja',
@@ -221,7 +206,11 @@ function hasStringArray(value: unknown): value is string[] {
 
 function validateBaseEntity(value: unknown, type: string): string | null {
 	if (!isRecord(value)) return `${type} inválido.`;
-	if (!hasText(value.id) || !hasText(value.name) || !hasText(value.sourcePath)) {
+	if (
+		!hasText(value.id) ||
+		!hasText(value.name) ||
+		(value.sourcePath !== undefined && !hasText(value.sourcePath))
+	) {
 		return `${type} possui campos obrigatórios inválidos.`;
 	}
 	if (!hasStringArray(value.aliases)) return `${type} possui aliases inválidos.`;
@@ -306,7 +295,7 @@ function validateCalendar(raw: unknown): string | null {
 			!isIntegerInRange(event.day, 1, raw.daysPerSeason as number) ||
 			!hasText(event.title) ||
 			!hasText(event.description) ||
-			(event.deity !== undefined && !DEITY_IDS.includes(event.deity as DeityId)) ||
+			(event.deity !== undefined && !hasText(event.deity)) ||
 			(event.tags !== undefined && !hasStringArray(event.tags))
 		) {
 			return 'Calendário possui evento inválido.';

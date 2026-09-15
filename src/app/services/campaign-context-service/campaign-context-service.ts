@@ -11,10 +11,12 @@ import {
 	type CampaignState,
 } from '../../models/campaign-world-model';
 import { CampaignWorldService } from '../campaign-world-service/campaign-world-service';
+import { WorkspaceStorageService } from '../workspace-service/workspace-storage-service';
 
 @Injectable({ providedIn: 'root' })
 export class CampaignContextService {
 	private readonly campaignWorld = inject(CampaignWorldService);
+	private readonly storage = inject(WorkspaceStorageService);
 	readonly currentLocationRef = signal<CampaignLocationRef | null>(this.loadInitial());
 	readonly resolvedCurrentLocation = computed(() => {
 		const ref = this.currentLocationRef();
@@ -49,7 +51,7 @@ export class CampaignContextService {
 	clearCurrentLocation(): void {
 		this.currentLocationRef.set(null);
 		try {
-			localStorage.removeItem(APP_STORAGE_KEYS.campaignContext);
+			this.storage.removeItem(APP_STORAGE_KEYS.campaignContext);
 		} catch {}
 	}
 
@@ -71,7 +73,7 @@ export class CampaignContextService {
 
 	private loadInitial(): CampaignLocationRef | null {
 		try {
-			return normalizeCampaignContext(localStorage.getItem(APP_STORAGE_KEYS.campaignContext))?.currentLocation ?? null;
+			return normalizeCampaignContext(this.storage.getItem(APP_STORAGE_KEYS.campaignContext))?.currentLocation ?? null;
 		} catch {
 			return null;
 		}
@@ -79,7 +81,7 @@ export class CampaignContextService {
 
 	private persist(): void {
 		try {
-			localStorage.setItem(APP_STORAGE_KEYS.campaignContext, JSON.stringify(this.getState()));
+			this.storage.setItem(APP_STORAGE_KEYS.campaignContext, JSON.stringify(this.getState()));
 		} catch {}
 	}
 }

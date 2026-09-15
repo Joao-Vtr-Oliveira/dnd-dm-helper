@@ -7,6 +7,7 @@ import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import { BattleEncounterService } from '../battle-encounter-service/battle-encounter-service';
 import type { SavedEncounter } from '../local-storage-service/local-storage-service';
 import { LocalStorageService } from '../local-storage-service/local-storage-service';
+import { WorkspaceStorageService } from '../workspace-service/workspace-storage-service';
 
 export type BattlePreparationResult =
 	| { kind: 'existing'; battle: BattleEncounter }
@@ -17,9 +18,10 @@ export class BattleEncounterStorageService {
 	private readonly storageKey = APP_STORAGE_KEYS.battleEncounters;
 	private readonly battleEncounterService = inject(BattleEncounterService);
 	private readonly localStorageService = inject(LocalStorageService);
+	private readonly storage = inject(WorkspaceStorageService);
 
 	getBattleEncounters(): BattleEncounter[] {
-		const raw = localStorage.getItem(this.storageKey);
+		const raw = this.storage.getItem(this.storageKey);
 		if (!raw) return [];
 
 		try {
@@ -41,7 +43,7 @@ export class BattleEncounterStorageService {
 
 			const needsMigration = JSON.stringify(normalized) !== JSON.stringify(parsed);
 			if (needsMigration) {
-				localStorage.setItem(this.storageKey, JSON.stringify(normalized));
+				this.storage.setItem(this.storageKey, JSON.stringify(normalized));
 			}
 
 			return normalized;
@@ -103,7 +105,7 @@ export class BattleEncounterStorageService {
 		if (index === -1) all.unshift(normalizedBattle);
 		else all[index] = structuredClone(normalizedBattle);
 
-		localStorage.setItem(this.storageKey, JSON.stringify(all));
+		this.storage.setItem(this.storageKey, JSON.stringify(all));
 	}
 
 	pauseBattleEncounter(id: string): BattleEncounter | null {
@@ -135,14 +137,14 @@ export class BattleEncounterStorageService {
 
 	deleteBattleEncounter(id: string): void {
 		const all = this.getBattleEncounters().filter((battle) => battle.id !== id);
-		localStorage.setItem(this.storageKey, JSON.stringify(all));
+		this.storage.setItem(this.storageKey, JSON.stringify(all));
 	}
 
 	deleteBattlesByEncounterId(encounterId: string): void {
 		const all = this.getBattleEncounters().filter(
 			(battle) => battle.sourceEncounterId !== encounterId
 		);
-		localStorage.setItem(this.storageKey, JSON.stringify(all));
+		this.storage.setItem(this.storageKey, JSON.stringify(all));
 	}
 
 	private isBattleEncounterLike(value: unknown): boolean {

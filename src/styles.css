@@ -283,6 +283,15 @@ select optgroup {
 	color: var(--color-app-text);
 }
 
+/* Local Tailwind padding utilities reserve room for icons and compact controls. */
+:where(.app-field) {
+	padding: 0.5rem 0.75rem;
+}
+
+.app-field-search {
+	padding-left: 2.25rem !important;
+}
+
 .app-field::placeholder {
 	color: var(--color-app-subtle);
 }

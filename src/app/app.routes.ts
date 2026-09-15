@@ -6,14 +6,19 @@ import { HomebrewSheets } from './pages/homebrew-sheets/homebrew-sheets';
 import { Calendar } from './pages/calendar/calendar';
 import { canDeactivateHomebrewBuilder, HomebrewBuilder } from './pages/homebrew-builder/homebrew-builder';
 import { FiveEToolsHomebrewPage } from './pages/fiveetools-homebrew/fiveetools-homebrew';
+import { workspaceActiveGuard } from './guards/workspace-active.guard';
+import { OnboardingPage } from './pages/onboarding/onboarding';
 
 export const routes: Routes = [
 	{ path: '', redirectTo: 'home/encounter-builder', pathMatch: 'full' },
+	{ path: 'onboarding', component: OnboardingPage },
 	{
 		path: 'home',
 		component: Home,
+		canActivate: [workspaceActiveGuard],
 		children: [
 			{ path: '', component: EncounterHub },
+			{ path: 'workspaces', loadComponent: () => import('./pages/workspaces/workspaces').then((module) => module.WorkspacesPage) },
 			{
 				path: 'compendium/bestiary',
 				loadComponent: () => import('./pages/bestiary/bestiary').then((module) => module.BestiaryPage),

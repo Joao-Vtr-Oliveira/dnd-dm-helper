@@ -1,0 +1,222 @@
+<main
+	class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgb(139_92_246_/_0.16),_transparent_38%),linear-gradient(180deg,_#12121b,_#0d0e15)] px-4 py-10 text-app-text sm:px-6"
+>
+	<section class="mx-auto max-w-3xl">
+		<div class="app-eyebrow">DnD Dungeon Master Helper</div>
+		<h1 class="mt-3 font-[dndFont] text-4xl sm:text-5xl">Comece sua campanha</h1>
+		<p class="mt-3 max-w-2xl text-base leading-7 text-app-muted">
+			Seus dados ficam neste dispositivo. Você pode exportar ou conectar uma campanha remota quando
+			quiser.
+		</p>
+
+		@if (mode() === 'start') {
+			<div class="mt-8 grid gap-4 sm:grid-cols-3">
+				<button
+					type="button"
+					class="app-panel group p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-violet-300/50 hover:bg-violet-500/10"
+					(click)="mode.set('local')"
+				>
+					<span
+						class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/15 text-violet-100 transition group-hover:scale-110"
+						><svg lucidePlus [size]="20" aria-hidden="true"></svg></span
+					><strong class="mt-4 block text-lg">Criar campanha</strong
+					><span class="mt-2 block text-sm text-app-muted">Comece com um mundo vazio.</span>
+				</button>
+				<button
+					type="button"
+					class="app-panel group p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-amber-300/50 hover:bg-amber-500/10"
+					(click)="mode.set('import')"
+				>
+					<span
+						class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15 text-amber-100 transition group-hover:scale-110"
+						><svg lucideFileUp [size]="20" aria-hidden="true"></svg></span
+					><strong class="mt-4 block text-lg">Importar campanha</strong
+					><span class="mt-2 block text-sm text-app-muted"
+						>Use seus arquivos de Backup e Mundo.</span
+					>
+				</button>
+				<button
+					type="button"
+					class="app-panel group p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-sky-300/50 hover:bg-sky-500/10"
+					(click)="mode.set('remote')"
+				>
+					<span
+						class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/15 text-sky-100 transition group-hover:scale-110"
+						><svg lucideCloudDownload [size]="20" aria-hidden="true"></svg></span
+					><strong class="mt-4 block text-lg">Conectar workspace</strong
+					><span class="mt-2 block text-sm text-app-muted">Conecte uma campanha publicada.</span>
+				</button>
+			</div>
+		} @else {
+			<div class="app-panel mt-8 max-w-2xl p-5 sm:p-6">
+				<label class="block text-sm font-semibold"
+					>Nome da campanha<input class="app-field mt-2 w-full" [(ngModel)]="name"
+				/></label>
+				@if (mode() === 'local') {
+					<p class="mt-4 text-sm text-app-muted">
+						Você poderá criar locais, eventos, fichas e encontros a partir daqui.
+					</p>
+					<button type="button" class="app-button app-button-primary mt-5" (click)="create()">
+						Criar campanha
+					</button>
+				}
+				@if (mode() === 'remote') {
+					<div class="mt-5 rounded-xl border border-sky-300/20 bg-sky-500/5 p-4">
+						<div class="flex items-start gap-3">
+							<svg
+								lucideLink
+								class="mt-0.5 shrink-0 text-sky-200"
+								[size]="19"
+								aria-hidden="true"
+							></svg>
+							<div>
+								<strong class="text-sm">Conexão remota</strong>
+								<p class="mt-1 text-sm text-app-muted">
+									Cole o endereço do <code>workspace.json</code> e cheque a campanha. As URLs são
+									preenchidas automaticamente depois da validação.
+								</p>
+							</div>
+						</div>
+					</div>
+					<label class="mt-5 block text-sm font-semibold"
+						>URL do workspace.json (recomendado)<input
+							class="app-field mt-2 w-full"
+							[(ngModel)]="manifestUrl"
+							(ngModelChange)="resetRemoteValidation()"
+							placeholder="https://.../workspace.json"
+					/></label>
+					<div class="my-5 flex items-center gap-3 text-xs text-app-subtle">
+						<span class="h-px flex-1 bg-app-divider"></span>ou informe as duas URLs<span
+							class="h-px flex-1 bg-app-divider"
+						></span>
+					</div>
+					<label class="block text-sm font-semibold"
+						>Backup URL<input
+							class="app-field mt-2 w-full"
+							[(ngModel)]="backupUrl"
+							(ngModelChange)="resetRemoteValidation()"
+							placeholder="https://.../dnd-dm-helper-backup-v2.json"
+					/></label>
+					<label class="mt-4 block text-sm font-semibold"
+						>Campaign World URL<input
+							class="app-field mt-2 w-full"
+							[(ngModel)]="worldUrl"
+							(ngModelChange)="resetRemoteValidation()"
+							placeholder="https://.../campaign-world.json"
+					/></label>
+					<div class="mt-5 flex flex-wrap items-center gap-3">
+						<button
+							type="button"
+							class="app-button app-button-secondary"
+							[disabled]="loading()"
+							(click)="validateRemote()"
+						>
+							{{ loading() ? 'Checando...' : 'Checar workspace' }}
+						</button>
+						@if (preview()) {
+							<button
+								type="button"
+								class="app-button app-button-primary"
+								[disabled]="loading()"
+								(click)="connect()"
+							>
+								Conectar campanha
+							</button>
+						}
+					</div>
+					@if (remoteValidation() === 'valid') {
+						<p class="mt-4 flex items-center gap-2 text-sm text-emerald-200" role="status">
+							<svg lucideCheck [size]="18" aria-hidden="true"></svg>Workspace validado. Backup e
+							Mundo estão prontos para conectar.
+						</p>
+					}
+					@if (remoteValidation() === 'invalid' && message()) {
+						<p class="mt-4 flex items-center gap-2 text-sm text-rose-200" role="alert">
+							<svg lucideAlertCircle [size]="18" aria-hidden="true"></svg>{{ message() }}
+						</p>
+					}
+				}
+				@if (mode() === 'import') {
+					<p class="mt-4 text-sm text-app-muted">
+						Escolha os arquivos que deseja trazer. Cada arquivo é validado antes de substituir dados
+						deste novo workspace.
+					</p>
+					<div class="mt-5 grid gap-3 sm:grid-cols-2">
+						<label
+							class="block cursor-pointer rounded-xl border border-violet-300/25 bg-violet-500/5 p-4 transition hover:border-violet-300/55 hover:bg-violet-500/10"
+							><input
+								#backupInput
+								class="sr-only"
+								type="file"
+								accept="application/json"
+								(change)="validateImportFile('backup', backupInput.files?.item(0) ?? null)"
+							/><span class="flex items-center gap-2 font-semibold text-violet-100"
+								><svg lucideFileUp [size]="18" aria-hidden="true"></svg>Arquivo de Backup</span
+							><span class="mt-2 block text-xs text-app-muted"
+								>Encontros, fichas e dados da campanha.</span
+							><span class="mt-3 block truncate text-xs text-violet-100">{{
+								backupInput.files?.item(0)?.name ?? 'Clique para selecionar'
+							}}</span>
+							@if (backupFileValidation(); as validation) {
+								<span
+									class="mt-2 block text-xs"
+									[class.text-emerald-200]="validation.status === 'valid'"
+									[class.text-rose-200]="validation.status === 'invalid'"
+									[attr.role]="validation.status === 'invalid' ? 'alert' : 'status'"
+									>{{ validation.message }}</span
+								>
+							}</label
+						><label
+							class="block cursor-pointer rounded-xl border border-emerald-300/25 bg-emerald-500/5 p-4 transition hover:border-emerald-300/55 hover:bg-emerald-500/10"
+							><input
+								#worldInput
+								class="sr-only"
+								type="file"
+								accept="application/json"
+								(change)="validateImportFile('world', worldInput.files?.item(0) ?? null)"
+							/><span class="flex items-center gap-2 font-semibold text-emerald-100"
+								><svg lucideFileUp [size]="18" aria-hidden="true"></svg>Arquivo de Mundo</span
+							><span class="mt-2 block text-xs text-app-muted"
+								>Territórios, locais e calendário.</span
+							><span class="mt-3 block truncate text-xs text-emerald-100">{{
+								worldInput.files?.item(0)?.name ?? 'Clique para selecionar'
+							}}</span>
+							@if (worldFileValidation(); as validation) {
+								<span
+									class="mt-2 block text-xs"
+									[class.text-emerald-200]="validation.status === 'valid'"
+									[class.text-rose-200]="validation.status === 'invalid'"
+									[attr.role]="validation.status === 'invalid' ? 'alert' : 'status'"
+									>{{ validation.message }}</span
+								>
+							}
+						</label>
+					</div>
+					<button
+						type="button"
+						class="app-button app-button-primary mt-5"
+						[disabled]="loading() || hasInvalidImportSelection()"
+						(click)="
+							importFiles(backupInput.files?.item(0) ?? null, worldInput.files?.item(0) ?? null)
+						"
+					>
+						{{ loading() ? 'Importando...' : 'Importar campanha' }}
+					</button>
+				}
+				@if (preview()?.warning) {
+					<p class="mt-4 text-sm text-amber-100">{{ preview()!.warning }}</p>
+				}
+				@if (message() && remoteValidation() !== 'invalid') {
+					<p class="mt-4 text-sm text-rose-200">{{ message() }}</p>
+				}
+				<button
+					type="button"
+					class="mt-5 block text-sm text-app-muted hover:text-app-text"
+					(click)="mode.set('start')"
+				>
+					Voltar
+				</button>
+			</div>
+		}
+	</section>
+</main>

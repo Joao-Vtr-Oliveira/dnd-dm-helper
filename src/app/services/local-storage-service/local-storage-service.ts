@@ -4,6 +4,7 @@ import type { BattleEncounter } from '../../models/battle-encounter-model';
 import type { Encounter, EncounterLairAction, EncounterParticipant, EncounterTrap } from '../../models/encounter-model';
 import type { CreatureCategory, CreatureSheet } from '../../models/creature-sheet-model';
 import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
+import { WorkspaceStorageService } from '../workspace-service/workspace-storage-service';
 
 export type SavedEncounter = Encounter;
 
@@ -25,6 +26,7 @@ export interface SavedSheetInterface {
 @Injectable({ providedIn: 'root' })
 export class LocalStorageService {
 	private readonly creatureTemplate = inject(CreatureTemplateService);
+	private readonly storage = inject(WorkspaceStorageService);
 	private readonly KEYEncounters = APP_STORAGE_KEYS.encounters;
 	private readonly KEYSheets = APP_STORAGE_KEYS.sheets;
 	private readonly KEYBattleEncounters = APP_STORAGE_KEYS.battleEncounters;
@@ -32,7 +34,7 @@ export class LocalStorageService {
 	// ENCOUNTERS:
 
 	listEncounters(): SavedEncounter[] {
-		const raw = localStorage.getItem(this.KEYEncounters);
+		const raw = this.storage.getItem(this.KEYEncounters);
 		if (!raw) return [];
 		try {
 			const parsed = JSON.parse(raw);
@@ -42,7 +44,7 @@ export class LocalStorageService {
 				.filter((encounter) => this.isEncounter(encounter))
 				.map((encounter) => this.normalizeEncounter(encounter, sheetsById));
 			if (JSON.stringify(normalized) !== JSON.stringify(parsed)) {
-				localStorage.setItem(this.KEYEncounters, JSON.stringify(normalized));
+				this.storage.setItem(this.KEYEncounters, JSON.stringify(normalized));
 			}
 			return normalized;
 		} catch {
@@ -60,7 +62,7 @@ export class LocalStorageService {
 		const normalized = this.normalizeEncounter(enc);
 		if (idx === -1) all.unshift(normalized);
 		else all[idx] = normalized;
-		localStorage.setItem(this.KEYEncounters, JSON.stringify(all));
+		this.storage.setItem(this.KEYEncounters, JSON.stringify(all));
 	}
 
 	createEncounter(title: string, draft: Omit<Encounter, 'id' | 'title' | 'createdAt' | 'updatedAt'>): SavedEncounter {
@@ -96,7 +98,7 @@ export class LocalStorageService {
 
 	deleteEncounter(id: string) {
 		const all = this.listEncounters().filter((e) => e.id !== id);
-		localStorage.setItem(this.KEYEncounters, JSON.stringify(all));
+		this.storage.setItem(this.KEYEncounters, JSON.stringify(all));
 	}
 
 	duplicateEncounter(id: string): SavedEncounter | null {
@@ -120,14 +122,14 @@ export class LocalStorageService {
 	// HOMEBREW SHEETS:
 
 	listSheets(): SavedSheetInterface[] {
-		const raw = localStorage.getItem(this.KEYSheets);
+		const raw = this.storage.getItem(this.KEYSheets);
 		if (!raw) return [];
 		try {
 			const parsed = JSON.parse(raw);
 			if (!Array.isArray(parsed)) return [];
 			const normalized = parsed.map((sheet) => this.normalizeSheet(sheet));
 			if (JSON.stringify(normalized) !== JSON.stringify(parsed)) {
-				localStorage.setItem(this.KEYSheets, JSON.stringify(normalized));
+				this.storage.setItem(this.KEYSheets, JSON.stringify(normalized));
 			}
 			return normalized;
 		} catch {
@@ -145,7 +147,7 @@ export class LocalStorageService {
 		const idx = all.findIndex((x) => x.id === normalizedSheet.id);
 		if (idx === -1) all.unshift(normalizedSheet);
 		else all[idx] = normalizedSheet;
-		localStorage.setItem(this.KEYSheets, JSON.stringify(all));
+		this.storage.setItem(this.KEYSheets, JSON.stringify(all));
 	}
 
 	createSheet(params: {
@@ -200,7 +202,7 @@ export class LocalStorageService {
 
 	deleteSheet(id: string) {
 		const all = this.listSheets().filter((e) => e.id !== id);
-		localStorage.setItem(this.KEYSheets, JSON.stringify(all));
+		this.storage.setItem(this.KEYSheets, JSON.stringify(all));
 	}
 
 	duplicateSheet(id: string): SavedSheetInterface | null {
@@ -222,7 +224,7 @@ export class LocalStorageService {
 		replacements: Array<{ previous: SavedSheetInterface; next: SavedSheetInterface }> = [],
 	): SavedSheetInterface[] {
 		const normalized = sheets.map((sheet) => this.normalizeSheet(sheet));
-		localStorage.setItem(this.KEYSheets, JSON.stringify(normalized));
+		this.storage.setItem(this.KEYSheets, JSON.stringify(normalized));
 
 		void replacements;
 

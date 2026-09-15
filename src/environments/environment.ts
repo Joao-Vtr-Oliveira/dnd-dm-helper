@@ -3,6 +3,8 @@ export const environment = {
 	showDmCalendar: true,
 	defaultSyncBackupUrl:
 		'https://raw.githubusercontent.com/Joao-Vtr-Oliveira/dnd-dm-helper/refs/heads/main/rpg_files/dnd-dm-helper-backup-v2.json',
+	defaultSyncWorldUrl:
+		'https://raw.githubusercontent.com/Joao-Vtr-Oliveira/dnd-dm-helper/refs/heads/main/rpg_files/campaign-world.json',
 	defaultFiveEToolsHomebrewUrl:
 		'https://raw.githubusercontent.com/Joao-Vtr-Oliveira/dnd-dm-helper/refs/heads/main/rpg_files/homebrew.json',
 	fiveEToolsReferenceDataBaseUrl:

@@ -7,7 +7,6 @@ import {
 	LucideCircleCheck,
 	LucideCalendarDays,
 	LucideDices,
-	LucideDownload,
 	LucideDynamicIcon,
 	LucideFilePlus2,
 	LucideGlobe2,
@@ -32,6 +31,10 @@ import {
 } from '../../services/app-backup-service/app-backup-service';
 import { CampaignClock } from '../../components/campaign-clock/campaign-clock';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
+import { WorkspaceService } from '../../services/workspace-service/workspace-service';
+import { WorkspaceTransferService } from '../../services/workspace-service/workspace-transfer-service';
+import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
+import type { CampaignWorld } from '../../models/campaign-world-model';
 
 type NavLink = {
 	label: string;
@@ -46,7 +49,7 @@ type NavAction = {
 	label: string;
 	description: string;
 	icon: LucideIcon;
-	action: 'sync' | 'export-all';
+	action: 'sync';
 };
 
 type NavGroup = {
@@ -59,6 +62,7 @@ type NavGroup = {
 type SyncPreviewState = {
 	backup: AppBackup;
 	summary: AppBackupSummary;
+	world?: CampaignWorld;
 };
 
 @Component({
@@ -81,10 +85,13 @@ type SyncPreviewState = {
 export class Home {
 	private readonly router = inject(Router);
 	private readonly appBackupService = inject(AppBackupService);
+	private readonly workspaces = inject(WorkspaceService);
+	private readonly transfers = inject(WorkspaceTransferService);
+	private readonly campaignWorld = inject(CampaignWorldService);
+	readonly activeWorkspace = this.workspaces.activeWorkspace;
 
 	dmCalendarEnabled = environment.showDmCalendar;
 	syncLoading = signal(false);
-	exportLoading = signal(false);
 	toast = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 	syncPreview = signal<SyncPreviewState | null>(null);
 	mobileNavigationOpen = signal(false);
@@ -182,18 +189,21 @@ export class Home {
 					icon: LucideRefreshCw,
 					action: 'sync',
 				},
+			],
+			links: [
 				{
-					label: 'Exportar tudo',
-					description: 'Baixa um JSON com todos os dados do projeto.',
-					icon: LucideDownload,
-					action: 'export-all',
+					label: 'Workspaces',
+					description: 'Trocar campanha, exportar dados e configurar sincronização.',
+					icon: LucideArchive,
+					path: '/home/workspaces',
 				},
 			],
 		},
 	];
 
 	constructor() {
-		if (this.hasUnmigratedLocalData()) void this.prepareLegacyDataRestore();
+		if (!this.workspaces.activeWorkspace() && this.hasUnmigratedLocalData())
+			void this.prepareLegacyDataRestore();
 	}
 
 	private hasUnmigratedLocalData(): boolean {
@@ -208,10 +218,7 @@ export class Home {
 		this.syncLoading.set(true);
 		try {
 			const backup = await this.appBackupService.fetchRemoteBackup();
-			this.syncPreview.set({
-				backup,
-				summary: this.appBackupService.buildSummary(backup),
-			});
+			this.syncPreview.set({ backup, summary: this.appBackupService.buildSummary(backup) });
 		} catch (error) {
 			this.showToast(
 				'error',
@@ -243,12 +250,7 @@ export class Home {
 
 	async runAction(action: NavAction['action']) {
 		this.closeMobileNavigation();
-		if (action === 'sync') {
-			await this.prepareSync();
-			return;
-		}
-
-		this.exportAll();
+		if (action === 'sync') await this.prepareSync();
 	}
 
 	closeSyncPreview() {
@@ -263,7 +265,12 @@ export class Home {
 		this.syncLoading.set(true);
 		try {
 			this.appBackupService.createSafetyBackupBeforeSync();
+			if (preview.world) {
+				this.campaignWorld.createSafetyBackup();
+				this.campaignWorld.saveWorld(preview.world);
+			}
 			this.appBackupService.applyBackup(preview.backup);
+			if (preview.world) this.workspaces.markActiveWorkspaceSynced();
 			this.syncPreview.set(null);
 			this.showToast('success', 'Sincronização concluída');
 		} catch (error) {
@@ -287,6 +294,19 @@ export class Home {
 		this.syncPreview.set(null);
 
 		try {
+			const workspace = this.workspaces.activeWorkspace();
+			if (workspace?.remote?.backupUrl && workspace.remote.worldUrl) {
+				const remote = await this.transfers.validateRemote(
+					workspace.remote.backupUrl,
+					workspace.remote.worldUrl,
+				);
+				this.syncPreview.set({
+					backup: remote.backup!,
+					world: remote.world!,
+					summary: this.appBackupService.buildSummary(remote.backup!),
+				});
+				return;
+			}
 			const backup = await this.appBackupService.fetchRemoteBackup();
 			this.syncPreview.set({
 				backup,
@@ -296,19 +316,6 @@ export class Home {
 			this.showToast('error', this.getErrorMessage(error, 'Erro ao sincronizar.'));
 		} finally {
 			this.syncLoading.set(false);
-		}
-	}
-
-	private exportAll() {
-		if (this.exportLoading()) return;
-		this.exportLoading.set(true);
-		try {
-			this.appBackupService.downloadBackup();
-			this.showToast('success', 'Backup exportado com sucesso.');
-		} catch (error) {
-			this.showToast('error', this.getErrorMessage(error, 'Erro ao exportar backup.'));
-		} finally {
-			this.exportLoading.set(false);
 		}
 	}
 

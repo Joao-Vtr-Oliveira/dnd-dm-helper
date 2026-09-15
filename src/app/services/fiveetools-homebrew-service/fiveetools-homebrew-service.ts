@@ -40,12 +40,14 @@ import type {
 import type { SavedSheetInterface } from '../local-storage-service/local-storage-service';
 import { CompendiumBestiaryNormalizerService } from '../compendium-bestiary-normalizer-service/compendium-bestiary-normalizer-service';
 import { CompendiumCreatureAdapterService } from '../compendium-creature-adapter-service/compendium-creature-adapter-service';
+import { WorkspaceStorageService } from '../workspace-service/workspace-storage-service';
 
 const DEFAULT_FILE_NAME = 'homebrew.json';
 @Injectable({ providedIn: 'root' })
 export class FiveEToolsHomebrewService {
 	private readonly bestiaryNormalizer = inject(CompendiumBestiaryNormalizerService);
 	private readonly creatureAdapter = inject(CompendiumCreatureAdapterService);
+	private readonly storage = inject(WorkspaceStorageService);
 	private readonly storageKey = APP_STORAGE_KEYS.fiveEToolsHomebrew;
 	private readonly backupKey = APP_STORAGE_KEYS.fiveEToolsHomebrewBackups;
 	private readonly compositionPackagesKey = APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages;
@@ -54,9 +56,9 @@ export class FiveEToolsHomebrewService {
 		const stored = this.readStoredFile();
 		if (stored) return stored;
 
-		const remote = await this.fetchRemoteHomebrewJson();
-		this.saveHomebrewFile(remote);
-		return remote;
+		const empty = this.createEmptyFile('Minha Campanha');
+		this.saveHomebrewFile(empty);
+		return empty;
 	}
 
 	getStoredHomebrewFile(): FiveEToolsHomebrewFile | null {
@@ -65,7 +67,7 @@ export class FiveEToolsHomebrewService {
 
 	restoreStoredState(file: FiveEToolsHomebrewFile | null, backups: FiveEToolsStoredBackup[]): void {
 		if (file) this.saveHomebrewFile(file);
-		else localStorage.removeItem(this.storageKey);
+		else this.storage.removeItem(this.storageKey);
 
 		const normalizedBackups = backups.slice(0, 20).map((backup, index) => ({
 			id: typeof backup.id === 'string' && backup.id.trim() ? backup.id : `backup-${index + 1}`,
@@ -76,12 +78,12 @@ export class FiveEToolsHomebrewService {
 					: new Date().toISOString(),
 			file: this.parseHomebrewJson(backup.file),
 		}));
-		localStorage.setItem(this.backupKey, JSON.stringify(normalizedBackups));
+		this.storage.setItem(this.backupKey, JSON.stringify(normalizedBackups));
 	}
 
 	saveHomebrewFile(file: FiveEToolsHomebrewFile): FiveEToolsHomebrewFile {
 		const normalized = this.parseHomebrewJson(file);
-		localStorage.setItem(this.storageKey, JSON.stringify(normalized));
+		this.storage.setItem(this.storageKey, JSON.stringify(normalized));
 		return normalized;
 	}
 
@@ -94,12 +96,12 @@ export class FiveEToolsHomebrewService {
 			file: structuredClone(file),
 		};
 		const nextBackups = [backup, ...backups].slice(0, 20);
-		localStorage.setItem(this.backupKey, JSON.stringify(nextBackups));
+		this.storage.setItem(this.backupKey, JSON.stringify(nextBackups));
 		return backup;
 	}
 
 	listBackups(): FiveEToolsStoredBackup[] {
-		const raw = localStorage.getItem(this.backupKey);
+		const raw = this.storage.getItem(this.backupKey);
 		if (!raw) return [];
 		try {
 			const parsed = JSON.parse(raw);
@@ -1141,7 +1143,7 @@ export class FiveEToolsHomebrewService {
 	}
 
 	listCompositionPackages(): FiveEToolsCompositionPackage[] {
-		const raw = localStorage.getItem(this.compositionPackagesKey);
+		const raw = this.storage.getItem(this.compositionPackagesKey);
 		if (!raw) return [];
 		try {
 			const parsed = JSON.parse(raw);
@@ -1168,13 +1170,13 @@ export class FiveEToolsHomebrewService {
 		);
 		const next = current.filter((item) => item.id !== normalized.id);
 		next.unshift(normalized);
-		localStorage.setItem(this.compositionPackagesKey, JSON.stringify(next));
+		this.storage.setItem(this.compositionPackagesKey, JSON.stringify(next));
 		return normalized;
 	}
 
 	deleteCompositionPackage(id: string): void {
 		const next = this.listCompositionPackages().filter((item) => item.id !== id);
-		localStorage.setItem(this.compositionPackagesKey, JSON.stringify(next));
+		this.storage.setItem(this.compositionPackagesKey, JSON.stringify(next));
 	}
 
 	createCompositionPackageFromMonster(
@@ -1214,7 +1216,7 @@ export class FiveEToolsHomebrewService {
 	}
 
 	private readStoredFile(): FiveEToolsHomebrewFile | null {
-		const raw = localStorage.getItem(this.storageKey);
+		const raw = this.storage.getItem(this.storageKey);
 		if (!raw) return null;
 		try {
 			return this.parseHomebrewJson(JSON.parse(raw));

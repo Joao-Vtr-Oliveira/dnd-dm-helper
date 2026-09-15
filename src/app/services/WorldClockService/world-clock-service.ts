@@ -1,10 +1,9 @@
 // src/app/services/world-clock/world-clock.service.ts
 
-import { Injectable, effect, signal } from '@angular/core';
+import { Injectable, effect, inject, signal } from '@angular/core';
 import type { Season, WorldDate } from '../../models/calendar-model';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import {
-	EPOCH_DATE,
 	addDays,
 	addHours,
 	addMinutes,
@@ -12,26 +11,29 @@ import {
 	getMoonInfo,
 	getWeekday,
 } from '../../utils/calendar-utils/calendar-util';
-import { DAYS_PER_SEASON, SEASONS } from '../../utils/calendar-utils/calendar-constants';
+import { CampaignCalendarService } from '../campaign-calendar-service/campaign-calendar-service';
+import { WorkspaceStorageService } from '../workspace-service/workspace-storage-service';
 
 const STORAGE_KEY = APP_STORAGE_KEYS.worldDate;
 
 @Injectable({ providedIn: 'root' })
 export class WorldClockService {
+	private readonly calendarRules = inject(CampaignCalendarService);
+	private readonly storage = inject(WorkspaceStorageService);
 	readonly current = signal<WorldDate>(this.loadInitial());
 
 	readonly weekday = signal<number>(0);
-	readonly moon = signal(getMoonInfo(this.current()));
-	readonly eventsToday = signal(getEventsForDate(this.current()));
+	readonly moon = signal(getMoonInfo(this.calendarRules.calendar(), this.current()));
+	readonly eventsToday = signal(getEventsForDate(this.calendarRules.calendar(), this.current()));
 
 	private loadInitial(): WorldDate {
 		try {
-			const raw = localStorage.getItem(STORAGE_KEY);
-			if (!raw) return { ...EPOCH_DATE };
+			const raw = this.storage.getItem(STORAGE_KEY);
+			if (!raw) return { ...this.calendarRules.calendar().epochDate };
 
-			return this.normalizeDate(JSON.parse(raw), EPOCH_DATE);
+			return this.normalizeDate(JSON.parse(raw), this.calendarRules.calendar().epochDate);
 		} catch {
-			return { ...EPOCH_DATE };
+			return { ...this.calendarRules.calendar().epochDate };
 		}
 	}
 
@@ -47,14 +49,15 @@ export class WorldClockService {
 			return normalized;
 		};
 
-		const season = SEASONS.some((item) => item.id === candidate.season)
+		const calendar = this.calendarRules.calendar();
+		const season = calendar.seasons.some((item) => item.id === candidate.season)
 			? (candidate.season as Season)
 			: fallback.season;
 
 		return {
-			year: integerInRange(candidate.year, fallback.year, EPOCH_DATE.year),
+			year: integerInRange(candidate.year, fallback.year, calendar.epochDate.year),
 			season,
-			day: integerInRange(candidate.day, fallback.day, 1, DAYS_PER_SEASON),
+			day: integerInRange(candidate.day, fallback.day, 1, calendar.daysPerSeason),
 			hour: integerInRange(candidate.hour, fallback.hour, 0, 23),
 			minute: integerInRange(candidate.minute, fallback.minute, 0, 59),
 		};
@@ -64,12 +67,13 @@ export class WorldClockService {
 		effect(() => {
 			const d = this.current();
 
-			this.weekday.set(getWeekday(d));
-			this.moon.set(getMoonInfo(d));
-			this.eventsToday.set(getEventsForDate(d));
+			const calendar = this.calendarRules.calendar();
+			this.weekday.set(getWeekday(calendar, d));
+			this.moon.set(getMoonInfo(calendar, d));
+			this.eventsToday.set(getEventsForDate(calendar, d));
 
 			try {
-				localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+				this.storage.setItem(STORAGE_KEY, JSON.stringify(d));
 			} catch {}
 		});
 	}
@@ -87,18 +91,18 @@ export class WorldClockService {
 	}
 
 	reset() {
-		this.current.set({ ...EPOCH_DATE });
+		this.current.set({ ...this.calendarRules.calendar().epochDate });
 	}
 
 	advanceMinutes(delta: number) {
-		this.setDate(addMinutes(this.current(), delta));
+		this.setDate(addMinutes(this.calendarRules.calendar(), this.current(), delta));
 	}
 
 	advanceHours(delta: number) {
-		this.setDate(addHours(this.current(), delta));
+		this.setDate(addHours(this.calendarRules.calendar(), this.current(), delta));
 	}
 
 	advanceDays(delta: number) {
-		this.setDate(addDays(this.current(), delta));
+		this.setDate(addDays(this.calendarRules.calendar(), this.current(), delta));
 	}
 }

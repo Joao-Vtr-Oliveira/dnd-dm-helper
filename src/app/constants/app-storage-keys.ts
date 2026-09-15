@@ -5,6 +5,8 @@ export const APP_STORAGE_KEYS = {
 	worldDate: 'dmh-world-date-v1',
 	encounterHubFilters: 'dnd-dm-helper.encounter-hub.filters.v1',
 	campaignContext: 'dnd-dm-helper.campaign-context.v1',
+	campaignWorld: 'dnd-dm-helper.campaign-world.v1',
+	safetyWorldBeforeImport: 'dnd-dm-helper.last-local-world-before-import.v1',
 	safetyBackupBeforeSync: 'dnd-dm-helper.last-local-backup-before-sync.v1',
 	fiveEToolsHomebrew: 'dnd-dm-helper.5etools-homebrew.v1',
 	fiveEToolsHomebrewBackups: 'dnd-dm-helper.5etools-homebrew.backups.v1',

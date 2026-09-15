@@ -6,11 +6,16 @@ import {
 	type CampaignLocationSearchResult,
 	type CampaignPointOfInterestSearchResult,
 	type CampaignSettlement,
+	type CampaignWorld,
+	type CampaignOrganization,
+	normalizeCampaignWorldSearchText,
 	POINT_OF_INTEREST_TYPE_LABELS,
 	SETTLEMENT_TYPE_LABELS,
 } from '../../models/campaign-world-model';
 import { CampaignContextService } from '../../services/campaign-context-service/campaign-context-service';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
+
+type WorldEditorType = 'empire' | 'state' | 'settlement' | 'poi' | 'organization';
 
 @Component({
 	selector: 'app-world-page',
@@ -28,6 +33,31 @@ export class WorldPage {
 	readonly positionMessage = signal<string | null>(null);
 	readonly settlementTypeLabels = SETTLEMENT_TYPE_LABELS;
 	readonly pointOfInterestTypeLabels = POINT_OF_INTEREST_TYPE_LABELS;
+	readonly settlementTypeOptions = Object.entries(SETTLEMENT_TYPE_LABELS).map(([value, label]) => ({
+		value,
+		label,
+	}));
+	readonly pointOfInterestTypeOptions = Object.entries(POINT_OF_INTEREST_TYPE_LABELS).map(
+		([value, label]) => ({ value, label }),
+	);
+	readonly organizationTypeOptions = [
+		{ value: 'guild', label: 'Guilda' },
+		{ value: 'group', label: 'Grupo' },
+		{ value: 'cult', label: 'Culto' },
+		{ value: 'family', label: 'Família' },
+	];
+	readonly editorType = signal<'empire' | 'state' | 'settlement' | 'poi' | 'organization' | null>(
+		null,
+	);
+	editorName = '';
+	editorParentId = '';
+	editorTypeValue = '';
+	editorAliases: string[] = [];
+	editorAliasInput = '';
+	editorAliasesManuallyEdited = false;
+	editorSummary = '';
+	editorOrganizationIds: string[] = [];
+	editorMessage = signal<string | null>(null);
 	readonly selectedResolvedLocation = computed(() => {
 		const ref = this.selectedLocation();
 		return ref ? this.campaignWorld.resolveLocation(ref) : null;
@@ -134,6 +164,190 @@ export class WorldPage {
 		const label =
 			this.pointOfInterestTypeLabels[type as keyof typeof this.pointOfInterestTypeLabels];
 		return label ?? type.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+	}
+
+	openEditor(type: WorldEditorType): void {
+		this.editorType.set(type);
+		this.editorName = '';
+		this.editorParentId = this.defaultParentId(type);
+		this.editorTypeValue =
+			type === 'settlement'
+				? 'city'
+				: type === 'poi'
+					? 'other'
+					: type === 'organization'
+						? 'group'
+						: '';
+		this.editorAliases = [];
+		this.editorAliasInput = '';
+		this.editorAliasesManuallyEdited = false;
+		this.editorSummary = '';
+		this.editorOrganizationIds = [];
+		this.editorMessage.set(null);
+	}
+
+	onEditorNameChange(value: string): void {
+		this.editorName = value;
+		if (!this.editorAliasesManuallyEdited) {
+			const alias = normalizeCampaignWorldSearchText(value);
+			this.editorAliases = alias ? [alias] : [];
+		}
+	}
+
+	commitAlias(): void {
+		const aliases = this.editorAliasInput
+			.split(/[\s,]+/)
+			.map((alias) => alias.trim())
+			.filter(Boolean);
+		if (aliases.length) {
+			this.editorAliases = [...new Set([...this.editorAliases, ...aliases])];
+			this.editorAliasesManuallyEdited = true;
+		}
+		this.editorAliasInput = '';
+	}
+
+	commitAliasOnKeydown(event: KeyboardEvent): void {
+		if (event.key !== ',' && event.key !== ' ' && event.key !== 'Enter') return;
+		event.preventDefault();
+		this.commitAlias();
+	}
+
+	removeAlias(alias: string): void {
+		this.editorAliases = this.editorAliases.filter((item) => item !== alias);
+		this.editorAliasesManuallyEdited = true;
+	}
+
+	cancelEditor(): void {
+		this.editorType.set(null);
+	}
+
+	saveEditor(): void {
+		const type = this.editorType();
+		const world = this.campaignWorld.world();
+		if (!type || !world || !this.editorName.trim()) return;
+		const next = structuredClone(world);
+		const id = this.newId(type);
+		this.commitAlias();
+		const aliases = this.editorAliases;
+		if (type === 'empire') next.empires.push({ id, name: this.editorName.trim(), aliases });
+		if (type === 'state') {
+			if (!next.empires.some((item) => item.id === this.editorParentId)) {
+				this.editorMessage.set('Escolha o império ao qual este estado pertence.');
+				return;
+			}
+			next.states.push({
+				id,
+				name: this.editorName.trim(),
+				aliases,
+				empireId: this.editorParentId,
+			});
+		}
+		if (type === 'settlement') {
+			if (!next.states.some((item) => item.id === this.editorParentId)) {
+				this.editorMessage.set('Escolha o estado ao qual esta localidade pertence.');
+				return;
+			}
+			next.settlements.push({
+				id,
+				name: this.editorName.trim(),
+				aliases,
+				stateId: this.editorParentId,
+				settlementType: this.editorTypeValue || 'other',
+			});
+		}
+		if (type === 'poi') {
+			if (!next.settlements.some((item) => item.id === this.editorParentId)) {
+				this.editorMessage.set('Escolha a localidade deste ponto de interesse.');
+				return;
+			}
+			next.pointsOfInterest.push({
+				id,
+				name: this.editorName.trim(),
+				aliases,
+				settlementId: this.editorParentId,
+				poiType: this.editorTypeValue || 'other',
+				...(this.editorSummary.trim() ? { summary: this.editorSummary.trim() } : {}),
+				...(this.editorOrganizationIds.length
+					? { organizationIds: this.editorOrganizationIds }
+					: {}),
+			});
+		}
+		if (type === 'organization') {
+			const organization: CampaignOrganization = {
+				id,
+				name: this.editorName.trim(),
+				aliases,
+				organizationType: this.editorTypeValue || 'group',
+				presence: [{ scopeType: 'global', presenceType: 'known' }],
+			};
+			if (this.editorParentId && next.organizations.some((item) => item.id === this.editorParentId))
+				organization.parentOrganizationId = this.editorParentId;
+			next.organizations.push(organization);
+		}
+		this.campaignWorld.saveWorld(next);
+		this.editorType.set(null);
+	}
+
+	deleteEntity(type: 'empire' | 'state' | 'settlement' | 'poi' | 'organization', id: string): void {
+		const world = this.campaignWorld.world();
+		if (!world) return;
+		const dependencies = this.dependenciesFor(world, type, id);
+		if (dependencies.length) {
+			this.editorMessage.set(`Não é possível excluir: ${dependencies.join(', ')}.`);
+			return;
+		}
+		if (!confirm('Excluir este item do mundo?')) return;
+		const next = structuredClone(world);
+		if (type === 'empire') next.empires = next.empires.filter((item) => item.id !== id);
+		if (type === 'state') next.states = next.states.filter((item) => item.id !== id);
+		if (type === 'settlement') next.settlements = next.settlements.filter((item) => item.id !== id);
+		if (type === 'poi')
+			next.pointsOfInterest = next.pointsOfInterest.filter((item) => item.id !== id);
+		if (type === 'organization')
+			next.organizations = next.organizations.filter((item) => item.id !== id);
+		this.campaignWorld.saveWorld(next);
+		this.selectRoot();
+	}
+
+	private dependenciesFor(world: CampaignWorld, type: string, id: string): string[] {
+		if (type === 'empire') {
+			const count = world.states.filter((item) => item.empireId === id).length;
+			return count ? [`${count} estado(s)`] : [];
+		}
+		if (type === 'state') {
+			const count = world.settlements.filter((item) => item.stateId === id).length;
+			return count ? [`${count} localidade(s)`] : [];
+		}
+		if (type === 'settlement') {
+			const count = world.pointsOfInterest.filter((item) => item.settlementId === id).length;
+			return count ? [`${count} ponto(s) de interesse`] : [];
+		}
+		if (type === 'organization') {
+			const children = world.organizations.filter(
+				(item) => item.parentOrganizationId === id,
+			).length;
+			const pois = world.pointsOfInterest.filter((item) =>
+				item.organizationIds?.includes(id),
+			).length;
+			return [
+				...(children ? [`${children} organização(ões) filha(s)`] : []),
+				...(pois ? [`${pois} POI(s)`] : []),
+			];
+		}
+		return [];
+	}
+
+	private newId(prefix: string): string {
+		return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)}`;
+	}
+
+	private defaultParentId(type: WorldEditorType): string {
+		const location = this.selectedResolvedLocation();
+		if (!location) return '';
+		if (type === 'state' && location.empire) return location.empire.id;
+		if (type === 'settlement' && location.state) return location.state.id;
+		if (type === 'poi' && location.settlement) return location.settlement.id;
+		return '';
 	}
 
 	private setPartyLocation(ref: CampaignLocationRef): void {

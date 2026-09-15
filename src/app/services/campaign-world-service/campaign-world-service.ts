@@ -18,12 +18,19 @@ import {
 	normalizeCampaignWorldSearchText,
 	validateCampaignWorld,
 } from '../../models/campaign-world-model';
+import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
+import { WorkspaceStorageService } from '../workspace-service/workspace-storage-service';
+import { createEmptyCampaignWorld } from '../workspace-service/workspace-factory';
+import { WorkspaceService } from '../workspace-service/workspace-service';
+import legacyCampaignWorld from '../../../../rpg_files/campaign-world.json';
 
 export type CampaignWorldStatus = 'loading' | 'ready' | 'error';
 
 @Injectable({ providedIn: 'root' })
 export class CampaignWorldService {
-	private readonly http = inject(HttpClient);
+	private readonly storage = inject(WorkspaceStorageService);
+	private readonly workspaces = inject(WorkspaceService);
+	private readonly http = inject(HttpClient, { optional: true });
 	private empiresById = new Map<string, CampaignEmpire>();
 	private statesById = new Map<string, CampaignState>();
 	private settlementsById = new Map<string, CampaignSettlement>();
@@ -45,19 +52,73 @@ export class CampaignWorldService {
 	load(): void {
 		this.status.set('loading');
 		this.error.set(null);
-		this.http.get<unknown>('/rpg_files/campaign-world.json').subscribe({
-			next: (raw) => {
-				const validation = validateCampaignWorld(raw);
-				if (!validation.valid || !validation.world) {
-					this.clearWorld(validation.error ?? 'Catálogo da campanha inválido.');
-					return;
-				}
-				this.indexWorld(validation.world);
-				this.world.set(validation.world);
-				this.status.set('ready');
-			},
-			error: () => this.clearWorld('Não foi possível carregar o catálogo da campanha.'),
-		});
+		if (!this.workspaces.activeWorkspace()) {
+			if (!this.http) {
+				this.loadRawWorld(legacyCampaignWorld);
+				return;
+			}
+			this.http.get<unknown>('/rpg_files/campaign-world.json').subscribe({
+				next: (raw) => {
+					if (this.workspaces.activeWorkspace()) this.load();
+					else this.loadRawWorld(raw);
+				},
+				error: () => this.clearWorld('Não foi possível carregar o mundo da campanha.'),
+			});
+			return;
+		}
+		try {
+			const raw = this.storage.getItem(APP_STORAGE_KEYS.campaignWorld);
+			this.loadRawWorld(raw ? JSON.parse(raw) : createEmptyCampaignWorld());
+		} catch {
+			this.clearWorld('Não foi possível carregar o mundo da campanha.');
+		}
+	}
+
+	private loadRawWorld(raw: unknown): void {
+		const validation = validateCampaignWorld(raw);
+		if (!validation.valid || !validation.world) {
+			this.clearWorld(validation.error ?? 'Mundo da campanha inválido.');
+			return;
+		}
+		this.indexWorld(validation.world);
+		this.world.set(validation.world);
+		this.status.set('ready');
+	}
+
+	saveWorld(world: CampaignWorld): void {
+		const validation = validateCampaignWorld(world);
+		if (!validation.valid || !validation.world) {
+			throw new Error(validation.error ?? 'Mundo da campanha inválido.');
+		}
+		this.storage.setItem(APP_STORAGE_KEYS.campaignWorld, JSON.stringify(validation.world));
+		this.indexWorld(validation.world);
+		this.world.set(validation.world);
+		this.error.set(null);
+		this.status.set('ready');
+	}
+
+	createSafetyBackup(): void {
+		const world = this.world();
+		if (world) this.storage.setItem(APP_STORAGE_KEYS.safetyWorldBeforeImport, JSON.stringify(world));
+	}
+
+	async fetchRemoteWorld(url: string): Promise<CampaignWorld> {
+		let response: Response;
+		try {
+			response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+		} catch {
+			throw new Error('Não foi possível acessar o mundo remoto.');
+		}
+		if (!response.ok) throw new Error(`O mundo remoto retornou ${response.status}.`);
+		let raw: unknown;
+		try {
+			raw = await response.json();
+		} catch {
+			throw new Error('O mundo remoto não contém JSON válido.');
+		}
+		const validation = validateCampaignWorld(raw);
+		if (!validation.valid || !validation.world) throw new Error(validation.error ?? 'Mundo remoto inválido.');
+		return validation.world;
 	}
 
 	getEmpire(id: string): CampaignEmpire | null {

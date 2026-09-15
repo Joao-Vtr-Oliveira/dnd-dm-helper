@@ -3,7 +3,6 @@ import { Component, computed, effect, HostListener, inject, signal } from '@angu
 import { CommonModule } from '@angular/common';
 
 import {
-	EPOCH_DATE,
 	addDays,
 	buildSeasonGrid,
 	getEventsForDate,
@@ -12,15 +11,12 @@ import {
 	type CalendarDayCell,
 } from '../../utils/calendar-utils/calendar-util';
 
-import type { MoonPhase, Season, WorldDate } from '../../models/calendar-model';
-import {
-	DAYS_PER_SEASON,
-	SEASON_ORDER,
-	SEASONS,
-} from '../../utils/calendar-utils/calendar-constants';
+import type { CalendarEvent, MoonPhase, Season, WorldDate } from '../../models/calendar-model';
 import { FormsModule } from '@angular/forms';
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { WorldClockService } from '../../services/WorldClockService/world-clock-service';
+import { CampaignCalendarService } from '../../services/campaign-calendar-service/campaign-calendar-service';
+import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
 import {
 	LucideCalendarDays,
 	LucideChevronLeft,
@@ -33,9 +29,6 @@ import {
 } from '@lucide/angular';
 
 type WeekRow = (CalendarDayCell | null)[];
-
-const DEFAULT_HOUR = EPOCH_DATE.hour;
-const DEFAULT_MINUTE = EPOCH_DATE.minute;
 
 @Component({
 	selector: 'app-calendar',
@@ -57,23 +50,42 @@ const DEFAULT_MINUTE = EPOCH_DATE.minute;
 })
 export class Calendar {
 	private readonly worldClock = inject(WorldClockService);
+	readonly calendarRules = inject(CampaignCalendarService);
+	private readonly campaignWorld = inject(CampaignWorldService);
 
 	current = this.worldClock.current;
 	selected = signal<WorldDate>(this.worldClock.current());
 
-	jumpYearInput = EPOCH_DATE.year;
+	jumpYearInput = this.calendarRules.calendar().epochDate.year;
 	jumpSeasonInput: Season = 'spring';
 	jumpDayInput = 1;
 
 	weekdayHeaders = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-	seasonOptions = SEASONS.map((season) => ({ value: season.id, label: season.label }));
-	daysPerSeason = DAYS_PER_SEASON;
-	defaultTimeLabel = `${String(DEFAULT_HOUR).padStart(2, '0')}:${String(DEFAULT_MINUTE).padStart(2, '0')}`;
-	defaultDateLabel = `${EPOCH_DATE.day} de ${SEASONS.find((season) => season.id === EPOCH_DATE.season)?.label ?? EPOCH_DATE.season} do ano ${EPOCH_DATE.year}`;
+	seasonOptions = this.calendarRules
+		.calendar()
+		.seasons.map((season) => ({ value: season.id, label: season.label }));
+	daysPerSeason = this.calendarRules.calendar().daysPerSeason;
+	defaultTimeLabel = `${String(this.calendarRules.calendar().epochDate.hour).padStart(2, '0')}:${String(this.calendarRules.calendar().epochDate.minute).padStart(2, '0')}`;
+	defaultDateLabel = `${this.calendarRules.calendar().epochDate.day} de ${this.calendarRules.calendar().seasons.find((season) => season.id === this.calendarRules.calendar().epochDate.season)?.label ?? this.calendarRules.calendar().epochDate.season} do ano ${this.calendarRules.calendar().epochDate.year}`;
+	calendarManagementOpen = signal(false);
+	calendarSettingsOpen = signal(false);
+	eventEditorOpen = signal(false);
+	eventId = signal<string | null>(null);
+	eventTitle = '';
+	eventSeason: Season = 'spring';
+	eventDay = 1;
+	eventDescription = '';
+	eventTags: string[] = [];
+	eventTagInput = '';
+	eventDeity = '';
+	settingsDaysPerSeason = this.calendarRules.calendar().daysPerSeason;
+	settingsEpochYear = this.calendarRules.calendar().epochDate.year;
+	settingsEpochSeason: Season = this.calendarRules.calendar().epochDate.season;
+	settingsEpochDay = this.calendarRules.calendar().epochDate.day;
 
 	weeks = computed<WeekRow[]>(() => {
 		const d = this.current();
-		const flat = buildSeasonGrid(d.year, d.season);
+		const flat = buildSeasonGrid(this.calendarRules.calendar(), d.year, d.season);
 
 		const weeks: WeekRow[] = [];
 		let row: WeekRow = [];
@@ -103,13 +115,15 @@ export class Calendar {
 	}
 
 	seasonLabel = computed(() => {
-		const s = SEASONS.find((x) => x.id === this.current().season);
+		const s = this.calendarRules.calendar().seasons.find((x) => x.id === this.current().season);
 		return s?.label ?? this.current().season;
 	});
 
-	weekdayLabelCurrent = computed(() => getWeekdayLabel(this.current()));
-	moonCurrent = computed(() => getMoonInfo(this.current()));
-	eventsCurrent = computed(() => getEventsForDate(this.current()));
+	weekdayLabelCurrent = computed(() =>
+		getWeekdayLabel(this.calendarRules.calendar(), this.current()),
+	);
+	moonCurrent = computed(() => getMoonInfo(this.calendarRules.calendar(), this.current()));
+	eventsCurrent = computed(() => getEventsForDate(this.calendarRules.calendar(), this.current()));
 	seasonTheme = computed(() => {
 		switch (this.current().season) {
 			case 'spring':
@@ -123,9 +137,11 @@ export class Calendar {
 		}
 	});
 
-	weekdayLabelSelected = computed(() => getWeekdayLabel(this.selected()));
-	moonSelected = computed(() => getMoonInfo(this.selected()));
-	eventsSelected = computed(() => getEventsForDate(this.selected()));
+	weekdayLabelSelected = computed(() =>
+		getWeekdayLabel(this.calendarRules.calendar(), this.selected()),
+	);
+	moonSelected = computed(() => getMoonInfo(this.calendarRules.calendar(), this.selected()));
+	eventsSelected = computed(() => getEventsForDate(this.calendarRules.calendar(), this.selected()));
 
 	timeLabelCurrent = computed(() => {
 		const d = this.current();
@@ -177,16 +193,16 @@ export class Calendar {
 	}
 
 	private goToday() {
-		this.setCurrent(() => ({ ...EPOCH_DATE }));
+		this.setCurrent(() => ({ ...this.calendarRules.calendar().epochDate }));
 	}
 
 	changeDay(delta: number) {
 		this.setCurrent((d) => {
-			const moved = addDays(d, delta);
+			const moved = addDays(this.calendarRules.calendar(), d, delta);
 			return {
 				...moved,
-				hour: DEFAULT_HOUR,
-				minute: DEFAULT_MINUTE,
+				hour: this.calendarRules.calendar().epochDate.hour,
+				minute: this.calendarRules.calendar().epochDate.minute,
 			};
 		});
 	}
@@ -199,8 +215,8 @@ export class Calendar {
 	private resetTime() {
 		this.setCurrent((d) => ({
 			...d,
-			hour: DEFAULT_HOUR,
-			minute: DEFAULT_MINUTE,
+			hour: this.calendarRules.calendar().epochDate.hour,
+			minute: this.calendarRules.calendar().epochDate.minute,
 		}));
 	}
 
@@ -226,9 +242,10 @@ export class Calendar {
 
 	changeSeason(delta: number) {
 		this.setCurrent((d) => {
-			let idx = SEASON_ORDER.indexOf(d.season) + delta;
+			const seasonOrder = this.calendarRules.calendar().seasons.map((season) => season.id);
+			let idx = seasonOrder.indexOf(d.season) + delta;
 			let year = d.year;
-			const n = SEASON_ORDER.length;
+			const n = seasonOrder.length;
 
 			while (idx < 0) {
 				idx += n;
@@ -239,8 +256,8 @@ export class Calendar {
 				year++;
 			}
 
-			const season = SEASON_ORDER[idx];
-		const day = Math.min(d.day, DAYS_PER_SEASON);
+			const season = seasonOrder[idx];
+			const day = Math.min(d.day, this.calendarRules.calendar().daysPerSeason);
 
 			return { ...d, year, season, day };
 		});
@@ -293,11 +310,124 @@ export class Calendar {
 		const year = this.jumpYearInput || base.year;
 		let day = Math.floor(this.jumpDayInput || 1);
 		if (day < 1) day = 1;
-		if (day > DAYS_PER_SEASON) day = DAYS_PER_SEASON;
+		if (day > this.calendarRules.calendar().daysPerSeason)
+			day = this.calendarRules.calendar().daysPerSeason;
 		const season = this.jumpSeasonInput || base.season;
 
 		const next: WorldDate = { ...base, year, season, day };
 		this.worldClock.setDate(next);
 		this.selected.set(next);
+	}
+
+	openEventEditor(event?: CalendarEvent): void {
+		this.calendarManagementOpen.set(true);
+		this.eventId.set(event?.id ?? null);
+		this.eventTitle = event?.title ?? '';
+		this.eventSeason = event?.season ?? this.current().season;
+		this.eventDay = event?.day ?? this.current().day;
+		this.eventDescription = event?.description ?? '';
+		this.eventTags = [...(event?.tags ?? [])];
+		this.eventTagInput = '';
+		this.eventDeity = event?.deity ?? '';
+		this.eventEditorOpen.set(true);
+	}
+
+	toggleCalendarManagement(): void {
+		this.calendarManagementOpen.update((open) => !open);
+		if (this.calendarManagementOpen()) return;
+		this.calendarSettingsOpen.set(false);
+		this.eventEditorOpen.set(false);
+	}
+
+	toggleCalendarSettings(): void {
+		this.calendarManagementOpen.set(true);
+		this.calendarSettingsOpen.update((open) => !open);
+	}
+
+	commitEventTag(): void {
+		const tag = this.eventTagInput.trim().replace(/,$/, '').trim();
+		if (
+			tag &&
+			!this.eventTags.some((item) => item.toLocaleLowerCase() === tag.toLocaleLowerCase())
+		) {
+			this.eventTags = [...this.eventTags, tag];
+		}
+		this.eventTagInput = '';
+	}
+
+	commitEventTagOnKeydown(event: KeyboardEvent): void {
+		if (event.key !== ',' && event.key !== 'Enter') return;
+		event.preventDefault();
+		this.commitEventTag();
+	}
+
+	removeEventTag(tag: string): void {
+		this.eventTags = this.eventTags.filter((item) => item !== tag);
+	}
+
+	saveEvent(): void {
+		const world = this.campaignWorld.world();
+		if (!world || !this.eventTitle.trim() || !this.eventDescription.trim()) return;
+		this.commitEventTag();
+		const day = Math.floor(Number(this.eventDay));
+		if (!Number.isInteger(day) || day < 1 || day > world.calendar.daysPerSeason) return;
+		const event: CalendarEvent = {
+			id: this.eventId() ?? `event-${globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)}`,
+			season: this.eventSeason,
+			day,
+			title: this.eventTitle.trim(),
+			description: this.eventDescription.trim(),
+			...(this.eventTags.length ? { tags: this.eventTags } : {}),
+			...(this.eventDeity.trim()
+				? { deity: this.eventDeity.trim() as CalendarEvent['deity'] }
+				: {}),
+		};
+		const next = structuredClone(world);
+		const index = next.calendar.events.findIndex((item) => item.id === event.id);
+		if (index >= 0) next.calendar.events[index] = event;
+		else next.calendar.events.push(event);
+		this.campaignWorld.saveWorld(next);
+		this.eventEditorOpen.set(false);
+	}
+
+	deleteEvent(id: string): void {
+		const world = this.campaignWorld.world();
+		if (!world || !confirm('Excluir esta data comemorativa?')) return;
+		const next = structuredClone(world);
+		next.calendar.events = next.calendar.events.filter((item) => item.id !== id);
+		this.campaignWorld.saveWorld(next);
+	}
+
+	saveCalendarSettings(): void {
+		const world = this.campaignWorld.world();
+		const daysPerSeason = Math.floor(Number(this.settingsDaysPerSeason));
+		const epochDay = Math.floor(Number(this.settingsEpochDay));
+		const epochYear = Math.floor(Number(this.settingsEpochYear));
+		if (
+			!world ||
+			!Number.isInteger(daysPerSeason) ||
+			daysPerSeason < 1 ||
+			epochDay < 1 ||
+			epochDay > daysPerSeason ||
+			epochYear < 0
+		)
+			return;
+		if (
+			this.current().day > daysPerSeason &&
+			!confirm('A data atual será ajustada ao último dia da estação. Continuar?')
+		)
+			return;
+		const next = structuredClone(world);
+		next.calendar.daysPerSeason = daysPerSeason;
+		next.calendar.epochDate = {
+			...next.calendar.epochDate,
+			year: epochYear,
+			season: this.settingsEpochSeason,
+			day: epochDay,
+		};
+		next.calendar.events = next.calendar.events.filter((event) => event.day <= daysPerSeason);
+		this.campaignWorld.saveWorld(next);
+		this.worldClock.setDate(this.current());
+		this.calendarSettingsOpen.set(false);
 	}
 }

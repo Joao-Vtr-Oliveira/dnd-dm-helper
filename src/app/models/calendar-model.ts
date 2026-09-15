@@ -21,16 +21,7 @@ export interface CampaignCalendar {
 	events: CalendarEvent[];
 }
 
-export type DeityId =
-	| 'luuren'
-	| 'atronos'
-	| 'dreyc'
-	| 'ruuz'
-	| 'vozc'
-	| 'luna'
-	| 'pulacc'
-	| 'geraldo'
-	| 'achos';
+export type DeityId = string;
 
 export interface CalendarEvent {
 	id: string;

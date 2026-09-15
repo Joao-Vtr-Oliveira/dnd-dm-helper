@@ -99,4 +99,24 @@ describe('Calendar', () => {
 		expect(component.resetConfirmation()).toBeNull();
 		expect(component.current().hour).toBe(5);
 	});
+
+	it('keeps calendar management closed until explicitly requested', () => {
+		expect(component.calendarManagementOpen()).toBeFalse();
+		component.openEventEditor();
+		expect(component.calendarManagementOpen()).toBeTrue();
+		expect(component.eventEditorOpen()).toBeTrue();
+		component.toggleCalendarManagement();
+		expect(component.calendarManagementOpen()).toBeFalse();
+		expect(component.eventEditorOpen()).toBeFalse();
+	});
+
+	it('stores event tags as distinct chips', () => {
+		component.openEventEditor();
+		component.eventTagInput = 'Festival de Colheita';
+		component.commitEventTag();
+		component.eventTagInput = 'festival de colheita';
+		component.commitEventTag();
+
+		expect(component.eventTags).toEqual(['Festival de Colheita']);
+	});
 });

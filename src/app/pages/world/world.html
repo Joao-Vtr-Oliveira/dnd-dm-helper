@@ -1,8 +1,6 @@
 <section class="mx-auto w-full max-w-[1180px] pb-24 text-app-text">
 	<header class="border-b border-app-divider pb-6">
-		<div class="app-eyebrow">
-			Campanha
-		</div>
+		<div class="app-eyebrow">Campanha</div>
 		<div class="mt-2 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 			<div>
 				<h1 class="text-3xl font-semibold tracking-tight text-app-text sm:text-4xl">Mundo</h1>
@@ -34,10 +32,177 @@
 		</div>
 	</header>
 
+	<section class="app-panel mt-6 p-5 sm:p-6">
+		<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+			<div>
+				<div class="app-eyebrow">Editor do mundo</div>
+				<p class="mt-1 text-sm text-app-muted">Crie a hierarquia da campanha sem editar JSON.</p>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<button
+					type="button"
+					class="app-button app-button-secondary text-sm"
+					(click)="openEditor('empire')"
+				>
+					+ Império
+				</button>
+				<button
+					type="button"
+					class="app-button app-button-secondary text-sm"
+					(click)="openEditor('state')"
+				>
+					+ Estado
+				</button>
+				<button
+					type="button"
+					class="app-button app-button-secondary text-sm"
+					(click)="openEditor('settlement')"
+				>
+					+ Localidade
+				</button>
+				<button
+					type="button"
+					class="app-button app-button-secondary text-sm"
+					(click)="openEditor('poi')"
+				>
+					+ POI
+				</button>
+				<button
+					type="button"
+					class="app-button app-button-secondary text-sm"
+					(click)="openEditor('organization')"
+				>
+					+ Organização
+				</button>
+			</div>
+		</div>
+		@if (editorType(); as type) {
+			<div class="mt-5 grid gap-4 border-t border-app-divider pt-5 sm:grid-cols-2">
+				<label class="text-sm font-semibold"
+					>Nome<input
+						class="app-field mt-2 w-full"
+						[ngModel]="editorName"
+						(ngModelChange)="onEditorNameChange($event)"
+				/></label>
+				<div class="text-sm font-semibold">
+					Aliases
+					<div class="app-inset mt-2 flex min-h-11 flex-wrap items-center gap-2 p-2">
+						@for (alias of editorAliases; track alias) {
+							<span
+								class="inline-flex items-center gap-1 rounded-lg bg-violet-500/15 px-2 py-1 text-xs font-medium text-violet-100"
+								>{{ alias
+								}}<button
+									type="button"
+									class="text-violet-200 hover:text-white"
+									(click)="removeAlias(alias)"
+									[attr.aria-label]="'Remover alias ' + alias"
+								>
+									x
+								</button></span
+							>
+						}
+						<input
+							class="min-w-28 flex-1 bg-transparent text-sm font-normal outline-none placeholder:text-app-subtle"
+							[(ngModel)]="editorAliasInput"
+							(keydown)="commitAliasOnKeydown($event)"
+							(blur)="commitAlias()"
+							placeholder="Digite e confirme"
+						/>
+					</div>
+					<p class="mt-1 text-xs font-normal text-app-muted">
+						O primeiro alias usa o nome sem acentos e em minúsculas.
+					</p>
+				</div>
+				@if (type === 'state') {
+					<label class="text-sm font-semibold"
+						>Império<select class="app-field mt-2 w-full" [(ngModel)]="editorParentId">
+							<option value="">Selecione</option>
+							@for (empire of campaignWorld.world()?.empires ?? []; track empire.id) {
+								<option [value]="empire.id">{{ empire.name }}</option>
+							}
+						</select></label
+					>
+				}
+				@if (type === 'settlement') {
+					<label class="text-sm font-semibold"
+						>Estado<select class="app-field mt-2 w-full" [(ngModel)]="editorParentId">
+							<option value="">Selecione</option>
+							@for (state of campaignWorld.world()?.states ?? []; track state.id) {
+								<option [value]="state.id">{{ state.name }}</option>
+							}
+						</select></label
+					><label class="text-sm font-semibold"
+						>Tipo<select class="app-field mt-2 w-full" [(ngModel)]="editorTypeValue">
+							@for (option of settlementTypeOptions; track option.value) {
+								<option [value]="option.value">{{ option.label }}</option>
+							}
+						</select></label
+					>
+				}
+				@if (type === 'poi') {
+					<label class="text-sm font-semibold"
+						>Localidade<select class="app-field mt-2 w-full" [(ngModel)]="editorParentId">
+							<option value="">Selecione</option>
+							@for (settlement of campaignWorld.world()?.settlements ?? []; track settlement.id) {
+								<option [value]="settlement.id">{{ settlement.name }}</option>
+							}
+						</select></label
+					><label class="text-sm font-semibold"
+						>Tipo<select class="app-field mt-2 w-full" [(ngModel)]="editorTypeValue">
+							@for (option of pointOfInterestTypeOptions; track option.value) {
+								<option [value]="option.value">{{ option.label }}</option>
+							}
+						</select></label
+					><label class="sm:col-span-2 text-sm font-semibold"
+						>Resumo<textarea
+							class="app-field mt-2 min-h-20 w-full"
+							[(ngModel)]="editorSummary"
+						></textarea>
+					</label>
+				}
+				@if (type === 'organization') {
+					<label class="text-sm font-semibold"
+						>Organização pai (opcional)<select
+							class="app-field mt-2 w-full"
+							[(ngModel)]="editorParentId"
+						>
+							<option value="">Nenhuma</option>
+							@for (
+								organization of campaignWorld.world()?.organizations ?? [];
+								track organization.id
+							) {
+								<option [value]="organization.id">{{ organization.name }}</option>
+							}
+						</select></label
+					><label class="text-sm font-semibold"
+						>Tipo<select class="app-field mt-2 w-full" [(ngModel)]="editorTypeValue">
+							@for (option of organizationTypeOptions; track option.value) {
+								<option [value]="option.value">{{ option.label }}</option>
+							}
+						</select></label
+					>
+				}
+				<div class="sm:col-span-2 flex flex-wrap gap-2">
+					<button type="button" class="app-button app-button-primary" (click)="saveEditor()">
+						Salvar {{ type }}</button
+					><button type="button" class="app-button app-button-secondary" (click)="cancelEditor()">
+						Cancelar
+					</button>
+				</div>
+			</div>
+		}
+		@if (editorMessage()) {
+			<p class="mt-4 text-sm text-amber-100">{{ editorMessage() }}</p>
+		}
+	</section>
+
 	@if (campaignWorld.status() === 'loading') {
 		<div class="app-empty-state my-8" role="status">Carregando o mundo da campanha...</div>
 	} @else if (campaignWorld.status() === 'error') {
-		<div class="app-alert my-8 border-amber-400/25 bg-amber-500/10 text-sm text-amber-100" role="alert">
+		<div
+			class="app-alert my-8 border-amber-400/25 bg-amber-500/10 text-sm text-amber-100"
+			role="alert"
+		>
 			Não foi possível carregar o mundo da campanha.
 		</div>
 	} @else {
@@ -73,7 +238,7 @@
 						<input
 							id="world-search"
 							type="search"
-						class="app-field mt-2 h-11 w-full px-3 text-sm font-normal"
+							class="app-field mt-2 h-11 w-full px-3 text-sm font-normal"
 							placeholder="Império, estado, localidade ou ponto de interesse..."
 							[ngModel]="searchQuery()"
 							(ngModelChange)="searchQuery.set($event)"
@@ -235,6 +400,33 @@
 									(click)="setPartyHere()"
 								>
 									Definir party aqui
+								</button>
+							}
+							@if (location.ref.scopeType === 'empire') {
+								<button
+									type="button"
+									class="app-action-button rounded-xl border border-white/15 bg-white/5 text-sm hover:bg-white/10"
+									(click)="openEditor('state')"
+								>
+									+ Criar estado aqui
+								</button>
+							}
+							@if (location.ref.scopeType === 'state') {
+								<button
+									type="button"
+									class="app-action-button rounded-xl border border-white/15 bg-white/5 text-sm hover:bg-white/10"
+									(click)="openEditor('settlement')"
+								>
+									+ Criar localidade aqui
+								</button>
+							}
+							@if (location.ref.scopeType === 'settlement') {
+								<button
+									type="button"
+									class="app-action-button rounded-xl border border-white/15 bg-white/5 text-sm hover:bg-white/10"
+									(click)="openEditor('poi')"
+								>
+									+ Criar POI aqui
 								</button>
 							}
 						</div>

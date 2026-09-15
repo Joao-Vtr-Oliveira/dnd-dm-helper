@@ -30,6 +30,7 @@ import {
 } from '../../models/campaign-context-model';
 import { CampaignContextService } from '../campaign-context-service/campaign-context-service';
 import { FiveEToolsHomebrewService } from '../fiveetools-homebrew-service/fiveetools-homebrew-service';
+import { WorkspaceStorageService } from '../workspace-service/workspace-storage-service';
 
 export interface AppBackup {
 	app: 'dnd-dm-helper';
@@ -78,6 +79,7 @@ export class AppBackupService {
 	private readonly encounterHubFilterService = inject(EncounterHubFilterService);
 	private readonly campaignContext = inject(CampaignContextService);
 	private readonly fiveEToolsHomebrew = inject(FiveEToolsHomebrewService);
+	private readonly storage = inject(WorkspaceStorageService);
 
 	exportAll(): AppBackup {
 		return {
@@ -114,7 +116,8 @@ export class AppBackupService {
 		URL.revokeObjectURL(url);
 	}
 
-	async fetchRemoteBackup(): Promise<AppBackup> {
+	async fetchRemoteBackup(url?: string): Promise<AppBackup> {
+		if (url) return this.fetchBackup(url);
 		// The bundled asset is published with the app while the GitHub backup may lag behind it.
 		// Fetch both and retain the newest valid campaign rather than silently restoring stale sheets.
 		const [bundled, remote] = await Promise.allSettled([
@@ -134,7 +137,7 @@ export class AppBackupService {
 			: new Error('Erro ao sincronizar: não foi possível acessar o backup remoto.');
 	}
 
-	private async fetchBackup(url: string): Promise<AppBackup> {
+	async fetchBackup(url: string): Promise<AppBackup> {
 		let response: Response;
 		try {
 			response = await fetch(url, {
@@ -295,7 +298,7 @@ export class AppBackupService {
 		}
 
 		const normalizedBackup = validation.backup;
-		localStorage.setItem(
+		this.storage.setItem(
 			APP_STORAGE_KEYS.encounters,
 			JSON.stringify(normalizedBackup.data.encounters),
 		);
@@ -303,42 +306,42 @@ export class AppBackupService {
 			normalizedBackup.data.fiveEToolsHomebrew,
 			normalizedBackup.data.fiveEToolsHomebrewBackups,
 		);
-		localStorage.setItem(
+		this.storage.setItem(
 			APP_STORAGE_KEYS.battleEncounters,
 			JSON.stringify(normalizedBackup.data.battleEncounters),
 		);
-		localStorage.setItem(
+		this.storage.setItem(
 			APP_STORAGE_KEYS.sheets,
 			JSON.stringify(normalizedBackup.data.homebrewSheets),
 		);
-		localStorage.setItem(
+		this.storage.setItem(
 			APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages,
 			JSON.stringify(normalizedBackup.data.fiveEToolsHomebrewCompositionPackages),
 		);
 
 		if (normalizedBackup.data.calendar) {
-			localStorage.setItem(
+			this.storage.setItem(
 				APP_STORAGE_KEYS.worldDate,
 				JSON.stringify(normalizedBackup.data.calendar),
 			);
 			this.worldClock.setDate(normalizedBackup.data.calendar);
 		} else {
 			this.worldClock.reset();
-			localStorage.removeItem(APP_STORAGE_KEYS.worldDate);
+			this.storage.removeItem(APP_STORAGE_KEYS.worldDate);
 		}
 
 		if (normalizedBackup.data.settings.encounterHubFilters) {
-			localStorage.setItem(
+			this.storage.setItem(
 				APP_STORAGE_KEYS.encounterHubFilters,
 				JSON.stringify(normalizedBackup.data.settings.encounterHubFilters),
 			);
 		} else {
-			localStorage.removeItem(APP_STORAGE_KEYS.encounterHubFilters);
+			this.storage.removeItem(APP_STORAGE_KEYS.encounterHubFilters);
 		}
 
 		for (const [key, value] of Object.entries(normalizedBackup.data.rawLocalStorage)) {
 			if (!isRawBackupStorageKey(key)) continue;
-			localStorage.setItem(key, value);
+			this.storage.setItem(key, value);
 		}
 
 		this.campaignContext.restore(normalizedBackup.data.campaignContext ?? null);
@@ -348,7 +351,7 @@ export class AppBackupService {
 
 	createSafetyBackupBeforeSync(): void {
 		const backup = this.exportAll();
-		localStorage.setItem(APP_STORAGE_KEYS.safetyBackupBeforeSync, JSON.stringify(backup));
+		this.storage.setItem(APP_STORAGE_KEYS.safetyBackupBeforeSync, JSON.stringify(backup));
 	}
 
 	buildSummary(backup: AppBackup): AppBackupSummary {
@@ -382,7 +385,7 @@ export class AppBackupService {
 
 	private readStoredCalendar(): WorldDate | null {
 		try {
-			const raw = localStorage.getItem(APP_STORAGE_KEYS.worldDate);
+			const raw = this.storage.getItem(APP_STORAGE_KEYS.worldDate);
 			if (!raw) return this.worldClock.current();
 			return this.normalizeCalendar(JSON.parse(raw));
 		} catch {
@@ -392,7 +395,7 @@ export class AppBackupService {
 
 	private readStoredCompositionPackages(): FiveEToolsCompositionPackage[] {
 		try {
-			const raw = localStorage.getItem(APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages);
+			const raw = this.storage.getItem(APP_STORAGE_KEYS.fiveEToolsHomebrewCompositionPackages);
 			if (!raw) return [];
 			const parsed: unknown = JSON.parse(raw);
 			return Array.isArray(parsed) ? (parsed as FiveEToolsCompositionPackage[]) : [];

@@ -25,16 +25,19 @@
 				</div>
 			</button>
 
-			<div class="hidden text-sm text-app-muted lg:block">
-				Campanha, encontros e fichas no mesmo fluxo.
-			</div>
+			<a
+				routerLink="/home/workspaces"
+				class="hidden rounded-lg px-3 py-2 text-sm text-app-muted transition hover:bg-white/5 hover:text-app-text lg:block"
+			>
+				{{ activeWorkspace()?.name }}
+			</a>
 
 			<button
 				type="button"
 				class="app-button app-button-ghost h-10 w-10 shrink-0 p-0 lg:hidden"
 				[attr.aria-expanded]="mobileNavigationOpen()"
 				aria-controls="mobile-primary-navigation"
-			[attr.aria-label]="mobileNavigationOpen() ? 'Fechar navegação' : 'Abrir navegação'"
+				[attr.aria-label]="mobileNavigationOpen() ? 'Fechar navegação' : 'Abrir navegação'"
 				(click)="toggleMobileNavigation()"
 			>
 				<svg lucideMenu [size]="20" [strokeWidth]="2" aria-hidden="true"></svg>
@@ -57,7 +60,9 @@
 				(click)="$event.stopPropagation()"
 			>
 				<div class="mb-3 flex items-center justify-between">
-					<div id="mobile-navigation-title" class="text-sm font-semibold text-app-text">Navegação</div>
+					<div id="mobile-navigation-title" class="text-sm font-semibold text-app-text">
+						Navegação
+					</div>
 					<button
 						type="button"
 						class="app-button app-button-ghost h-9 w-9 p-0"
@@ -85,7 +90,13 @@
 										class="app-nav-link"
 										(click)="closeMobileNavigation()"
 									>
-										<svg [lucideIcon]="link.icon" [size]="18" [strokeWidth]="2" class="shrink-0" aria-hidden="true"></svg>
+										<svg
+											[lucideIcon]="link.icon"
+											[size]="18"
+											[strokeWidth]="2"
+											class="shrink-0"
+											aria-hidden="true"
+										></svg>
 										<span>{{ link.label }}</span>
 									</a>
 								}
@@ -94,25 +105,19 @@
 								<button
 									type="button"
 									class="app-nav-link w-full text-left"
-									[disabled]="
-										(action.action === 'sync' && syncLoading()) ||
-										(action.action === 'export-all' && exportLoading())
-									"
-									[class.opacity-55]="
-										(action.action === 'sync' && syncLoading()) ||
-										(action.action === 'export-all' && exportLoading())
-									"
+									[disabled]="syncLoading()"
+									[class.opacity-55]="syncLoading()"
 									(click)="runAction(action.action)"
 								>
-									<svg [lucideIcon]="action.icon" [size]="18" [strokeWidth]="2" class="shrink-0" aria-hidden="true"></svg>
+									<svg
+										[lucideIcon]="action.icon"
+										[size]="18"
+										[strokeWidth]="2"
+										class="shrink-0"
+										aria-hidden="true"
+									></svg>
 									<span>
-										@if (action.action === 'sync' && syncLoading()) {
-											Sincronizando...
-										} @else if (action.action === 'export-all' && exportLoading()) {
-											Exportando...
-										} @else {
-											{{ action.label }}
-										}
+										{{ syncLoading() ? 'Sincronizando...' : action.label }}
 									</span>
 								</button>
 							}
@@ -150,7 +155,13 @@
 											class="app-nav-link"
 											[attr.title]="link.description"
 										>
-											<svg [lucideIcon]="link.icon" [size]="18" [strokeWidth]="2" class="shrink-0" aria-hidden="true"></svg>
+											<svg
+												[lucideIcon]="link.icon"
+												[size]="18"
+												[strokeWidth]="2"
+												class="shrink-0"
+												aria-hidden="true"
+											></svg>
 											<span>{{ link.label }}</span>
 										</a>
 									}
@@ -160,25 +171,19 @@
 										type="button"
 										class="app-nav-link w-full text-left"
 										[attr.title]="action.description"
-										[disabled]="
-											(action.action === 'sync' && syncLoading()) ||
-											(action.action === 'export-all' && exportLoading())
-										"
-										[class.opacity-55]="
-											(action.action === 'sync' && syncLoading()) ||
-											(action.action === 'export-all' && exportLoading())
-										"
+										[disabled]="syncLoading()"
+										[class.opacity-55]="syncLoading()"
 										(click)="runAction(action.action)"
 									>
-										<svg [lucideIcon]="action.icon" [size]="18" [strokeWidth]="2" class="shrink-0" aria-hidden="true"></svg>
+										<svg
+											[lucideIcon]="action.icon"
+											[size]="18"
+											[strokeWidth]="2"
+											class="shrink-0"
+											aria-hidden="true"
+										></svg>
 										<span>
-											@if (action.action === 'sync' && syncLoading()) {
-												Sincronizando...
-											} @else if (action.action === 'export-all' && exportLoading()) {
-												Exportando...
-											} @else {
-												{{ action.label }}
-											}
+											{{ syncLoading() ? 'Sincronizando...' : action.label }}
 										</span>
 									</button>
 								}
@@ -318,11 +323,37 @@
 			aria-live="polite"
 		>
 			<div class="flex items-start gap-3">
-				<div class="app-toast-icon shrink-0" [class.bg-emerald-500/15]="toastMessage.type === 'success'" [class.text-emerald-200]="toastMessage.type === 'success'" [class.bg-red-500/15]="toastMessage.type === 'error'" [class.text-rose-200]="toastMessage.type === 'error'">
-					@if (toastMessage.type === 'success') { <svg lucideCircleCheck [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> } @else { <svg lucideCircleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg> }
+				<div
+					class="app-toast-icon shrink-0"
+					[class.bg-emerald-500/15]="toastMessage.type === 'success'"
+					[class.text-emerald-200]="toastMessage.type === 'success'"
+					[class.bg-red-500/15]="toastMessage.type === 'error'"
+					[class.text-rose-200]="toastMessage.type === 'error'"
+				>
+					@if (toastMessage.type === 'success') {
+						<svg lucideCircleCheck [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					} @else {
+						<svg lucideCircleAlert [size]="20" [strokeWidth]="2.25" aria-hidden="true"></svg>
+					}
 				</div>
-				<div class="min-w-0 flex-1"><div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">@if (toastMessage.type === 'success') { Concluído } @else { Não foi possível concluir }</div><div class="mt-1 text-sm leading-5 text-app-text">{{ toastMessage.text }}</div></div>
-				<button type="button" class="app-toast-dismiss shrink-0" (click)="toast.set(null)" aria-label="Fechar mensagem"><svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg></button>
+				<div class="min-w-0 flex-1">
+					<div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
+						@if (toastMessage.type === 'success') {
+							Concluído
+						} @else {
+							Não foi possível concluir
+						}
+					</div>
+					<div class="mt-1 text-sm leading-5 text-app-text">{{ toastMessage.text }}</div>
+				</div>
+				<button
+					type="button"
+					class="app-toast-dismiss shrink-0"
+					(click)="toast.set(null)"
+					aria-label="Fechar mensagem"
+				>
+					<svg lucideX [size]="18" [strokeWidth]="2.5" aria-hidden="true"></svg>
+				</button>
 			</div>
 		</div>
 	</div>
