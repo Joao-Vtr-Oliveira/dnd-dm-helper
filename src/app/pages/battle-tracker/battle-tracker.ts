@@ -182,6 +182,7 @@ export class BattleTrackerPage {
 		...(this.battle()?.combatants ?? []),
 		...(this.battle()?.pendingCombatants ?? []),
 	]);
+	readonly combatOrder = computed(() => this.battle()?.combatants ?? []);
 	readonly currentCombatant = computed(() => {
 		const battle = this.battle();
 		return battle ? this.battleService.getCurrentCombatant(battle) : null;
@@ -198,11 +199,6 @@ export class BattleTrackerPage {
 		const battle = this.battle();
 		if (!battle) return [];
 		return this.battleUpcomingEventsService.buildUpcomingBattleEvents(battle, 12);
-	});
-	readonly upcomingTurns = computed<BattleUpcomingEvent[]>(() => {
-		const battle = this.battle();
-		if (!battle) return [];
-		return this.battleUpcomingEventsService.buildUpcomingTurnEvents(battle, 3);
 	});
 	readonly nextEnvironmentEvent = computed<BattleUpcomingEvent | null>(
 		() =>
@@ -875,11 +871,6 @@ export class BattleTrackerPage {
 		return 'Próximo turno';
 	}
 
-	upcomingTurnLabel(event: BattleUpcomingEvent): string {
-		const label = event.label.replace('Depois: ', '');
-		return event.round === this.battle()?.round ? label : `${label} · Round ${event.round}`;
-	}
-
 	abilityAvailabilityClasses(ability: BattleSpecialAbility): string {
 		if (ability.isAvailable) return 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100';
 		if (ability.recoveryType === 'uses-per-day' || ability.recoveryType === 'uses-per-combat')
@@ -1286,6 +1277,22 @@ export class BattleTrackerPage {
 		if (side === 'ally') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
 		if (side === 'neutral') return 'border-slate-300/20 bg-slate-500/10 text-slate-100';
 		return 'border-rose-400/30 bg-rose-500/15 text-rose-100';
+	}
+
+	combatOrderRowClasses(combatant: BattleCombatant): string {
+		const base = 'grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 border-b border-white/10 px-1 py-2 last:border-b-0';
+		if (combatant.defeated) return `${base} opacity-45`;
+		if (this.currentCombatant()?.id === combatant.id) {
+			return `${base} -mx-2 border-amber-300/30 bg-amber-500/15 px-3 text-amber-50`;
+		}
+		return base;
+	}
+
+	combatOrderSideDotClasses(side: BattleCombatantSide): string {
+		if (side === 'player') return 'bg-sky-300';
+		if (side === 'ally') return 'bg-emerald-300';
+		if (side === 'neutral') return 'bg-slate-300';
+		return 'bg-rose-300';
 	}
 
 	confirmButtonClasses(tone: ConfirmModalState['tone']): string {

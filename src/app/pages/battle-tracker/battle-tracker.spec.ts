@@ -9,6 +9,7 @@ import { BattleEncounterStorageService } from '../../services/battle-encounter-s
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
+import type { BattleCombatant } from '../../models/battle-encounter-model';
 
 describe('BattleTrackerPage', () => {
 	let component: BattleTrackerPage;
@@ -231,6 +232,103 @@ describe('BattleTrackerPage', () => {
 		expect(
 			fixture.nativeElement.querySelector('[data-testid="current-turn-cockpit"]')?.textContent,
 		).toContain('Dodman');
+	});
+
+	it('keeps a fixed combat order through seven turns and the next round', () => {
+		const battle = component.battle()!;
+		const combatants: BattleCombatant[] = [
+			{ ...battle.combatants[0], id: 'guillian', name: 'Guillian', initiative: 22, turnOrder: 0, side: 'player' },
+			{ ...battle.combatants[1], id: 'vael', name: 'Vael', initiative: 18, turnOrder: 1, side: 'player' },
+			{ ...battle.combatants[2], id: 'eco-1', name: 'Eco Enraizado', initiative: 17, turnOrder: 2, side: 'enemy' },
+			{ ...battle.combatants[0], id: 'yuren', name: 'Yuren', initiative: 16, turnOrder: 3, side: 'player' },
+			{ ...battle.combatants[1], id: 'eco-2', name: 'Eco Enraizado', initiative: 14, turnOrder: 4, side: 'enemy' },
+			{ ...battle.combatants[2], id: 'eco-3', name: 'Eco Enraizado', initiative: 14, turnOrder: 5, side: 'enemy' },
+			{ ...battle.combatants[0], id: 'wen', name: 'Wen Torger', initiative: 8, turnOrder: 6, side: 'ally' },
+		];
+		component.battle.set({ ...battle, combatants, activeTurnIndex: 0, pendingCombatants: [] });
+		fixture.detectChanges();
+		const expectedIds = combatants.map((combatant) => combatant.id);
+
+		for (let turn = 0; turn < 7; turn++) {
+			expect(combatOrderIds()).toEqual(expectedIds);
+			component.nextTurn();
+			fixture.detectChanges();
+		}
+
+		expect(component.battle()?.round).toBe(2);
+		expect(combatOrderIds()).toEqual(expectedIds);
+		expect(currentCombatOrderRow()?.getAttribute('data-combatant-id')).toBe('guillian');
+	});
+
+	it('shows side accents and preserves resolved initiative ties by turn order', () => {
+		const battle = component.battle()!;
+		const combatants: BattleCombatant[] = [
+			{ ...battle.combatants[0], id: 'player', name: 'Player', initiative: 16, turnOrder: 0, side: 'player' },
+			{ ...battle.combatants[1], id: 'enemy-first', name: 'Enemy First', initiative: 14, turnOrder: 1, side: 'enemy' },
+			{ ...battle.combatants[2], id: 'ally', name: 'Ally', initiative: 14, turnOrder: 2, side: 'ally' },
+			{ ...battle.combatants[0], id: 'neutral', name: 'Neutral', initiative: 8, turnOrder: 3, side: 'neutral' },
+		];
+		component.battle.set({ ...battle, combatants, activeTurnIndex: 0, pendingCombatants: [] });
+		fixture.detectChanges();
+
+		expect(combatOrderIds()).toEqual(['player', 'enemy-first', 'ally', 'neutral']);
+		expect(
+			Array.from<Element>(
+				fixture.nativeElement.querySelectorAll('[data-testid="combat-order-side"]'),
+			).map((element) => element.getAttribute('data-side')),
+		).toEqual(['player', 'enemy', 'ally', 'neutral']);
+	});
+
+	it('keeps defeated combatants in place and skips them while advancing turns', () => {
+		const battle = component.battle()!;
+		component.battle.set({
+			...battle,
+			combatants: battle.combatants.map((combatant) =>
+				combatant.id === 'c2' ? { ...combatant, defeated: true } : combatant,
+			),
+		});
+		fixture.detectChanges();
+		const initialOrder = combatOrderIds();
+
+		component.nextTurn();
+		fixture.detectChanges();
+
+		expect(combatOrderIds()).toEqual(initialOrder);
+		expect(currentCombatOrderRow()?.getAttribute('data-combatant-id')).toBe('c3');
+		expect(combatOrderRow('c2')?.textContent).toContain('Derrotado');
+	});
+
+	it('restores the combat-order highlight with turn undo', () => {
+		component.nextTurn();
+		fixture.detectChanges();
+		expect(currentCombatOrderRow()?.getAttribute('data-combatant-id')).toBe('c2');
+
+		component.undoTurn();
+		fixture.detectChanges();
+		expect(currentCombatOrderRow()?.getAttribute('data-combatant-id')).toBe('c1');
+	});
+
+	it('adds pending combatants to combat order only when they join the initiative', () => {
+		const battle = component.battle()!;
+		const pending: BattleCombatant = {
+			...battle.combatants[1],
+			id: 'reinforcement',
+			name: 'Reinforcement',
+			initiative: 11,
+			turnOrder: 0,
+			pendingAdd: true,
+			joinsAtRound: 2,
+		};
+		component.battle.set({ ...battle, pendingCombatants: [pending] });
+		fixture.detectChanges();
+		expect(combatOrderIds()).not.toContain('reinforcement');
+
+		component.nextTurn();
+		component.nextTurn();
+		component.nextTurn();
+		fixture.detectChanges();
+
+		expect(combatOrderIds()).toEqual(['c1', 'c2', 'reinforcement', 'c3']);
 	});
 
 	it('opens the current combatant panel and collapses the cockpit before navigating to its sheet', () => {
@@ -691,16 +789,30 @@ describe('BattleTrackerPage', () => {
 		]);
 	});
 
-	it('shows upcoming turns and the next environment event in the cockpit', () => {
-		expect(component.upcomingTurns().map((event) => event.combatantId)).toEqual(['c2', 'c3', 'c1']);
+	it('keeps the next environment event in the cockpit without the upcoming-turn queue', () => {
 		expect(component.nextEnvironmentEvent()?.label).toContain('Ritual Pulse');
 
 		const cockpitText = fixture.nativeElement.querySelector('[data-testid="current-turn-cockpit"]')
 			?.textContent as string;
-		expect(cockpitText).toContain('Dodman');
-		expect(cockpitText).toContain('Rosa');
+		expect(cockpitText).not.toContain('A seguir');
 		expect(cockpitText).toContain('Ritual Pulse');
 	});
+
+	function combatOrderIds(): string[] {
+		return Array.from<Element>(
+			fixture.nativeElement.querySelectorAll('[data-testid="combat-order-row"]'),
+		).map((row) => row.getAttribute('data-combatant-id')!);
+	}
+
+	function combatOrderRow(id: string): HTMLElement | null {
+		return fixture.nativeElement.querySelector(
+			`[data-testid="combat-order-row"][data-combatant-id="${id}"]`,
+		);
+	}
+
+	function currentCombatOrderRow(): HTMLElement | null {
+		return fixture.nativeElement.querySelector('[data-testid="combat-order-row"][aria-current="true"]');
+	}
 
 	it('shows and resolves a pending physical dice recharge once on the owner next turn', () => {
 		expect(component.pendingDiceRechargeAbilities()).toEqual([]);
