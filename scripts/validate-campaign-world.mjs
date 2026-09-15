@@ -20,6 +20,8 @@ const pointOfInterestTypes = new Set([
 	'workshop',
 ]);
 const scopeTypes = new Set(['global', 'empire', 'state', 'settlement']);
+const seasonIds = new Set(['spring', 'summer', 'autumn', 'winter']);
+const deityIds = new Set(['luuren', 'atronos', 'dreyc', 'ruuz', 'vozc', 'luna', 'pulacc', 'geraldo', 'achos']);
 
 const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
 const isRecord = (value) => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -45,6 +47,55 @@ const uniqueIds = (items, type) => {
 	}
 	return ids;
 };
+const integerInRange = (value, min, max) =>
+	typeof value === 'number' && Number.isInteger(value) && value >= min && (max === undefined || value <= max);
+const validateCalendar = (calendar) => {
+	assert(isRecord(calendar), 'Calendário da campanha inválido.');
+	assert(integerInRange(calendar.daysPerSeason, 1), 'Calendário possui duração de estação inválida.');
+	assert(
+		Array.isArray(calendar.seasons) && calendar.seasons.length === seasonIds.size,
+		'Calendário possui estações inválidas.',
+	);
+	const configuredSeasons = new Set();
+	calendar.seasons.forEach((season) => {
+		assert(
+			isRecord(season) &&
+			seasonIds.has(season.id) &&
+			hasText(season.label) &&
+			hasText(season.color) &&
+			!configuredSeasons.has(season.id),
+			'Calendário possui estação inválida.',
+		);
+		configuredSeasons.add(season.id);
+	});
+	assert(configuredSeasons.size === seasonIds.size, 'Calendário possui estações incompletas.');
+	assert(isRecord(calendar.epochDate), 'Calendário possui data-base inválida.');
+	assert(
+		integerInRange(calendar.epochDate.year, 0) &&
+		seasonIds.has(calendar.epochDate.season) &&
+		integerInRange(calendar.epochDate.day, 1, calendar.daysPerSeason) &&
+		integerInRange(calendar.epochDate.hour, 0, 23) &&
+		integerInRange(calendar.epochDate.minute, 0, 59),
+		'Calendário possui data-base inválida.',
+	);
+	assert(Array.isArray(calendar.events), 'Calendário possui eventos inválidos.');
+	const eventIds = new Set();
+	calendar.events.forEach((event) => {
+		assert(
+			isRecord(event) &&
+			hasText(event.id) &&
+			!eventIds.has(event.id) &&
+			seasonIds.has(event.season) &&
+			integerInRange(event.day, 1, calendar.daysPerSeason) &&
+			hasText(event.title) &&
+			hasText(event.description) &&
+			(event.deity === undefined || deityIds.has(event.deity)) &&
+			(event.tags === undefined || (Array.isArray(event.tags) && event.tags.every((tag) => typeof tag === 'string'))),
+			'Calendário possui evento inválido.',
+		);
+		eventIds.add(event.id);
+	});
+};
 
 try {
 	const raw = JSON.parse(
@@ -52,11 +103,13 @@ try {
 	);
 	assert(isRecord(raw) && raw.schemaVersion === 1, 'Versão do catálogo da campanha incompatível.');
 	assert(
+		isRecord(raw.calendar) &&
 		['empires', 'states', 'settlements', 'organizations', 'pointsOfInterest'].every((key) =>
 			Array.isArray(raw[key]),
 		),
 		'Catálogo da campanha possui coleções obrigatórias inválidas.',
 	);
+	validateCalendar(raw.calendar);
 	raw.empires.forEach((item) => validateBase(item, 'Império'));
 	raw.states.forEach((item) => {
 		validateBase(item, 'Estado');

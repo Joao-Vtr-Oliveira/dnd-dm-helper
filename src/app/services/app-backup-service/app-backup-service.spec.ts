@@ -35,6 +35,17 @@ describe('AppBackupService', () => {
 		http = TestBed.inject(HttpTestingController);
 		http.expectOne('/rpg_files/campaign-world.json').flush({
 			schemaVersion: 1,
+			calendar: {
+				daysPerSeason: 30,
+				seasons: [
+					{ id: 'spring', label: 'Primavera', color: '#9ae6b4' },
+					{ id: 'summer', label: 'Verão', color: '#f6e05e' },
+					{ id: 'autumn', label: 'Outono', color: '#f6ad55' },
+					{ id: 'winter', label: 'Inverno', color: '#90cdf4' },
+				],
+				epochDate: { year: 1000, season: 'spring', day: 1, hour: 5, minute: 0 },
+				events: [],
+			},
 			empires: [{ id: 'mornk', name: 'Mornk', aliases: [], sourcePath: 'Mornk.md' }],
 			states: [
 				{
@@ -157,7 +168,7 @@ describe('AppBackupService', () => {
 		expect(validation.summary).toEqual(jasmine.objectContaining({
 			encounters: 7,
 			battleEncounters: 5,
-			homebrewSheets: 18,
+			homebrewSheets: 19,
 			hasCampaignLocation: true,
 			campaignLocationLabel: 'Localidade: Nagawoods',
 		}));

@@ -12,6 +12,7 @@ import {
 	getMoonInfo,
 	getWeekday,
 } from '../../utils/calendar-utils/calendar-util';
+import { DAYS_PER_SEASON, SEASONS } from '../../utils/calendar-utils/calendar-constants';
 
 const STORAGE_KEY = APP_STORAGE_KEYS.worldDate;
 
@@ -46,18 +47,14 @@ export class WorldClockService {
 			return normalized;
 		};
 
-		const season =
-			candidate.season === 'spring' ||
-			candidate.season === 'summer' ||
-			candidate.season === 'autumn' ||
-			candidate.season === 'winter'
-				? candidate.season
-				: fallback.season;
+		const season = SEASONS.some((item) => item.id === candidate.season)
+			? (candidate.season as Season)
+			: fallback.season;
 
 		return {
 			year: integerInRange(candidate.year, fallback.year, EPOCH_DATE.year),
 			season,
-			day: integerInRange(candidate.day, fallback.day, 1, 30),
+			day: integerInRange(candidate.day, fallback.day, 1, DAYS_PER_SEASON),
 			hour: integerInRange(candidate.hour, fallback.hour, 0, 23),
 			minute: integerInRange(candidate.minute, fallback.minute, 0, 59),
 		};

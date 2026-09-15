@@ -97,7 +97,7 @@
 					</div>
 				</div>
 				<button type="button" class="app-button app-button-ghost" (click)="requestReset('time')">
-					<svg lucideRotateCcw [size]="17" aria-hidden="true"></svg>05:00
+					<svg lucideRotateCcw [size]="17" aria-hidden="true"></svg>{{ defaultTimeLabel }}
 				</button>
 			</div>
 		</div>
@@ -113,16 +113,11 @@
 				><span>Ano</span><input type="number" [(ngModel)]="jumpYearInput" /></label
 			><app-select
 				label="Estação"
-				[options]="[
-					{ value: 'spring', label: 'Primavera' },
-					{ value: 'summer', label: 'Verão' },
-					{ value: 'autumn', label: 'Outono' },
-					{ value: 'winter', label: 'Inverno' },
-				]"
+				[options]="seasonOptions"
 				[value]="jumpSeasonInput"
 				(valueChange)="setSeason($any($event))"
 			/><label class="calendar-field"
-				><span>Dia</span><input type="number" min="1" max="30" [(ngModel)]="jumpDayInput" /></label
+				><span>Dia</span><input type="number" min="1" [max]="daysPerSeason" [(ngModel)]="jumpDayInput" /></label
 			><button type="button" class="app-button app-button-primary self-end" (click)="goToDate()">
 				Ir para data
 			</button>
@@ -294,9 +289,9 @@
 			</div>
 			<p class="mt-3 text-sm leading-6 text-app-muted">
 				@if (kind === 'date') {
-					A campanha voltará para o dia 1 da Primavera do ano 1000, às 05:00.
+					A campanha voltará para {{ defaultDateLabel }}, às {{ defaultTimeLabel }}.
 				} @else {
-					A hora voltará para 05:00, mantendo a data atual.
+					A hora voltará para {{ defaultTimeLabel }}, mantendo a data atual.
 				}
 				Esta alteração é salva imediatamente.
 			</p>

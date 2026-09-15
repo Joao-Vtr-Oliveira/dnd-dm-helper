@@ -7,10 +7,13 @@ import {
 	WEEKDAY_LABELS,
 	WorldDate,
 } from '../../models/calendar-model';
-import { CALENDAR_EVENTS } from './calendar-constants';
+import {
+	CALENDAR_EVENTS,
+	DAYS_PER_SEASON,
+	EPOCH_DATE,
+	SEASON_ORDER,
+} from './calendar-constants';
 
-const DAYS_PER_SEASON = 30;
-const SEASON_ORDER: Season[] = ['spring', 'summer', 'autumn', 'winter'];
 const SEASONS_PER_YEAR = SEASON_ORDER.length;
 const DAYS_PER_YEAR = DAYS_PER_SEASON * SEASONS_PER_YEAR;
 
@@ -18,14 +21,7 @@ const HOURS_PER_DAY = 24;
 const MINUTES_PER_HOUR = 60;
 const MINUTES_PER_DAY = HOURS_PER_DAY * MINUTES_PER_HOUR;
 
-const EPOCH_YEAR = 1000;
-export const EPOCH_DATE: WorldDate = {
-	year: EPOCH_YEAR,
-	season: 'spring',
-	day: 1,
-	hour: 5,
-	minute: 0,
-};
+export { EPOCH_DATE } from './calendar-constants';
 
 function seasonIndex(season: Season): number {
 	return SEASON_ORDER.indexOf(season);
@@ -38,19 +34,23 @@ function clampMinute(min: number): number {
 	return x;
 }
 
+function absoluteDayIndex(d: WorldDate): number {
+	return d.year * DAYS_PER_YEAR + seasonIndex(d.season) * DAYS_PER_SEASON + (d.day - 1);
+}
+
+const EPOCH_DAY_INDEX = absoluteDayIndex(EPOCH_DATE);
+
 export function worldDateToDayIndex(d: WorldDate): number {
-	const yearOffset = d.year - EPOCH_YEAR;
-	const dayOfYear = seasonIndex(d.season) * DAYS_PER_SEASON + (d.day - 1);
-	return yearOffset * DAYS_PER_YEAR + dayOfYear;
+	return absoluteDayIndex(d) - EPOCH_DAY_INDEX;
 }
 
 export function dayIndexToWorldDate(idx: number, hour = 6, minute = 0): WorldDate {
 	if (idx < 0) idx = 0;
 
-	const yearOffset = Math.floor(idx / DAYS_PER_YEAR);
-	const year = EPOCH_YEAR + yearOffset;
+	const absoluteIndex = EPOCH_DAY_INDEX + idx;
+	const year = Math.floor(absoluteIndex / DAYS_PER_YEAR);
 
-	const dayOfYear = idx % DAYS_PER_YEAR;
+	const dayOfYear = absoluteIndex % DAYS_PER_YEAR;
 	const sIdx = Math.floor(dayOfYear / DAYS_PER_SEASON);
 	const dayInSeason = (dayOfYear % DAYS_PER_SEASON) + 1;
 
@@ -113,11 +113,13 @@ export function getEventsForDate(d: WorldDate): CalendarEvent[] {
 
 export function getMoonPhaseForDayIndex(dayIndex: number): MoonPhase {
 	const dayInCycle = (dayIndex % DAYS_PER_SEASON) + 1;
+	const waxingEnd = Math.max(2, Math.floor((DAYS_PER_SEASON * 7) / 30));
+	const fullEnd = Math.max(waxingEnd + 1, Math.floor((DAYS_PER_SEASON * 17) / 30));
 
-	if (dayInCycle === 1 || dayInCycle === 30) return 'new';
-	if (dayInCycle >= 2 && dayInCycle <= 7) return 'waxing';
-	if (dayInCycle >= 8 && dayInCycle <= 17) return 'full';
-	if (dayInCycle >= 18 && dayInCycle <= 29) return 'waning';
+	if (dayInCycle === 1 || dayInCycle === DAYS_PER_SEASON) return 'new';
+	if (dayInCycle >= 2 && dayInCycle <= waxingEnd) return 'waxing';
+	if (dayInCycle <= fullEnd) return 'full';
+	if (dayInCycle < DAYS_PER_SEASON) return 'waning';
 
 	return 'new';
 }

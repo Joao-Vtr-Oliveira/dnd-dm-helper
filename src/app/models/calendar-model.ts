@@ -1,11 +1,24 @@
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 
+export interface CalendarSeason {
+	id: Season;
+	label: string;
+	color: string;
+}
+
 export interface WorldDate {
 	year: number;
 	season: Season;
 	day: number;
 	hour: number;
 	minute: number;
+}
+
+export interface CampaignCalendar {
+	daysPerSeason: number;
+	seasons: CalendarSeason[];
+	epochDate: WorldDate;
+	events: CalendarEvent[];
 }
 
 export type DeityId =

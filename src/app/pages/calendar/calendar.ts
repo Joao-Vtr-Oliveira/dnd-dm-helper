@@ -13,7 +13,11 @@ import {
 } from '../../utils/calendar-utils/calendar-util';
 
 import type { MoonPhase, Season, WorldDate } from '../../models/calendar-model';
-import { SEASONS } from '../../utils/calendar-utils/calendar-constants';
+import {
+	DAYS_PER_SEASON,
+	SEASON_ORDER,
+	SEASONS,
+} from '../../utils/calendar-utils/calendar-constants';
 import { FormsModule } from '@angular/forms';
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { WorldClockService } from '../../services/WorldClockService/world-clock-service';
@@ -30,9 +34,8 @@ import {
 
 type WeekRow = (CalendarDayCell | null)[];
 
-const SEASON_ORDER: Season[] = ['spring', 'summer', 'autumn', 'winter'];
-const DEFAULT_HOUR = 5;
-const DEFAULT_MINUTE = 0;
+const DEFAULT_HOUR = EPOCH_DATE.hour;
+const DEFAULT_MINUTE = EPOCH_DATE.minute;
 
 @Component({
 	selector: 'app-calendar',
@@ -63,6 +66,10 @@ export class Calendar {
 	jumpDayInput = 1;
 
 	weekdayHeaders = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+	seasonOptions = SEASONS.map((season) => ({ value: season.id, label: season.label }));
+	daysPerSeason = DAYS_PER_SEASON;
+	defaultTimeLabel = `${String(DEFAULT_HOUR).padStart(2, '0')}:${String(DEFAULT_MINUTE).padStart(2, '0')}`;
+	defaultDateLabel = `${EPOCH_DATE.day} de ${SEASONS.find((season) => season.id === EPOCH_DATE.season)?.label ?? EPOCH_DATE.season} do ano ${EPOCH_DATE.year}`;
 
 	weeks = computed<WeekRow[]>(() => {
 		const d = this.current();
@@ -233,7 +240,7 @@ export class Calendar {
 			}
 
 			const season = SEASON_ORDER[idx];
-			const day = Math.min(d.day, 30);
+		const day = Math.min(d.day, DAYS_PER_SEASON);
 
 			return { ...d, year, season, day };
 		});
@@ -286,7 +293,7 @@ export class Calendar {
 		const year = this.jumpYearInput || base.year;
 		let day = Math.floor(this.jumpDayInput || 1);
 		if (day < 1) day = 1;
-		if (day > 30) day = 30;
+		if (day > DAYS_PER_SEASON) day = DAYS_PER_SEASON;
 		const season = this.jumpSeasonInput || base.season;
 
 		const next: WorldDate = { ...base, year, season, day };

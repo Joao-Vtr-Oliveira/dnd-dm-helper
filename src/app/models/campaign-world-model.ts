@@ -1,3 +1,5 @@
+import type { CampaignCalendar, DeityId, Season } from './calendar-model';
+
 export type CampaignSettlementType = 'village' | 'city' | 'capital' | 'other';
 export type CampaignOrganizationType = 'guild' | 'group' | 'cult' | 'family';
 export type CampaignPointOfInterestType =
@@ -56,6 +58,7 @@ export interface CampaignPointOfInterest extends CampaignEmpire {
 
 export interface CampaignWorld {
 	schemaVersion: 1;
+	calendar: CampaignCalendar;
 	empires: CampaignEmpire[];
 	states: CampaignState[];
 	settlements: CampaignSettlement[];
@@ -164,6 +167,7 @@ const WORLD_SCOPE_TYPES: CampaignWorldScopeType[] = ['global', 'empire', 'state'
 
 interface UnknownCampaignRecord {
 	schemaVersion?: unknown;
+	calendar?: unknown;
 	empires?: unknown;
 	states?: unknown;
 	settlements?: unknown;
@@ -186,6 +190,20 @@ interface UnknownCampaignRecord {
 	scopeType?: unknown;
 	scopeId?: unknown;
 	presenceType?: unknown;
+	daysPerSeason?: unknown;
+	seasons?: unknown;
+	epochDate?: unknown;
+	events?: unknown;
+	color?: unknown;
+	label?: unknown;
+	year?: unknown;
+	day?: unknown;
+	hour?: unknown;
+	minute?: unknown;
+	title?: unknown;
+	deity?: unknown;
+	description?: unknown;
+	tags?: unknown;
 	[key: string]: unknown;
 }
 
@@ -219,12 +237,93 @@ function validateUniqueIds(items: Array<{ id: string }>, type: string): string |
 	return null;
 }
 
+const SEASON_IDS: Season[] = ['spring', 'summer', 'autumn', 'winter'];
+const DEITY_IDS: DeityId[] = [
+	'luuren',
+	'atronos',
+	'dreyc',
+	'ruuz',
+	'vozc',
+	'luna',
+	'pulacc',
+	'geraldo',
+	'achos',
+];
+
+function isIntegerInRange(value: unknown, min: number, max?: number): value is number {
+	return (
+		typeof value === 'number' &&
+		Number.isInteger(value) &&
+		value >= min &&
+		(max === undefined || value <= max)
+	);
+}
+
+function validateCalendar(raw: unknown): string | null {
+	if (!isRecord(raw)) return 'Calendário da campanha inválido.';
+	if (!isIntegerInRange(raw.daysPerSeason, 1)) {
+		return 'Calendário possui duração de estação inválida.';
+	}
+	if (!Array.isArray(raw.seasons) || raw.seasons.length !== SEASON_IDS.length) {
+		return 'Calendário possui estações inválidas.';
+	}
+
+	const seasonIds = new Set<Season>();
+	for (const season of raw.seasons) {
+		if (
+			!isRecord(season) ||
+			!SEASON_IDS.includes(season.id as Season) ||
+			!hasText(season.label) ||
+			!hasText(season.color) ||
+			seasonIds.has(season.id as Season)
+		) {
+			return 'Calendário possui estação inválida.';
+		}
+		seasonIds.add(season.id as Season);
+	}
+	if (seasonIds.size !== SEASON_IDS.length) return 'Calendário possui estações incompletas.';
+
+	if (!isRecord(raw.epochDate)) return 'Calendário possui data-base inválida.';
+	const epochDate = raw.epochDate;
+	if (
+		!isIntegerInRange(epochDate.year, 0) ||
+		!SEASON_IDS.includes(epochDate['season'] as Season) ||
+		!isIntegerInRange(epochDate.day, 1, raw.daysPerSeason as number) ||
+		!isIntegerInRange(epochDate.hour, 0, 23) ||
+		!isIntegerInRange(epochDate.minute, 0, 59)
+	) {
+		return 'Calendário possui data-base inválida.';
+	}
+
+	if (!Array.isArray(raw.events)) return 'Calendário possui eventos inválidos.';
+	const eventIds = new Set<string>();
+	for (const event of raw.events) {
+		if (
+			!isRecord(event) ||
+			!hasText(event.id) ||
+			eventIds.has(event.id) ||
+			!SEASON_IDS.includes(event['season'] as Season) ||
+			!isIntegerInRange(event.day, 1, raw.daysPerSeason as number) ||
+			!hasText(event.title) ||
+			!hasText(event.description) ||
+			(event.deity !== undefined && !DEITY_IDS.includes(event.deity as DeityId)) ||
+			(event.tags !== undefined && !hasStringArray(event.tags))
+		) {
+			return 'Calendário possui evento inválido.';
+		}
+		eventIds.add(event.id);
+	}
+
+	return null;
+}
+
 export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResult {
 	if (!isRecord(raw)) return { valid: false, error: 'Catálogo da campanha inválido.' };
 	if (raw.schemaVersion !== 1) {
 		return { valid: false, error: 'Versão do catálogo da campanha incompatível.' };
 	}
 	if (
+		!isRecord(raw.calendar) ||
 		!Array.isArray(raw.empires) ||
 		!Array.isArray(raw.states) ||
 		!Array.isArray(raw.settlements) ||
@@ -233,6 +332,8 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 	) {
 		return { valid: false, error: 'Catálogo da campanha possui coleções obrigatórias inválidas.' };
 	}
+	const calendarError = validateCalendar(raw.calendar);
+	if (calendarError) return { valid: false, error: calendarError };
 
 	for (const empire of raw.empires) {
 		const error = validateBaseEntity(empire, 'Império');
