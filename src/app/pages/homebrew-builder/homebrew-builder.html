@@ -44,7 +44,7 @@
 					{ value: 'other', label: 'Outro' },
 				]"
 				[value]="category()"
-				(valueChange)="category.set($any($event))"
+				(valueChange)="setCategory($any($event))"
 			/>
 			<label class="text-sm text-app-muted"
 				><span class="mb-1 block">CA</span
@@ -219,6 +219,27 @@
 					/></label>
 				}
 			</div>
+			@if (supportsClasses()) {
+				<section class="mt-3 border-t border-app-divider pt-3">
+					<div class="text-sm text-app-muted">Classes formais</div>
+					<p class="mt-1 text-xs text-app-subtle">
+						Use somente quando a classe mecânica do NPC ou PC estiver estabelecida.
+					</p>
+					<div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+						@for (option of characterClassOptions; track option.id) {
+							<label class="flex items-center gap-2 text-sm text-app-muted">
+								<input
+									type="checkbox"
+									[name]="'class-' + option.id"
+									[checked]="classes().includes(option.id)"
+									(change)="setClass(option.id, $any($event.target).checked)"
+								/>
+								{{ option.label }}
+							</label>
+						}
+					</div>
+				</section>
+			}
 			<div class="mt-3 border-t border-app-divider pt-3">
 				<div class="flex flex-wrap items-center justify-between gap-2">
 					<span class="text-sm text-app-muted">Tags</span>

@@ -86,10 +86,11 @@ describe('filterHomebrewSheets', () => {
 		]);
 	});
 
-	it('filters fixed creature types and exact envelope class tags', () => {
+	it('filters fixed creature types using formal classes only', () => {
 		const warlock = sheet({
 			title: 'Arcane NPC',
 			tags: ['Warlock'],
+			classes: ['warlock'],
 			data: { name: 'Arcane NPC', creatureType: 'humanoid (elf)' },
 		});
 		const namedWarlock = sheet({
@@ -105,6 +106,8 @@ describe('filterHomebrewSheets', () => {
 		expect(filterHomebrewSheets([warlock, namedWarlock, customType], filters({ characterClass: 'warlock' }), world)).toEqual([
 			warlock,
 		]);
+		const tagOnly = sheet({ title: 'Tag only', tags: ['Warlock'] });
+		expect(filterHomebrewSheets([tagOnly], filters({ characterClass: 'warlock' }), world)).toEqual([]);
 	});
 
 	it('searches legacy data tags and groups without using them as formal relationships', () => {
@@ -173,8 +176,9 @@ describe('filterHomebrewSheets', () => {
 	});
 
 	it('filters organizations by direct ID and composes every active facet', () => {
-		const matching = sheet({
+	const matching = sheet({
 			tags: ['Wizard'],
+			classes: ['wizard'],
 			organizationRefs: [{ organizationId: 'arcane-order', relation: 'member' }],
 			locationRefs: [{ scopeType: 'state', scopeId: 'state-frost', relation: 'operation' }],
 			data: { name: 'Wizard', creatureType: 'humanoid' },

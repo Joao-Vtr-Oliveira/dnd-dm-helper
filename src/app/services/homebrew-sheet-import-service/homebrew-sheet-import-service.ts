@@ -19,6 +19,11 @@ import {
 	type SavedSheetInterface,
 } from '../local-storage-service/local-storage-service';
 import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
+import {
+	DND_5E_CHARACTER_CLASSES,
+	isDnd5eCharacterClass,
+	type Dnd5eCharacterClass,
+} from '../../models/dnd-5e-reference-model';
 
 export type HomebrewSheetConflictResolution = 'replace' | 'keep-existing' | 'duplicate';
 
@@ -30,6 +35,7 @@ export interface HomebrewSheetImportCandidate {
 	source: string;
 	externalId: string;
 	data: CreatureSheet;
+	classes?: Dnd5eCharacterClass[];
 	archived?: boolean;
 	generic?: boolean;
 	locationRefs?: ContentLocationRelation[];
@@ -91,6 +97,7 @@ const SHEET_FIELDS = new Set([
 	'externalId',
 	'archived',
 	'generic',
+	'classes',
 	'locationRefs',
 	'organizationRefs',
 	'data',
@@ -112,6 +119,7 @@ interface RawSheet extends Record<string, unknown> {
 	category?: unknown;
 	tags?: unknown;
 	externalId?: unknown;
+	classes?: unknown;
 	archived?: unknown;
 	generic?: unknown;
 	locationRefs?: unknown;
@@ -290,6 +298,9 @@ export class HomebrewSheetImportService {
 		const candidateData =
 			data && typeof data === 'object' && !Array.isArray(data) ? (data as RawCreature) : null;
 		const name = candidateData ? this.requiredText(candidateData.name, 'data.name', errors) : '';
+		if (candidateData && 'classes' in candidateData) {
+			errors.push('classes deve ficar no envelope da ficha, não em data.');
+		}
 		this.validateCreature(candidateData, errors);
 
 		const externalId = this.externalId(
@@ -302,6 +313,7 @@ export class HomebrewSheetImportService {
 			index,
 		);
 		const tags = this.tags(sheet.tags, errors);
+		const classes = this.classes(sheet.classes, category, errors);
 		const archived = this.archived(sheet.archived, errors);
 		const generic = this.generic(sheet.generic, errors);
 		const locationRefs = this.locationRefs(sheet.locationRefs, errors);
@@ -341,10 +353,11 @@ export class HomebrewSheetImportService {
 				title,
 				category,
 				tags,
-				source,
-				externalId,
-				data: normalizedData,
-				...(archived === undefined ? {} : { archived }),
+					source,
+					externalId,
+					data: normalizedData,
+					...(classes === undefined ? {} : { classes }),
+					...(archived === undefined ? {} : { archived }),
 				...(generic === undefined ? {} : { generic }),
 				...(locationRefs === undefined ? {} : { locationRefs }),
 				...(organizationRefs === undefined ? {} : { organizationRefs }),
@@ -579,6 +592,9 @@ export class HomebrewSheetImportService {
 			...(candidate.generic === undefined && existing.generic !== undefined
 				? { generic: existing.generic }
 				: {}),
+			...(candidate.classes === undefined && existing.classes?.length
+				? { classes: existing.classes }
+				: {}),
 			...(candidate.locationRefs === undefined && existing.locationRefs?.length
 				? { locationRefs: existing.locationRefs }
 				: {}),
@@ -606,6 +622,7 @@ export class HomebrewSheetImportService {
 			'source',
 			'archived',
 			'generic',
+			'classes',
 			'locationRefs',
 			'organizationRefs',
 		]);
@@ -650,6 +667,25 @@ export class HomebrewSheetImportService {
 			return null;
 		}
 		return value as HomebrewCategory;
+	}
+
+	private classes(
+		value: unknown,
+		category: HomebrewCategory | null,
+		errors: string[],
+	): Dnd5eCharacterClass[] | undefined {
+		if (value === undefined) return undefined;
+		if (category !== 'npc' && category !== 'pc') {
+			errors.push('classes só pode existir em fichas NPC ou PC.');
+			return undefined;
+		}
+		if (!Array.isArray(value) || value.some((item) => !isDnd5eCharacterClass(item))) {
+			errors.push(
+				`classes deve conter somente: ${DND_5E_CHARACTER_CLASSES.map((item) => item.id).join(', ')}.`,
+			);
+			return undefined;
+		}
+		return [...new Set(value)];
 	}
 
 	private tags(value: unknown, errors: string[]): string[] {

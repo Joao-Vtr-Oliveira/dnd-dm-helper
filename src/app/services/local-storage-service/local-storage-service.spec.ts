@@ -136,4 +136,70 @@ describe('LocalStorageService', () => {
 		expect('locationRefs' in encounter.participants[0].sheet).toBeFalse();
 		expect('organizationRefs' in encounter.participants[0].sheet).toBeFalse();
 	});
+
+	it('preserves formal classes through creation, editing, duplication, and normalization', () => {
+		const sheet = service.createSheet({
+			title: 'Ranger NPC',
+			category: 'npc',
+			classes: ['ranger'],
+			tags: ['Ranger'],
+			source: 'Mesa',
+			data: {
+				name: 'Ranger NPC',
+				armorClass: 14,
+				maxHp: 20,
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+				features: [],
+			},
+		});
+		service.updateSheet(sheet.id, { classes: ['rogue'] });
+		const duplicate = service.duplicateSheet(sheet.id)!;
+
+		expect(service.getSheet(sheet.id)?.classes).toEqual(['rogue']);
+		expect(duplicate.classes).toEqual(['rogue']);
+		expect('classes' in duplicate.data).toBeFalse();
+
+		const pc = service.createSheet({
+			title: 'Wizard PC',
+			category: 'pc',
+			classes: ['wizard'],
+			source: 'Mesa',
+			data: {
+				name: 'Wizard PC',
+				armorClass: 12,
+				maxHp: 16,
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+				features: [],
+			},
+		});
+		expect(service.duplicateSheet(pc.id)?.classes).toEqual(['wizard']);
+	});
+
+	it('rejects classes on monsters and rejects classes outside the 13-class catalog', () => {
+		const params = {
+			title: 'Invalid class sheet',
+			category: 'monster' as const,
+			data: {
+				name: 'Invalid class sheet',
+				armorClass: 10,
+				maxHp: 1,
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+				features: [],
+			},
+		};
+		expect(() => service.createSheet({ ...params, classes: ['ranger'] })).toThrowError(/NPC ou PC/);
+		expect(() =>
+			service.createSheet({
+				...params,
+				category: 'npc',
+				classes: ['artificer', 'invalid'] as never,
+			}),
+		).toThrowError(/artificer.*wizard/);
+	});
 });

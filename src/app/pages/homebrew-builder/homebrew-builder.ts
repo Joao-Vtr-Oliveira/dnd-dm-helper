@@ -22,7 +22,11 @@ import type {
 	ContentOrganizationRelationKind,
 } from '../../models/content-context-model';
 import { isCampaignOrganizationType, type CampaignLocationScope } from '../../models/campaign-world-model';
-import { DND_5E_CREATURE_TYPES } from '../../models/dnd-5e-reference-model';
+import {
+	DND_5E_CHARACTER_CLASSES,
+	DND_5E_CREATURE_TYPES,
+	type Dnd5eCharacterClass,
+} from '../../models/dnd-5e-reference-model';
 import type {
 	CreatureAbilityKey,
 	CreatureAbilityRecoveryType,
@@ -106,9 +110,11 @@ function createEmptyCreature(): CreatureSheet {
 }
 
 function normalizeCreature(raw: CreatureSheet): CreatureSheet {
+	const rawWithoutClasses = structuredClone(raw) as CreatureSheet & { classes?: unknown };
+	delete rawWithoutClasses.classes;
 	return applyCreatureDerivedValues({
 		...createEmptyCreature(),
-		...structuredClone(raw),
+		...rawWithoutClasses,
 		spellSlots: Array.isArray(raw.spellSlots) ? raw.spellSlots : [],
 		spells: Array.isArray(raw.spells) ? raw.spells : [],
 		specialAbilities: Array.isArray(raw.specialAbilities) ? raw.specialAbilities : [],
@@ -156,6 +162,7 @@ export class HomebrewBuilder {
 	private lastAutoCreatureName = signal<string>('');
 
 	category = signal<HomebrewCategory>('monster');
+	classes = signal<Dnd5eCharacterClass[]>([]);
 	tagsText = signal<string>('');
 	source = signal<string>('');
 	archived = signal(false);
@@ -319,6 +326,8 @@ export class HomebrewBuilder {
 	];
 	readonly sizes = ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'];
 	readonly creatureTypes: readonly string[] = DND_5E_CREATURE_TYPES;
+	readonly characterClassOptions = DND_5E_CHARACTER_CLASSES;
+	readonly supportsClasses = computed(() => this.category() === 'npc' || this.category() === 'pc');
 	readonly alignments = [
 		'lawful good',
 		'neutral good',
@@ -427,6 +436,7 @@ export class HomebrewBuilder {
 				title: this.title(),
 				creature: this.creature(),
 				category: this.category(),
+				classes: this.classes(),
 				tagsText: this.tagsText(),
 				source: this.source(),
 				archived: this.archived(),
@@ -450,6 +460,7 @@ export class HomebrewBuilder {
 
 				// 👇 popula meta
 				this.category.set(sheet.category ?? 'monster');
+				this.classes.set(structuredClone(sheet.classes ?? []));
 				this.tagsText.set((sheet.tags ?? []).join(', '));
 				this.source.set(sheet.source ?? '');
 				this.archived.set(sheet.archived === true);
@@ -521,6 +532,7 @@ export class HomebrewBuilder {
 				title: this.title(),
 				creature: this.creature(),
 				category: this.category(),
+				classes: this.classes(),
 				tagsText: this.tagsText(),
 				source: this.source(),
 				archived: this.archived(),
@@ -551,6 +563,22 @@ export class HomebrewBuilder {
 	}
 
 	// -------- setters básicos --------
+	setCategory(category: HomebrewCategory): void {
+		this.category.set(category);
+		if (category !== 'npc' && category !== 'pc') this.classes.set([]);
+	}
+
+	setClass(value: Dnd5eCharacterClass, checked: boolean): void {
+		if (!this.supportsClasses()) return;
+		this.classes.update((classes) =>
+			checked
+				? classes.includes(value)
+					? classes
+					: [...classes, value]
+				: classes.filter((item) => item !== value),
+		);
+	}
+
 	setTitle(v: string) {
 		const currentName = this.creature().name;
 		const previousAutoName = this.lastAutoCreatureName();
@@ -1867,6 +1895,7 @@ export class HomebrewBuilder {
 				title,
 				data: structuredClone(data),
 				category,
+				classes: this.supportsClasses() && this.classes().length ? this.classes() : undefined,
 				tags: rawTags,
 				source,
 				archived: this.archived(),
@@ -1884,6 +1913,7 @@ export class HomebrewBuilder {
 				title,
 				data: structuredClone(data),
 				category,
+				classes: this.supportsClasses() && this.classes().length ? this.classes() : undefined,
 				tags: rawTags,
 				source,
 				archived: this.archived(),

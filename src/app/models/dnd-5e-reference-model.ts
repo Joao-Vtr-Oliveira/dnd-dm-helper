@@ -34,3 +34,7 @@ export const DND_5E_CHARACTER_CLASSES = [
 ] as const;
 
 export type Dnd5eCharacterClass = (typeof DND_5E_CHARACTER_CLASSES)[number]['id'];
+
+export function isDnd5eCharacterClass(value: unknown): value is Dnd5eCharacterClass {
+	return DND_5E_CHARACTER_CLASSES.some((item) => item.id === value);
+}

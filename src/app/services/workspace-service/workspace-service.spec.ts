@@ -43,6 +43,28 @@ describe('WorkspaceService', () => {
 		expect(service.workspaces()).toHaveSize(1);
 	});
 
+	it('rehydrates an empty world copied by migrateLegacyCampaign', () => {
+		const emptyRaw = JSON.stringify(createEmptyCampaignWorld());
+		localStorage.setItem(APP_STORAGE_KEYS.encounters, '[]');
+		localStorage.setItem(APP_STORAGE_KEYS.campaignWorld, emptyRaw);
+
+		const service = new WorkspaceService();
+		service.initialize();
+		const workspace = service.activeWorkspace()!;
+		const worldKey = workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.campaignWorld);
+
+		expect(JSON.parse(localStorage.getItem(worldKey)!)).toEqual(legacyCampaignWorld);
+		expect(localStorage.getItem(APP_STORAGE_KEYS.campaignWorld)).toBe(emptyRaw);
+		expect(
+			localStorage.getItem(
+				workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.safetyWorldBeforeBootstrap),
+			),
+		).toBe(emptyRaw);
+		expect(service.activeWorkspace()?.campaignWorldBootstrapVersion).toBe(
+			CAMPAIGN_WORLD_BOOTSTRAP_VERSION,
+		);
+	});
+
 	function seedExistingWorkspace(): Workspace {
 		const workspace: Workspace = {
 			id: 'existing-workspace',

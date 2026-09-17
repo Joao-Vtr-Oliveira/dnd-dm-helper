@@ -82,6 +82,7 @@ describe('HomebrewSheets', () => {
 			externalId: 'npc-zhang-huang',
 			archived: true,
 			generic: true,
+			classes: ['ranger'],
 			locationRefs: [],
 			organizationRefs: [{ organizationId: 'winterhold', relation: 'institution' }],
 			data: {
@@ -114,6 +115,7 @@ describe('HomebrewSheets', () => {
 		expect(exported.sheets[0].externalId).toBe('npc-zhang-huang');
 		expect(exported.sheets[0].archived).toBeTrue();
 		expect(exported.sheets[0].generic).toBeTrue();
+		expect(exported.sheets[0].classes).toEqual(['ranger']);
 		expect(exported.sheets[0].locationRefs).toEqual(sheet.locationRefs);
 		expect(exported.sheets[0].organizationRefs).toEqual(sheet.organizationRefs);
 	});

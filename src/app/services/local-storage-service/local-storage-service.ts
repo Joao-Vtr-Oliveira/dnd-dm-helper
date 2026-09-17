@@ -7,6 +7,11 @@ import {
 	type ContentLocationRelation,
 	type ContentOrganizationRelation,
 } from '../../models/content-context-model';
+import {
+	DND_5E_CHARACTER_CLASSES,
+	isDnd5eCharacterClass,
+	type Dnd5eCharacterClass,
+} from '../../models/dnd-5e-reference-model';
 import type { Encounter, EncounterLairAction, EncounterParticipant, EncounterTrap } from '../../models/encounter-model';
 import type { CreatureCategory, CreatureSheet } from '../../models/creature-sheet-model';
 import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
@@ -29,6 +34,7 @@ export interface SavedSheetInterface {
 	source: string;
 	archived?: boolean;
 	generic?: boolean;
+	classes?: Dnd5eCharacterClass[];
 	locationRefs?: ContentLocationRelation[];
 	organizationRefs?: ContentOrganizationRelation[];
 }
@@ -169,6 +175,7 @@ export class LocalStorageService {
 		externalId?: string;
 		archived?: boolean;
 		generic?: boolean;
+		classes?: Dnd5eCharacterClass[];
 		locationRefs?: ContentLocationRelation[];
 		organizationRefs?: ContentOrganizationRelation[];
 	}): SavedSheetInterface {
@@ -187,6 +194,7 @@ export class LocalStorageService {
 		externalId?: string;
 		archived?: boolean;
 		generic?: boolean;
+		classes?: Dnd5eCharacterClass[];
 		locationRefs?: ContentLocationRelation[];
 		organizationRefs?: ContentOrganizationRelation[];
 		extra?: Record<string, unknown>;
@@ -195,6 +203,10 @@ export class LocalStorageService {
 			throw new Error('Uma ficha genérica não pode possuir localizações físicas.');
 		}
 		const now = Date.now();
+		const category = this.normalizeHomebrewCategory(params.category);
+		const classes = this.normalizeClasses(params.classes, category);
+		const data = structuredClone(params.data) as CreatureSheet & { classes?: unknown };
+		delete data.classes;
 		return {
 			...(params.extra ?? {}),
 			id: globalThis.crypto?.randomUUID?.() ?? `sheet-${now}-${Math.random().toString(36).slice(2)}`,
@@ -202,12 +214,13 @@ export class LocalStorageService {
 			title: (params.title || '').trim() || 'Untitled Homebrew',
 			createdAt: now,
 			updatedAt: now,
-			data: structuredClone(params.data),
-			category: this.normalizeHomebrewCategory(params.category),
+			data,
+			category,
 			tags: (params.tags ?? []).map((t) => t.trim()).filter(Boolean),
 			source: (params.source || '').trim(),
 			...(params.archived ? { archived: true } : {}),
 			...(params.generic !== undefined ? { generic: params.generic } : {}),
+			...(classes ? { classes } : {}),
 			...(params.locationRefs?.length
 				? { locationRefs: normalizeContentLocationRelations(params.locationRefs) }
 				: {}),
@@ -247,6 +260,7 @@ export class LocalStorageService {
 			externalId: this.deriveDuplicateExternalId(curr.externalId),
 			...(curr.archived ? { archived: true } : {}),
 			...(curr.generic !== undefined ? { generic: curr.generic } : {}),
+			...(curr.classes ? { classes: curr.classes } : {}),
 			...(curr.locationRefs?.length ? { locationRefs: curr.locationRefs } : {}),
 			...(curr.organizationRefs?.length ? { organizationRefs: curr.organizationRefs } : {}),
 		});
@@ -273,6 +287,8 @@ export class LocalStorageService {
 		const organizationRefs = Array.isArray(sheet.organizationRefs)
 			? normalizeContentOrganizationRelations(sheet.organizationRefs)
 			: undefined;
+		const category = this.normalizeHomebrewCategory(sheet.category);
+		const classes = this.normalizeClasses(sheet.classes, category);
 		return {
 			...candidate,
 			id: typeof sheet.id === 'string' ? sheet.id : crypto.randomUUID(),
@@ -281,11 +297,12 @@ export class LocalStorageService {
 			createdAt: typeof sheet.createdAt === 'number' ? sheet.createdAt : now,
 			updatedAt: typeof sheet.updatedAt === 'number' ? sheet.updatedAt : now,
 			data: this.normalizeCreatureSheet(sheet.data),
-			category: this.normalizeHomebrewCategory(sheet.category),
+			category,
 			tags: Array.isArray(sheet.tags) ? sheet.tags.map((tag) => tag.trim()).filter(Boolean) : [],
 			source: (sheet.source || '').trim(),
 			...(sheet.archived === true ? { archived: true } : {}),
 			...(typeof sheet.generic === 'boolean' ? { generic: sheet.generic } : {}),
+			...(classes ? { classes } : {}),
 			...(locationRefs ? { locationRefs } : {}),
 			...(organizationRefs ? { organizationRefs } : {}),
 		};
@@ -311,6 +328,24 @@ export class LocalStorageService {
 		if (value === 'npc') return 'npc';
 		if (value === 'other') return 'other';
 		return 'monster';
+	}
+
+	private normalizeClasses(
+		value: unknown,
+		category: HomebrewCategory,
+	): Dnd5eCharacterClass[] | undefined {
+		if (value === undefined) return undefined;
+		if (category !== 'npc' && category !== 'pc') {
+			if (Array.isArray(value) && value.length === 0) return undefined;
+			throw new Error('classes só pode existir em fichas NPC ou PC.');
+		}
+		if (!Array.isArray(value) || value.some((item) => !isDnd5eCharacterClass(item))) {
+			throw new Error(
+				`classes deve conter somente: ${DND_5E_CHARACTER_CLASSES.map((item) => item.id).join(', ')}.`,
+			);
+		}
+		const classes = [...new Set(value)];
+		return classes.length ? classes : undefined;
 	}
 
 	private normalizeCreatureSheet(raw: Partial<CreatureSheet> | undefined): CreatureSheet {

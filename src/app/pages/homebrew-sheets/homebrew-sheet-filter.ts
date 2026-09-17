@@ -91,9 +91,7 @@ export function filterHomebrewSheets(
 		if (filters.creatureType !== 'all' && creatureTypeFor(sheet) !== filters.creatureType) return false;
 		if (
 			filters.characterClass !== 'all' &&
-			!(sheet.tags ?? []).some(
-				(tag) => normalizeHomebrewSheetFilterText(tag) === filters.characterClass,
-			)
+			!(sheet.classes ?? []).includes(filters.characterClass)
 		)
 			return false;
 		if (!matchesLocationFilters(sheet.locationRefs ?? [], filters, world))

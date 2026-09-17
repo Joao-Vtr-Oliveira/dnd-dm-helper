@@ -170,6 +170,29 @@ describe('HomebrewBuilder', () => {
 		expect(component.creature().source).toBe('XPHB');
 	});
 
+	it('edits formal classes only for NPCs and PCs and clears them for monsters', () => {
+		component.setCategory('npc');
+		component.setClass('ranger', true);
+		expect(component.classes()).toEqual(['ranger']);
+
+		component.setCategory('monster');
+		expect(component.classes()).toEqual([]);
+		component.setClass('rogue', true);
+		expect(component.classes()).toEqual([]);
+	});
+
+	it('saves classes in the envelope and never in CreatureSheet.data', () => {
+		const storage = TestBed.inject(LocalStorageService);
+		component.setCategory('npc');
+		component.setClass('ranger', true);
+		component.setTitle('Classe formal');
+		component.save();
+
+		const saved = storage.listSheets()[0];
+		expect(saved.classes).toEqual(['ranger']);
+		expect('classes' in saved.data).toBeFalse();
+	});
+
 	it('reveals the matching recovery parameter before a special ability is added', () => {
 		component.openInlineComposer('special-ability');
 		component.setAbilityDraft({ recoveryType: 'turn-cooldown' });

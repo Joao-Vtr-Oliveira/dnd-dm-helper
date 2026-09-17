@@ -27,13 +27,11 @@ import { conditionReferenceFor, type ConditionReference } from '../../models/con
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
 import { isCampaignOrganizationType } from '../../models/campaign-world-model';
-import { DND_5E_CHARACTER_CLASSES } from '../../models/dnd-5e-reference-model';
 import {
 	filterHomebrewSheets,
 	HOME_BREW_SHEET_CLASS_OPTIONS,
 	HOME_BREW_SHEET_CREATURE_TYPE_OPTIONS,
 	HOME_BREW_SHEET_STATUS_OPTIONS,
-	normalizeHomebrewSheetFilterText,
 	type FilterAll,
 	type HomebrewSheetStatusFilter,
 } from './homebrew-sheet-filter';
@@ -388,9 +386,7 @@ export class HomebrewSheets {
 		const set = new Set<string>();
 		for (const s of this.sheets()) {
 			for (const tag of [...(s.tags ?? []), ...(s.data.tags ?? []), ...(s.data.groups ?? [])]) {
-				const normalizedTag = normalizeHomebrewSheetFilterText(tag);
-				const isClass = DND_5E_CHARACTER_CLASSES.some((item) => item.id === normalizedTag);
-				if (!isClass) set.add(tag);
+				set.add(tag);
 			}
 		}
 		return ['all', ...Array.from(set).sort()] as const;
@@ -551,6 +547,7 @@ export class HomebrewSheets {
 					source: sheet.source ?? '',
 					...(sheet.archived ? { archived: true } : {}),
 					...(sheet.generic !== undefined ? { generic: sheet.generic } : {}),
+					...(sheet.classes?.length ? { classes: sheet.classes } : {}),
 					...(sheet.locationRefs?.length ? { locationRefs: sheet.locationRefs } : {}),
 					...(sheet.organizationRefs?.length ? { organizationRefs: sheet.organizationRefs } : {}),
 					data: sheet.data,

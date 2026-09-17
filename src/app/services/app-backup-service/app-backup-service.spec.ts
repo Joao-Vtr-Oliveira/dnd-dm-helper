@@ -103,6 +103,7 @@ describe('AppBackupService', () => {
 		localStorageService.createSheet({
 			title: 'Cultista',
 			category: 'npc',
+			classes: ['ranger'],
 			tags: ['culto'],
 			source: 'Mesa',
 			data: {
@@ -129,6 +130,7 @@ describe('AppBackupService', () => {
 		expect(backup.data.encounters).toHaveSize(1);
 		expect(backup.data.homebrewSheets).toHaveSize(1);
 		expect(backup.data.homebrewSheets[0].externalId).toBe('npc-cultista');
+		expect(backup.data.homebrewSheets[0].classes).toEqual(['ranger']);
 		expect(backup.data.homebrewSheets[0].generic).toBeFalse();
 		expect(backup.data.homebrewSheets[0].locationRefs).toEqual([
 			{ scopeType: 'state', scopeId: 'feng', relation: 'base' },
@@ -151,6 +153,7 @@ describe('AppBackupService', () => {
 		expect(restored.organizationRefs).toEqual([
 			{ organizationId: 'guard', relation: 'institution' },
 		]);
+		expect(restored.classes).toEqual(['ranger']);
 		expect('locationRefs' in restored.data).toBeFalse();
 		expect('organizationRefs' in restored.data).toBeFalse();
 	});
