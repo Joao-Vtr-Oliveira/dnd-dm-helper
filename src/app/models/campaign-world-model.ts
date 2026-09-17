@@ -1,7 +1,8 @@
 import type { CampaignCalendar, DeityId, Season } from './calendar-model';
 
 export type CampaignSettlementType = string;
-export type CampaignOrganizationType = string;
+export const CAMPAIGN_ORGANIZATION_TYPES = ['guild', 'group'] as const;
+export type CampaignOrganizationType = (typeof CAMPAIGN_ORGANIZATION_TYPES)[number];
 export type CampaignOrganizationScope = 'campaign' | 'regional' | 'local';
 export type CampaignPointOfInterestType = string;
 export type CampaignWorldScopeType = 'global' | 'empire' | 'state' | 'settlement';
@@ -89,10 +90,13 @@ export interface CampaignPointOfInterestSearchResult {
 	breadcrumb: string[];
 }
 
-export interface RelevantCampaignOrganization {
+export interface DirectCampaignOrganization {
 	organization: CampaignOrganization;
 	directPresences: CampaignOrganizationPresence[];
-	broaderPresences: CampaignOrganizationPresence[];
+}
+
+export function isCampaignOrganizationType(value: unknown): value is CampaignOrganizationType {
+	return typeof value === 'string' && CAMPAIGN_ORGANIZATION_TYPES.includes(value as CampaignOrganizationType);
 }
 
 export const SETTLEMENT_TYPE_LABELS: Record<string, string> = {
@@ -375,7 +379,7 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 		if (
 			error ||
 			!isRecord(organization) ||
-			!hasText(organization.organizationType) ||
+			!isCampaignOrganizationType(organization.organizationType) ||
 			!Array.isArray(organization.presence) ||
 			(organization.scope !== undefined &&
 				!ORGANIZATION_SCOPES.includes(organization.scope as CampaignOrganizationScope)) ||

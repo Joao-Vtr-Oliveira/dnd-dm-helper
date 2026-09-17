@@ -26,6 +26,7 @@ import type { ResolvedSpellReference } from '../../models/spell-reference-model'
 import { conditionReferenceFor, type ConditionReference } from '../../models/condition-reference-model';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
+import { isCampaignOrganizationType } from '../../models/campaign-world-model';
 import { DND_5E_CHARACTER_CLASSES } from '../../models/dnd-5e-reference-model';
 import {
 	filterHomebrewSheets,
@@ -462,6 +463,7 @@ export class HomebrewSheets {
 	readonly organizationOptions = computed(() => [
 		{ id: 'all', label: 'Todas as organizações' },
 		...(this.campaignWorld.world()?.organizations ?? [])
+			.filter((organization) => isCampaignOrganizationType(organization.organizationType))
 			.slice()
 			.sort((left, right) => left.name.localeCompare(right.name))
 			.map((organization) => ({

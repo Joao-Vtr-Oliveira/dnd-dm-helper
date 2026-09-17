@@ -124,6 +124,17 @@ describe('filterHomebrewSheets', () => {
 		]);
 	});
 
+	it('matches the selected tag positively across envelope tags and legacy tag fields', () => {
+		const envelopeTag = sheet({ title: 'Envelope', tags: ['Feng'] });
+		const dataTag = sheet({ title: 'Data tag', data: { tags: ['Feng'] } });
+		const group = sheet({ title: 'Group', data: { groups: ['Feng'] } });
+		const other = sheet({ title: 'Other', tags: ['Drek'] });
+
+		expect(
+			filterHomebrewSheets([envelopeTag, dataTag, group, other], filters({ tag: 'feng' }), world),
+		).toEqual([envelopeTag, dataTag, group]);
+	});
+
 	it('matches selected states and settlements without including broader locations or sibling settlements', () => {
 		const empire = sheet({
 			title: 'Empire',
@@ -153,6 +164,12 @@ describe('filterHomebrewSheets', () => {
 			settlement,
 			sibling,
 		]);
+		expect(filterHomebrewSheets(sheets, filters({ empireId: 'empire-north' }), world)).toEqual([
+			empire,
+			state,
+			settlement,
+			sibling,
+		]);
 	});
 
 	it('filters organizations by direct ID and composes every active facet', () => {
@@ -170,10 +187,14 @@ describe('filterHomebrewSheets', () => {
 			locationRefs: [{ scopeType: 'state', scopeId: 'state-frost', relation: 'operation' }],
 			data: { name: 'Archived', creatureType: 'humanoid' },
 		});
+		const organizationOnly = sheet({
+			title: 'Organization only',
+			organizationRefs: [{ organizationId: 'arcane-order', relation: 'member' }],
+		});
 
 		expect(
 			filterHomebrewSheets(
-				[matching, tagOnly, archived],
+				[matching, tagOnly, archived, organizationOnly],
 				filters({
 					creatureType: 'humanoid',
 					characterClass: 'wizard',
@@ -183,6 +204,12 @@ describe('filterHomebrewSheets', () => {
 				world,
 			),
 		).toEqual([matching]);
+		expect(
+			filterHomebrewSheets([organizationOnly], filters({ organizationId: 'arcane-order' }), world),
+		).toEqual([organizationOnly]);
+		expect(
+			filterHomebrewSheets([organizationOnly], filters({ stateId: 'state-frost' }), world),
+		).toEqual([]);
 	});
 
 	it('does not derive contextual filters from tags or groups', () => {
@@ -213,6 +240,13 @@ describe('filterHomebrewSheets', () => {
 
 		expect(filterHomebrewSheets([talha], filters({ stateId: 'state-frost' }), world)).toEqual([talha]);
 		expect(filterHomebrewSheets([talha], filters({ stateId: 'state-pine' }), world)).toEqual([]);
+		expect(
+			filterHomebrewSheets(
+				[{ ...talha, tags: [], data: { ...talha.data, tags: [], groups: [] } }],
+				filters({ stateId: 'state-frost' }),
+				world,
+			),
+		).toHaveSize(1);
 		expect(filterHomebrewSheets([tagOnly], filters({ stateId: 'state-frost' }), world)).toEqual([]);
 		expect(filterHomebrewSheets([talha], filters({ settlementId: 'settlement-ice' }), world)).toEqual([talha]);
 	});

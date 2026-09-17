@@ -6,6 +6,7 @@ import type { CompendiumSpellListEntry } from '../../models/compendium-spell-mod
 import { CompendiumSpellRepositoryService } from '../../services/compendium-spell-repository-service/compendium-spell-repository-service';
 import { CompendiumSuggestionsService } from '../../services/compendium-suggestions-service/compendium-suggestions-service';
 import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
+import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
 import { HomebrewBuilder } from './homebrew-builder';
 
 describe('HomebrewBuilder', () => {
@@ -54,6 +55,22 @@ describe('HomebrewBuilder', () => {
 
 	it('should create', () => {
 		expect(component).toBeTruthy();
+	});
+
+	it('lists only formal guilds and groups for sheet organization relations', () => {
+		const world = TestBed.inject(CampaignWorldService);
+		world.world.set({
+			empires: [],
+			states: [],
+			settlements: [],
+			organizations: [
+				{ id: 'winterhold', name: 'Winterhold', aliases: [], organizationType: 'guild', presence: [] },
+				{ id: 'community', name: 'Comunidade local', aliases: [], organizationType: 'community', presence: [] },
+			],
+			pointsOfInterest: [],
+		} as never);
+
+		expect(component.organizationOptions().map((option) => option.label)).toEqual(['Winterhold']);
 	});
 
 	it('syncs title into creature name until the user edits the name manually', () => {
@@ -286,6 +303,7 @@ describe('HomebrewBuilder', () => {
 		expect(saved.generic).toBeTrue();
 		expect(saved.locationRefs ?? []).toEqual(component.locationRefs());
 		expect(saved.organizationRefs).toEqual(component.organizationRefs());
+		expect(component.isBrokenOrganizationRef(component.organizationRefs()[0])).toBeTrue();
 		expect('locationRefs' in saved.data).toBeFalse();
 		expect('organizationRefs' in saved.data).toBeFalse();
 	});

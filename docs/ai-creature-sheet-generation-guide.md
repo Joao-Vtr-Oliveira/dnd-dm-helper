@@ -2,6 +2,8 @@
 
 Este documento é um contrato de geração. Uma IA que seguir estas instruções consegue criar uma ou várias fichas homebrew prontas para importar no D&D DM Helper.
 
+Para contexto de campanha, aplique também `docs/contextual-content-contract-draft.md`. Localização e organização são relações formais; tags são somente busca. `classes` é usado apenas para NPCs/PCs com classe estabelecida. Monstros normalmente não possuem `classes`.
+
 ## Instruções para a IA
 
 Ao receber um pedido para criar uma criatura, NPC, monstro, boss ou personagem:
@@ -60,11 +62,42 @@ Cada item de `sheets` deve conter:
 | `externalId` | Recomendado | string | ID estável e único, em kebab-case. Não use UUID aleatório. Se omitido, o aplicativo gera um ID. |
 | `title` | Sim | string | Título exibido na biblioteca. Normalmente igual a `data.name`. |
 | `category` | Sim | string | Somente `monster`, `npc`, `pc` ou `other`. |
+| `classes` | Não | string[] | Classes 5e formais para NPCs/PCs. Normalmente omita para monstros; não use tags como substituto em fichas novas. |
 | `tags` | Não | string[] | Tags úteis para busca e filtros. |
 | `source` | Sim | string | Origem do registro, por exemplo `Homebrew`, `AI-generated` ou `Notion`. Deve ser texto não vazio. |
 | `data` | Sim | object | A ficha de criatura descrita na próxima seção. |
 
 Não envie `id`, `createdAt` ou `updatedAt` no envelope. Esses campos são identidade local e timestamps do navegador; o importador os ignora ou recria.
+
+## Metadata contextual
+
+Use os campos abaixo quando a ficha tiver contexto de campanha revisado. Eles ficam no
+envelope, fora de `data`:
+
+```json
+{
+  "externalId": "npc-example",
+  "title": "Example NPC",
+  "category": "npc",
+  "classes": ["ranger"],
+  "generic": false,
+  "locationRefs": [
+    { "scopeType": "state", "scopeId": "feng", "relation": "base" }
+  ],
+  "organizationRefs": [
+    { "organizationId": "example-organization", "relation": "member" }
+  ],
+  "tags": ["investigator", "social"],
+  "source": "Homebrew",
+  "data": {}
+}
+```
+
+`classes` é opcional e só se aplica a NPCs/PCs com classe 5e estabelecida. Monstros
+normalmente não possuem classe e devem omitir esse campo. `locationRefs` e
+`organizationRefs` usam IDs formais; tags não substituem nenhum desses campos e não
+devem duplicar classe, categoria, tipo de criatura, status, localização ou organização
+em fichas novas.
 
 ## `data`: campos obrigatórios
 

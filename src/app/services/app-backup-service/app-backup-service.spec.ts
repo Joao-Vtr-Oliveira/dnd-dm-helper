@@ -115,7 +115,7 @@ describe('AppBackupService', () => {
 				features: [],
 			},
 			externalId: 'npc-cultista',
-			generic: true,
+			generic: false,
 			locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'base' }],
 			organizationRefs: [{ organizationId: 'guard', relation: 'institution' }],
 		});
@@ -129,7 +129,7 @@ describe('AppBackupService', () => {
 		expect(backup.data.encounters).toHaveSize(1);
 		expect(backup.data.homebrewSheets).toHaveSize(1);
 		expect(backup.data.homebrewSheets[0].externalId).toBe('npc-cultista');
-		expect(backup.data.homebrewSheets[0].generic).toBeTrue();
+		expect(backup.data.homebrewSheets[0].generic).toBeFalse();
 		expect(backup.data.homebrewSheets[0].locationRefs).toEqual([
 			{ scopeType: 'state', scopeId: 'feng', relation: 'base' },
 		]);
@@ -141,6 +141,18 @@ describe('AppBackupService', () => {
 		expect(backup.data.calendar?.season).toBe('winter');
 		expect(backup.data.rawLocalStorage).toEqual({});
 		expect(backup.data.campaignContext).toEqual({ currentLocation: null });
+
+		service.applyBackup(backup);
+		const restored = localStorageService.listSheets()[0];
+		expect(restored.generic).toBeFalse();
+		expect(restored.locationRefs).toEqual([
+			{ scopeType: 'state', scopeId: 'feng', relation: 'base' },
+		]);
+		expect(restored.organizationRefs).toEqual([
+			{ organizationId: 'guard', relation: 'institution' },
+		]);
+		expect('locationRefs' in restored.data).toBeFalse();
+		expect('organizationRefs' in restored.data).toBeFalse();
 	});
 
 	it('rejects incompatible JSON during validation', () => {

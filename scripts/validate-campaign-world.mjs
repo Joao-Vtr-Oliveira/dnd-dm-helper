@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 const settlementTypes = new Set(['village', 'city', 'capital', 'other']);
-const organizationTypes = new Set(['guild', 'group', 'cult', 'family']);
+const organizationTypes = new Set(['guild', 'group']);
 const pointOfInterestTypes = new Set([
 	'academy',
 	'district',

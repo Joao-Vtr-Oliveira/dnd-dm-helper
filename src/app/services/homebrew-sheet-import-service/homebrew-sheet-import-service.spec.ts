@@ -92,6 +92,17 @@ describe('HomebrewSheetImportService', () => {
 		);
 		expect(invalidContext.invalid).toHaveSize(1);
 		expect(invalidContext.invalid[0].errors).toContain('locationRefs possui relações inválidas.');
+		const invalidGeneric = service.prepareImport(
+			payload([
+				sheet({
+					generic: true,
+					locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'base' }],
+				}),
+			]),
+		);
+		expect(invalidGeneric.invalid[0].errors).toContain(
+			'Uma ficha genérica não pode possuir localizações físicas.',
+		);
 	});
 
 	it('resolves externalId and normalized name conflicts as replace, keep, and duplicate', () => {

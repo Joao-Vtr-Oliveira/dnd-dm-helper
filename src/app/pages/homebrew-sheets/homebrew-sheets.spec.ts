@@ -182,6 +182,47 @@ describe('HomebrewSheets', () => {
 		expect(component.organizationFilter()).toBe('all');
 	});
 
+	it('lists only formal guilds and groups in the organization dropdown', () => {
+		component.campaignWorld.world.set({
+			empires: [],
+			states: [],
+			settlements: [],
+			organizations: [
+				{
+					id: 'winterhold',
+					name: 'Winterhold',
+					aliases: [],
+					organizationType: 'guild',
+					presence: [],
+				},
+				{
+					id: 'asl',
+					name: 'Adaga Sob Luar',
+					aliases: [],
+					organizationType: 'group',
+					presence: [],
+				},
+				{
+					id: 'nirvak-community',
+					name: 'Comunidade dos Lotes de Nirvak',
+					aliases: [],
+					organizationType: 'community',
+					presence: [],
+				},
+			],
+			pointsOfInterest: [],
+		} as never);
+
+		expect(component.organizationOptions().map((option) => option.label)).toEqual([
+			'Todas as organizações',
+			'Adaga Sob Luar',
+			'Winterhold',
+		]);
+		expect(component.organizationOptions().map((option) => option.label)).not.toContain(
+			'Comunidade dos Lotes de Nirvak',
+		);
+	});
+
 	it('previews the 5etools write before creating a backup or changing the file', async () => {
 		const storage = TestBed.inject(LocalStorageService);
 		const fiveETools = TestBed.inject(FiveEToolsHomebrewService);

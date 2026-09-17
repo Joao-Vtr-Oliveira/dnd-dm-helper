@@ -191,6 +191,9 @@ export class LocalStorageService {
 		organizationRefs?: ContentOrganizationRelation[];
 		extra?: Record<string, unknown>;
 	}): SavedSheetInterface {
+		if (params.generic === true && params.locationRefs?.length) {
+			throw new Error('Uma ficha genérica não pode possuir localizações físicas.');
+		}
 		const now = Date.now();
 		return {
 			...(params.extra ?? {}),

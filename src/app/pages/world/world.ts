@@ -10,6 +10,8 @@ import {
 	type CampaignOrganization,
 	type CampaignOrganizationScope,
 	type CampaignWorldScopeType,
+	CAMPAIGN_ORGANIZATION_TYPES,
+	isCampaignOrganizationType,
 	normalizeCampaignWorldSearchText,
 	POINT_OF_INTEREST_TYPE_LABELS,
 	SETTLEMENT_TYPE_LABELS,
@@ -112,14 +114,6 @@ export class WorldPage {
 			(organization) => organization.archived,
 		),
 	);
-	readonly locationOrganizations = computed(() => {
-		const location = this.selectedLocation();
-		return location
-			? this.campaignWorld.getRelevantOrganizations(location).filter(
-					(item) => item.directPresences.length > 0,
-				)
-			: [];
-	});
 	readonly organizationParentOptions = computed(() => {
 		const editingId = this.editingOrganizationId();
 		return (this.campaignWorld.world()?.organizations ?? []).filter(
@@ -501,12 +495,17 @@ export class WorldPage {
 				this.editorMessage.set('A organização que você está editando não existe mais.');
 				return;
 			}
+			const organizationType = this.editorTypeValue.trim();
+			if (!isCampaignOrganizationType(organizationType)) {
+				this.editorMessage.set(`Escolha um tipo válido: ${CAMPAIGN_ORGANIZATION_TYPES.join(' ou ')}.`);
+				return;
+			}
 			const organization: CampaignOrganization = {
 				...existing,
 				id,
 				name: this.editorName.trim(),
 				aliases,
-				organizationType: this.editorTypeValue.trim() || 'group',
+				organizationType,
 				scope: this.editorOrganizationScope,
 				presence: existing?.presence ?? [],
 			};
@@ -641,12 +640,6 @@ export class WorldPage {
 				(option) => option.value === this.campaignWorld.getOrganizationScope(organization),
 			)?.label ?? 'Regional'
 		);
-	}
-
-	locationOrganizationTitle(): string {
-		return this.selectedLocation()?.scopeType === 'settlement'
-			? 'Organizações nesta localidade'
-			: 'Organizações nesta região';
 	}
 
 	private defaultOrganizationScope(): CampaignOrganizationScope {

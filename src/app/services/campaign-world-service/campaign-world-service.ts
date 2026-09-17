@@ -13,7 +13,7 @@ import {
 	type CampaignWorld,
 	type CampaignWorldScopeType,
 	type ResolvedCampaignLocation,
-	type RelevantCampaignOrganization,
+	type DirectCampaignOrganization,
 	SETTLEMENT_TYPE_LABELS,
 	resolveCampaignOrganizationScope,
 	normalizeCampaignWorldSearchText,
@@ -68,10 +68,13 @@ export class CampaignWorldService {
 			return;
 		}
 		try {
+			this.workspaces.ensureCampaignWorldBootstrap();
 			const raw = this.storage.getItem(APP_STORAGE_KEYS.campaignWorld);
 			this.loadRawWorld(raw ? JSON.parse(raw) : createEmptyCampaignWorld());
 		} catch {
-			this.clearWorld('Não foi possível carregar o mundo da campanha.');
+			this.clearWorld(
+				'O mundo salvo no workspace não contém JSON legível. A cópia bruta foi preservada para recuperação.',
+			);
 		}
 	}
 
@@ -221,34 +224,20 @@ export class CampaignWorldService {
 		);
 	}
 
-	getRelevantOrganizations(ref: CampaignLocationRef): RelevantCampaignOrganization[] {
-		const resolved = this.resolveLocation(ref);
-		if (!resolved) return [];
+	getDirectOrganizations(ref: CampaignLocationRef): DirectCampaignOrganization[] {
+		if (!this.resolveLocation(ref)) return [];
 		const directKey = this.scopeKey(ref.scopeType, ref.scopeId);
-		const broaderKeys: string[] = [];
-		if (resolved.empire && ref.scopeType !== 'empire') {
-			broaderKeys.push(this.scopeKey('empire', resolved.empire.id));
-		}
-		if (resolved.state && ref.scopeType === 'settlement') {
-			broaderKeys.push(this.scopeKey('state', resolved.state.id));
-		}
-		const relevantKeys = new Set([directKey, ...broaderKeys]);
 		return (this.world()?.organizations ?? [])
 			.map((organization) => {
-				const relevant = organization.presence.filter((presence) =>
-					relevantKeys.has(this.scopeKey(presence.scopeType, presence.scopeId)),
+				const directPresences = organization.presence.filter((presence) =>
+					this.scopeKey(presence.scopeType, presence.scopeId) === directKey,
 				);
 				return {
 					organization,
-					directPresences: relevant.filter(
-						(presence) => this.scopeKey(presence.scopeType, presence.scopeId) === directKey,
-					),
-					broaderPresences: relevant.filter(
-						(presence) => this.scopeKey(presence.scopeType, presence.scopeId) !== directKey,
-					),
+					directPresences,
 				};
 			})
-			.filter((item) => item.directPresences.length || item.broaderPresences.length)
+			.filter((item) => item.directPresences.length > 0)
 			.sort((left, right) => left.organization.name.localeCompare(right.organization.name));
 	}
 

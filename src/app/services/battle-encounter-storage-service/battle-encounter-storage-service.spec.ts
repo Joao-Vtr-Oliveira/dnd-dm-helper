@@ -114,4 +114,40 @@ describe('BattleEncounterStorageService', () => {
 			jasmine.objectContaining({ name: 'Hellish Rebuke', recoveryType: 'uses-per-day', maxUses: 2, usedCount: 2, isAvailable: false }),
 		]);
 	});
+
+	it('does not refresh a battle-local snapshot after the source sheet changes', () => {
+		const sheets = TestBed.inject(LocalStorageService);
+		const source = sheets.createSheet({
+			title: 'Snapshot Creature',
+			category: 'monster',
+			source: 'Test',
+			data: {
+				name: 'Snapshot Creature',
+				armorClass: 12,
+				maxHp: 20,
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+				features: [],
+			},
+		});
+		const battle = service.createBattleFromEncounter({
+			...encounter,
+			id: 'snapshot-encounter',
+			participants: [{
+				...encounter.participants[0],
+				name: source.title,
+				sourceSheetId: source.id,
+				sheet: source.data,
+			}],
+		});
+
+		sheets.updateSheet(source.id, {
+			data: { ...source.data, maxHp: 99 },
+		});
+
+		const loaded = service.getBattleEncounterById(battle.id)!;
+		expect(loaded.referenceSheets[0].sheet.maxHp).toBe(20);
+		expect(loaded.combatants[0].maxHp).toBe(20);
+	});
 });

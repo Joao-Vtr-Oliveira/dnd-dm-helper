@@ -46,6 +46,7 @@ function validateSheetContext(sheet, field) {
 	assert(sheet.generic === undefined || typeof sheet.generic === 'boolean', `${field}.generic is invalid.`);
 	if (sheet.locationRefs !== undefined) {
 		assert(Array.isArray(sheet.locationRefs), `${field}.locationRefs must be an array.`);
+		assert(!(sheet.generic === true && sheet.locationRefs.length > 0), `${field} cannot be generic and located.`);
 		for (const [index, ref] of sheet.locationRefs.entries()) {
 			assert(
 				isRecord(ref) && hasText(ref.scopeId) && locationScopes.has(ref.scopeType) && locationRelations.has(ref.relation),

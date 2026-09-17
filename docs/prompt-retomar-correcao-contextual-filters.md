@@ -71,11 +71,19 @@ Regras de filtro:
 - uma ficha ligada a Feng não pode aparecer ao filtrar Drek;
 - uma ficha ligada apenas a Mornk não pode aparecer ao filtrar Feng.
 
+### 2.1. Classes e tags
+
+`classes?: string[]` é metadata mecânica formal somente para NPCs e PCs quando a classe estiver estabelecida. Um monstro normalmente não possui classe e deve omitir esse campo. Não invente classe a partir de creature type, profissão, organização, estatísticas ou estilo de combate.
+
+Tags não substituem `classes`. Tags novas servem apenas para busca de características ou uso prático, como `boss`, `elite`, `spellcaster`, `stealth`, `support`, `ambush` e `social`. Tags antigas de classe continuam preservadas e pesquisáveis, mas não devem alimentar o filtro formal de classe.
+
 ### 3. Organizações
 
 `CampaignWorld.organizations` continua sendo o único registry de organizações.
 
-Uma Organization é uma identidade coletiva persistente com propósito e agência própria. Pode ser guilda, facção, culto, família organizada, instituição pública/militar ou grupo local estável.
+Uma Organization é somente uma guilda ou grupo formal relevante para a campanha. `organizationType` aceita apenas `guild` e `group`.
+
+Comunidades locais, conselhos, mesas de trabalhadores, companhias locais, famílias, cultos, instituições públicas, guardas, POIs e infraestrutura não são Organizations. Permanecem como material de mundo ou POI.
 
 Não transforme em Organization:
 
@@ -90,7 +98,7 @@ Não transforme em Organization:
 
 Esses elementos são POIs ou infraestrutura. Podem apontar para uma Organization.
 
-Não esconda organizações locais apenas porque `scope === 'local'`. Um grupo local só precisa estar no registry quando a entidade coletiva estiver realmente estabelecida. O Conselho do Corte de Nagawoods é um exemplo válido. A rede equestre de Hotead ainda não é uma Organization formal.
+Não promova um registro local ao registry apenas porque ele tem nome, escopo ou presença. O Conselho do Corte de Nagawoods e a rede equestre de Hotead permanecem material de mundo, não Organizations formais.
 
 Filtros de organização usam somente:
 
@@ -104,7 +112,7 @@ Presence descreve onde a organização possui atividade documentada. Não coloca
 
 Uma presença global não deve gerar card em toda página territorial. Uma presença `remote-contact` representa acesso, não presença física. Uma operação temporária não deve ser criada a partir de material planejado.
 
-O root pode listar organizações de campanha. Uma página territorial só deve exibir organizações com presença explícita naquela localidade ou em escopo territorial documentado, mostrando o tipo e o escopo real.
+O root pode listar o registry formal de guildas e grupos. Páginas territoriais não exibem Organizations nem presenças automaticamente.
 
 Não invente presenças por associação profissional, nome de tag, POI, menção narrativa ou existência de membros.
 
@@ -173,7 +181,7 @@ Outros casos:
 ## Persistência e compatibilidade
 
 - Metadata contextual deve continuar no envelope da ficha salva, fora de `CreatureSheet.data`.
-- Backup V2 deve persistir `locationRefs`, `organizationRefs`, `generic` e `archived` quando presentes.
+- Backup V2 deve persistir `classes` quando presentes em NPCs/PCs, além de `locationRefs`, `organizationRefs`, `generic` e `archived`. Monstros sem classe devem omitir `classes`.
 - Backups antigos sem esses campos continuam válidos.
 - Ausência de metadata não significa localização global.
 - IDs formais quebrados devem ser preservados e avisados, não apagados.
@@ -196,6 +204,7 @@ Antes de iniciar Task 5, todos estes pontos devem estar verdadeiros:
 - import/export e Backup V2 preservam a metadata;
 - testes antigos incompatíveis foram corrigidos;
 - novos testes de regressão passam;
+- NPC/PC com classe usa `classes[]` formal; monstro sem classe omite o campo e tag de classe não satisfaz o filtro formal;
 - `npm run build` passa;
 - `npm run validate:backup-v2` passa;
 - a suite de testes configurada pelo projeto passa.

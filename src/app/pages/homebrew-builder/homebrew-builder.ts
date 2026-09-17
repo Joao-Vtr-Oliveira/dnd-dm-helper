@@ -21,7 +21,7 @@ import type {
 	ContentOrganizationRelation,
 	ContentOrganizationRelationKind,
 } from '../../models/content-context-model';
-import type { CampaignLocationScope } from '../../models/campaign-world-model';
+import { isCampaignOrganizationType, type CampaignLocationScope } from '../../models/campaign-world-model';
 import { DND_5E_CREATURE_TYPES } from '../../models/dnd-5e-reference-model';
 import type {
 	CreatureAbilityKey,
@@ -234,6 +234,7 @@ export class HomebrewBuilder {
 	});
 	readonly organizationOptions = computed(() =>
 		(this.campaignWorld.world()?.organizations ?? [])
+			.filter((organization) => isCampaignOrganizationType(organization.organizationType))
 			.map((organization) => ({
 				value: organization.id,
 				label: `${organization.name}${organization.archived ? ' [arquivada]' : ''}`,
@@ -443,18 +444,14 @@ export class HomebrewBuilder {
 			if (sheet) {
 				this.sheetId.set(id);
 				this.title.set(sheet.title);
-				const data = normalizeCreature({
-					...sheet.data,
-					tags: sheet.data.tags ?? sheet.tags,
-					origin: sheet.data.origin ?? sheet.source,
-				});
+				const data = normalizeCreature(sheet.data);
 				this.creature.set(data);
 				this.lastAutoCreatureName.set(sheet.data.name === sheet.title ? sheet.title : '');
 
 				// 👇 popula meta
 				this.category.set(sheet.category ?? 'monster');
-				this.tagsText.set((data.tags ?? []).join(', '));
-				this.source.set(data.origin ?? '');
+				this.tagsText.set((sheet.tags ?? []).join(', '));
+				this.source.set(sheet.source ?? '');
 				this.archived.set(sheet.archived === true);
 				this.generic.set(sheet.generic === true);
 				this.locationRefs.set(structuredClone(sheet.locationRefs ?? []));
@@ -1855,6 +1852,10 @@ export class HomebrewBuilder {
 			.map((t) => t.trim())
 			.filter(Boolean);
 		const source = this.source().trim();
+		if (this.generic() && this.locationRefs().length) {
+			this.showToast({ type: 'warn', text: 'Uma ficha genérica não pode possuir localizações físicas.' });
+			return;
+		}
 		if (rawTags.length) data.tags = this.uniqueTextList(rawTags);
 		else delete data.tags;
 		if (source) data.origin = source;

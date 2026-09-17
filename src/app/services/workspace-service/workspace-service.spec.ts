@@ -1,6 +1,13 @@
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
-import { WorkspaceService } from './workspace-service';
+import legacyCampaignWorld from '../../../../rpg_files/campaign-world.json';
+import { createEmptyCampaignWorld } from './workspace-factory';
+import {
+	CAMPAIGN_WORLD_BOOTSTRAP_VERSION,
+	WORKSPACE_REGISTRY_KEY,
+	WorkspaceService,
+} from './workspace-service';
 import { workspaceStorageKey } from './workspace-storage-key';
+import type { Workspace } from '../../models/workspace-model';
 
 describe('WorkspaceService', () => {
 	beforeEach(() => localStorage.clear());
@@ -34,5 +41,129 @@ describe('WorkspaceService', () => {
 		expect(localStorage.getItem(workspaceStorageKey(workspace!.id, APP_STORAGE_KEYS.encounters))).toBe('[]');
 		service.initialize();
 		expect(service.workspaces()).toHaveSize(1);
+	});
+
+	function seedExistingWorkspace(): Workspace {
+		const workspace: Workspace = {
+			id: 'existing-workspace',
+			name: 'Campanha Existente',
+			type: 'local',
+			createdAt: 1,
+		};
+		localStorage.setItem(
+			WORKSPACE_REGISTRY_KEY,
+			JSON.stringify({
+				schemaVersion: 1,
+				activeWorkspaceId: workspace.id,
+				workspaces: [workspace],
+				legacyMigrationCompleted: true,
+			}),
+		);
+		return workspace;
+	}
+
+	it('preserves a filled campaign world during workspace bootstrap', () => {
+		const workspace = seedExistingWorkspace();
+		const world = structuredClone(legacyCampaignWorld);
+		localStorage.setItem(
+			workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.campaignWorld),
+			JSON.stringify(world),
+		);
+
+		const service = new WorkspaceService();
+		service.initialize();
+
+		expect(
+			JSON.parse(
+				localStorage.getItem(workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.campaignWorld))!,
+			),
+		).toEqual(world);
+		expect(service.activeWorkspace()?.campaignWorldBootstrapVersion).toBe(
+			CAMPAIGN_WORLD_BOOTSTRAP_VERSION,
+		);
+	});
+
+	it('rehydrates an existing workspace with no namespaced world from the canonical world', () => {
+		const workspace = seedExistingWorkspace();
+		const service = new WorkspaceService();
+		service.initialize();
+
+		expect(
+			JSON.parse(
+				localStorage.getItem(workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.campaignWorld))!,
+			),
+		).toEqual(legacyCampaignWorld);
+		expect(service.activeWorkspace()?.campaignWorldBootstrapVersion).toBe(
+			CAMPAIGN_WORLD_BOOTSTRAP_VERSION,
+		);
+	});
+
+	it('rehydrates a structurally empty existing workspace and backs it up first', () => {
+		const workspace = seedExistingWorkspace();
+		const emptyWorld = createEmptyCampaignWorld();
+		const emptyRaw = JSON.stringify(emptyWorld);
+		const worldKey = workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.campaignWorld);
+		localStorage.setItem(worldKey, emptyRaw);
+
+		const service = new WorkspaceService();
+		service.initialize();
+
+		expect(JSON.parse(localStorage.getItem(worldKey)!)).toEqual(legacyCampaignWorld);
+		expect(
+			localStorage.getItem(
+				workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.safetyWorldBeforeBootstrap),
+			),
+		).toBe(emptyRaw);
+		expect(service.activeWorkspace()?.campaignWorldBootstrapVersion).toBe(
+			CAMPAIGN_WORLD_BOOTSTRAP_VERSION,
+		);
+	});
+
+	it('keeps a newly created local workspace empty by its explicit bootstrap marker', () => {
+		const service = new WorkspaceService();
+		const workspace = service.createWorkspace('Nova Campanha');
+
+		expect(workspace.campaignWorldBootstrapVersion).toBe(CAMPAIGN_WORLD_BOOTSTRAP_VERSION);
+		expect(
+			localStorage.getItem(workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.campaignWorld)),
+		).toBeNull();
+	});
+
+	it('repairs only incompatible organizations in a filled existing world', () => {
+		const workspace = seedExistingWorkspace();
+		const world = structuredClone(legacyCampaignWorld);
+		const oldOrganization = {
+			...world.organizations[0],
+			id: 'old-family',
+			name: 'Família antiga',
+			organizationType: 'family' as 'guild',
+		};
+		world.organizations.push(oldOrganization);
+		world.pointsOfInterest[0].organizationIds = ['old-family'];
+		const raw = JSON.stringify(world);
+		const worldKey = workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.campaignWorld);
+		localStorage.setItem(worldKey, raw);
+
+		new WorkspaceService().initialize();
+
+		const repaired = JSON.parse(localStorage.getItem(worldKey)!);
+		expect(repaired.empires).toEqual(world.empires);
+		expect(repaired.states).toEqual(world.states);
+		expect(repaired.settlements).toEqual(world.settlements);
+		expect(repaired.pointsOfInterest).toEqual(
+			world.pointsOfInterest.map((point) => ({
+				...point,
+				...(point.organizationIds
+					? { organizationIds: point.organizationIds.filter((id) => id !== 'old-family') }
+					: {}),
+			})),
+		);
+		expect(repaired.organizations).not.toContain(jasmine.objectContaining({ id: 'old-family' }));
+		expect(
+			localStorage.getItem(
+				workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.safetyWorldBeforeBootstrap),
+			),
+		).toBe(raw);
+		expect(legacyCampaignWorld.organizations).toHaveSize(10);
 	});
 });

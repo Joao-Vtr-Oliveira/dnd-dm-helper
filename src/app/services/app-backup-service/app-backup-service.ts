@@ -490,6 +490,7 @@ export class AppBackupService {
 			(value['generic'] === undefined || typeof value['generic'] === 'boolean') &&
 			(value['locationRefs'] === undefined ||
 				(Array.isArray(value['locationRefs']) && value['locationRefs'].every(isContentLocationRelation))) &&
+			!(value['generic'] === true && Array.isArray(value['locationRefs']) && value['locationRefs'].length > 0) &&
 			(value['organizationRefs'] === undefined ||
 				(Array.isArray(value['organizationRefs']) &&
 					value['organizationRefs'].every(isContentOrganizationRelation))) &&

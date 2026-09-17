@@ -18,7 +18,7 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
 - [x] Task 2: Organization Presence CRUD concluído em 2026-09-17.
 - [x] Task 3: metadata contextual de CreatureSheets revisada conforme o contrato vigente.
 - [x] Task 4: filtros de CreatureSheets revisados sem fallback contextual de tags/groups.
-- [x] Revisão pós-Task 4: compatibilidade contextual, elegibilidade organizacional e navegação do World corrigidas conforme o contrato vigente.
+- [x] Revisão pós-Task 4: compatibilidade contextual, registry restrito a guildas/grupos e navegação do World corrigidos conforme o contrato vigente.
 - [ ] Proxima task: Task 5 de metadata contextual de Encounters; não implementada nesta revisão.
 
 ## Regras antigas superseded
@@ -30,26 +30,27 @@ O bloco anterior de “Correções pós-Task 4” foi substituído. Em particula
 - `generic` é uma flag explícita de arquétipo reutilizável, não uma relação de
   localização;
 - filtros organizacionais usam `organizationId` formal;
-- organizações locais são válidas quando a entidade coletiva e sua presença estão
-  explicitamente registradas;
+- somente guildas e grupos formais são Organizations; comunidades locais e
+  infraestrutura permanecem fora do registry mesmo quando têm presença registrada;
 - as regras exatas de hierarquia e exibição estão no contrato movido.
 
 ## Estado atual encontrado
 
-- `CampaignWorld.organizations` ja e o registry correto: possui ID, nome, aliases,
-  tipo, organizacao-pai e `presence[]`.
-- `CampaignWorldService` ja resolve organizacoes globais, de imperio, estado e
-  settlement para a localizacao atual com `getRelevantOrganizations()`.
+- `CampaignWorld.organizations` e o registry formal de guildas e grupos: possui ID,
+  nome, aliases, tipo restrito, organizacao-pai e `presence[]`. Comunidades locais,
+  familias, cultos e infraestrutura ficam fora dele.
+- `CampaignWorldService` preserva presencas e oferece lookup formal por escopo; a
+  navegacao territorial nao exibe uma lista de Organizations.
 - `CampaignContextService` ja persiste e resolve `currentLocation` para
   `empire | state | settlement`. POI e deliberadamente excluido.
 - `WorldPage` lista, cria, edita, arquiva e restaura organizacoes. Tambem permite
   cadastrar, editar e remover presencas globais, imperiais, estaduais e locais.
-- O tipo de organizacao aceita strings nao vazias, com sugestoes na interface e
-  suporte a valores customizados.
+- O tipo de organizacao aceita somente `guild` ou `group`; a interface sugere apenas
+  esses dois valores.
 - `SavedSheetInterface` ja e o envelope editorial de uma `CreatureSheet`: ID,
   categoria, tags e source vivem nele. `CreatureSheet.data` e o stat block
   reutilizavel.
-- Fichas usam `archived?`, `locationRefs?` e `organizationRefs?` no envelope
+- Fichas usam `archived?`, `generic?`, `classes?` (somente NPC/PC), `locationRefs?` e `organizationRefs?` no envelope
   `SavedSheetInterface`; encounters ainda nao possuem essa metadata.
 - Homebrew Sheets filtra texto, categoria, tag, source, lifecycle, tipo de criatura,
   classe por tag canonica, localizacao e organizacao formal. Encounter Hub ja filtra
@@ -69,8 +70,8 @@ O bloco anterior de “Correções pós-Task 4” foi substituído. Em particula
   preserva mundos existentes.
 - Presencas permanecem em `CampaignOrganization.presence`, com escopos `global`,
   `empire`, `state` e `settlement`. POI fica fora da V1.
-- Tipos de organizacao e presenca aceitam strings nao vazias. A UI pode oferecer
-  opcoes comuns e um valor customizado, sem taxonomia fechada.
+- Tipos de organizacao sao restritos a `guild` e `group`. Tipos de presenca continuam
+  livres para preservar o dado narrativo, mas nao sao exibidos automaticamente no World.
 - Criar tipos compartilhados para `ContentLocationRelation` e
   `ContentOrganizationRelation`.
 - As relacoes de uma ficha ficarao no envelope `SavedSheetInterface`, nao em
@@ -83,8 +84,9 @@ O bloco anterior de “Correções pós-Task 4” foi substituído. Em particula
 - `tags` e `groups` legados continuam somente para busca e filtros textuais/tags. Eles
   nunca participam dos filtros contextuais e nunca criam uma relacao persistida.
 - Classes de personagem usam o catalogo imutavel de 13 classes 5e, incluindo
-  Artificer. O filtro consulta tags canonicas exatas do envelope da ficha, sem criar
-  campo duplicado, migrar tags ou inferir a partir de texto livre.
+  Artificer. `classes[]` e metadata formal somente para NPCs e PCs com classe
+  estabelecida; monstros normalmente omitem o campo. Tags antigas de classe continuam
+  pesquisaveis, mas nao sao metadata formal nem fallback do filtro de classe.
 - Tipos oficiais de criatura usam o catalogo imutavel de 14 tipos 5e. Tipos customizados
   permanecem validos e pesquisaveis por texto, mas nao ganham uma faceta canonica.
 - Conteudo sem referencia formal nao e global. Uma ficha `generic: true` e um
@@ -97,9 +99,8 @@ O bloco anterior de “Correções pós-Task 4” foi substituído. Em particula
   "disponivel aqui".
 - O resolver e mais estrito: relacao com outro settlement do mesmo estado nao entra
   como "Aqui".
-- Uma ficha generica da Guarda pode ter relacao institucional com a organizacao e
-  permanecer sem `locationRefs`; a composicao estadual deve ser uma relacao separada
-  e explicita que aponta para o `externalId` do arquetipo, sem duplicar o stat block.
+- A Guarda de Mornk e uma instituicao publica e nao e Organization neste registry;
+  qualquer composicao futura exige um modelo separado e aprovado.
 - Backup V2 nao ganha uma copia de `CampaignWorld`: metadata de fichas e encounters
   continua nas colecoes formais existentes, enquanto organizacoes e presencas ficam
   no arquivo World complementar ja usado por Workspaces.
@@ -134,12 +135,12 @@ Status: concluida.
 - Comportamento esperado: criacao sem presenca global implicita; edicao preserva
   ID; aliases, tipo e pai sao editaveis; arquivamento nao apaga referencias nem
   arquiva filhas automaticamente.
-- Compatibilidade necessaria: organizacoes existentes continuam validas; tipos
-  atuais continuam aceitos; tipos novos/customizados passam a ser aceitos; nenhuma
-  organizacao de Mornk e codificada.
+- Compatibilidade necessaria: guildas e grupos existentes continuam validos; tipos
+  nao-formais sao rejeitados; entidades locais, familiares, cultuais e publicas nao
+  sao criadas no registry; nenhuma organizacao de Mornk e codificada.
 - Testes obrigatorios: criar, editar, aliases, ID estavel, pai opcional,
-  arquivamento, tipo `institution` ou customizado, fixture Winterhold sem
-  duplicacao e isolamento entre dois workspaces.
+  arquivamento, tipos `guild` e `group`, rejeicao de tipos invalidos, fixture
+  Winterhold sem duplicacao e isolamento entre dois workspaces.
 - Dependencias de tasks anteriores: Task 0.
 - Criterio de conclusao: World permite manter organizacoes ativas e arquivadas sem
   JSON manual, com persistencia por workspace.
@@ -158,8 +159,8 @@ Status: concluida.
 - Compatibilidade necessaria: presencas atuais permanecem validas; POI nao se torna
   escopo de presenca nem localizacao atual; presenca nao cria relacoes em fichas.
 - Testes obrigatorios: presenca global, imperial, estadual e de settlement;
-  resolucao direta e herdada; remocao; organizacao arquivada; posto local sem criar
-  outra organizacao.
+  resolução direta por escopo exato sem agregação de descendentes; remoção;
+  organização arquivada; posto local sem criar outra organização.
 - Dependencias de tasks anteriores: Task 1.
 - Criterio de conclusao: uma organizacao unica pode possuir varias presencas
   explicitas e editaveis, sem inferencia sobre seus membros.
@@ -182,8 +183,8 @@ Status: concluida.
   metadata nova; nenhum campo contextual e copiado ao stat block do participante.
 - Testes obrigatorios: ficha antiga com tags/groups; multiplas localizacoes;
   organizacao formal sem inferencia por tag; relacao quebrada preservada;
-  duplicacao; import/export individual; ficha generica da Guarda ligada a instituicao
-  e composicao estadual sem duplicacao.
+  duplicacao; import/export individual; ficha generica sem criar Organization para
+  instituicao publica; nenhuma composicao estadual automatica.
 - Dependencias de tasks anteriores: Tasks 1 e 2.
 - Criterio de conclusao: metadata contextual e persistida no envelope da ficha e
   editavel sem alterar o stat block.
@@ -198,7 +199,8 @@ Status: concluida.
 - Models envolvidos: `SavedSheetInterface`, relacoes contextuais e `CampaignWorld`.
 - Comportamento esperado: texto, categoria, tags, source legado,
   `Ativos | Arquivados | Todos`, imperio, estado, settlement e organizacao; filtro
-  organizacional usa somente `organizationId` formal.
+  organizacional usa somente `organizationId` formal e o filtro de classe usa
+  `classes[]` formal quando presente.
 - Compatibilidade necessaria: filtros atuais continuam funcionando; tags/groups nao
   viram filiacao persistida; ausencia de relacao nao equivale a global.
 - Testes obrigatorios: filtro de cada faceta; composicao de facetas; padrao ativo;

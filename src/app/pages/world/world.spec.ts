@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
+import type { CampaignWorld } from '../../models/campaign-world-model';
 import { CampaignContextService } from '../../services/campaign-context-service/campaign-context-service';
 import { WorldPage } from './world';
 
@@ -69,22 +70,13 @@ const WORLD = {
 	],
 	organizations: [
 		{
-			id: 'local',
-			name: 'Conselho da Campanha',
-			organizationType: 'group',
+			id: 'winterhold',
+			name: 'Winterhold',
+			organizationType: 'guild',
 			scope: 'campaign',
 			aliases: [],
-			sourcePath: 'Local.md',
+			sourcePath: 'Winterhold.md',
 			presence: [],
-		},
-		{
-			id: 'nirvak-community',
-			name: 'Comunidade de Nirvak',
-			organizationType: 'group',
-			scope: 'local',
-			aliases: [],
-			sourcePath: 'Nirvak Guilds.md',
-			presence: [{ scopeType: 'settlement', scopeId: 'nirvak-city', presenceType: 'local-organization' }],
 		},
 	],
 	pointsOfInterest: [
@@ -104,7 +96,7 @@ const WORLD = {
 			poiType: 'landmark',
 			aliases: [],
 			sourcePath: 'Gate.md',
-			organizationIds: ['local'],
+			organizationIds: ['winterhold'],
 		},
 	],
 } as const;
@@ -115,10 +107,13 @@ describe('WorldPage', () => {
 	let context: CampaignContextService;
 	let http: HttpTestingController;
 
-	async function createPage(currentLocation?: {
+	async function createPage(
+		currentLocation?: {
 		scopeType: 'empire' | 'state' | 'settlement';
 		scopeId: string;
-	}) {
+		},
+		world: CampaignWorld = WORLD as unknown as CampaignWorld,
+	) {
 		if (currentLocation) {
 			localStorage.setItem(APP_STORAGE_KEYS.campaignContext, JSON.stringify({ currentLocation }));
 		}
@@ -134,7 +129,7 @@ describe('WorldPage', () => {
 		component = fixture.componentInstance;
 		context = TestBed.inject(CampaignContextService);
 		http = TestBed.inject(HttpTestingController);
-		http.expectOne('/rpg_files/campaign-world.json').flush(WORLD);
+		http.expectOne('/rpg_files/campaign-world.json').flush(world);
 		TestBed.flushEffects();
 		fixture.detectChanges();
 	}
@@ -150,8 +145,8 @@ describe('WorldPage', () => {
 		expect(component.selectedLocation()).toBeNull();
 		expect(fixture.nativeElement.textContent).toContain('Impérios');
 		expect(fixture.nativeElement.textContent).toContain('Organizações da campanha');
-		expect(fixture.nativeElement.textContent).toContain('Conselho da Campanha');
-		expect(fixture.nativeElement.textContent).toContain('Comunidade de Nirvak');
+		expect(fixture.nativeElement.textContent).toContain('Winterhold');
+		expect(fixture.nativeElement.textContent).not.toContain('Comunidade de Nirvak');
 	});
 
 	it('opens at the current party location when it is valid', async () => {
@@ -192,8 +187,8 @@ describe('WorldPage', () => {
 		);
 		component.selectLocation({ scopeType: 'settlement', scopeId: 'nirvak-city' });
 		fixture.detectChanges();
-		expect(fixture.nativeElement.textContent).toContain('Organizações nesta localidade');
-		expect(fixture.nativeElement.textContent).toContain('Comunidade de Nirvak');
+		expect(fixture.nativeElement.textContent).not.toContain('Organizações nesta localidade');
+		expect(fixture.nativeElement.textContent).not.toContain('Comunidade de Nirvak');
 	});
 
 	it('explores locations without moving the party', async () => {
@@ -245,6 +240,7 @@ describe('WorldPage', () => {
 		expect(fixture.nativeElement.textContent).toContain(
 			'Nenhum Estado catalogado neste Império ainda.',
 		);
+		expect(fixture.nativeElement.textContent).not.toContain('Organizações nesta localidade');
 	});
 
 	it('starts a contextual editor with a normalized alias', async () => {
@@ -270,9 +266,10 @@ describe('WorldPage', () => {
 
 	it('creates organizations without an implicit global presence', async () => {
 		await createPage();
+		expect(component.organizationTypeOptions.map((option) => option.value)).toEqual(['guild', 'group']);
 		component.openEditor('organization');
 		component.onEditorNameChange('Academia Prisma');
-		component.editorTypeValue = 'institution';
+		component.editorTypeValue = 'group';
 		component.saveEditor();
 
 		const organization = component.campaignWorld
@@ -280,53 +277,61 @@ describe('WorldPage', () => {
 			?.organizations.find((item) => item.name === 'Academia Prisma');
 		expect(organization).toEqual(
 			jasmine.objectContaining({
-				organizationType: 'institution',
+				organizationType: 'group',
 				scope: 'campaign',
 				presence: [],
 			}),
 		);
 	});
 
+	it('rejects an organization type outside the formal guild and group registry', async () => {
+		await createPage();
+		component.openEditor('organization');
+		component.onEditorNameChange('Comunidade Temporária');
+		component.editorTypeValue = 'community';
+		component.saveEditor();
+
+		expect(component.campaignWorld.world()?.organizations).toHaveSize(1);
+		expect(component.editorMessage()).toContain('tipo válido');
+	});
+
 	it('edits and archives an organization without changing its identity or presences', async () => {
 		await createPage();
-		const original = component.campaignWorld.getOrganization('local')!;
+		const original = component.campaignWorld.getOrganization('winterhold')!;
 		component.openOrganizationEditor(original);
-		component.editorName = 'Conselho Renovado';
+		component.editorName = 'Winterhold Renovado';
 		component.editorTypeValue = 'guild';
 		component.editorAliases = ['conselho'];
 		component.saveEditor();
 
-		const edited = component.campaignWorld.getOrganization('local')!;
+		const edited = component.campaignWorld.getOrganization('winterhold')!;
 		expect(edited).toEqual(
 			jasmine.objectContaining({
-				id: 'local',
-				name: 'Conselho Renovado',
+				id: 'winterhold',
+				name: 'Winterhold Renovado',
 				aliases: ['conselho'],
 				organizationType: 'guild',
-				sourcePath: 'Local.md',
+				sourcePath: 'Winterhold.md',
 				presence: [],
 			}),
 		);
 
 		component.toggleOrganizationArchived(edited.id);
 		fixture.detectChanges();
-		expect(component.archivedCampaignOrganizations().map((item) => item.id)).toEqual(['local']);
+		expect(component.archivedCampaignOrganizations().map((item) => item.id)).toEqual(['winterhold']);
 		expect(fixture.nativeElement.textContent).toContain('Restaurar');
 
 		component.toggleOrganizationArchived(edited.id);
-		expect(component.campaignOrganizations().map((item) => item.id)).toEqual([
-			'local',
-			'nirvak-community',
-		]);
+		expect(component.campaignOrganizations().map((item) => item.id)).toEqual(['winterhold']);
 	});
 
 	it('manages global, empire, state, and settlement presences without duplicating the organization', async () => {
 		await createPage();
-		component.openPresenceManager('local');
+		component.openPresenceManager('winterhold');
 		component.openPresenceEditor();
 		component.setPresenceScopeType('state');
 		component.savePresence();
-		expect(component.campaignWorld.getOrganization('local')?.presence).toEqual([]);
+		expect(component.campaignWorld.getOrganization('winterhold')?.presence).toEqual([]);
 		expect(component.editorMessage()).toContain('localização válida');
 		component.cancelPresenceEditor();
 
@@ -349,7 +354,7 @@ describe('WorldPage', () => {
 		savePresence('state', 'nagazav', 'agent', 'archetype-c, missing-archetype');
 		savePresence('settlement', 'nagawoods', 'post');
 
-		const organization = component.campaignWorld.getOrganization('local')!;
+		const organization = component.campaignWorld.getOrganization('winterhold')!;
 		expect(organization.presence).toEqual([
 			{ scopeType: 'global', presenceType: 'network' },
 			{ scopeType: 'empire', scopeId: 'mornk', presenceType: 'headquarters' },
@@ -361,13 +366,13 @@ describe('WorldPage', () => {
 			},
 			{ scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'post' },
 		]);
-		expect(component.campaignWorld.world()?.organizations).toHaveSize(2);
+		expect(component.campaignWorld.world()?.organizations).toHaveSize(1);
 		expect(component.presenceScopeLabel(organization.presence[2])).toBe('Mornk › Nagazav (Estado)');
 
 		component.editPresence(2);
 		component.setPresenceType('regional-post');
 		component.savePresence();
-		expect(component.campaignWorld.getOrganization('local')?.presence[2]).toEqual({
+		expect(component.campaignWorld.getOrganization('winterhold')?.presence[2]).toEqual({
 			scopeType: 'state',
 			scopeId: 'nagazav',
 			presenceType: 'regional-post',
@@ -377,23 +382,23 @@ describe('WorldPage', () => {
 		component.openPresenceEditor();
 		component.setPresenceType('network');
 		component.savePresence();
-		expect(component.campaignWorld.getOrganization('local')?.presence).toHaveSize(4);
+		expect(component.campaignWorld.getOrganization('winterhold')?.presence).toHaveSize(4);
 		expect(component.editorMessage()).toContain('já está cadastrada');
 		component.cancelPresenceEditor();
 
 		spyOn(window, 'confirm').and.returnValue(true);
 		component.removePresence(3);
-		expect(component.campaignWorld.getOrganization('local')?.presence).toHaveSize(3);
+		expect(component.campaignWorld.getOrganization('winterhold')?.presence).toHaveSize(3);
 	});
 
 	it('opens presences in a modal flow and restores the viewed location on close', async () => {
 		await createPage();
 		component.selectLocation({ scopeType: 'settlement', scopeId: 'nirvak-city' });
-		component.openPresenceManager('nirvak-community');
+		component.openPresenceManager('winterhold');
 		fixture.detectChanges();
 
 		expect(component.selectedLocation()).toBeNull();
-		expect(component.managingOrganizationId()).toBe('nirvak-community');
+		expect(component.managingOrganizationId()).toBe('winterhold');
 		expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeTruthy();
 		component.closePresenceManager();
 		expect(component.selectedLocation()).toEqual({ scopeType: 'settlement', scopeId: 'nirvak-city' });
@@ -401,14 +406,14 @@ describe('WorldPage', () => {
 
 	it('keeps presences editable after the organization is archived', async () => {
 		await createPage();
-		component.toggleOrganizationArchived('local');
-		component.openPresenceManager('local');
+		component.toggleOrganizationArchived('winterhold');
+		component.openPresenceManager('winterhold');
 		component.openPresenceEditor();
 		component.setPresenceType('remote-contact');
 		component.savePresence();
 
-		expect(component.archivedCampaignOrganizations().map((item) => item.id)).toEqual(['local']);
-		expect(component.campaignWorld.getOrganization('local')?.presence).toEqual([
+		expect(component.archivedCampaignOrganizations().map((item) => item.id)).toEqual(['winterhold']);
+		expect(component.campaignWorld.getOrganization('winterhold')?.presence).toEqual([
 			{ scopeType: 'global', presenceType: 'remote-contact' },
 		]);
 	});

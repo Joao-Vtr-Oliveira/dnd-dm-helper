@@ -306,6 +306,9 @@ export class HomebrewSheetImportService {
 		const generic = this.generic(sheet.generic, errors);
 		const locationRefs = this.locationRefs(sheet.locationRefs, errors);
 		const organizationRefs = this.organizationRefs(sheet.organizationRefs, errors);
+		if (generic === true && locationRefs?.length) {
+			errors.push('Uma ficha genérica não pode possuir localizações físicas.');
+		}
 		const extra = this.unknownFields(sheet);
 		const dataUnknown = candidateData ? this.unknownDataFields(candidateData) : [];
 		if ('id' in sheet || 'createdAt' in sheet || 'updatedAt' in sheet) {

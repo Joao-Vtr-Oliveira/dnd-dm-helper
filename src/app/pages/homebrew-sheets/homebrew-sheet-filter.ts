@@ -77,7 +77,7 @@ export function filterHomebrewSheets(
 		if (filters.category !== 'all' && sheet.category !== filters.category) return false;
 		if (
 			filters.tag !== 'all' &&
-			contentTagsFor(sheet).some(
+			!contentTagsFor(sheet).some(
 				(tag) => normalizeHomebrewSheetFilterText(tag) === normalizeHomebrewSheetFilterText(filters.tag),
 			)
 		)

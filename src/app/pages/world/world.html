@@ -713,36 +713,6 @@
 						}
 					</section>
 				} @else if (selectedResolvedLocation(); as location) {
-					@if (locationOrganizations().length) {
-					<section class="mt-6">
-						<div class="flex flex-wrap items-end justify-between gap-3">
-							<div>
-								<h3 class="text-xl font-semibold">{{ locationOrganizationTitle() }}</h3>
-								<p class="mt-1 text-sm text-white/60">
-									Organizações com presença explícita neste território aparecem aqui com seu escopo real.
-								</p>
-							</div>
-						</div>
-						<div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-								@for (item of locationOrganizations(); track item.organization.id) {
-									<article class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-										<div class="flex items-start justify-between gap-3">
-											<div class="min-w-0">
-												<h4 class="break-words font-semibold text-white">{{ item.organization.name }}</h4>
-												<div class="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-fuchsia-100/70">
-													{{ item.organization.organizationType }} · {{ organizationScopeLabel(item.organization) }}
-												</div>
-											</div>
-											@if (item.organization.archived) {
-												<span class="app-status border border-amber-400/30 bg-amber-500/15 text-amber-100">Arquivada</span>
-											}
-										</div>
-									</article>
-								}
-						</div>
-					</section>
-					}
-
 					@if (location.ref.scopeType === 'empire') {
 						<div class="mt-6">
 							<h3 class="text-xl font-semibold">Estados</h3>
