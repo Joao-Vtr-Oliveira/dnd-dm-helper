@@ -226,6 +226,7 @@
       "id": "winterhold",
       "name": "Winterhold",
       "organizationType": "guild",
+      "scope": "campaign",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Winterhold.md",
       "presence": [
@@ -240,6 +241,7 @@
       "id": "ladroes",
       "name": "Ladrões",
       "organizationType": "group",
+      "scope": "campaign",
       "aliases": ["Grupo dos Ladrões"],
       "sourcePath": "Guildas & Grupos/Ladrões.md",
       "presence": [
@@ -250,6 +252,7 @@
       "id": "asl",
       "name": "Adaga Sob Luar",
       "organizationType": "group",
+      "scope": "regional",
       "parentOrganizationId": "ladroes",
       "aliases": ["ASL"],
       "sourcePath": "Guildas & Grupos/Ladrões.md",
@@ -266,6 +269,7 @@
       "id": "odl",
       "name": "Olhos De Luna",
       "organizationType": "guild",
+      "scope": "campaign",
       "aliases": ["ODL"],
       "sourcePath": "Guildas & Grupos/Olhos De Luna (ODL).md",
       "presence": [
@@ -279,6 +283,7 @@
       "id": "mda",
       "name": "Mãos De Atronos",
       "organizationType": "guild",
+      "scope": "campaign",
       "aliases": ["MDA"],
       "sourcePath": "Guildas & Grupos/Mãos De Atronos (MDA).md",
       "presence": [
@@ -300,6 +305,7 @@
       "id": "pdb",
       "name": "Profusos De Batalha",
       "organizationType": "guild",
+      "scope": "campaign",
       "aliases": ["PDB"],
       "sourcePath": "Guildas & Grupos/Profusos De Batalha (PDB).md",
       "presence": [
@@ -318,6 +324,7 @@
       "id": "sda",
       "name": "Sindicado Dos Aventureiros",
       "organizationType": "guild",
+      "scope": "regional",
       "aliases": ["SDA"],
       "sourcePath": "Guildas & Grupos/Sindicado Dos Aventureiros (SDA).md",
       "presence": [
@@ -331,6 +338,7 @@
       "id": "idealistas",
       "name": "Idealistas",
       "organizationType": "guild",
+      "scope": "regional",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Idealistas.md",
       "presence": [
@@ -344,6 +352,7 @@
       "id": "red-vortex",
       "name": "Red Vortex",
       "organizationType": "cult",
+      "scope": "campaign",
       "aliases": ["RV"],
       "sourcePath": "Guildas & Grupos/Red Vortex (RV).md",
       "presence": [
@@ -354,6 +363,7 @@
       "id": "blue-pen",
       "name": "Blue Pen",
       "organizationType": "group",
+      "scope": "campaign",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Blue Pen.md",
       "presence": [
@@ -365,6 +375,7 @@
       "id": "carai-borracha",
       "name": "Carai Borracha",
       "organizationType": "group",
+      "scope": "campaign",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Carai Borracha.md",
       "presence": [
@@ -375,6 +386,7 @@
       "id": "daniels",
       "name": "Daniels",
       "organizationType": "family",
+      "scope": "regional",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Daniels.md",
       "presence": [
@@ -385,6 +397,7 @@
       "id": "genya",
       "name": "Genya",
       "organizationType": "family",
+      "scope": "regional",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Genya.md",
       "presence": [
@@ -395,6 +408,7 @@
       "id": "conselho-do-corte-de-nagawoods",
       "name": "Conselho do Corte de Nagawoods",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Guildas.md",
       "presence": [
@@ -405,6 +419,7 @@
       "id": "comunidade-dos-lotes-de-nirvak",
       "name": "Comunidade dos Lotes de Nirvak",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Guildas.md",
       "presence": [
@@ -415,6 +430,7 @@
       "id": "conselho-dos-fornos-de-jukes",
       "name": "Conselho dos Fornos de Jukes",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Guildas.md",
       "presence": [
@@ -425,6 +441,7 @@
       "id": "mesa-dos-patios-de-pijas",
       "name": "Mesa dos Pátios de Pijas",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Guildas.md",
       "presence": [
@@ -435,6 +452,7 @@
       "id": "trabalhadores-dos-silos",
       "name": "Trabalhadores dos Silos",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Guildas.md",
       "presence": [
@@ -445,6 +463,7 @@
       "id": "companhia-do-braco-sul",
       "name": "Companhia do Braço Sul",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Guildas.md",
       "presence": [
@@ -455,6 +474,7 @@
       "id": "conselho-da-varzea",
       "name": "Conselho da Várzea",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Guildas.md",
       "presence": [
@@ -465,6 +485,7 @@
       "id": "mesa-das-chamines",
       "name": "Mesa das Chaminés",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Guildas.md",
       "presence": [
@@ -475,6 +496,7 @@
       "id": "liga-dos-pesadores",
       "name": "Liga dos Pesadores",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Guildas.md",
       "presence": [
@@ -485,6 +507,7 @@
       "id": "vigias-dos-canais",
       "name": "Vigias dos Canais",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Guildas.md",
       "presence": [
@@ -495,6 +518,7 @@
       "id": "circulo-das-sete-ligas",
       "name": "Círculo das Sete Ligas",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Guildas.md",
       "presence": [
@@ -505,6 +529,7 @@
       "id": "mesa-dos-turnos",
       "name": "Mesa dos Turnos",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Guildas.md",
       "presence": [
@@ -515,6 +540,7 @@
       "id": "companhia-das-mares-seladas",
       "name": "Companhia das Marés Seladas",
       "organizationType": "group",
+      "scope": "local",
       "aliases": [],
       "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Guildas.md",
       "presence": [

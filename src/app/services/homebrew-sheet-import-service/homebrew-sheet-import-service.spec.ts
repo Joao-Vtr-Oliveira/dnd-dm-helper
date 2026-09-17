@@ -87,6 +87,11 @@ describe('HomebrewSheetImportService', () => {
 		expect(() => service.prepareImport({ ...payload([]), schemaVersion: 1 })).toThrowError(
 			/incompatível/,
 		);
+		const invalidContext = service.prepareImport(
+			payload([sheet({ locationRefs: [{ scopeType: 'global', scopeId: 'campaign', relation: 'regional' }] })]),
+		);
+		expect(invalidContext.invalid).toHaveSize(1);
+		expect(invalidContext.invalid[0].errors).toContain('locationRefs possui relações inválidas.');
 	});
 
 	it('resolves externalId and normalized name conflicts as replace, keep, and duplicate', () => {
@@ -148,6 +153,35 @@ describe('HomebrewSheetImportService', () => {
 		expect(roundTrip.invalid).toHaveSize(0);
 		expect(roundTrip.candidates[0].data.specialAbilities[0].name).toBe('Comando');
 		expect(roundTrip.candidates[0].data.rawFiveETools?.source).toBe('Notion');
+	});
+
+	it('imports contextual metadata and preserves it when replacing from a legacy sheet export', () => {
+		const locationRefs = [{ scopeType: 'state', scopeId: 'missing-state', relation: 'regional' }];
+		const organizationRefs = [
+			{ organizationId: 'missing-organization', relation: 'associated' },
+		];
+		const contextual = sheet({
+			archived: true,
+			locationRefs,
+			organizationRefs,
+		});
+		service.apply(service.prepareImport(payload([contextual])));
+		expect(storage.listSheets()[0]).toEqual(
+			jasmine.objectContaining({
+				archived: true,
+				locationRefs,
+				organizationRefs,
+			}),
+		);
+
+		service.apply(service.prepareImport(payload([sheet()])));
+		expect(storage.listSheets()[0]).toEqual(
+			jasmine.objectContaining({
+				archived: true,
+				locationRefs,
+				organizationRefs,
+			}),
+		);
 	});
 
 	it('does not write when a batch is cancelled by the caller', () => {

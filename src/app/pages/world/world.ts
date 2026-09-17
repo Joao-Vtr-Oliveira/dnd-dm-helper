@@ -6,9 +6,9 @@ import {
 	type CampaignLocationSearchResult,
 	type CampaignPointOfInterestSearchResult,
 	type CampaignOrganizationPresence,
-	type CampaignSettlement,
 	type CampaignWorld,
 	type CampaignOrganization,
+	type CampaignOrganizationScope,
 	type CampaignWorldScopeType,
 	normalizeCampaignWorldSearchText,
 	POINT_OF_INTEREST_TYPE_LABELS,
@@ -16,6 +16,7 @@ import {
 } from '../../models/campaign-world-model';
 import { CampaignContextService } from '../../services/campaign-context-service/campaign-context-service';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
+import { DialogFocusDirective } from '../../directives/dialog-focus';
 
 type WorldEditorType = 'empire' | 'state' | 'settlement' | 'poi' | 'organization';
 
@@ -28,7 +29,7 @@ type OrganizationPresenceDraft = {
 @Component({
 	selector: 'app-world-page',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [CommonModule, DialogFocusDirective, FormsModule],
 	templateUrl: './world.html',
 })
 export class WorldPage {
@@ -48,14 +49,14 @@ export class WorldPage {
 	readonly pointOfInterestTypeOptions = Object.entries(POINT_OF_INTEREST_TYPE_LABELS).map(
 		([value, label]) => ({ value, label }),
 	);
-	readonly organizationTypeSuggestions = [
-		'guild',
-		'group',
-		'cult',
-		'family',
-		'institution',
-		'company',
-		'government',
+	readonly organizationTypeOptions = [
+		{ value: 'guild', label: 'Guilda' },
+		{ value: 'group', label: 'Grupo' },
+	];
+	readonly organizationScopeOptions: Array<{ value: CampaignOrganizationScope; label: string }> = [
+		{ value: 'campaign', label: 'Campanha ou internacional' },
+		{ value: 'regional', label: 'Regional' },
+		{ value: 'local', label: 'Local' },
 	];
 	readonly presenceTypeSuggestions = [
 		'headquarters',
@@ -76,12 +77,14 @@ export class WorldPage {
 	);
 	readonly editingOrganizationId = signal<string | null>(null);
 	readonly managingOrganizationId = signal<string | null>(null);
+	readonly presenceReturnLocation = signal<CampaignLocationRef | null>(null);
 	readonly editingPresenceIndex = signal<number | null>(null);
 	readonly presenceEditorOpen = signal(false);
 	readonly presenceDraft = signal<OrganizationPresenceDraft>(this.emptyPresenceDraft());
 	editorName = '';
 	editorParentId = '';
 	editorTypeValue = '';
+	editorOrganizationScope: CampaignOrganizationScope = 'campaign';
 	editorAliases: string[] = [];
 	editorAliasInput = '';
 	editorAliasesManuallyEdited = false;
@@ -98,12 +101,33 @@ export class WorldPage {
 	readonly pointOfInterestSearchResults = computed(() =>
 		this.campaignWorld.searchPointsOfInterest(this.searchQuery()).slice(0, 8),
 	);
-	readonly activeOrganizations = computed(() =>
-		(this.campaignWorld.world()?.organizations ?? []).filter((organization) => !organization.archived),
+	readonly campaignOrganizations = computed(() =>
+		(this.campaignWorld.world()?.organizations ?? []).filter(
+			(organization) =>
+				!organization.archived &&
+				this.campaignWorld.getOrganizationScope(organization) === 'campaign' &&
+				(organization.organizationType === 'group' || organization.organizationType === 'guild'),
+		),
 	);
-	readonly archivedOrganizations = computed(() =>
-		(this.campaignWorld.world()?.organizations ?? []).filter((organization) => organization.archived),
+	readonly archivedCampaignOrganizations = computed(() =>
+		(this.campaignWorld.world()?.organizations ?? []).filter(
+			(organization) =>
+				organization.archived &&
+				this.campaignWorld.getOrganizationScope(organization) === 'campaign' &&
+				(organization.organizationType === 'group' || organization.organizationType === 'guild'),
+		),
 	);
+	readonly locationOrganizations = computed(() => {
+		const location = this.selectedLocation();
+		return location
+			? this.campaignWorld.getRelevantOrganizations(location).filter(
+					(item) =>
+						item.directPresences.length > 0 &&
+						this.campaignWorld.getOrganizationScope(item.organization) !== 'local' &&
+						(item.organization.organizationType === 'group' || item.organization.organizationType === 'guild'),
+				)
+			: [];
+	});
 	readonly organizationParentOptions = computed(() => {
 		const editingId = this.editingOrganizationId();
 		return (this.campaignWorld.world()?.organizations ?? []).filter(
@@ -212,8 +236,8 @@ export class WorldPage {
 		return current?.scopeType === ref.scopeType && current.scopeId === ref.scopeId;
 	}
 
-	settlementLabel(settlement: CampaignSettlement): string {
-		return `${settlement.name} · ${SETTLEMENT_TYPE_LABELS[settlement.settlementType]}`;
+	locationLabel(ref: CampaignLocationRef): string {
+		return this.campaignWorld.resolveLocation(ref)?.label ?? ref.scopeId;
 	}
 
 	locationTypeLabel(ref: CampaignLocationRef): string {
@@ -242,6 +266,7 @@ export class WorldPage {
 					: type === 'organization'
 						? 'group'
 						: '';
+		this.editorOrganizationScope = this.defaultOrganizationScope();
 		this.editorAliases = [];
 		this.editorAliasInput = '';
 		this.editorAliasesManuallyEdited = false;
@@ -256,20 +281,26 @@ export class WorldPage {
 		this.editorName = organization.name;
 		this.editorParentId = organization.parentOrganizationId ?? '';
 		this.editorTypeValue = organization.organizationType;
+		this.editorOrganizationScope = this.campaignWorld.getOrganizationScope(organization);
 		this.editorAliases = [...organization.aliases];
 		this.editorAliasesManuallyEdited = true;
 	}
 
 	openPresenceManager(organizationId: string): void {
 		if (!this.campaignWorld.getOrganization(organizationId)) return;
+		this.presenceReturnLocation.set(this.selectedLocation());
+		this.selectRoot();
 		this.managingOrganizationId.set(organizationId);
 		this.cancelPresenceEditor();
 		this.editorMessage.set(null);
 	}
 
 	closePresenceManager(): void {
+		const returnLocation = this.presenceReturnLocation();
 		this.managingOrganizationId.set(null);
+		this.presenceReturnLocation.set(null);
 		this.cancelPresenceEditor();
+		if (returnLocation) this.selectLocation(returnLocation);
 	}
 
 	openPresenceEditor(): void {
@@ -477,6 +508,7 @@ export class WorldPage {
 				name: this.editorName.trim(),
 				aliases,
 				organizationType: this.editorTypeValue.trim() || 'group',
+				scope: this.editorOrganizationScope,
 				presence: existing?.presence ?? [],
 			};
 			if (
@@ -593,6 +625,25 @@ export class WorldPage {
 		if (type === 'settlement' && location.state) return location.state.id;
 		if (type === 'poi' && location.settlement) return location.settlement.id;
 		return '';
+	}
+
+	organizationScopeLabel(organization: CampaignOrganization): string {
+		return (
+			this.organizationScopeOptions.find(
+				(option) => option.value === this.campaignWorld.getOrganizationScope(organization),
+			)?.label ?? 'Regional'
+		);
+	}
+
+	locationOrganizationTitle(): string {
+		return this.selectedLocation()?.scopeType === 'settlement'
+			? 'Organizações nesta localidade'
+			: 'Organizações nesta região';
+	}
+
+	private defaultOrganizationScope(): CampaignOrganizationScope {
+		const scopeType = this.selectedLocation()?.scopeType;
+		return scopeType === 'settlement' ? 'local' : scopeType ? 'regional' : 'campaign';
 	}
 
 	private setPartyLocation(ref: CampaignLocationRef): void {

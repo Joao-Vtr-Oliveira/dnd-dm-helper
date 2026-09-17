@@ -80,6 +80,9 @@ describe('HomebrewSheets', () => {
 			category: 'npc',
 			source: 'Notion',
 			externalId: 'npc-zhang-huang',
+			archived: true,
+			locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'regional' }],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'associated' }],
 			data: {
 				name: 'Zhang Huang',
 				maxHp: 10,
@@ -108,6 +111,9 @@ describe('HomebrewSheets', () => {
 		expect(exported.type).toBe('homebrew-sheets');
 		expect(exported.schemaVersion).toBe(2);
 		expect(exported.sheets[0].externalId).toBe('npc-zhang-huang');
+		expect(exported.sheets[0].archived).toBeTrue();
+		expect(exported.sheets[0].locationRefs).toEqual(sheet.locationRefs);
+		expect(exported.sheets[0].organizationRefs).toEqual(sheet.organizationRefs);
 	});
 
 	it('requires confirmation before deleting a sheet', () => {
@@ -144,6 +150,34 @@ describe('HomebrewSheets', () => {
 		expect(dialog?.getAttribute('aria-modal')).toBe('true');
 		component.onEscape();
 		expect(component.importOpen()).toBeFalse();
+	});
+
+	it('cascades location filters from a settlement and clears every filter', () => {
+		component.campaignWorld.world.set({
+			empires: [{ id: 'empire', name: 'Empire', aliases: [] }],
+			states: [{ id: 'state', name: 'State', aliases: [], empireId: 'empire' }],
+			settlements: [
+				{ id: 'settlement', name: 'Settlement', aliases: [], stateId: 'state', settlementType: 'city' },
+			],
+			organizations: [],
+			pointsOfInterest: [],
+		} as never);
+
+		component.setSettlementFilter('settlement');
+		component.statusFilter.set('archived');
+		component.characterClassFilter.set('wizard');
+		component.organizationFilter.set('arcane-order');
+
+		expect(component.empireFilter()).toBe('empire');
+		expect(component.stateFilter()).toBe('state');
+		expect(component.settlementFilter()).toBe('settlement');
+		component.clearFilters();
+		expect(component.statusFilter()).toBe('active');
+		expect(component.empireFilter()).toBe('all');
+		expect(component.stateFilter()).toBe('all');
+		expect(component.settlementFilter()).toBe('all');
+		expect(component.characterClassFilter()).toBe('all');
+		expect(component.organizationFilter()).toBe('all');
 	});
 
 	it('previews the 5etools write before creating a backup or changing the file', async () => {

@@ -5,6 +5,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import type { CompendiumSpellListEntry } from '../../models/compendium-spell-model';
 import { CompendiumSpellRepositoryService } from '../../services/compendium-spell-repository-service/compendium-spell-repository-service';
 import { CompendiumSuggestionsService } from '../../services/compendium-suggestions-service/compendium-suggestions-service';
+import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
 import { HomebrewBuilder } from './homebrew-builder';
 
 describe('HomebrewBuilder', () => {
@@ -267,6 +268,24 @@ describe('HomebrewBuilder', () => {
 		component.save();
 		expect(component.toast()?.type).toBe('warn');
 		expect(component.toast()?.text).toContain('nome');
+	});
+
+	it('saves contextual metadata in the sheet envelope without changing the stat block', () => {
+		const storage = TestBed.inject(LocalStorageService);
+		component.setTitle('Guarda regional');
+		component.archived.set(true);
+		component.locationRefs.set([{ scopeType: 'state', scopeId: 'missing-state', relation: 'generic' }]);
+		component.organizationRefs.set([
+			{ organizationId: 'missing-organization', relation: 'institution' },
+		]);
+		component.save();
+
+		const saved = storage.listSheets()[0];
+		expect(saved.archived).toBeTrue();
+		expect(saved.locationRefs).toEqual(component.locationRefs());
+		expect(saved.organizationRefs).toEqual(component.organizationRefs());
+		expect('locationRefs' in saved.data).toBeFalse();
+		expect('organizationRefs' in saved.data).toBeFalse();
 	});
 
 	it('uses the four requested semantic groups without native selects or datalists', () => {

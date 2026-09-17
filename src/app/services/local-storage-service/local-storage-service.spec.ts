@@ -82,7 +82,56 @@ describe('LocalStorageService', () => {
 		);
 
 		expect(service.listSheets().map((sheet) => sheet.data.armorClass)).toEqual([15, null]);
+		expect(service.listSheets()[0].archived).toBeUndefined();
+		expect(service.listSheets()[0].locationRefs).toBeUndefined();
+		expect(service.listSheets()[0].organizationRefs).toBeUndefined();
 		expect(service.listEncounters()[0].participants[0].initiative).toBe(0);
 		expect(service.listEncounters()[0].participants[0].sheet.armorClass).toBeNull();
+	});
+
+	it('preserves contextual sheet metadata outside stat blocks and during duplication', () => {
+		const sheet = service.createSheet({
+			title: 'Patrulheiro de Contato C',
+			category: 'npc',
+			data: {
+				name: 'Patrulheiro de Contato C',
+				armorClass: 15,
+				maxHp: 24,
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+				features: [],
+			},
+			archived: true,
+			locationRefs: [{ scopeType: 'state', scopeId: 'plomos', relation: 'generic' }],
+			organizationRefs: [{ organizationId: 'guard', relation: 'institution' }],
+		});
+		const duplicate = service.duplicateSheet(sheet.id)!;
+
+		expect(sheet.archived).toBeTrue();
+		expect(duplicate.locationRefs).toEqual(sheet.locationRefs);
+		expect(duplicate.organizationRefs).toEqual(sheet.organizationRefs);
+		expect('locationRefs' in sheet.data).toBeFalse();
+		expect('organizationRefs' in sheet.data).toBeFalse();
+
+		const encounter = service.createEncounter('Patrulha', {
+			schemaVersion: 1,
+			type: 'dnd-dm-helper-encounter',
+			tags: [],
+			participants: [
+				{
+					id: 'patrol',
+					sourceSheetId: sheet.id,
+					name: sheet.title,
+					category: 'npc',
+					initiative: null,
+					sheet: sheet.data,
+				},
+			],
+			lairActions: [],
+			traps: [],
+		});
+		expect('locationRefs' in encounter.participants[0].sheet).toBeFalse();
+		expect('organizationRefs' in encounter.participants[0].sheet).toBeFalse();
 	});
 });

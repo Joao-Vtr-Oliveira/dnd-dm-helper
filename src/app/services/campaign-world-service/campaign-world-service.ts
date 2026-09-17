@@ -15,6 +15,7 @@ import {
 	type ResolvedCampaignLocation,
 	type RelevantCampaignOrganization,
 	SETTLEMENT_TYPE_LABELS,
+	resolveCampaignOrganizationScope,
 	normalizeCampaignWorldSearchText,
 	validateCampaignWorld,
 } from '../../models/campaign-world-model';
@@ -135,6 +136,10 @@ export class CampaignWorldService {
 
 	getOrganization(id: string): CampaignOrganization | null {
 		return this.organizationsById.get(id) ?? null;
+	}
+
+	getOrganizationScope(organization: CampaignOrganization) {
+		return resolveCampaignOrganizationScope(organization);
 	}
 
 	getPointOfInterest(id: string): CampaignPointOfInterest | null {
@@ -265,13 +270,14 @@ export class CampaignWorldService {
 			if (!state) return null;
 			const empire = this.getEmpire(state.empireId);
 			if (!empire) return null;
+			const stateLabel = this.stateLabel(state, empire);
 			return {
 				ref: { scopeType: 'state', scopeId: state.id },
 				empire,
 				state,
 				settlement: null,
-				label: state.name,
-				breadcrumb: [empire.name, state.name],
+				label: stateLabel,
+				breadcrumb: [empire.name, stateLabel],
 			};
 		}
 		const settlement = this.findLocation(this.world()?.settlements ?? [], ref.scopeId);
@@ -279,7 +285,8 @@ export class CampaignWorldService {
 		const state = this.getState(settlement.stateId);
 		const empire = state ? this.getEmpire(state.empireId) : null;
 		if (!state || !empire) return null;
-		const settlementLabel = [empire.name, state.name].includes(settlement.name)
+		const stateLabel = this.stateLabel(state, empire);
+		const settlementLabel = [empire.name, state.name].some((name) => this.sameLocationName(name, settlement.name))
 			? `${settlement.name} (${SETTLEMENT_TYPE_LABELS[settlement.settlementType]})`
 			: settlement.name;
 		return {
@@ -287,8 +294,8 @@ export class CampaignWorldService {
 			empire,
 			state,
 			settlement,
-			label: settlement.name,
-			breadcrumb: [empire.name, state.name, settlementLabel],
+			label: settlementLabel,
+			breadcrumb: [empire.name, stateLabel, settlementLabel],
 		};
 	}
 
@@ -342,6 +349,20 @@ export class CampaignWorldService {
 
 	private scopeKey(scopeType: CampaignWorldScopeType, scopeId?: string): string {
 		return `${scopeType}:${scopeId ?? ''}`;
+	}
+
+	private stateLabel(state: CampaignState, empire: CampaignEmpire): string {
+		const hasSettlementWithSameName = (this.world()?.settlements ?? []).some(
+			(settlement) =>
+				settlement.stateId === state.id && this.sameLocationName(settlement.name, state.name),
+		);
+		return hasSettlementWithSameName || this.sameLocationName(state.name, empire.name)
+			? `${state.name} (Estado)`
+			: state.name;
+	}
+
+	private sameLocationName(left: string, right: string): boolean {
+		return normalizeCampaignWorldSearchText(left) === normalizeCampaignWorldSearchText(right);
 	}
 
 	private matchesLocationSearch(

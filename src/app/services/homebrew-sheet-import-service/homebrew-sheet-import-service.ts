@@ -6,6 +6,14 @@ import type {
 	CreatureSpecialAbility,
 } from '../../models/creature-sheet-model';
 import {
+	isContentLocationRelation,
+	isContentOrganizationRelation,
+	normalizeContentLocationRelations,
+	normalizeContentOrganizationRelations,
+	type ContentLocationRelation,
+	type ContentOrganizationRelation,
+} from '../../models/content-context-model';
+import {
 	LocalStorageService,
 	type HomebrewCategory,
 	type SavedSheetInterface,
@@ -22,6 +30,9 @@ export interface HomebrewSheetImportCandidate {
 	source: string;
 	externalId: string;
 	data: CreatureSheet;
+	archived?: boolean;
+	locationRefs?: ContentLocationRelation[];
+	organizationRefs?: ContentOrganizationRelation[];
 	extra: Record<string, unknown>;
 	warnings: string[];
 }
@@ -71,7 +82,17 @@ const RECOVERY_TYPES: CreatureAbilityRecoveryType[] = [
 	'long-rest',
 	'dice-recharge',
 ];
-const SHEET_FIELDS = new Set(['title', 'category', 'tags', 'source', 'externalId', 'data']);
+const SHEET_FIELDS = new Set([
+	'title',
+	'category',
+	'tags',
+	'source',
+	'externalId',
+	'archived',
+	'locationRefs',
+	'organizationRefs',
+	'data',
+]);
 
 interface RawEnvelope extends Record<string, unknown> {
 	app?: unknown;
@@ -89,6 +110,9 @@ interface RawSheet extends Record<string, unknown> {
 	category?: unknown;
 	tags?: unknown;
 	externalId?: unknown;
+	archived?: unknown;
+	locationRefs?: unknown;
+	organizationRefs?: unknown;
 	data?: unknown;
 }
 
@@ -275,6 +299,9 @@ export class HomebrewSheetImportService {
 			index,
 		);
 		const tags = this.tags(sheet.tags, errors);
+		const archived = this.archived(sheet.archived, errors);
+		const locationRefs = this.locationRefs(sheet.locationRefs, errors);
+		const organizationRefs = this.organizationRefs(sheet.organizationRefs, errors);
 		const extra = this.unknownFields(sheet);
 		const dataUnknown = candidateData ? this.unknownDataFields(candidateData) : [];
 		if ('id' in sheet || 'createdAt' in sheet || 'updatedAt' in sheet) {
@@ -310,6 +337,9 @@ export class HomebrewSheetImportService {
 				source,
 				externalId,
 				data: normalizedData,
+				...(archived === undefined ? {} : { archived }),
+				...(locationRefs === undefined ? {} : { locationRefs }),
+				...(organizationRefs === undefined ? {} : { organizationRefs }),
 				extra,
 				warnings,
 			},
@@ -537,6 +567,13 @@ export class HomebrewSheetImportService {
 		return {
 			...next,
 			...this.knownFields(existing),
+			...(candidate.archived === undefined && existing.archived ? { archived: true } : {}),
+			...(candidate.locationRefs === undefined && existing.locationRefs?.length
+				? { locationRefs: existing.locationRefs }
+				: {}),
+			...(candidate.organizationRefs === undefined && existing.organizationRefs?.length
+				? { organizationRefs: existing.organizationRefs }
+				: {}),
 			...candidate.extra,
 			id: existing.id,
 			createdAt: existing.createdAt,
@@ -556,6 +593,9 @@ export class HomebrewSheetImportService {
 			'category',
 			'tags',
 			'source',
+			'archived',
+			'locationRefs',
+			'organizationRefs',
 		]);
 		return Object.fromEntries(Object.entries(sheet).filter(([key]) => !known.has(key)));
 	}
@@ -607,6 +647,33 @@ export class HomebrewSheetImportService {
 			return [];
 		}
 		return value.map((tag) => tag.trim()).filter(Boolean);
+	}
+
+	private archived(value: unknown, errors: string[]): boolean | undefined {
+		if (value === undefined) return undefined;
+		if (typeof value !== 'boolean') {
+			errors.push('archived precisa ser booleano.');
+			return undefined;
+		}
+		return value;
+	}
+
+	private locationRefs(value: unknown, errors: string[]): ContentLocationRelation[] | undefined {
+		if (value === undefined) return undefined;
+		if (!Array.isArray(value) || !value.every((item) => isContentLocationRelation(item))) {
+			errors.push('locationRefs possui relações inválidas.');
+			return undefined;
+		}
+		return normalizeContentLocationRelations(value);
+	}
+
+	private organizationRefs(value: unknown, errors: string[]): ContentOrganizationRelation[] | undefined {
+		if (value === undefined) return undefined;
+		if (!Array.isArray(value) || !value.every((item) => isContentOrganizationRelation(item))) {
+			errors.push('organizationRefs possui relações inválidas.');
+			return undefined;
+		}
+		return normalizeContentOrganizationRelations(value);
 	}
 
 	private externalId(

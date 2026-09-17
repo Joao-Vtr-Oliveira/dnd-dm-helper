@@ -2,6 +2,7 @@ import type { CampaignCalendar, DeityId, Season } from './calendar-model';
 
 export type CampaignSettlementType = string;
 export type CampaignOrganizationType = string;
+export type CampaignOrganizationScope = 'campaign' | 'regional' | 'local';
 export type CampaignPointOfInterestType = string;
 export type CampaignWorldScopeType = 'global' | 'empire' | 'state' | 'settlement';
 export type CampaignLocationScope = Exclude<CampaignWorldScopeType, 'global'>;
@@ -30,6 +31,8 @@ export interface CampaignOrganizationPresence {
 
 export interface CampaignOrganization extends CampaignEmpire {
 	organizationType: CampaignOrganizationType;
+	/** Controls where the organization is managed in the World UI. */
+	scope?: CampaignOrganizationScope;
 	parentOrganizationId?: string;
 	presence: CampaignOrganizationPresence[];
 	archived?: boolean;
@@ -130,6 +133,24 @@ export interface CampaignWorldValidationResult {
 	error?: string;
 }
 
+const ORGANIZATION_SCOPES: CampaignOrganizationScope[] = ['campaign', 'regional', 'local'];
+
+/** Older worlds did not classify organizations. Preserve them with a deterministic fallback. */
+export function resolveCampaignOrganizationScope(
+	organization: Pick<CampaignOrganization, 'scope' | 'presence'>,
+): CampaignOrganizationScope {
+	if (organization.scope) return organization.scope;
+	if (organization.presence.some((presence) => presence.scopeType === 'global')) return 'campaign';
+	const locationKeys = new Set(
+		organization.presence
+			.filter((presence) => presence.scopeType !== 'global')
+			.map((presence) => `${presence.scopeType}:${presence.scopeId ?? ''}`),
+	);
+	return locationKeys.size === 1 && organization.presence.every((presence) => presence.scopeType === 'settlement')
+		? 'local'
+		: 'regional';
+}
+
 const SETTLEMENT_TYPES: CampaignSettlementType[] = ['village', 'city', 'capital', 'other'];
 const POINT_OF_INTEREST_TYPES: CampaignPointOfInterestType[] = [
 	'academy',
@@ -167,6 +188,7 @@ interface UnknownCampaignRecord {
 	settlementId?: unknown;
 	settlementType?: unknown;
 	organizationType?: unknown;
+	scope?: unknown;
 	poiType?: unknown;
 	summary?: unknown;
 	organizationIds?: unknown;
@@ -353,6 +375,8 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 			!isRecord(organization) ||
 			!hasText(organization.organizationType) ||
 			!Array.isArray(organization.presence) ||
+			(organization.scope !== undefined &&
+				!ORGANIZATION_SCOPES.includes(organization.scope as CampaignOrganizationScope)) ||
 			(organization.parentOrganizationId !== undefined &&
 				!hasText(organization.parentOrganizationId)) ||
 			(organization.archived !== undefined && typeof organization.archived !== 'boolean')

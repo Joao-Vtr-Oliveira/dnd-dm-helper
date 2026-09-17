@@ -9,7 +9,29 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
 - [x] Task 0: contrato e baseline confirmados.
 - [x] Task 1: Organizations CRUD concluído em 2026-09-17.
 - [x] Task 2: Organization Presence CRUD concluído em 2026-09-17.
-- [ ] Proxima task: Task 3, metadata contextual de CreatureSheets.
+- [x] Task 3: metadata contextual de CreatureSheets concluída em 2026-09-17.
+- [x] Task 4: filtros de CreatureSheets concluída em 2026-09-17.
+- [x] Correções pós-Task 4: compatibilidade de tags, escopos organizacionais e navegação do World concluídas em 2026-09-17.
+- [ ] Proxima task: Task 5, metadata contextual de Encounters.
+
+## Correções pós-Task 4
+
+- Tags legadas com correspondência exata a uma única identidade geográfica registrada
+  passam a ser relações de compatibilidade para filtros. Correspondência ambígua entre
+  império, estado ou localidade é ignorada. Tags exatas de guildas/grupos elegíveis
+  fazem o mesmo para filtros institucionais. A derivação não grava, migra ou altera a
+  ficha e não consulta títulos, descrições, POIs ou presenças.
+- Organizações possuem escopo `campaign`, `regional` ou `local`. Os seletores e o
+  catálogo raiz usam somente guildas/grupos não locais. Uma página territorial mostra
+  somente guildas/grupos não locais com presença direta, nunca redes globais ou
+  presenças herdadas. Mundos antigos usam fallback determinístico até revisão.
+- Rótulos de localização são desambiguados genericamente: qualquer estado que compartilhe
+  nome com uma localidade mostra `(Estado)` e a localidade mostra seu tipo, como `(Cidade)`.
+- O gerenciamento de presenças abre em diálogo modal e restaura a localização que estava
+  sendo visualizada ao fechar.
+- Selecionar império encontra conteúdo daquele império e seus descendentes; selecionar
+  estado ou localidade não inclui relações mais amplas. Isso impede que conteúdo de Feng
+  ou genérico de Mornk apareça ao filtrar Drek.
 
 ## Estado atual encontrado
 
@@ -26,9 +48,10 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
 - `SavedSheetInterface` ja e o envelope editorial de uma `CreatureSheet`: ID,
   categoria, tags e source vivem nele. `CreatureSheet.data` e o stat block
   reutilizavel.
-- Nao existem `archived`, `locationRefs` ou `organizationRefs` em fichas ou
-  encounters.
-- Homebrew Sheets ja filtra texto, categoria, tag e source. Encounter Hub ja filtra
+- Fichas usam `archived?`, `locationRefs?` e `organizationRefs?` no envelope
+  `SavedSheetInterface`; encounters ainda nao possuem essa metadata.
+- Homebrew Sheets filtra texto, categoria, tag, source, lifecycle, tipo de criatura,
+  classe por tag canonica, localizacao e organizacao formal. Encounter Hub ja filtra
   texto e estado de batalha, mas esse estado nao e o ciclo de vida editorial.
 - `Encounter` contem snapshots de participantes; `BattleEncounter` e runtime. A
   metadata contextual nao deve entrar nos snapshots.
@@ -56,16 +79,23 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
   preparacao editorial.
 - `archived` sera opcional. Registros antigos sem esse campo serao tratados como
   ativos.
-- `tags` e `groups` legados continuam para busca e filtros textuais/tags. Nunca
-  serao convertidos automaticamente em relacao organizacional ou localizacao.
-- Classe/funcao estruturada nao entra na V1: a arquitetura atual exigiria uma nova
-  taxonomia. Tags livres continuam como fallback.
+- `tags` e `groups` legados continuam para busca e filtros textuais/tags. Como
+  compatibilidade de leitura, somente tags exatas que correspondam sem ambiguidade a
+  nome ou alias registrado de uma localizacao, ou a uma guilda/grupo elegivel, podem
+  participar dos filtros contextuais; isso nao cria relacao persistida nem usa texto
+  livre ou presencas.
+- Classes de personagem usam o catalogo imutavel de 13 classes 5e, incluindo
+  Artificer. O filtro consulta tags canonicas exatas do envelope da ficha, sem criar
+  campo duplicado, migrar tags ou inferir a partir de texto livre.
+- Tipos oficiais de criatura usam o catalogo imutavel de 14 tipos 5e. Tipos customizados
+  permanecem validos e pesquisaveis por texto, mas nao ganham uma faceta canonica.
 - Conteudo sem referencia formal nao e global. Uma ficha generica so entra no
   contexto se tambem possuir uma relacao geografica aplicavel.
 - Relacoes com IDs inexistentes devem ser preservadas, avisadas no editor e
   ignoradas pelo resolver, nunca apagadas automaticamente.
-- O filtro geografico da biblioteca sera hierarquico e descritivo. Isso nao afirma
-  que o conteudo esteja "disponivel aqui".
+- O filtro geografico da biblioteca inclui o escopo selecionado e seus descendentes,
+  nunca uma relacao ancestral mais ampla. Isso nao afirma que o conteudo esteja
+  "disponivel aqui".
 - O resolver e mais estrito: relacao com outro settlement do mesmo estado nao entra
   como "Aqui".
 - Uma ficha generica da Guarda pode ter relacao institucional com a organizacao e
@@ -137,6 +167,8 @@ Status: concluida.
 
 ### Task 3: Adicionar metadata contextual a CreatureSheets
 
+Status: concluida.
+
 - Objetivo: adicionar lifecycle e relacoes formais opcionais ao catalogo de fichas.
 - Arquivos/areas provavelmente afetados: novo model contextual compartilhado,
   `local-storage-service.ts`, Homebrew Builder, import/export individual,
@@ -159,15 +191,18 @@ Status: concluida.
 
 ### Task 4: Evoluir filtros de CreatureSheets
 
+Status: concluida.
+
 - Objetivo: completar os filtros existentes com status, localizacao e organizacao.
 - Arquivos/areas provavelmente afetados: `pages/homebrew-sheets/`, possivel servico
   puro de filtros e specs da pagina.
 - Models envolvidos: `SavedSheetInterface`, relacoes contextuais e `CampaignWorld`.
 - Comportamento esperado: texto, categoria, tags, source legado,
   `Ativos | Arquivados | Todos`, imperio, estado, settlement e organizacao; filtro
-  organizacional usa somente `organizationId`.
+  organizacional usa `organizationId` formal ou uma tag legada exata reconhecida pelo
+  catalogo do World.
 - Compatibilidade necessaria: filtros atuais continuam funcionando; tags/groups nao
-  viram filiacao; ausencia de relacao nao equivale a global.
+  viram filiacao persistida; ausencia de relacao nao equivale a global.
 - Testes obrigatorios: filtro de cada faceta; composicao de facetas; padrao ativo;
   tags/groups no texto; organizacao por ID; localizacao hierarquica de catalogo;
   referencia quebrada sem crash.
@@ -288,10 +323,11 @@ Status: concluida.
 - [x] Registry unico em `campaignWorld.organizations`.
 - [x] CRUD e arquivamento de organizacoes.
 - [x] CRUD de presencas sem presenca automatica de membros.
-- [ ] Metadata opcional e compativel em fichas.
+- [x] Metadata opcional e compativel em fichas.
 - [ ] Metadata opcional e compativel em encounters.
-- [ ] Filtros formais de ficha e encounter.
-- [ ] Sem catalogo novo de classe/funcao.
+- [x] Filtros formais de ficha.
+- [ ] Filtros formais de encounter.
+- [x] Catalogos imutaveis de classe e tipo de criatura 5e, sem catalogo customizado de funcao.
 - [ ] Resolver restrito a imperio, estado e settlement.
 - [ ] "Disponivel aqui" simples no Encounter Hub.
 - [ ] Backup V2, World, Workspaces, import/export e snapshots cobertos por regressoes.

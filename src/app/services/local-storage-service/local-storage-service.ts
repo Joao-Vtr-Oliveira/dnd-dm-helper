@@ -1,6 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
+import {
+	normalizeContentLocationRelations,
+	normalizeContentOrganizationRelations,
+	type ContentLocationRelation,
+	type ContentOrganizationRelation,
+} from '../../models/content-context-model';
 import type { Encounter, EncounterLairAction, EncounterParticipant, EncounterTrap } from '../../models/encounter-model';
 import type { CreatureCategory, CreatureSheet } from '../../models/creature-sheet-model';
 import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
@@ -21,6 +27,9 @@ export interface SavedSheetInterface {
 	category: HomebrewCategory;
 	tags: string[];
 	source: string;
+	archived?: boolean;
+	locationRefs?: ContentLocationRelation[];
+	organizationRefs?: ContentOrganizationRelation[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -157,6 +166,9 @@ export class LocalStorageService {
 		tags?: string[];
 		source?: string;
 		externalId?: string;
+		archived?: boolean;
+		locationRefs?: ContentLocationRelation[];
+		organizationRefs?: ContentOrganizationRelation[];
 	}): SavedSheetInterface {
 		const item = this.buildSheet(params);
 
@@ -171,6 +183,9 @@ export class LocalStorageService {
 		tags?: string[];
 		source?: string;
 		externalId?: string;
+		archived?: boolean;
+		locationRefs?: ContentLocationRelation[];
+		organizationRefs?: ContentOrganizationRelation[];
 		extra?: Record<string, unknown>;
 	}): SavedSheetInterface {
 		const now = Date.now();
@@ -185,6 +200,13 @@ export class LocalStorageService {
 			category: this.normalizeHomebrewCategory(params.category),
 			tags: (params.tags ?? []).map((t) => t.trim()).filter(Boolean),
 			source: (params.source || '').trim(),
+			...(params.archived ? { archived: true } : {}),
+			...(params.locationRefs?.length
+				? { locationRefs: normalizeContentLocationRelations(params.locationRefs) }
+				: {}),
+			...(params.organizationRefs?.length
+				? { organizationRefs: normalizeContentOrganizationRelations(params.organizationRefs) }
+				: {}),
 		};
 	}
 
@@ -216,6 +238,9 @@ export class LocalStorageService {
 			tags: curr.tags,
 			source: curr.source,
 			externalId: this.deriveDuplicateExternalId(curr.externalId),
+			...(curr.archived ? { archived: true } : {}),
+			...(curr.locationRefs?.length ? { locationRefs: curr.locationRefs } : {}),
+			...(curr.organizationRefs?.length ? { organizationRefs: curr.organizationRefs } : {}),
 		});
 	}
 
@@ -234,6 +259,12 @@ export class LocalStorageService {
 	private normalizeSheet(sheet: Partial<SavedSheetInterface>): SavedSheetInterface {
 		const now = Date.now();
 		const candidate = structuredClone(sheet) as Record<string, unknown>;
+		const locationRefs = Array.isArray(sheet.locationRefs)
+			? normalizeContentLocationRelations(sheet.locationRefs)
+			: undefined;
+		const organizationRefs = Array.isArray(sheet.organizationRefs)
+			? normalizeContentOrganizationRelations(sheet.organizationRefs)
+			: undefined;
 		return {
 			...candidate,
 			id: typeof sheet.id === 'string' ? sheet.id : crypto.randomUUID(),
@@ -245,6 +276,9 @@ export class LocalStorageService {
 			category: this.normalizeHomebrewCategory(sheet.category),
 			tags: Array.isArray(sheet.tags) ? sheet.tags.map((tag) => tag.trim()).filter(Boolean) : [],
 			source: (sheet.source || '').trim(),
+			...(sheet.archived === true ? { archived: true } : {}),
+			...(locationRefs ? { locationRefs } : {}),
+			...(organizationRefs ? { organizationRefs } : {}),
 		};
 	}
 
