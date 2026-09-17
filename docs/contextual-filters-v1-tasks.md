@@ -4,34 +4,35 @@
 
 Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
 
+> [!important] Contrato semântico vigente
+> Leia `docs/contextual-content-contract-draft.md` antes de executar ou revisar
+> qualquer task. Ele substitui as decisões antigas deste arquivo sobre fallback de
+> tags, escopo `generic`, elegibilidade de organizações locais e composição da Guarda.
+> Esta lista continua sendo o roadmap técnico, mas não é mais a autoridade semântica.
+> Para retomar o trabalho, use também `docs/prompt-retomar-correcao-contextual-filters.md`.
+
 ## Andamento
 
 - [x] Task 0: contrato e baseline confirmados.
 - [x] Task 1: Organizations CRUD concluído em 2026-09-17.
 - [x] Task 2: Organization Presence CRUD concluído em 2026-09-17.
-- [x] Task 3: metadata contextual de CreatureSheets concluída em 2026-09-17.
-- [x] Task 4: filtros de CreatureSheets concluída em 2026-09-17.
-- [x] Correções pós-Task 4: compatibilidade de tags, escopos organizacionais e navegação do World concluídas em 2026-09-17.
-- [ ] Proxima task: Task 5, metadata contextual de Encounters.
+- [ ] Task 3: metadata contextual de CreatureSheets concluída anteriormente, mas requer revisão conforme o contrato vigente.
+- [ ] Task 4: filtros de CreatureSheets concluída anteriormente, mas requer remoção do fallback contextual de tags/groups.
+- [ ] Revisão pós-Task 4: corrigir compatibilidade contextual, elegibilidade organizacional e navegação do World conforme o contrato vigente.
+- [ ] Proxima task: revisão pós-Task 4; somente depois iniciar a Task 5 de metadata contextual de Encounters.
 
-## Correções pós-Task 4
+## Regras antigas superseded
 
-- Tags legadas com correspondência exata a uma única identidade geográfica registrada
-  passam a ser relações de compatibilidade para filtros. Correspondência ambígua entre
-  império, estado ou localidade é ignorada. Tags exatas de guildas/grupos elegíveis
-  fazem o mesmo para filtros institucionais. A derivação não grava, migra ou altera a
-  ficha e não consulta títulos, descrições, POIs ou presenças.
-- Organizações possuem escopo `campaign`, `regional` ou `local`. Os seletores e o
-  catálogo raiz usam somente guildas/grupos não locais. Uma página territorial mostra
-  somente guildas/grupos não locais com presença direta, nunca redes globais ou
-  presenças herdadas. Mundos antigos usam fallback determinístico até revisão.
-- Rótulos de localização são desambiguados genericamente: qualquer estado que compartilhe
-  nome com uma localidade mostra `(Estado)` e a localidade mostra seu tipo, como `(Cidade)`.
-- O gerenciamento de presenças abre em diálogo modal e restaura a localização que estava
-  sendo visualizada ao fechar.
-- Selecionar império encontra conteúdo daquele império e seus descendentes; selecionar
-  estado ou localidade não inclui relações mais amplas. Isso impede que conteúdo de Feng
-  ou genérico de Mornk apareça ao filtrar Drek.
+O bloco anterior de “Correções pós-Task 4” foi substituído. Em particular:
+
+- tags e `groups` continuam disponíveis para busca textual, mas não participam de
+  filtros geográficos, organizacionais ou de disponibilidade;
+- `generic` é uma flag explícita de arquétipo reutilizável, não uma relação de
+  localização;
+- filtros organizacionais usam `organizationId` formal;
+- organizações locais são válidas quando a entidade coletiva e sua presença estão
+  explicitamente registradas;
+- as regras exatas de hierarquia e exibição estão no contrato movido.
 
 ## Estado atual encontrado
 
@@ -79,18 +80,16 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
   preparacao editorial.
 - `archived` sera opcional. Registros antigos sem esse campo serao tratados como
   ativos.
-- `tags` e `groups` legados continuam para busca e filtros textuais/tags. Como
-  compatibilidade de leitura, somente tags exatas que correspondam sem ambiguidade a
-  nome ou alias registrado de uma localizacao, ou a uma guilda/grupo elegivel, podem
-  participar dos filtros contextuais; isso nao cria relacao persistida nem usa texto
-  livre ou presencas.
+- `tags` e `groups` legados continuam somente para busca e filtros textuais/tags. Eles
+  nunca participam dos filtros contextuais e nunca criam uma relacao persistida.
 - Classes de personagem usam o catalogo imutavel de 13 classes 5e, incluindo
   Artificer. O filtro consulta tags canonicas exatas do envelope da ficha, sem criar
   campo duplicado, migrar tags ou inferir a partir de texto livre.
 - Tipos oficiais de criatura usam o catalogo imutavel de 14 tipos 5e. Tipos customizados
   permanecem validos e pesquisaveis por texto, mas nao ganham uma faceta canonica.
-- Conteudo sem referencia formal nao e global. Uma ficha generica so entra no
-  contexto se tambem possuir uma relacao geografica aplicavel.
+- Conteudo sem referencia formal nao e global. Uma ficha `generic: true` e um
+  arquetipo reutilizavel sem localizacao fisica e nao entra automaticamente em um
+  filtro territorial.
 - Relacoes com IDs inexistentes devem ser preservadas, avisadas no editor e
   ignoradas pelo resolver, nunca apagadas automaticamente.
 - O filtro geografico da biblioteca inclui o escopo selecionado e seus descendentes,
@@ -99,8 +98,8 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
 - O resolver e mais estrito: relacao com outro settlement do mesmo estado nao entra
   como "Aqui".
 - Uma ficha generica da Guarda pode ter relacao institucional com a organizacao e
-  varias relacoes geograficas `generic` para composicoes estaduais, sem duplicar o
-  stat block.
+  permanecer sem `locationRefs`; a composicao estadual deve ser uma relacao separada
+  e explicita que aponta para o `externalId` do arquetipo, sem duplicar o stat block.
 - Backup V2 nao ganha uma copia de `CampaignWorld`: metadata de fichas e encounters
   continua nas colecoes formais existentes, enquanto organizacoes e presencas ficam
   no arquivo World complementar ja usado por Workspaces.
@@ -177,7 +176,7 @@ Status: concluida.
   `ContentLocationRelation` e `ContentOrganizationRelation`.
 - Comportamento esperado: ficha pode ser arquivada, ter varias localizacoes e
   varias organizacoes; formulario usa IDs do Campaign World; relacoes quebradas sao
-  preservadas e avisadas; tags/groups continuam legados.
+  preservadas e avisadas; tags/groups continuam somente para busca.
 - Compatibilidade necessaria: ficha antiga sem metadata abre como ativa;
   `CreatureSheet.data` continua mecanico; importacao e duplicacao preservam
   metadata nova; nenhum campo contextual e copiado ao stat block do participante.
@@ -199,8 +198,7 @@ Status: concluida.
 - Models envolvidos: `SavedSheetInterface`, relacoes contextuais e `CampaignWorld`.
 - Comportamento esperado: texto, categoria, tags, source legado,
   `Ativos | Arquivados | Todos`, imperio, estado, settlement e organizacao; filtro
-  organizacional usa `organizationId` formal ou uma tag legada exata reconhecida pelo
-  catalogo do World.
+  organizacional usa somente `organizationId` formal.
 - Compatibilidade necessaria: filtros atuais continuam funcionando; tags/groups nao
   viram filiacao persistida; ausencia de relacao nao equivale a global.
 - Testes obrigatorios: filtro de cada faceta; composicao de facetas; padrao ativo;

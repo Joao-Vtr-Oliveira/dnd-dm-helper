@@ -1,5 +1,10 @@
 # Pedido de Ajuda: Contexto de Fichas e Organizações
 
+> [!warning] Documento histórico
+> Este arquivo registra o problema e o estado anterior. As decisões foram fechadas
+> em `docs/contextual-content-contract-draft.md`; não use a seção “Decisões
+> Necessárias” como perguntas abertas de produto.
+
 ## Situação
 
 O modelo atual de filtros contextuais e a apresentação de organizações no World não
@@ -192,25 +197,26 @@ qualquer novo desenho.
 ## Decisões Necessárias
 
 1. Qual entidade deve viver em `CampaignWorld.organizations`?
+
    - Apenas guildas e grupos globais/nacionais?
    - Guildas/grupos em qualquer escala?
    - Organizações locais devem virar POIs, notas locais ou outro modelo?
-
 2. Qual é a fonte de verdade para o contexto de fichas antigas?
+
    - Tags legadas continuam sendo fonte de filtro?
    - Deve haver uma migração explícita para `locationRefs` e `organizationRefs`?
    - Deve existir uma tela de revisão para converter tags em relações formais?
-
 3. Qual deve ser a semântica geográfica desejada?
+
    - Estado deve incluir conteúdo marcado apenas com o império-pai?
    - Settlement deve incluir conteúdo marcado no estado-pai?
    - Ou cada filtro deve ser estritamente exato, como uma busca de catálogo?
-
 4. Como distinguir entidades locais de organizações?
+
    - Um conselho, comunidade, associação ou oficina local deve ser um POI?
    - Deve haver um tipo de entidade local separado de guildas/grupos?
-
 5. Que papel as presenças devem ter na interface?
+
    - Apenas administração do World?
    - Filtro de fichas?
    - Painel operacional da mesa?
