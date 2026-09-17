@@ -225,7 +225,7 @@ export class CampaignWorldService {
 		const resolved = this.resolveLocation(ref);
 		if (!resolved) return [];
 		const directKey = this.scopeKey(ref.scopeType, ref.scopeId);
-		const broaderKeys = [this.scopeKey('global')];
+		const broaderKeys: string[] = [];
 		if (resolved.empire && ref.scopeType !== 'empire') {
 			broaderKeys.push(this.scopeKey('empire', resolved.empire.id));
 		}

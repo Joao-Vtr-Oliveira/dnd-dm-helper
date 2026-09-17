@@ -28,6 +28,7 @@ export interface SavedSheetInterface {
 	tags: string[];
 	source: string;
 	archived?: boolean;
+	generic?: boolean;
 	locationRefs?: ContentLocationRelation[];
 	organizationRefs?: ContentOrganizationRelation[];
 }
@@ -167,6 +168,7 @@ export class LocalStorageService {
 		source?: string;
 		externalId?: string;
 		archived?: boolean;
+		generic?: boolean;
 		locationRefs?: ContentLocationRelation[];
 		organizationRefs?: ContentOrganizationRelation[];
 	}): SavedSheetInterface {
@@ -184,6 +186,7 @@ export class LocalStorageService {
 		source?: string;
 		externalId?: string;
 		archived?: boolean;
+		generic?: boolean;
 		locationRefs?: ContentLocationRelation[];
 		organizationRefs?: ContentOrganizationRelation[];
 		extra?: Record<string, unknown>;
@@ -201,6 +204,7 @@ export class LocalStorageService {
 			tags: (params.tags ?? []).map((t) => t.trim()).filter(Boolean),
 			source: (params.source || '').trim(),
 			...(params.archived ? { archived: true } : {}),
+			...(params.generic !== undefined ? { generic: params.generic } : {}),
 			...(params.locationRefs?.length
 				? { locationRefs: normalizeContentLocationRelations(params.locationRefs) }
 				: {}),
@@ -239,6 +243,7 @@ export class LocalStorageService {
 			source: curr.source,
 			externalId: this.deriveDuplicateExternalId(curr.externalId),
 			...(curr.archived ? { archived: true } : {}),
+			...(curr.generic !== undefined ? { generic: curr.generic } : {}),
 			...(curr.locationRefs?.length ? { locationRefs: curr.locationRefs } : {}),
 			...(curr.organizationRefs?.length ? { organizationRefs: curr.organizationRefs } : {}),
 		});
@@ -277,6 +282,7 @@ export class LocalStorageService {
 			tags: Array.isArray(sheet.tags) ? sheet.tags.map((tag) => tag.trim()).filter(Boolean) : [],
 			source: (sheet.source || '').trim(),
 			...(sheet.archived === true ? { archived: true } : {}),
+			...(typeof sheet.generic === 'boolean' ? { generic: sheet.generic } : {}),
 			...(locationRefs ? { locationRefs } : {}),
 			...(organizationRefs ? { organizationRefs } : {}),
 		};

@@ -274,7 +274,8 @@ describe('HomebrewBuilder', () => {
 		const storage = TestBed.inject(LocalStorageService);
 		component.setTitle('Guarda regional');
 		component.archived.set(true);
-		component.locationRefs.set([{ scopeType: 'state', scopeId: 'missing-state', relation: 'generic' }]);
+		component.generic.set(true);
+		component.locationRefs.set([]);
 		component.organizationRefs.set([
 			{ organizationId: 'missing-organization', relation: 'institution' },
 		]);
@@ -282,7 +283,8 @@ describe('HomebrewBuilder', () => {
 
 		const saved = storage.listSheets()[0];
 		expect(saved.archived).toBeTrue();
-		expect(saved.locationRefs).toEqual(component.locationRefs());
+		expect(saved.generic).toBeTrue();
+		expect(saved.locationRefs ?? []).toEqual(component.locationRefs());
 		expect(saved.organizationRefs).toEqual(component.organizationRefs());
 		expect('locationRefs' in saved.data).toBeFalse();
 		expect('organizationRefs' in saved.data).toBeFalse();

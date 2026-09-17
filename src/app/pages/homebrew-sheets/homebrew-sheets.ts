@@ -26,7 +26,6 @@ import type { ResolvedSpellReference } from '../../models/spell-reference-model'
 import { conditionReferenceFor, type ConditionReference } from '../../models/condition-reference-model';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
-import { isLegacyContextTag } from '../../models/content-context-model';
 import { DND_5E_CHARACTER_CLASSES } from '../../models/dnd-5e-reference-model';
 import {
 	filterHomebrewSheets,
@@ -386,12 +385,11 @@ export class HomebrewSheets {
 
 	allTags = computed(() => {
 		const set = new Set<string>();
-		const world = this.campaignWorld.world();
 		for (const s of this.sheets()) {
-			for (const tag of s.tags ?? []) {
+			for (const tag of [...(s.tags ?? []), ...(s.data.tags ?? []), ...(s.data.groups ?? [])]) {
 				const normalizedTag = normalizeHomebrewSheetFilterText(tag);
 				const isClass = DND_5E_CHARACTER_CLASSES.some((item) => item.id === normalizedTag);
-				if (!isClass && !isLegacyContextTag(tag, world)) set.add(tag);
+				if (!isClass) set.add(tag);
 			}
 		}
 		return ['all', ...Array.from(set).sort()] as const;
@@ -464,11 +462,6 @@ export class HomebrewSheets {
 	readonly organizationOptions = computed(() => [
 		{ id: 'all', label: 'Todas as organizações' },
 		...(this.campaignWorld.world()?.organizations ?? [])
-			.filter(
-				(organization) =>
-					this.campaignWorld.getOrganizationScope(organization) !== 'local' &&
-					(organization.organizationType === 'group' || organization.organizationType === 'guild'),
-			)
 			.slice()
 			.sort((left, right) => left.name.localeCompare(right.name))
 			.map((organization) => ({
@@ -555,6 +548,7 @@ export class HomebrewSheets {
 					tags: sheet.tags ?? [],
 					source: sheet.source ?? '',
 					...(sheet.archived ? { archived: true } : {}),
+					...(sheet.generic !== undefined ? { generic: sheet.generic } : {}),
 					...(sheet.locationRefs?.length ? { locationRefs: sheet.locationRefs } : {}),
 					...(sheet.organizationRefs?.length ? { organizationRefs: sheet.organizationRefs } : {}),
 					data: sheet.data,

@@ -151,7 +151,7 @@ describe('WorldPage', () => {
 		expect(fixture.nativeElement.textContent).toContain('Impérios');
 		expect(fixture.nativeElement.textContent).toContain('Organizações da campanha');
 		expect(fixture.nativeElement.textContent).toContain('Conselho da Campanha');
-		expect(fixture.nativeElement.textContent).not.toContain('Comunidade de Nirvak');
+		expect(fixture.nativeElement.textContent).toContain('Comunidade de Nirvak');
 	});
 
 	it('opens at the current party location when it is valid', async () => {
@@ -192,8 +192,8 @@ describe('WorldPage', () => {
 		);
 		component.selectLocation({ scopeType: 'settlement', scopeId: 'nirvak-city' });
 		fixture.detectChanges();
-		expect(fixture.nativeElement.textContent).not.toContain('Organizações nesta localidade');
-		expect(fixture.nativeElement.textContent).not.toContain('Comunidade de Nirvak');
+		expect(fixture.nativeElement.textContent).toContain('Organizações nesta localidade');
+		expect(fixture.nativeElement.textContent).toContain('Comunidade de Nirvak');
 	});
 
 	it('explores locations without moving the party', async () => {
@@ -314,7 +314,10 @@ describe('WorldPage', () => {
 		expect(fixture.nativeElement.textContent).toContain('Restaurar');
 
 		component.toggleOrganizationArchived(edited.id);
-		expect(component.campaignOrganizations().map((item) => item.id)).toEqual(['local']);
+		expect(component.campaignOrganizations().map((item) => item.id)).toEqual([
+			'local',
+			'nirvak-community',
+		]);
 	});
 
 	it('manages global, empire, state, and settlement presences without duplicating the organization', async () => {
@@ -331,24 +334,31 @@ describe('WorldPage', () => {
 			scopeType: 'global' | 'empire' | 'state' | 'settlement',
 			scopeId: string,
 			presenceType: string,
+			availableSheetExternalIds = '',
 		) => {
 			component.openPresenceEditor();
 			component.setPresenceScopeType(scopeType);
 			component.setPresenceScopeId(scopeId);
 			component.setPresenceType(presenceType);
+			component.setAvailableSheetExternalIds(availableSheetExternalIds);
 			component.savePresence();
 		};
 
 		savePresence('global', '', 'network');
 		savePresence('empire', 'mornk', 'headquarters');
-		savePresence('state', 'nagazav', 'agent');
+		savePresence('state', 'nagazav', 'agent', 'archetype-c, missing-archetype');
 		savePresence('settlement', 'nagawoods', 'post');
 
 		const organization = component.campaignWorld.getOrganization('local')!;
 		expect(organization.presence).toEqual([
 			{ scopeType: 'global', presenceType: 'network' },
 			{ scopeType: 'empire', scopeId: 'mornk', presenceType: 'headquarters' },
-			{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'agent' },
+			{
+				scopeType: 'state',
+				scopeId: 'nagazav',
+				presenceType: 'agent',
+				availableSheetExternalIds: ['archetype-c', 'missing-archetype'],
+			},
 			{ scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'post' },
 		]);
 		expect(component.campaignWorld.world()?.organizations).toHaveSize(2);
@@ -361,6 +371,7 @@ describe('WorldPage', () => {
 			scopeType: 'state',
 			scopeId: 'nagazav',
 			presenceType: 'regional-post',
+			availableSheetExternalIds: ['archetype-c', 'missing-archetype'],
 		});
 
 		component.openPresenceEditor();

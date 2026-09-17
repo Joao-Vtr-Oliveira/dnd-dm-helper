@@ -1,8 +1,5 @@
 import type { CampaignWorld } from '../../models/campaign-world-model';
-import {
-	resolveLegacyContentContextRelations,
-	type ContentLocationRelation,
-} from '../../models/content-context-model';
+import type { ContentLocationRelation } from '../../models/content-context-model';
 import {
 	DND_5E_CHARACTER_CLASSES,
 	DND_5E_CREATURE_TYPES,
@@ -75,13 +72,12 @@ export function filterHomebrewSheets(
 ): SavedSheetInterface[] {
 	const query = normalizeHomebrewSheetFilterText(filters.query);
 	return sheets.filter((sheet) => {
-		const legacyRelations = resolveLegacyContentContextRelations(sheet, world);
 		if (filters.status === 'active' && sheet.archived) return false;
 		if (filters.status === 'archived' && !sheet.archived) return false;
 		if (filters.category !== 'all' && sheet.category !== filters.category) return false;
 		if (
 			filters.tag !== 'all' &&
-			!(sheet.tags ?? []).some(
+			contentTagsFor(sheet).some(
 				(tag) => normalizeHomebrewSheetFilterText(tag) === normalizeHomebrewSheetFilterText(filters.tag),
 			)
 		)
@@ -100,11 +96,11 @@ export function filterHomebrewSheets(
 			)
 		)
 			return false;
-		if (!matchesLocationFilters(sheet.locationRefs ?? [], legacyRelations.locationRefs, filters, world))
+		if (!matchesLocationFilters(sheet.locationRefs ?? [], filters, world))
 			return false;
 		if (
 			filters.organizationId !== 'all' &&
-			![...(sheet.organizationRefs ?? []), ...legacyRelations.organizationRefs].some(
+			!(sheet.organizationRefs ?? []).some(
 				(ref) => ref.organizationId === filters.organizationId,
 			)
 		)
@@ -124,7 +120,6 @@ function creatureTypeFor(sheet: SavedSheetInterface): Dnd5eCreatureType | null {
 
 function matchesLocationFilters(
 	locationRefs: ContentLocationRelation[],
-	legacyLocationRefs: ContentLocationRelation[],
 	filters: HomebrewSheetFilters,
 	world: CampaignWorld | null,
 ): boolean {
@@ -138,7 +133,7 @@ function matchesLocationFilters(
 
 	return selections.every(([scopeType, scopeId]) => {
 		if (scopeId === 'all') return true;
-		return [...locationRefs, ...legacyLocationRefs].some((relation) => {
+		return locationRefs.some((relation) => {
 			const resolved = resolveRelation(world, relation.scopeType, relation.scopeId);
 			return resolved ? relationMatchesScope(world, resolved, scopeType, scopeId) : false;
 		});
@@ -205,4 +200,12 @@ function searchableText(sheet: SavedSheetInterface): string {
 	]
 		.map(normalizeHomebrewSheetFilterText)
 		.join(' ');
+}
+
+function contentTagsFor(sheet: SavedSheetInterface): string[] {
+	return [
+		...(sheet.tags ?? []),
+		...(sheet.data.tags ?? []),
+		...(sheet.data.groups ?? []),
+	];
 }

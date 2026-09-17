@@ -103,12 +103,14 @@ describe('LocalStorageService', () => {
 				features: [],
 			},
 			archived: true,
-			locationRefs: [{ scopeType: 'state', scopeId: 'plomos', relation: 'generic' }],
+			generic: true,
 			organizationRefs: [{ organizationId: 'guard', relation: 'institution' }],
 		});
 		const duplicate = service.duplicateSheet(sheet.id)!;
 
 		expect(sheet.archived).toBeTrue();
+		expect(sheet.generic).toBeTrue();
+		expect(duplicate.generic).toBeTrue();
 		expect(duplicate.locationRefs).toEqual(sheet.locationRefs);
 		expect(duplicate.organizationRefs).toEqual(sheet.organizationRefs);
 		expect('locationRefs' in sheet.data).toBeFalse();

@@ -340,7 +340,7 @@ describe('CampaignWorldService', () => {
 		).toHaveSize(1);
 		expect(
 			organizations.find((item) => item.organization.id === 'guild')?.broaderPresences,
-		).toHaveSize(1);
+		).toHaveSize(0);
 		expect(
 			organizations.find((item) => item.organization.id === 'state-guild')?.broaderPresences,
 		).toHaveSize(1);
@@ -348,12 +348,7 @@ describe('CampaignWorldService', () => {
 			scopeType: 'state',
 			scopeId: 'nagazav',
 		});
-		expect(
-			stateOrganizations.find((item) => item.organization.id === 'guild')?.directPresences,
-		).toEqual([]);
-		expect(
-			stateOrganizations.find((item) => item.organization.id === 'guild')?.broaderPresences,
-		).toHaveSize(1);
+		expect(stateOrganizations.some((item) => item.organization.id === 'guild')).toBeFalse();
 	});
 
 	it('keeps one Winterhold identity when it has a global network and a local post', () => {
@@ -381,7 +376,24 @@ describe('CampaignWorldService', () => {
 		expect(organizations).toHaveSize(1);
 		expect(organizations[0].organization.id).toBe('winterhold');
 		expect(organizations[0].directPresences).toHaveSize(1);
-		expect(organizations[0].broaderPresences).toHaveSize(1);
+		expect(organizations[0].broaderPresences).toHaveSize(0);
+	});
+
+	it('does not resolve a global network as territorial presence', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [
+				{
+					...VALID_WORLD.organizations[0],
+					presence: [{ scopeType: 'global', presenceType: 'global-network' }],
+				},
+			],
+			pointsOfInterest: [],
+		});
+
+		expect(
+			service.getRelevantOrganizations({ scopeType: 'state', scopeId: 'nagazav' }),
+		).toEqual([]);
 	});
 });
 

@@ -261,6 +261,15 @@
 						/>
 						Arquivar ficha
 					</label>
+					<label class="flex items-center gap-2 text-sm text-app-muted">
+						<input
+							type="checkbox"
+							[ngModel]="generic()"
+							(ngModelChange)="setGeneric($event)"
+							name="sheet-generic"
+						/>
+						Arquétipo genérico sem localização física
+					</label>
 				</div>
 
 				<section class="mt-4 border-t border-app-divider pt-4">

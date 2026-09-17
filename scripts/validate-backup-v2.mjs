@@ -6,6 +6,9 @@ const isRecord = (value) => !!value && typeof value === 'object' && !Array.isArr
 const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
 const isFiniteNumberOrNull = (value) => value === null || (typeof value === 'number' && Number.isFinite(value));
 const categories = new Set(['monster', 'npc', 'pc', 'other']);
+const locationScopes = new Set(['empire', 'state', 'settlement']);
+const locationRelations = new Set(['base', 'habitat', 'occurrence', 'operation']);
+const organizationRelations = new Set(['member', 'leader', 'institution', 'trained_by', 'affiliated']);
 
 function assert(condition, message) {
 	if (!condition) throw new Error(message);
@@ -35,6 +38,29 @@ function validateSpells(spells, field) {
 			isRecord(spell) && hasText(spell.id) && hasText(spell.name),
 			`${field} contains an invalid spell.`,
 		);
+	}
+}
+
+function validateSheetContext(sheet, field) {
+	assert(sheet.archived === undefined || typeof sheet.archived === 'boolean', `${field}.archived is invalid.`);
+	assert(sheet.generic === undefined || typeof sheet.generic === 'boolean', `${field}.generic is invalid.`);
+	if (sheet.locationRefs !== undefined) {
+		assert(Array.isArray(sheet.locationRefs), `${field}.locationRefs must be an array.`);
+		for (const [index, ref] of sheet.locationRefs.entries()) {
+			assert(
+				isRecord(ref) && hasText(ref.scopeId) && locationScopes.has(ref.scopeType) && locationRelations.has(ref.relation),
+				`${field}.locationRefs[${index}] is invalid.`,
+			);
+		}
+	}
+	if (sheet.organizationRefs !== undefined) {
+		assert(Array.isArray(sheet.organizationRefs), `${field}.organizationRefs must be an array.`);
+		for (const [index, ref] of sheet.organizationRefs.entries()) {
+			assert(
+				isRecord(ref) && hasText(ref.organizationId) && organizationRelations.has(ref.relation),
+				`${field}.organizationRefs[${index}] is invalid.`,
+			);
+		}
 	}
 }
 
@@ -165,6 +191,7 @@ export function validateBackupV2(input) {
 		);
 		assert(isRecord(sheet.data), `${field}.data must be an object.`);
 		assert(categories.has(sheet.category), `${field}.category is invalid.`);
+		validateSheetContext(sheet, field);
 		assert(isFiniteNumberOrNull(sheet.data.armorClass), `${field}.data.armorClass must be number|null.`);
 		validateSpells(sheet.data.spells, `${field}.data.spells`);
 	}

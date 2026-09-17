@@ -115,6 +115,9 @@ describe('AppBackupService', () => {
 				features: [],
 			},
 			externalId: 'npc-cultista',
+			generic: true,
+			locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'base' }],
+			organizationRefs: [{ organizationId: 'guard', relation: 'institution' }],
 		});
 		worldClock.setSeason('winter');
 
@@ -126,6 +129,10 @@ describe('AppBackupService', () => {
 		expect(backup.data.encounters).toHaveSize(1);
 		expect(backup.data.homebrewSheets).toHaveSize(1);
 		expect(backup.data.homebrewSheets[0].externalId).toBe('npc-cultista');
+		expect(backup.data.homebrewSheets[0].generic).toBeTrue();
+		expect(backup.data.homebrewSheets[0].locationRefs).toEqual([
+			{ scopeType: 'state', scopeId: 'feng', relation: 'base' },
+		]);
 		expect(backup.data.encounters[0]).toEqual(jasmine.objectContaining({
 			description: 'Cultists ambush the party in a cave.',
 			tags: ['cult', 'cave'],

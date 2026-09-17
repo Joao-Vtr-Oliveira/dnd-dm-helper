@@ -81,8 +81,9 @@ describe('HomebrewSheets', () => {
 			source: 'Notion',
 			externalId: 'npc-zhang-huang',
 			archived: true,
-			locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'regional' }],
-			organizationRefs: [{ organizationId: 'winterhold', relation: 'associated' }],
+			generic: true,
+			locationRefs: [],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'institution' }],
 			data: {
 				name: 'Zhang Huang',
 				maxHp: 10,
@@ -112,6 +113,7 @@ describe('HomebrewSheets', () => {
 		expect(exported.schemaVersion).toBe(2);
 		expect(exported.sheets[0].externalId).toBe('npc-zhang-huang');
 		expect(exported.sheets[0].archived).toBeTrue();
+		expect(exported.sheets[0].generic).toBeTrue();
 		expect(exported.sheets[0].locationRefs).toEqual(sheet.locationRefs);
 		expect(exported.sheets[0].organizationRefs).toEqual(sheet.organizationRefs);
 	});

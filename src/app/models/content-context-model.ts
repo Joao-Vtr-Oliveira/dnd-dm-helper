@@ -1,24 +1,17 @@
-import {
-	resolveCampaignOrganizationScope,
-	type CampaignLocationScope,
-	type CampaignWorld,
-} from './campaign-world-model';
+import type { CampaignLocationScope } from './campaign-world-model';
 
 export type ContentLocationRelationKind =
 	| 'base'
 	| 'occurrence'
 	| 'habitat'
-	| 'operation'
-	| 'regional'
-	| 'generic';
+	| 'operation';
 
 export type ContentOrganizationRelationKind =
 	| 'member'
 	| 'leader'
 	| 'affiliated'
 	| 'institution'
-	| 'trained_by'
-	| 'associated';
+	| 'trained_by';
 
 export interface ContentLocationRelation {
 	scopeType: CampaignLocationScope;
@@ -31,26 +24,11 @@ export interface ContentOrganizationRelation {
 	relation: ContentOrganizationRelationKind;
 }
 
-export interface LegacyContentTagSource {
-	tags?: string[];
-	data?: {
-		tags?: string[];
-		groups?: string[];
-	};
-}
-
-export interface LegacyContentContextRelations {
-	locationRefs: ContentLocationRelation[];
-	organizationRefs: ContentOrganizationRelation[];
-}
-
 const LOCATION_RELATION_KINDS: ContentLocationRelationKind[] = [
 	'base',
 	'occurrence',
 	'habitat',
 	'operation',
-	'regional',
-	'generic',
 ];
 const ORGANIZATION_RELATION_KINDS: ContentOrganizationRelationKind[] = [
 	'member',
@@ -58,7 +36,6 @@ const ORGANIZATION_RELATION_KINDS: ContentOrganizationRelationKind[] = [
 	'affiliated',
 	'institution',
 	'trained_by',
-	'associated',
 ];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -69,73 +46,6 @@ function text(value: unknown): string | null {
 	if (typeof value !== 'string') return null;
 	const normalized = value.trim();
 	return normalized || null;
-}
-
-export function normalizeContentContextText(value: string): string {
-	return value
-		.trim()
-		.toLocaleLowerCase()
-		.normalize('NFKD')
-		.replace(/[\u0300-\u036f]/g, '');
-}
-
-/**
- * Matches only exact legacy tags against registered geographic and organization identities.
- * Ambiguous geographic names remain manual.
- */
-export function resolveLegacyContentContextRelations(
-	source: LegacyContentTagSource,
-	world: CampaignWorld | null,
-): LegacyContentContextRelations {
-	if (!world) return { locationRefs: [], organizationRefs: [] };
-	const tags = new Set(
-		[source.tags ?? [], source.data?.tags ?? [], source.data?.groups ?? []]
-			.flat()
-			.map(normalizeContentContextText)
-			.filter(Boolean),
-	);
-	const locationCandidates = [
-		...world.empires.map((empire) => ({
-			scopeType: 'empire' as const,
-			scopeId: empire.id,
-			names: [empire.name, ...empire.aliases],
-		})),
-		...world.states.map((state) => ({
-			scopeType: 'state' as const,
-			scopeId: state.id,
-			names: [state.name, ...state.aliases],
-		})),
-		...world.settlements.map((settlement) => ({
-			scopeType: 'settlement' as const,
-			scopeId: settlement.id,
-			names: [settlement.name, ...settlement.aliases],
-		})),
-	];
-	const locationRefs = [...tags].flatMap((tag) => {
-		const matches = locationCandidates.filter((candidate) =>
-			candidate.names.some((name) => normalizeContentContextText(name) === tag),
-		);
-		return matches.length === 1
-			? [{ scopeType: matches[0].scopeType, scopeId: matches[0].scopeId, relation: 'regional' as const }]
-			: [];
-	});
-	const organizationRefs = world.organizations.flatMap((organization) => {
-		if (
-			resolveCampaignOrganizationScope(organization) === 'local' ||
-			(organization.organizationType !== 'group' && organization.organizationType !== 'guild')
-		)
-			return [];
-		const names = [organization.name, ...organization.aliases].map(normalizeContentContextText);
-		return names.some((name) => tags.has(name))
-			? [{ organizationId: organization.id, relation: 'associated' as const }]
-			: [];
-	});
-	return { locationRefs, organizationRefs };
-}
-
-export function isLegacyContextTag(tag: string, world: CampaignWorld | null): boolean {
-	const relations = resolveLegacyContentContextRelations({ tags: [tag] }, world);
-	return relations.locationRefs.length > 0 || relations.organizationRefs.length > 0;
 }
 
 export function isContentLocationRelation(value: unknown): value is ContentLocationRelation {

@@ -16,10 +16,10 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
 - [x] Task 0: contrato e baseline confirmados.
 - [x] Task 1: Organizations CRUD concluído em 2026-09-17.
 - [x] Task 2: Organization Presence CRUD concluído em 2026-09-17.
-- [ ] Task 3: metadata contextual de CreatureSheets concluída anteriormente, mas requer revisão conforme o contrato vigente.
-- [ ] Task 4: filtros de CreatureSheets concluída anteriormente, mas requer remoção do fallback contextual de tags/groups.
-- [ ] Revisão pós-Task 4: corrigir compatibilidade contextual, elegibilidade organizacional e navegação do World conforme o contrato vigente.
-- [ ] Proxima task: revisão pós-Task 4; somente depois iniciar a Task 5 de metadata contextual de Encounters.
+- [x] Task 3: metadata contextual de CreatureSheets revisada conforme o contrato vigente.
+- [x] Task 4: filtros de CreatureSheets revisados sem fallback contextual de tags/groups.
+- [x] Revisão pós-Task 4: compatibilidade contextual, elegibilidade organizacional e navegação do World corrigidas conforme o contrato vigente.
+- [ ] Proxima task: Task 5 de metadata contextual de Encounters; não implementada nesta revisão.
 
 ## Regras antigas superseded
 

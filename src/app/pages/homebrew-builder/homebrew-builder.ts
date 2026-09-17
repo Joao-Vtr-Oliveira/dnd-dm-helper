@@ -159,6 +159,7 @@ export class HomebrewBuilder {
 	tagsText = signal<string>('');
 	source = signal<string>('');
 	archived = signal(false);
+	generic = signal(false);
 	locationRefs = signal<ContentLocationRelation[]>([]);
 	organizationRefs = signal<ContentOrganizationRelation[]>([]);
 	editingLocationRefIndex = signal<number | null>(null);
@@ -203,8 +204,6 @@ export class HomebrewBuilder {
 		{ value: 'occurrence', label: 'Ocorrência' },
 		{ value: 'habitat', label: 'Habitat' },
 		{ value: 'operation', label: 'Operação' },
-		{ value: 'regional', label: 'Regional' },
-		{ value: 'generic', label: 'Genérica aplicável' },
 	];
 	readonly organizationRelationOptions: Array<{
 		value: ContentOrganizationRelationKind;
@@ -215,7 +214,6 @@ export class HomebrewBuilder {
 		{ value: 'affiliated', label: 'Afiliada' },
 		{ value: 'institution', label: 'Ficha institucional' },
 		{ value: 'trained_by', label: 'Treinada por' },
-		{ value: 'associated', label: 'Associada' },
 	];
 	readonly locationScopeOptions = computed(() => {
 		const scopeType = this.locationScopeType();
@@ -236,11 +234,6 @@ export class HomebrewBuilder {
 	});
 	readonly organizationOptions = computed(() =>
 		(this.campaignWorld.world()?.organizations ?? [])
-			.filter(
-				(organization) =>
-					this.campaignWorld.getOrganizationScope(organization) !== 'local' &&
-					(organization.organizationType === 'group' || organization.organizationType === 'guild'),
-			)
 			.map((organization) => ({
 				value: organization.id,
 				label: `${organization.name}${organization.archived ? ' [arquivada]' : ''}`,
@@ -436,6 +429,7 @@ export class HomebrewBuilder {
 				tagsText: this.tagsText(),
 				source: this.source(),
 				archived: this.archived(),
+				generic: this.generic(),
 				locationRefs: this.locationRefs(),
 				organizationRefs: this.organizationRefs(),
 			}) !== this.savedSnapshot(),
@@ -462,6 +456,7 @@ export class HomebrewBuilder {
 				this.tagsText.set((data.tags ?? []).join(', '));
 				this.source.set(data.origin ?? '');
 				this.archived.set(sheet.archived === true);
+				this.generic.set(sheet.generic === true);
 				this.locationRefs.set(structuredClone(sheet.locationRefs ?? []));
 				this.organizationRefs.set(structuredClone(sheet.organizationRefs ?? []));
 			}
@@ -532,6 +527,7 @@ export class HomebrewBuilder {
 				tagsText: this.tagsText(),
 				source: this.source(),
 				archived: this.archived(),
+				generic: this.generic(),
 				locationRefs: this.locationRefs(),
 				organizationRefs: this.organizationRefs(),
 			}),
@@ -1680,6 +1676,10 @@ export class HomebrewBuilder {
 		this.archived.set(archived);
 	}
 
+	setGeneric(generic: boolean) {
+		this.generic.set(generic);
+	}
+
 	setLocationScopeType(scopeType: CampaignLocationScope) {
 		this.locationScopeType.set(scopeType);
 		this.locationScopeId.set('');
@@ -1869,6 +1869,7 @@ export class HomebrewBuilder {
 				tags: rawTags,
 				source,
 				archived: this.archived(),
+				generic: this.generic(),
 				locationRefs: this.locationRefs(),
 				organizationRefs: this.organizationRefs(),
 			});
@@ -1885,6 +1886,7 @@ export class HomebrewBuilder {
 				tags: rawTags,
 				source,
 				archived: this.archived(),
+				generic: this.generic(),
 				locationRefs: this.locationRefs(),
 				organizationRefs: this.organizationRefs(),
 			});

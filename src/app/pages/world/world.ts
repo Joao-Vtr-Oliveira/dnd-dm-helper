@@ -24,6 +24,7 @@ type OrganizationPresenceDraft = {
 	scopeType: CampaignWorldScopeType;
 	scopeId: string;
 	presenceType: string;
+	availableSheetExternalIds: string;
 };
 
 @Component({
@@ -59,12 +60,12 @@ export class WorldPage {
 		{ value: 'local', label: 'Local' },
 	];
 	readonly presenceTypeSuggestions = [
+		'global-network',
 		'headquarters',
 		'post',
-		'branch',
 		'agent',
 		'remote-contact',
-		'network',
+		'operation',
 	];
 	readonly presenceScopeTypeOptions: Array<{ value: CampaignWorldScopeType; label: string }> = [
 		{ value: 'global', label: 'Global' },
@@ -103,28 +104,19 @@ export class WorldPage {
 	);
 	readonly campaignOrganizations = computed(() =>
 		(this.campaignWorld.world()?.organizations ?? []).filter(
-			(organization) =>
-				!organization.archived &&
-				this.campaignWorld.getOrganizationScope(organization) === 'campaign' &&
-				(organization.organizationType === 'group' || organization.organizationType === 'guild'),
+			(organization) => !organization.archived,
 		),
 	);
 	readonly archivedCampaignOrganizations = computed(() =>
 		(this.campaignWorld.world()?.organizations ?? []).filter(
-			(organization) =>
-				organization.archived &&
-				this.campaignWorld.getOrganizationScope(organization) === 'campaign' &&
-				(organization.organizationType === 'group' || organization.organizationType === 'guild'),
+			(organization) => organization.archived,
 		),
 	);
 	readonly locationOrganizations = computed(() => {
 		const location = this.selectedLocation();
 		return location
 			? this.campaignWorld.getRelevantOrganizations(location).filter(
-					(item) =>
-						item.directPresences.length > 0 &&
-						this.campaignWorld.getOrganizationScope(item.organization) !== 'local' &&
-						(item.organization.organizationType === 'group' || item.organization.organizationType === 'guild'),
+					(item) => item.directPresences.length > 0,
 				)
 			: [];
 	});
@@ -318,6 +310,7 @@ export class WorldPage {
 			scopeType: presence.scopeType,
 			scopeId: presence.scopeId ?? '',
 			presenceType: presence.presenceType,
+			availableSheetExternalIds: presence.availableSheetExternalIds?.join(', ') ?? '',
 		});
 		this.presenceEditorOpen.set(true);
 		this.editorMessage.set(null);
@@ -341,12 +334,17 @@ export class WorldPage {
 		this.presenceDraft.update((draft) => ({ ...draft, presenceType }));
 	}
 
+	setAvailableSheetExternalIds(value: string): void {
+		this.presenceDraft.update((draft) => ({ ...draft, availableSheetExternalIds: value }));
+	}
+
 	savePresence(): void {
 		const organizationId = this.managingOrganizationId();
 		const world = this.campaignWorld.world();
 		if (!organizationId || !world) return;
 		const draft = this.presenceDraft();
 		const presenceType = draft.presenceType.trim();
+		const availableSheetExternalIds = this.parseExternalIds(draft.availableSheetExternalIds);
 		if (!presenceType) {
 			this.editorMessage.set('Informe o tipo de presença.');
 			return;
@@ -359,6 +357,7 @@ export class WorldPage {
 			scopeType: draft.scopeType,
 			...(draft.scopeType === 'global' ? {} : { scopeId: draft.scopeId }),
 			presenceType,
+			...(availableSheetExternalIds.length ? { availableSheetExternalIds } : {}),
 		};
 		const editingIndex = this.editingPresenceIndex();
 		const organization = world.organizations.find((item) => item.id === organizationId);
@@ -598,7 +597,16 @@ export class WorldPage {
 	}
 
 	private emptyPresenceDraft(): OrganizationPresenceDraft {
-		return { scopeType: 'global', scopeId: '', presenceType: 'network' };
+		return {
+			scopeType: 'global',
+			scopeId: '',
+			presenceType: 'global-network',
+			availableSheetExternalIds: '',
+		};
+	}
+
+	private parseExternalIds(value: string): string[] {
+		return [...new Set(value.split(',').map((entry) => entry.trim()).filter(Boolean))];
 	}
 
 	private isValidPresenceScopeId(scopeType: Exclude<CampaignWorldScopeType, 'global'>, scopeId: string): boolean {

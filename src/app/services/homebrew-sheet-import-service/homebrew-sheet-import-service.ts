@@ -31,6 +31,7 @@ export interface HomebrewSheetImportCandidate {
 	externalId: string;
 	data: CreatureSheet;
 	archived?: boolean;
+	generic?: boolean;
 	locationRefs?: ContentLocationRelation[];
 	organizationRefs?: ContentOrganizationRelation[];
 	extra: Record<string, unknown>;
@@ -89,6 +90,7 @@ const SHEET_FIELDS = new Set([
 	'source',
 	'externalId',
 	'archived',
+	'generic',
 	'locationRefs',
 	'organizationRefs',
 	'data',
@@ -111,6 +113,7 @@ interface RawSheet extends Record<string, unknown> {
 	tags?: unknown;
 	externalId?: unknown;
 	archived?: unknown;
+	generic?: unknown;
 	locationRefs?: unknown;
 	organizationRefs?: unknown;
 	data?: unknown;
@@ -300,6 +303,7 @@ export class HomebrewSheetImportService {
 		);
 		const tags = this.tags(sheet.tags, errors);
 		const archived = this.archived(sheet.archived, errors);
+		const generic = this.generic(sheet.generic, errors);
 		const locationRefs = this.locationRefs(sheet.locationRefs, errors);
 		const organizationRefs = this.organizationRefs(sheet.organizationRefs, errors);
 		const extra = this.unknownFields(sheet);
@@ -338,6 +342,7 @@ export class HomebrewSheetImportService {
 				externalId,
 				data: normalizedData,
 				...(archived === undefined ? {} : { archived }),
+				...(generic === undefined ? {} : { generic }),
 				...(locationRefs === undefined ? {} : { locationRefs }),
 				...(organizationRefs === undefined ? {} : { organizationRefs }),
 				extra,
@@ -568,6 +573,9 @@ export class HomebrewSheetImportService {
 			...next,
 			...this.knownFields(existing),
 			...(candidate.archived === undefined && existing.archived ? { archived: true } : {}),
+			...(candidate.generic === undefined && existing.generic !== undefined
+				? { generic: existing.generic }
+				: {}),
 			...(candidate.locationRefs === undefined && existing.locationRefs?.length
 				? { locationRefs: existing.locationRefs }
 				: {}),
@@ -594,6 +602,7 @@ export class HomebrewSheetImportService {
 			'tags',
 			'source',
 			'archived',
+			'generic',
 			'locationRefs',
 			'organizationRefs',
 		]);
@@ -653,6 +662,15 @@ export class HomebrewSheetImportService {
 		if (value === undefined) return undefined;
 		if (typeof value !== 'boolean') {
 			errors.push('archived precisa ser booleano.');
+			return undefined;
+		}
+		return value;
+	}
+
+	private generic(value: unknown, errors: string[]): boolean | undefined {
+		if (value === undefined) return undefined;
+		if (typeof value !== 'boolean') {
+			errors.push('generic precisa ser booleano.');
 			return undefined;
 		}
 		return value;

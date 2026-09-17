@@ -2,6 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import type { WorldDate } from '../../models/calendar-model';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
 import type { CampaignWorld } from '../../models/campaign-world-model';
+import {
+	isContentLocationRelation,
+	isContentOrganizationRelation,
+} from '../../models/content-context-model';
 import type { FiveEToolsCompositionPackage } from '../../models/fiveetools-homebrew-model';
 import type {
 	FiveEToolsHomebrewFile,
@@ -482,6 +486,13 @@ export class AppBackupService {
 			Array.isArray(value['tags']) &&
 			value['tags'].every((tag) => typeof tag === 'string') &&
 			typeof value['source'] === 'string' &&
+			(value['archived'] === undefined || typeof value['archived'] === 'boolean') &&
+			(value['generic'] === undefined || typeof value['generic'] === 'boolean') &&
+			(value['locationRefs'] === undefined ||
+				(Array.isArray(value['locationRefs']) && value['locationRefs'].every(isContentLocationRelation))) &&
+			(value['organizationRefs'] === undefined ||
+				(Array.isArray(value['organizationRefs']) &&
+					value['organizationRefs'].every(isContentOrganizationRelation))) &&
 			typeof data['name'] === 'string' &&
 			(data['armorClass'] === null || this.isFiniteNumber(data['armorClass'])) &&
 			this.isFiniteNumber(data['maxHp']) &&

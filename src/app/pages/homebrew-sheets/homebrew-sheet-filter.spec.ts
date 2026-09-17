@@ -127,11 +127,11 @@ describe('filterHomebrewSheets', () => {
 	it('matches selected states and settlements without including broader locations or sibling settlements', () => {
 		const empire = sheet({
 			title: 'Empire',
-			locationRefs: [{ scopeType: 'empire', scopeId: 'empire-north', relation: 'regional' }],
+			locationRefs: [{ scopeType: 'empire', scopeId: 'empire-north', relation: 'occurrence' }],
 		});
 		const state = sheet({
 			title: 'State',
-			locationRefs: [{ scopeType: 'state', scopeId: 'state-frost', relation: 'regional' }],
+			locationRefs: [{ scopeType: 'state', scopeId: 'state-frost', relation: 'habitat' }],
 		});
 		const settlement = sheet({
 			title: 'Settlement',
@@ -143,7 +143,7 @@ describe('filterHomebrewSheets', () => {
 		});
 		const broken = sheet({
 			title: 'Broken',
-			locationRefs: [{ scopeType: 'state', scopeId: 'missing', relation: 'regional' }],
+			locationRefs: [{ scopeType: 'state', scopeId: 'missing', relation: 'habitat' }],
 		});
 		const sheets = [empire, state, settlement, sibling, broken];
 
@@ -185,29 +185,35 @@ describe('filterHomebrewSheets', () => {
 		).toEqual([matching]);
 	});
 
-	it('derives empire and organization filters from exact registered legacy tags', () => {
+	it('does not derive contextual filters from tags or groups', () => {
 		const heXiao = sheet({ tags: ['Komic', 'Rogue'], data: { name: 'He Xiao' } });
 		const winterholdMage = sheet({ tags: ['Winterhold'], data: { name: 'Rosa' } });
 		const unrelated = sheet({ tags: ['Komic veteran'], data: { name: 'Unrelated' } });
 
-		expect(filterHomebrewSheets([heXiao, winterholdMage, unrelated], filters({ empireId: 'empire-south' }), world)).toEqual([
-			heXiao,
-		]);
+		expect(filterHomebrewSheets([heXiao, winterholdMage, unrelated], filters({ empireId: 'empire-south' }), world)).toEqual([]);
 		expect(
 			filterHomebrewSheets(
 				[heXiao, winterholdMage, unrelated],
 				filters({ organizationId: 'winterhold' }),
 				world,
 			),
-		).toEqual([winterholdMage]);
+		).toEqual([]);
 	});
 
-	it('uses an unambiguous state tag only for that state', () => {
-		const fengSheet = sheet({ tags: ['Frost'], data: { name: 'Talha' } });
+	it('requires explicit location metadata for the Talha Feng/Drek case', () => {
+		const talha = sheet({
+			title: 'Talha Trusk',
+			tags: ['Feng', 'Mornk', 'Feudal'],
+			locationRefs: [
+				{ scopeType: 'state', scopeId: 'state-frost', relation: 'base' },
+				{ scopeType: 'settlement', scopeId: 'settlement-ice', relation: 'operation' },
+			],
+		});
+		const tagOnly = sheet({ title: 'Tag only', tags: ['Frost'] });
 
-		expect(filterHomebrewSheets([fengSheet], filters({ stateId: 'state-frost' }), world)).toEqual([
-			fengSheet,
-		]);
-		expect(filterHomebrewSheets([fengSheet], filters({ stateId: 'state-pine' }), world)).toEqual([]);
+		expect(filterHomebrewSheets([talha], filters({ stateId: 'state-frost' }), world)).toEqual([talha]);
+		expect(filterHomebrewSheets([talha], filters({ stateId: 'state-pine' }), world)).toEqual([]);
+		expect(filterHomebrewSheets([tagOnly], filters({ stateId: 'state-frost' }), world)).toEqual([]);
+		expect(filterHomebrewSheets([talha], filters({ settlementId: 'settlement-ice' }), world)).toEqual([talha]);
 	});
 });

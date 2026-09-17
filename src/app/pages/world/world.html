@@ -469,7 +469,7 @@
 							<div>
 								<h2 class="text-xl font-semibold">Organizações da campanha</h2>
 								<p class="mt-1 text-sm text-white/60">
-									Apenas organizações de campanha ou internacionais aparecem aqui. As regionais e locais aparecem nos territórios onde atuam.
+									O catálogo reúne identidades coletivas de qualquer escopo; presenças locais continuam vinculadas à mesma organização.
 								</p>
 							</div>
 							<button
@@ -655,6 +655,14 @@
 												</select></label
 											>
 										}
+										<label class="sm:col-span-2 text-sm font-semibold"
+											>Fichas disponíveis na composição (externalId)<input
+												class="app-field mt-2 w-full"
+												[ngModel]="presenceDraft().availableSheetExternalIds"
+												(ngModelChange)="setAvailableSheetExternalIds($event)"
+												placeholder="Opcional; separado por vírgulas"
+											/>
+										</label>
 										<div class="sm:col-span-2 flex flex-wrap gap-2">
 											<button type="button" class="app-button app-button-primary" (click)="savePresence()">
 												{{ editingPresenceIndex() === null ? 'Salvar presença' : 'Salvar alterações' }}
@@ -711,7 +719,7 @@
 							<div>
 								<h3 class="text-xl font-semibold">{{ locationOrganizationTitle() }}</h3>
 								<p class="mt-1 text-sm text-white/60">
-									Somente guildas e grupos com presença direta neste território aparecem aqui.
+									Organizações com presença explícita neste território aparecem aqui com seu escopo real.
 								</p>
 							</div>
 						</div>

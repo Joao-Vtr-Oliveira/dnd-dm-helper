@@ -156,12 +156,13 @@ describe('HomebrewSheetImportService', () => {
 	});
 
 	it('imports contextual metadata and preserves it when replacing from a legacy sheet export', () => {
-		const locationRefs = [{ scopeType: 'state', scopeId: 'missing-state', relation: 'regional' }];
+		const locationRefs = [{ scopeType: 'state', scopeId: 'missing-state', relation: 'habitat' }];
 		const organizationRefs = [
-			{ organizationId: 'missing-organization', relation: 'associated' },
+			{ organizationId: 'missing-organization', relation: 'institution' },
 		];
 		const contextual = sheet({
 			archived: true,
+			generic: false,
 			locationRefs,
 			organizationRefs,
 		});

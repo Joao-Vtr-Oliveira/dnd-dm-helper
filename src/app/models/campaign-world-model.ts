@@ -27,6 +27,7 @@ export interface CampaignOrganizationPresence {
 	scopeType: CampaignWorldScopeType;
 	scopeId?: string;
 	presenceType: string;
+	availableSheetExternalIds?: string[];
 }
 
 export interface CampaignOrganization extends CampaignEmpire {
@@ -198,6 +199,7 @@ interface UnknownCampaignRecord {
 	scopeType?: unknown;
 	scopeId?: unknown;
 	presenceType?: unknown;
+	availableSheetExternalIds?: unknown;
 	daysPerSeason?: unknown;
 	seasons?: unknown;
 	epochDate?: unknown;
@@ -389,7 +391,10 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 				!WORLD_SCOPE_TYPES.includes(presence.scopeType as CampaignWorldScopeType) ||
 				!hasText(presence.presenceType) ||
 				(presence.scopeId !== undefined && !hasText(presence.scopeId)) ||
-				(presence.scopeType !== 'global' && !hasText(presence.scopeId))
+				(presence.scopeType !== 'global' && !hasText(presence.scopeId)) ||
+				(presence.availableSheetExternalIds !== undefined &&
+					(!hasStringArray(presence.availableSheetExternalIds) ||
+						presence.availableSheetExternalIds.some((externalId) => !hasText(externalId))))
 			) {
 				return { valid: false, error: 'Presença de organização inválida.' };
 			}
