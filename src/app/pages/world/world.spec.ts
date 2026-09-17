@@ -131,7 +131,8 @@ describe('WorldPage', () => {
 		await createPage();
 		expect(component.selectedLocation()).toBeNull();
 		expect(fixture.nativeElement.textContent).toContain('Impérios');
-		expect(fixture.nativeElement.textContent).not.toContain('Organizações');
+		expect(fixture.nativeElement.textContent).toContain('Guildas e organizações');
+		expect(fixture.nativeElement.textContent).toContain('Conselho Local');
 	});
 
 	it('opens at the current party location when it is valid', async () => {
@@ -234,5 +235,53 @@ describe('WorldPage', () => {
 
 		expect(component.editorAliases).toEqual(['Vale', 'Costa']);
 		expect(component.editorAliasInput).toBe('');
+	});
+
+	it('creates organizations without an implicit global presence', async () => {
+		await createPage();
+		component.openEditor('organization');
+		component.onEditorNameChange('Academia Prisma');
+		component.editorTypeValue = 'institution';
+		component.saveEditor();
+
+		const organization = component.campaignWorld
+			.world()
+			?.organizations.find((item) => item.name === 'Academia Prisma');
+		expect(organization).toEqual(
+			jasmine.objectContaining({
+				organizationType: 'institution',
+				presence: [],
+			}),
+		);
+	});
+
+	it('edits and archives an organization without changing its identity or presences', async () => {
+		await createPage();
+		const original = component.campaignWorld.getOrganization('local')!;
+		component.openOrganizationEditor(original);
+		component.editorName = 'Conselho Renovado';
+		component.editorTypeValue = 'government';
+		component.editorAliases = ['conselho'];
+		component.saveEditor();
+
+		const edited = component.campaignWorld.getOrganization('local')!;
+		expect(edited).toEqual(
+			jasmine.objectContaining({
+				id: 'local',
+				name: 'Conselho Renovado',
+				aliases: ['conselho'],
+				organizationType: 'government',
+				sourcePath: 'Local.md',
+				presence: [],
+			}),
+		);
+
+		component.toggleOrganizationArchived(edited.id);
+		fixture.detectChanges();
+		expect(component.archivedOrganizations().map((item) => item.id)).toEqual(['local']);
+		expect(fixture.nativeElement.textContent).toContain('Restaurar');
+
+		component.toggleOrganizationArchived(edited.id);
+		expect(component.activeOrganizations().map((item) => item.id)).toEqual(['local']);
 	});
 });

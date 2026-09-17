@@ -167,24 +167,27 @@
 							[(ngModel)]="editorParentId"
 						>
 							<option value="">Nenhuma</option>
-							@for (
-								organization of campaignWorld.world()?.organizations ?? [];
-								track organization.id
-							) {
+							@for (organization of organizationParentOptions(); track organization.id) {
 								<option [value]="organization.id">{{ organization.name }}</option>
 							}
 						</select></label
 					><label class="text-sm font-semibold"
-						>Tipo<select class="app-field mt-2 w-full" [(ngModel)]="editorTypeValue">
-							@for (option of organizationTypeOptions; track option.value) {
-								<option [value]="option.value">{{ option.label }}</option>
+						>Tipo<input
+							class="app-field mt-2 w-full"
+							list="organization-type-suggestions"
+							[(ngModel)]="editorTypeValue"
+							placeholder="Ex.: guild ou institution"
+						/>
+						<datalist id="organization-type-suggestions">
+							@for (typeSuggestion of organizationTypeSuggestions; track typeSuggestion) {
+								<option [value]="typeSuggestion"></option>
 							}
-						</select></label
+						</datalist></label
 					>
 				}
 				<div class="sm:col-span-2 flex flex-wrap gap-2">
 					<button type="button" class="app-button app-button-primary" (click)="saveEditor()">
-						Salvar {{ type }}</button
+						{{ editingOrganizationId() ? 'Salvar alterações' : 'Salvar ' + type }}</button
 					><button type="button" class="app-button app-button-secondary" (click)="cancelEditor()">
 						Cancelar
 					</button>
@@ -456,6 +459,99 @@
 							<p class="mt-4 text-sm text-white/55">Nenhum império catalogado ainda.</p>
 						}
 					</div>
+
+					<section class="mt-8">
+						<div class="flex flex-wrap items-end justify-between gap-3">
+							<div>
+								<h2 class="text-xl font-semibold">Guildas e organizações</h2>
+								<p class="mt-1 text-sm text-white/60">
+									Cadastre identidades mundiais. Postos e filiais serão configurados depois como presenças.
+								</p>
+							</div>
+							<button
+								type="button"
+								class="app-button app-button-secondary text-sm"
+								(click)="openEditor('organization')"
+							>
+								+ Organização
+							</button>
+						</div>
+
+						@if (activeOrganizations().length) {
+							<div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+								@for (organization of activeOrganizations(); track organization.id) {
+									<article class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+										<div class="flex items-start justify-between gap-3">
+											<div class="min-w-0">
+												<h3 class="break-words font-semibold text-white">{{ organization.name }}</h3>
+												<div class="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-fuchsia-100/70">
+													{{ organization.organizationType }}
+												</div>
+											</div>
+											<span class="app-status border border-emerald-400/30 bg-emerald-500/15 text-emerald-100">
+												Ativa
+											</span>
+										</div>
+										@if (organization.parentOrganizationId) {
+											<p class="mt-2 text-xs text-white/55">Organização pai configurada</p>
+										}
+										<div class="mt-4 flex flex-wrap gap-2">
+											<button
+												type="button"
+												class="app-button app-button-secondary text-sm"
+												(click)="openOrganizationEditor(organization)"
+											>
+												Editar
+											</button>
+											<button
+												type="button"
+												class="app-button app-button-secondary text-sm"
+												(click)="toggleOrganizationArchived(organization.id)"
+											>
+												Arquivar
+											</button>
+										</div>
+									</article>
+								}
+							</div>
+						} @else {
+							<p class="mt-4 text-sm text-white/55">Nenhuma organização ativa catalogada ainda.</p>
+						}
+
+						@if (archivedOrganizations().length) {
+							<div class="mt-6">
+								<h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-white/55">
+									Arquivadas
+								</h3>
+								<div class="mt-3 divide-y divide-white/10 border-y border-white/10">
+									@for (organization of archivedOrganizations(); track organization.id) {
+										<div class="flex flex-wrap items-center justify-between gap-3 py-3">
+											<div>
+												<div class="font-semibold text-white/75">{{ organization.name }}</div>
+												<div class="mt-1 text-xs text-white/50">{{ organization.organizationType }}</div>
+											</div>
+											<div class="flex flex-wrap gap-2">
+												<button
+													type="button"
+													class="app-button app-button-secondary text-sm"
+													(click)="openOrganizationEditor(organization)"
+												>
+													Editar
+												</button>
+												<button
+													type="button"
+													class="app-button app-button-secondary text-sm"
+													(click)="toggleOrganizationArchived(organization.id)"
+												>
+													Restaurar
+												</button>
+											</div>
+										</div>
+									}
+								</div>
+							</div>
+						}
+					</section>
 				} @else if (selectedResolvedLocation(); as location) {
 					@if (location.ref.scopeType === 'empire') {
 						<div class="mt-6">

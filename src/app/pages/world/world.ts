@@ -40,15 +40,19 @@ export class WorldPage {
 	readonly pointOfInterestTypeOptions = Object.entries(POINT_OF_INTEREST_TYPE_LABELS).map(
 		([value, label]) => ({ value, label }),
 	);
-	readonly organizationTypeOptions = [
-		{ value: 'guild', label: 'Guilda' },
-		{ value: 'group', label: 'Grupo' },
-		{ value: 'cult', label: 'Culto' },
-		{ value: 'family', label: 'Família' },
+	readonly organizationTypeSuggestions = [
+		'guild',
+		'group',
+		'cult',
+		'family',
+		'institution',
+		'company',
+		'government',
 	];
 	readonly editorType = signal<'empire' | 'state' | 'settlement' | 'poi' | 'organization' | null>(
 		null,
 	);
+	readonly editingOrganizationId = signal<string | null>(null);
 	editorName = '';
 	editorParentId = '';
 	editorTypeValue = '';
@@ -68,6 +72,18 @@ export class WorldPage {
 	readonly pointOfInterestSearchResults = computed(() =>
 		this.campaignWorld.searchPointsOfInterest(this.searchQuery()).slice(0, 8),
 	);
+	readonly activeOrganizations = computed(() =>
+		(this.campaignWorld.world()?.organizations ?? []).filter((organization) => !organization.archived),
+	);
+	readonly archivedOrganizations = computed(() =>
+		(this.campaignWorld.world()?.organizations ?? []).filter((organization) => organization.archived),
+	);
+	readonly organizationParentOptions = computed(() => {
+		const editingId = this.editingOrganizationId();
+		return (this.campaignWorld.world()?.organizations ?? []).filter(
+			(organization) => organization.id !== editingId,
+		);
+	});
 
 	constructor() {
 		effect(() => {
@@ -168,6 +184,7 @@ export class WorldPage {
 
 	openEditor(type: WorldEditorType): void {
 		this.editorType.set(type);
+		this.editingOrganizationId.set(null);
 		this.editorName = '';
 		this.editorParentId = this.defaultParentId(type);
 		this.editorTypeValue =
@@ -184,6 +201,16 @@ export class WorldPage {
 		this.editorSummary = '';
 		this.editorOrganizationIds = [];
 		this.editorMessage.set(null);
+	}
+
+	openOrganizationEditor(organization: CampaignOrganization): void {
+		this.openEditor('organization');
+		this.editingOrganizationId.set(organization.id);
+		this.editorName = organization.name;
+		this.editorParentId = organization.parentOrganizationId ?? '';
+		this.editorTypeValue = organization.organizationType;
+		this.editorAliases = [...organization.aliases];
+		this.editorAliasesManuallyEdited = true;
 	}
 
 	onEditorNameChange(value: string): void {
@@ -219,6 +246,7 @@ export class WorldPage {
 
 	cancelEditor(): void {
 		this.editorType.set(null);
+		this.editingOrganizationId.set(null);
 	}
 
 	saveEditor(): void {
@@ -226,7 +254,8 @@ export class WorldPage {
 		const world = this.campaignWorld.world();
 		if (!type || !world || !this.editorName.trim()) return;
 		const next = structuredClone(world);
-		const id = this.newId(type);
+		const editingOrganizationId = this.editingOrganizationId();
+		const id = editingOrganizationId ?? this.newId(type);
 		this.commitAlias();
 		const aliases = this.editorAliases;
 		if (type === 'empire') next.empires.push({ id, name: this.editorName.trim(), aliases });
@@ -273,19 +302,52 @@ export class WorldPage {
 			});
 		}
 		if (type === 'organization') {
+			const existing = editingOrganizationId
+				? next.organizations.find((item) => item.id === editingOrganizationId)
+				: undefined;
+			if (editingOrganizationId && !existing) {
+				this.editorMessage.set('A organização que você está editando não existe mais.');
+				return;
+			}
 			const organization: CampaignOrganization = {
+				...existing,
 				id,
 				name: this.editorName.trim(),
 				aliases,
-				organizationType: this.editorTypeValue || 'group',
-				presence: [{ scopeType: 'global', presenceType: 'known' }],
+				organizationType: this.editorTypeValue.trim() || 'group',
+				presence: existing?.presence ?? [],
 			};
-			if (this.editorParentId && next.organizations.some((item) => item.id === this.editorParentId))
+			if (
+				this.editorParentId &&
+				this.editorParentId !== id &&
+				next.organizations.some((item) => item.id === this.editorParentId)
+			) {
 				organization.parentOrganizationId = this.editorParentId;
-			next.organizations.push(organization);
+			} else {
+				delete organization.parentOrganizationId;
+			}
+			if (existing) {
+				next.organizations = next.organizations.map((item) =>
+					item.id === id ? organization : item,
+				);
+			} else {
+				next.organizations.push(organization);
+			}
 		}
 		this.campaignWorld.saveWorld(next);
 		this.editorType.set(null);
+		this.editingOrganizationId.set(null);
+	}
+
+	toggleOrganizationArchived(id: string): void {
+		const world = this.campaignWorld.world();
+		if (!world) return;
+		const next = structuredClone(world);
+		const organization = next.organizations.find((item) => item.id === id);
+		if (!organization) return;
+		if (organization.archived) delete organization.archived;
+		else organization.archived = true;
+		this.campaignWorld.saveWorld(next);
 	}
 
 	deleteEntity(type: 'empire' | 'state' | 'settlement' | 'poi' | 'organization', id: string): void {

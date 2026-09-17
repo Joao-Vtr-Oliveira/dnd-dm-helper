@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { CampaignWorld } from '../../models/campaign-world-model';
+import { WorkspaceService } from '../workspace-service/workspace-service';
 import { CampaignWorldService } from './campaign-world-service';
 
 const VALID_WORLD: CampaignWorld = {
@@ -154,6 +155,40 @@ describe('CampaignWorldService', () => {
 		expect(service.status()).toBe('error');
 	});
 
+	it('accepts archived organizations and custom organization types', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [
+				{
+					...VALID_WORLD.organizations[0],
+					organizationType: 'institution',
+					archived: true,
+				},
+			],
+		});
+
+		expect(service.status()).toBe('ready');
+		expect(service.getOrganization('guild')).toEqual(
+			jasmine.objectContaining({ organizationType: 'institution', archived: true }),
+		);
+	});
+
+	it('rejects invalid organization lifecycle values', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [{ ...VALID_WORLD.organizations[0], organizationType: '   ' }],
+		});
+
+		expect(service.status()).toBe('error');
+
+		service.load();
+		http.expectOne('/rpg_files/campaign-world.json').flush({
+			...VALID_WORLD,
+			organizations: [{ ...VALID_WORLD.organizations[0], archived: 'yes' }],
+		});
+		expect(service.status()).toBe('error');
+	});
+
 	it('rejects invalid points of interest and their references', () => {
 		load({
 			...VALID_WORLD,
@@ -287,5 +322,79 @@ describe('CampaignWorldService', () => {
 		expect(
 			stateOrganizations.find((item) => item.organization.id === 'guild')?.broaderPresences,
 		).toHaveSize(1);
+	});
+
+	it('keeps one Winterhold identity when it has a global network and a local post', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [
+				{
+					id: 'winterhold',
+					name: 'Winterhold',
+					organizationType: 'institution',
+					aliases: [],
+					presence: [
+						{ scopeType: 'global', presenceType: 'network' },
+						{ scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'post' },
+					],
+				},
+			],
+			pointsOfInterest: [],
+		});
+
+		const organizations = service.getRelevantOrganizations({
+			scopeType: 'settlement',
+			scopeId: 'nagawoods',
+		});
+		expect(organizations).toHaveSize(1);
+		expect(organizations[0].organization.id).toBe('winterhold');
+		expect(organizations[0].directPresences).toHaveSize(1);
+		expect(organizations[0].broaderPresences).toHaveSize(1);
+	});
+});
+
+describe('CampaignWorldService workspace isolation', () => {
+	beforeEach(() => {
+		localStorage.clear();
+		TestBed.resetTestingModule();
+		TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
+	});
+
+	afterEach(() => TestBed.resetTestingModule());
+
+	it('keeps organization registries isolated by active workspace', () => {
+		const workspaces = TestBed.inject(WorkspaceService);
+		const first = workspaces.createWorkspace('Primeira');
+		const service = TestBed.inject(CampaignWorldService);
+		service.saveWorld(structuredClone(VALID_WORLD));
+
+		const second = workspaces.createWorkspace('Segunda');
+		service.load();
+		expect(service.world()?.organizations).toEqual([]);
+
+		service.saveWorld({
+			...structuredClone(VALID_WORLD),
+			organizations: [
+				{
+					...VALID_WORLD.organizations[0],
+					id: 'second-workspace-organization',
+					name: 'Segunda Organização',
+					presence: [],
+				},
+			],
+			pointsOfInterest: [],
+		});
+
+		workspaces.activate(first.id);
+		service.load();
+		expect(service.getOrganization('guild')?.name).toBe('Guild');
+		expect(service.getOrganization('second-workspace-organization')).toBeNull();
+
+		workspaces.activate(second.id);
+		service.load();
+		expect(service.getOrganization('second-workspace-organization')?.name).toBe(
+			'Segunda Organização',
+		);
+		expect(service.getOrganization('guild')).toBeNull();
 	});
 });

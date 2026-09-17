@@ -32,6 +32,7 @@ export interface CampaignOrganization extends CampaignEmpire {
 	organizationType: CampaignOrganizationType;
 	parentOrganizationId?: string;
 	presence: CampaignOrganizationPresence[];
+	archived?: boolean;
 }
 
 export interface CampaignPointOfInterest extends CampaignEmpire {
@@ -130,7 +131,6 @@ export interface CampaignWorldValidationResult {
 }
 
 const SETTLEMENT_TYPES: CampaignSettlementType[] = ['village', 'city', 'capital', 'other'];
-const ORGANIZATION_TYPES: CampaignOrganizationType[] = ['guild', 'group', 'cult', 'family'];
 const POINT_OF_INTEREST_TYPES: CampaignPointOfInterestType[] = [
 	'academy',
 	'district',
@@ -172,6 +172,7 @@ interface UnknownCampaignRecord {
 	organizationIds?: unknown;
 	parentOrganizationId?: unknown;
 	presence?: unknown;
+	archived?: unknown;
 	scopeType?: unknown;
 	scopeId?: unknown;
 	presenceType?: unknown;
@@ -350,10 +351,11 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 		if (
 			error ||
 			!isRecord(organization) ||
-			!ORGANIZATION_TYPES.includes(organization.organizationType as CampaignOrganizationType) ||
+			!hasText(organization.organizationType) ||
 			!Array.isArray(organization.presence) ||
 			(organization.parentOrganizationId !== undefined &&
-				!hasText(organization.parentOrganizationId))
+				!hasText(organization.parentOrganizationId)) ||
+			(organization.archived !== undefined && typeof organization.archived !== 'boolean')
 		) {
 			return { valid: false, error: error ?? 'Organização possui campos inválidos.' };
 		}
