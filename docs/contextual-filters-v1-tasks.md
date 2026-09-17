@@ -8,7 +8,8 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
 
 - [x] Task 0: contrato e baseline confirmados.
 - [x] Task 1: Organizations CRUD concluído em 2026-09-17.
-- [ ] Proxima task: Task 2, CRUD de Organization Presence.
+- [x] Task 2: Organization Presence CRUD concluído em 2026-09-17.
+- [ ] Proxima task: Task 3, metadata contextual de CreatureSheets.
 
 ## Estado atual encontrado
 
@@ -18,8 +19,8 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
   settlement para a localizacao atual com `getRelevantOrganizations()`.
 - `CampaignContextService` ja persiste e resolve `currentLocation` para
   `empire | state | settlement`. POI e deliberadamente excluido.
-- `WorldPage` lista, cria, edita, arquiva e restaura organizacoes. Novas
-  organizacoes iniciam sem presencas; o CRUD de presencas continua pendente.
+- `WorldPage` lista, cria, edita, arquiva e restaura organizacoes. Tambem permite
+  cadastrar, editar e remover presencas globais, imperiais, estaduais e locais.
 - O tipo de organizacao aceita strings nao vazias, com sugestoes na interface e
   suporte a valores customizados.
 - `SavedSheetInterface` ja e o envelope editorial de uma `CreatureSheet`: ID,
@@ -115,6 +116,8 @@ Status: concluida.
   JSON manual, com persistencia por workspace.
 
 ### Task 2: Completar o CRUD existente de Organization Presence
+
+Status: concluida.
 
 - Objetivo: permitir gerenciar presencas de cada organizacao.
 - Arquivos/areas provavelmente afetados: `campaign-world-model.ts`,
@@ -284,7 +287,7 @@ Status: concluida.
 
 - [x] Registry unico em `campaignWorld.organizations`.
 - [x] CRUD e arquivamento de organizacoes.
-- [ ] CRUD de presencas sem presenca automatica de membros.
+- [x] CRUD de presencas sem presenca automatica de membros.
 - [ ] Metadata opcional e compativel em fichas.
 - [ ] Metadata opcional e compativel em encounters.
 - [ ] Filtros formais de ficha e encounter.

@@ -284,4 +284,76 @@ describe('WorldPage', () => {
 		component.toggleOrganizationArchived(edited.id);
 		expect(component.activeOrganizations().map((item) => item.id)).toEqual(['local']);
 	});
+
+	it('manages global, empire, state, and settlement presences without duplicating the organization', async () => {
+		await createPage();
+		component.openPresenceManager('local');
+		component.openPresenceEditor();
+		component.setPresenceScopeType('state');
+		component.savePresence();
+		expect(component.campaignWorld.getOrganization('local')?.presence).toEqual([]);
+		expect(component.editorMessage()).toContain('localização válida');
+		component.cancelPresenceEditor();
+
+		const savePresence = (
+			scopeType: 'global' | 'empire' | 'state' | 'settlement',
+			scopeId: string,
+			presenceType: string,
+		) => {
+			component.openPresenceEditor();
+			component.setPresenceScopeType(scopeType);
+			component.setPresenceScopeId(scopeId);
+			component.setPresenceType(presenceType);
+			component.savePresence();
+		};
+
+		savePresence('global', '', 'network');
+		savePresence('empire', 'mornk', 'headquarters');
+		savePresence('state', 'nagazav', 'agent');
+		savePresence('settlement', 'nagawoods', 'post');
+
+		const organization = component.campaignWorld.getOrganization('local')!;
+		expect(organization.presence).toEqual([
+			{ scopeType: 'global', presenceType: 'network' },
+			{ scopeType: 'empire', scopeId: 'mornk', presenceType: 'headquarters' },
+			{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'agent' },
+			{ scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'post' },
+		]);
+		expect(component.campaignWorld.world()?.organizations).toHaveSize(1);
+		expect(component.presenceScopeLabel(organization.presence[2])).toBe('Mornk › Nagazav');
+
+		component.editPresence(2);
+		component.setPresenceType('regional-post');
+		component.savePresence();
+		expect(component.campaignWorld.getOrganization('local')?.presence[2]).toEqual({
+			scopeType: 'state',
+			scopeId: 'nagazav',
+			presenceType: 'regional-post',
+		});
+
+		component.openPresenceEditor();
+		component.setPresenceType('network');
+		component.savePresence();
+		expect(component.campaignWorld.getOrganization('local')?.presence).toHaveSize(4);
+		expect(component.editorMessage()).toContain('já está cadastrada');
+		component.cancelPresenceEditor();
+
+		spyOn(window, 'confirm').and.returnValue(true);
+		component.removePresence(3);
+		expect(component.campaignWorld.getOrganization('local')?.presence).toHaveSize(3);
+	});
+
+	it('keeps presences editable after the organization is archived', async () => {
+		await createPage();
+		component.toggleOrganizationArchived('local');
+		component.openPresenceManager('local');
+		component.openPresenceEditor();
+		component.setPresenceType('remote-contact');
+		component.savePresence();
+
+		expect(component.archivedOrganizations().map((item) => item.id)).toEqual(['local']);
+		expect(component.campaignWorld.getOrganization('local')?.presence).toEqual([
+			{ scopeType: 'global', presenceType: 'remote-contact' },
+		]);
+	});
 });

@@ -233,6 +233,38 @@ describe('CampaignWorldService', () => {
 		).toHaveSize(1);
 	});
 
+	it('indexes organization presences at every supported scope', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [
+				{
+					...VALID_WORLD.organizations[0],
+					presence: [
+						{ scopeType: 'global', presenceType: 'network' },
+						{ scopeType: 'empire', scopeId: 'mornk', presenceType: 'headquarters' },
+						{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'agent' },
+						{ scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'post' },
+					],
+				},
+			],
+		});
+
+		expect(service.getOrganizationsByScope({ scopeType: 'global' }).map((item) => item.id)).toEqual([
+			'guild',
+		]);
+		expect(
+			service.getOrganizationsByScope({ scopeType: 'empire', scopeId: 'mornk' }).map((item) => item.id),
+		).toEqual(['guild']);
+		expect(
+			service.getOrganizationsByScope({ scopeType: 'state', scopeId: 'nagazav' }).map((item) => item.id),
+		).toEqual(['guild']);
+		expect(
+			service
+				.getOrganizationsByScope({ scopeType: 'settlement', scopeId: 'nagawoods' })
+				.map((item) => item.id),
+		).toEqual(['guild']);
+	});
+
 	it('resolves every supported location level and unknown IDs safely', () => {
 		load();
 		expect(
@@ -379,7 +411,7 @@ describe('CampaignWorldService workspace isolation', () => {
 					...VALID_WORLD.organizations[0],
 					id: 'second-workspace-organization',
 					name: 'Segunda Organização',
-					presence: [],
+					presence: [{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'post' }],
 				},
 			],
 			pointsOfInterest: [],
@@ -388,6 +420,10 @@ describe('CampaignWorldService workspace isolation', () => {
 		workspaces.activate(first.id);
 		service.load();
 		expect(service.getOrganization('guild')?.name).toBe('Guild');
+		expect(service.getOrganization('guild')?.presence).toEqual([
+			{ scopeType: 'global', presenceType: 'network' },
+			{ scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'agent' },
+		]);
 		expect(service.getOrganization('second-workspace-organization')).toBeNull();
 
 		workspaces.activate(second.id);
@@ -395,6 +431,9 @@ describe('CampaignWorldService workspace isolation', () => {
 		expect(service.getOrganization('second-workspace-organization')?.name).toBe(
 			'Segunda Organização',
 		);
+		expect(service.getOrganization('second-workspace-organization')?.presence).toEqual([
+			{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'post' },
+		]);
 		expect(service.getOrganization('guild')).toBeNull();
 	});
 });

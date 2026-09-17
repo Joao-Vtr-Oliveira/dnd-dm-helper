@@ -5,9 +5,11 @@ import {
 	type CampaignLocationRef,
 	type CampaignLocationSearchResult,
 	type CampaignPointOfInterestSearchResult,
+	type CampaignOrganizationPresence,
 	type CampaignSettlement,
 	type CampaignWorld,
 	type CampaignOrganization,
+	type CampaignWorldScopeType,
 	normalizeCampaignWorldSearchText,
 	POINT_OF_INTEREST_TYPE_LABELS,
 	SETTLEMENT_TYPE_LABELS,
@@ -16,6 +18,12 @@ import { CampaignContextService } from '../../services/campaign-context-service/
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
 
 type WorldEditorType = 'empire' | 'state' | 'settlement' | 'poi' | 'organization';
+
+type OrganizationPresenceDraft = {
+	scopeType: CampaignWorldScopeType;
+	scopeId: string;
+	presenceType: string;
+};
 
 @Component({
 	selector: 'app-world-page',
@@ -49,10 +57,28 @@ export class WorldPage {
 		'company',
 		'government',
 	];
+	readonly presenceTypeSuggestions = [
+		'headquarters',
+		'post',
+		'branch',
+		'agent',
+		'remote-contact',
+		'network',
+	];
+	readonly presenceScopeTypeOptions: Array<{ value: CampaignWorldScopeType; label: string }> = [
+		{ value: 'global', label: 'Global' },
+		{ value: 'empire', label: 'Império' },
+		{ value: 'state', label: 'Estado' },
+		{ value: 'settlement', label: 'Localidade' },
+	];
 	readonly editorType = signal<'empire' | 'state' | 'settlement' | 'poi' | 'organization' | null>(
 		null,
 	);
 	readonly editingOrganizationId = signal<string | null>(null);
+	readonly managingOrganizationId = signal<string | null>(null);
+	readonly editingPresenceIndex = signal<number | null>(null);
+	readonly presenceEditorOpen = signal(false);
+	readonly presenceDraft = signal<OrganizationPresenceDraft>(this.emptyPresenceDraft());
 	editorName = '';
 	editorParentId = '';
 	editorTypeValue = '';
@@ -83,6 +109,27 @@ export class WorldPage {
 		return (this.campaignWorld.world()?.organizations ?? []).filter(
 			(organization) => organization.id !== editingId,
 		);
+	});
+	readonly managedOrganization = computed(() => {
+		const id = this.managingOrganizationId();
+		return id ? this.campaignWorld.getOrganization(id) : null;
+	});
+	readonly presenceScopeOptions = computed(() => {
+		const scopeType = this.presenceDraft().scopeType;
+		const world = this.campaignWorld.world();
+		if (!world || scopeType === 'global') return [];
+		const entities =
+			scopeType === 'empire'
+				? world.empires
+				: scopeType === 'state'
+					? world.states
+					: world.settlements;
+		return entities
+			.map((entity) => {
+				const location = this.campaignWorld.resolveLocation({ scopeType, scopeId: entity.id });
+				return { value: entity.id, label: location?.breadcrumb.join(' › ') ?? entity.name };
+			})
+			.sort((left, right) => left.label.localeCompare(right.label));
 	});
 
 	constructor() {
@@ -211,6 +258,121 @@ export class WorldPage {
 		this.editorTypeValue = organization.organizationType;
 		this.editorAliases = [...organization.aliases];
 		this.editorAliasesManuallyEdited = true;
+	}
+
+	openPresenceManager(organizationId: string): void {
+		if (!this.campaignWorld.getOrganization(organizationId)) return;
+		this.managingOrganizationId.set(organizationId);
+		this.cancelPresenceEditor();
+		this.editorMessage.set(null);
+	}
+
+	closePresenceManager(): void {
+		this.managingOrganizationId.set(null);
+		this.cancelPresenceEditor();
+	}
+
+	openPresenceEditor(): void {
+		this.editingPresenceIndex.set(null);
+		this.presenceDraft.set(this.emptyPresenceDraft());
+		this.presenceEditorOpen.set(true);
+		this.editorMessage.set(null);
+	}
+
+	editPresence(index: number): void {
+		const presence = this.managedOrganization()?.presence[index];
+		if (!presence) return;
+		this.editingPresenceIndex.set(index);
+		this.presenceDraft.set({
+			scopeType: presence.scopeType,
+			scopeId: presence.scopeId ?? '',
+			presenceType: presence.presenceType,
+		});
+		this.presenceEditorOpen.set(true);
+		this.editorMessage.set(null);
+	}
+
+	cancelPresenceEditor(): void {
+		this.editingPresenceIndex.set(null);
+		this.presenceEditorOpen.set(false);
+		this.presenceDraft.set(this.emptyPresenceDraft());
+	}
+
+	setPresenceScopeType(scopeType: CampaignWorldScopeType): void {
+		this.presenceDraft.update((draft) => ({ ...draft, scopeType, scopeId: '' }));
+	}
+
+	setPresenceScopeId(scopeId: string): void {
+		this.presenceDraft.update((draft) => ({ ...draft, scopeId }));
+	}
+
+	setPresenceType(presenceType: string): void {
+		this.presenceDraft.update((draft) => ({ ...draft, presenceType }));
+	}
+
+	savePresence(): void {
+		const organizationId = this.managingOrganizationId();
+		const world = this.campaignWorld.world();
+		if (!organizationId || !world) return;
+		const draft = this.presenceDraft();
+		const presenceType = draft.presenceType.trim();
+		if (!presenceType) {
+			this.editorMessage.set('Informe o tipo de presença.');
+			return;
+		}
+		if (draft.scopeType !== 'global' && !this.isValidPresenceScopeId(draft.scopeType, draft.scopeId)) {
+			this.editorMessage.set('Escolha uma localização válida para esta presença.');
+			return;
+		}
+		const presence: CampaignOrganizationPresence = {
+			scopeType: draft.scopeType,
+			...(draft.scopeType === 'global' ? {} : { scopeId: draft.scopeId }),
+			presenceType,
+		};
+		const editingIndex = this.editingPresenceIndex();
+		const organization = world.organizations.find((item) => item.id === organizationId);
+		if (!organization) {
+			this.closePresenceManager();
+			return;
+		}
+		const isDuplicate = organization.presence.some(
+			(item, index) => index !== editingIndex && this.samePresence(item, presence),
+		);
+		if (isDuplicate) {
+			this.editorMessage.set('Esta presença já está cadastrada para a organização.');
+			return;
+		}
+		const next = structuredClone(world);
+		const nextOrganization = next.organizations.find((item) => item.id === organizationId)!;
+		if (editingIndex === null) nextOrganization.presence.push(presence);
+		else nextOrganization.presence[editingIndex] = presence;
+		this.campaignWorld.saveWorld(next);
+		this.cancelPresenceEditor();
+	}
+
+	removePresence(index: number): void {
+		const organizationId = this.managingOrganizationId();
+		const world = this.campaignWorld.world();
+		if (!organizationId || !world || !this.managedOrganization()?.presence[index]) return;
+		if (!confirm('Remover esta presença da organização?')) return;
+		const next = structuredClone(world);
+		const organization = next.organizations.find((item) => item.id === organizationId);
+		if (!organization) return;
+		organization.presence.splice(index, 1);
+		this.campaignWorld.saveWorld(next);
+		this.cancelPresenceEditor();
+	}
+
+	presenceScopeLabel(presence: CampaignOrganizationPresence): string {
+		if (presence.scopeType === 'global') return 'Global';
+		const location = this.campaignWorld.resolveLocation({
+			scopeType: presence.scopeType,
+			scopeId: presence.scopeId ?? '',
+		});
+		return location?.breadcrumb.join(' › ') ?? `${this.locationTypeLabel({
+			scopeType: presence.scopeType,
+			scopeId: presence.scopeId ?? '',
+		})} removido`;
 	}
 
 	onEditorNameChange(value: string): void {
@@ -401,6 +563,27 @@ export class WorldPage {
 
 	private newId(prefix: string): string {
 		return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)}`;
+	}
+
+	private emptyPresenceDraft(): OrganizationPresenceDraft {
+		return { scopeType: 'global', scopeId: '', presenceType: 'network' };
+	}
+
+	private isValidPresenceScopeId(scopeType: Exclude<CampaignWorldScopeType, 'global'>, scopeId: string): boolean {
+		if (scopeType === 'empire') return !!this.campaignWorld.getEmpire(scopeId);
+		if (scopeType === 'state') return !!this.campaignWorld.getState(scopeId);
+		return !!this.campaignWorld.getSettlement(scopeId);
+	}
+
+	private samePresence(
+		left: CampaignOrganizationPresence,
+		right: CampaignOrganizationPresence,
+	): boolean {
+		return (
+			left.scopeType === right.scopeType &&
+			(left.scopeId ?? '') === (right.scopeId ?? '') &&
+			left.presenceType.trim().toLocaleLowerCase() === right.presenceType.trim().toLocaleLowerCase()
+		);
 	}
 
 	private defaultParentId(type: WorldEditorType): string {
