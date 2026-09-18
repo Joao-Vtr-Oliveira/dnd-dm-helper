@@ -201,6 +201,51 @@ describe('BattleEncounterService', () => {
 		expect('usedCount' in source.participants[0].sheet.specialAbilities[2]).toBeFalse();
 	});
 
+	it('carries linked Legendary Resistance into the Battle Tracker without legendary-action costs', () => {
+		const source: Encounter = {
+			...encounter,
+			archived: undefined,
+			participants: [
+				{
+					...structuredClone(boss),
+					id: 'participant-legendary',
+					sheet: {
+						...structuredClone(boss.sheet),
+						legendaryActions: { count: 3 },
+						features: [
+							{
+								id: 'legendary-resistance-feature',
+								name: 'Legendary Resistance',
+								description: 'If the creature fails a saving throw, it can choose to succeed instead.',
+								kind: 'trait',
+							},
+						],
+						specialAbilities: [
+							{
+								id: 'legendary-resistance-ability',
+								featureId: 'legendary-resistance-feature',
+								name: 'Legendary Resistance',
+								recoveryType: 'uses-per-day',
+								maxUses: 2,
+							},
+						],
+					},
+				},
+			],
+		};
+
+		const battle = service.createBattleFromEncounter(source);
+		const combatant = battle.combatants[0];
+		const resistance = combatant.specialAbilities.find((ability) => ability.name === 'Legendary Resistance');
+		expect(resistance).toEqual(jasmine.objectContaining({ maxUses: 2, usedCount: 0, isAvailable: true }));
+		expect(combatant.features.find((feature) => feature.name === 'Legendary Resistance')?.kind).toBe('trait');
+		expect(combatant.features.filter((feature) => feature.kind === 'legendary')).toHaveSize(0);
+
+		const used = service.useSpecialAbility(battle, combatant.id, resistance!.id);
+		const runtimeResistance = used.combatants[0].specialAbilities.find((ability) => ability.id === resistance!.id);
+		expect(runtimeResistance).toEqual(jasmine.objectContaining({ usedCount: 1, maxUses: 2, isAvailable: true }));
+	});
+
 	it('uses participant ids for side and initiative setup while keeping ties stable', () => {
 		const battle = service.createBattleFromEncounter(encounter, {
 			combatantSides: { 'participant-boss': 'ally', 'participant-minion': 'player' },

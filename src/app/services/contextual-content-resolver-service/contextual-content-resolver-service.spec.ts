@@ -119,6 +119,42 @@ describe('ContextualContentResolverService', () => {
 		expect(result.here).toEqual([]);
 	});
 
+	it('expands an explicit regional scope to child settlements without using tags', () => {
+		const currentSettlement = sheet({
+			id: 'current-settlement',
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'feng-city', relation: 'base' }],
+		});
+		const stateContent = sheet({
+			id: 'state-content',
+			locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'habitat' }],
+		});
+		const siblingSettlement = sheet({
+			id: 'sibling-settlement',
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'feng-village', relation: 'occurrence' }],
+		});
+		const outsideRegion = sheet({
+			id: 'outside-region',
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'other-city', relation: 'occurrence' }],
+		});
+
+		const result = service.resolve({
+			currentLocation: location,
+			sheets: [currentSettlement, stateContent, siblingSettlement, outsideRegion],
+			encounters: [],
+			organizations: [],
+			regionalStateId: 'feng',
+			regionalSettlementIds: ['feng-city', 'feng-village'],
+		});
+
+		expect(result.stateRegion.map((item) => item.content.id)).toEqual([
+			'current-settlement',
+			'state-content',
+			'sibling-settlement',
+		]);
+		expect(result.stateRegion[2].matchedLocations[0].relation).toBe('occurrence');
+		expect(result.here.map((item) => item.content.id)).toEqual(['current-settlement']);
+	});
+
 	it('returns only exact organizational presences and never linked members', () => {
 		const localAgent = organization({
 			id: 'local-agent',

@@ -135,6 +135,18 @@ function normalizeCreature(raw: CreatureSheet): CreatureSheet {
 	});
 }
 
+const LEGENDARY_RESISTANCE_NAME = 'legendary resistance';
+const LEGENDARY_RESISTANCE_DESCRIPTION =
+	'If the creature fails a saving throw, it can choose to succeed instead.';
+const LEGENDARY_RESISTANCE_DEFAULT_USES = 3;
+
+function catalogIdentity(value: string | undefined): string {
+	return (value ?? '')
+		.replace(/\s*\([^)]*\)\s*/g, ' ')
+		.trim()
+		.toLocaleLowerCase();
+}
+
 @Component({
 	selector: 'app-homebrew-builder',
 	standalone: true,
@@ -1276,6 +1288,11 @@ export class HomebrewBuilder {
 
 	addCatalogFeature(item: CompendiumMonsterFeature | CompendiumFeat) {
 		const description = 'effect' in item ? item.effect : this.featDescription(item);
+		if (catalogIdentity(item.name) === LEGENDARY_RESISTANCE_NAME) {
+			this.addLegendaryResistance(LEGENDARY_RESISTANCE_DESCRIPTION);
+			this.featureCatalogOpen.set(false);
+			return;
+		}
 		this.creature.update((creature) => ({
 			...creature,
 			features: [
@@ -1286,14 +1303,66 @@ export class HomebrewBuilder {
 		this.featureCatalogOpen.set(false);
 	}
 
+	private addLegendaryResistance(description: string): void {
+		const current = this.creature();
+		const existingFeature = current.features.find(
+			(feature) => catalogIdentity(feature.name) === LEGENDARY_RESISTANCE_NAME,
+		);
+		const existingAbility = current.specialAbilities.find(
+			(ability) =>
+				(existingFeature && ability.featureId === existingFeature.id) ||
+				catalogIdentity(ability.name) === LEGENDARY_RESISTANCE_NAME,
+		);
+
+		if (existingFeature && existingAbility) {
+			this.showToast({ type: 'warn', text: 'Legendary Resistance já está configurada nesta ficha.' });
+			return;
+		}
+
+		const feature = existingFeature ?? {
+			id: crypto.randomUUID(),
+			name: 'Legendary Resistance',
+			description,
+			kind: 'trait' as const,
+		};
+		const ability = existingAbility
+			? {
+				...existingAbility,
+				featureId: feature.id,
+				name: feature.name,
+				description: feature.description,
+				recoveryType: 'uses-per-day' as const,
+				maxUses: Math.max(1, existingAbility.maxUses ?? LEGENDARY_RESISTANCE_DEFAULT_USES),
+			}
+			: {
+				id: crypto.randomUUID(),
+				featureId: feature.id,
+				name: feature.name,
+				description: feature.description,
+				recoveryType: 'uses-per-day' as const,
+				maxUses: LEGENDARY_RESISTANCE_DEFAULT_USES,
+			};
+
+		this.creature.update((creature) => ({
+			...creature,
+			features: existingFeature
+				? creature.features.map((candidate) => (candidate.id === feature.id ? feature : candidate))
+				: [...creature.features, feature],
+			specialAbilities: existingAbility
+				? creature.specialAbilities.map((candidate) =>
+						candidate.id === existingAbility.id ? ability : candidate,
+					)
+				: [...creature.specialAbilities, ability],
+		}));
+	}
+
 	featDescription(feat: CompendiumFeat) {
 		return this.renderer.renderEntries(feat.entries as RawFiveEToolsEntry[]);
 	}
 
 	updateFeature(id: string, patch: Partial<CreatureFeature>) {
-		this.creature.update((creature) => ({
-			...creature,
-			features: creature.features.map((feature) => {
+		this.creature.update((creature) => {
+			const features = creature.features.map((feature) => {
 				if (feature.id !== id) return feature;
 				const next = { ...feature, ...patch };
 				const description = next.description?.trim();
@@ -1301,14 +1370,27 @@ export class HomebrewBuilder {
 				else delete next.description;
 				if (next.kind !== 'legendary') delete next.legendaryCost;
 				return next;
-			}),
-		}));
+			});
+			const linkedFeature = features.find((feature) => feature.id === id);
+		return {
+				...creature,
+				features,
+				specialAbilities: linkedFeature
+					? creature.specialAbilities.map((ability) =>
+							ability.featureId === id
+								? { ...ability, name: linkedFeature.name, description: linkedFeature.description }
+								: ability,
+					  )
+					: creature.specialAbilities,
+			};
+		});
 	}
 
 	removeFeature(id: string) {
 		this.creature.update((creature) => ({
 			...creature,
 			features: creature.features.filter((feature) => feature.id !== id),
+			specialAbilities: creature.specialAbilities.filter((ability) => ability.featureId !== id),
 		}));
 	}
 
@@ -1618,12 +1700,26 @@ export class HomebrewBuilder {
 	}
 
 	updateSpecialAbility(id: string, patch: Partial<CreatureSpecialAbility>) {
-		this.creature.update((creature) => ({
-			...creature,
-			specialAbilities: (creature.specialAbilities ?? []).map((ability) =>
+		this.creature.update((creature) => {
+			const specialAbilities = (creature.specialAbilities ?? []).map((ability) =>
 				ability.id === id ? { ...ability, ...patch } : ability,
-			),
-		}));
+			);
+			const updatedAbility = specialAbilities.find((ability) => ability.id === id);
+			if (!updatedAbility?.featureId) return { ...creature, specialAbilities };
+			return {
+				...creature,
+				specialAbilities,
+				features: creature.features.map((feature) =>
+					feature.id === updatedAbility.featureId
+						? {
+								...feature,
+								name: updatedAbility.name?.trim() || feature.name,
+								description: updatedAbility.description,
+							}
+						: feature,
+				),
+			};
+		});
 	}
 
 	setSpecialAbilityRecovery(id: string, recoveryType: CreatureAbilityRecoveryType) {

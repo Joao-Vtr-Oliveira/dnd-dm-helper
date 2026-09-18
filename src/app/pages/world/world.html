@@ -484,6 +484,70 @@
 					</div>
 				}
 
+				@if (regionalState(); as state) {
+					<section class="mt-6 rounded-2xl border border-violet-300/20 bg-violet-500/[0.05] p-4 sm:p-5" aria-label="Conteúdo da região">
+							<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+							<div>
+								<div class="app-eyebrow text-violet-200/75">Consulta regional</div>
+								<h3 class="mt-1 text-xl font-semibold">Conteúdo de {{ state.state?.name ?? state.label }}</h3>
+								<p class="mt-1 text-sm text-white/60">
+									{{ filteredRegionalContent().length }} ficha{{ filteredRegionalContent().length === 1 ? '' : 's' }} no filtro atual.
+								</p>
+							</div>
+							<div class="flex flex-wrap items-center gap-2">
+								<span class="app-status border border-violet-300/20 bg-violet-500/10 text-violet-100">
+									{{ regionalContentExpanded() ? 'Fichas visíveis' : 'Fichas ocultas' }}
+								</span>
+								@if (filteredRegionalContent().length) {
+									<button
+										type="button"
+										class="app-button app-button-ghost w-fit text-sm"
+										(click)="toggleRegionalContent()"
+										[attr.aria-expanded]="regionalContentExpanded()"
+										aria-controls="regional-content-list"
+									>
+										{{ regionalContentExpanded() ? 'Ocultar fichas' : 'Mostrar fichas' }}
+									</button>
+								}
+							</div>
+						</div>
+						<div class="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filtrar conteúdo regional">
+							@for (filter of [{ id: 'all', label: 'Todos' }, { id: 'npc', label: 'NPCs' }, { id: 'monster', label: 'Monstros' }]; track filter.id) {
+								<button
+									type="button"
+									class="app-status border px-3 py-1.5 text-xs transition hover:bg-violet-500/20"
+									[class.border-violet-300/45]="regionalCategoryFilter() === filter.id"
+									[class.bg-violet-500/20]="regionalCategoryFilter() === filter.id"
+									[class.text-violet-50]="regionalCategoryFilter() === filter.id"
+									(click)="setRegionalCategoryFilter($any(filter.id))"
+									[attr.aria-pressed]="regionalCategoryFilter() === filter.id"
+								>
+									{{ filter.label }} ({{ regionalCategoryCount($any(filter.id)) }})
+								</button>
+							}
+						</div>
+						@if (regionalContentExpanded()) {
+							@if (visibleRegionalContent().length) {
+								<div id="regional-content-list" class="mt-3 space-y-2">
+									@for (entry of visibleRegionalContent(); track entry.content.id) {
+										<app-homebrew-sheet-row
+											[sheet]="entry.content"
+											[presentation]="homebrewSheetPresentation(entry.content)"
+											[contextLabel]="'Região'"
+											[contextDetail]="regionalContentReasonLabel(entry)"
+											[showUse]="false"
+											[showAdd]="false"
+											(viewed)="openHomebrewSheetViewer($event)"
+										/>
+									}
+								</div>
+							} @else {
+								<p class="mt-4 text-sm text-white/55">Nenhuma ficha ativa relacionada a este estado.</p>
+							}
+						}
+					</section>
+				}
+
 				@if (selectedLocation() === null) {
 					<div class="mt-6">
 						<h2 class="text-xl font-semibold">Impérios</h2>
@@ -864,6 +928,21 @@
 		</div>
 	}
 </section>
+
+@if (homebrewSheetViewer(); as sheet) {
+	<div class="fixed inset-0 z-[var(--z-app-nested-modal)] flex items-end justify-center bg-black/75 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeHomebrewSheetViewer()">
+		<section role="dialog" aria-modal="true" aria-labelledby="world-homebrew-sheet-viewer-title" [appDialogFocus]="true" (appDialogEscape)="closeHomebrewSheetViewer()" class="app-dialog max-h-[calc(100vh-1.5rem)] w-full max-w-5xl overflow-y-auto p-4 sm:max-h-[90vh] sm:p-5" (click)="$event.stopPropagation()">
+			<div class="mb-4 flex items-start justify-between gap-3">
+				<div class="min-w-0">
+					<div class="app-eyebrow text-violet-200/75">Visualização da ficha</div>
+					<h2 id="world-homebrew-sheet-viewer-title" class="mt-1 break-words text-2xl font-semibold text-app-text">{{ sheet.title }}</h2>
+				</div>
+				<button type="button" class="app-button app-modal-close h-10 w-10 shrink-0 p-0" (click)="closeHomebrewSheetViewer()" aria-label="Fechar preview da ficha">x</button>
+			</div>
+			<app-creature-stat-block [creature]="sheet.data" [category]="sheet.category" variant="embedded" />
+		</section>
+	</div>
+}
 
 @if (deleteRequest(); as request) {
 	<div

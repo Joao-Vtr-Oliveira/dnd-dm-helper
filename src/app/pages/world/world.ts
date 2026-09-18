@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
+import { HomebrewSheetRowComponent } from '../../components/homebrew-sheet-row/homebrew-sheet-row';
 import {
 	type CampaignLocationRef,
 	type CampaignLocationSearchResult,
@@ -20,7 +22,16 @@ import {
 } from '../../models/campaign-world-model';
 import { CampaignContextService } from '../../services/campaign-context-service/campaign-context-service';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
-import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
+import {
+	LocalStorageService,
+	type SavedSheetInterface,
+} from '../../services/local-storage-service/local-storage-service';
+import { ContextualContentResolverService } from '../../services/contextual-content-resolver-service/contextual-content-resolver-service';
+import type { ResolvedContextualContent } from '../../models/contextual-content-resolver-model';
+import {
+	presentHomebrewSheet,
+	type HomebrewSheetPresentation,
+} from '../../models/homebrew-sheet-presentation-model';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 
 type WorldEditorType = 'empire' | 'state' | 'settlement' | 'poi' | 'organization';
@@ -39,17 +50,27 @@ type WorldDeleteRequest = {
 	dependencies: string[];
 };
 
+type RegionalCategoryFilter = 'all' | 'npc' | 'monster';
+type RegionalSheetEntry = Omit<ResolvedContextualContent, 'content'> & {
+	content: SavedSheetInterface;
+};
+
 @Component({
 	selector: 'app-world-page',
 	standalone: true,
-	imports: [CommonModule, DialogFocusDirective, FormsModule],
+	imports: [CommonModule, CreatureStatBlockComponent, DialogFocusDirective, FormsModule, HomebrewSheetRowComponent],
 	templateUrl: './world.html',
 })
 export class WorldPage {
 	readonly campaignWorld = inject(CampaignWorldService);
 	readonly campaignContext = inject(CampaignContextService);
+	private readonly contextualResolver = inject(ContextualContentResolverService);
 	private readonly localStorage = inject(LocalStorageService);
 	readonly selectedLocation = signal<CampaignLocationRef | null>(null);
+	readonly homebrewSheets = signal<SavedSheetInterface[]>([]);
+	readonly homebrewSheetViewer = signal<SavedSheetInterface | null>(null);
+	readonly regionalCategoryFilter = signal<RegionalCategoryFilter>('all');
+	readonly regionalContentExpanded = signal(false);
 	readonly highlightedPointOfInterestId = signal<string | null>(null);
 	readonly searchQuery = signal('');
 	readonly isChoosingPartyLocation = signal(false);
@@ -111,6 +132,91 @@ export class WorldPage {
 		const ref = this.selectedLocation();
 		return ref ? this.campaignWorld.resolveLocation(ref) : null;
 	});
+	readonly regionalState = computed(() => {
+		const state = this.selectedResolvedLocation()?.state;
+		return state
+			? this.campaignWorld.resolveLocation({ scopeType: 'state', scopeId: state.id })
+			: null;
+	});
+	readonly regionalResolution = computed(() => {
+		const state = this.regionalState();
+		if (!state) return null;
+		return this.contextualResolver.resolve({
+			currentLocation: this.selectedResolvedLocation(),
+			sheets: this.homebrewSheets(),
+			encounters: [],
+			organizations: this.campaignWorld.world()?.organizations ?? [],
+			regionalStateId: state.ref.scopeId,
+			regionalSettlementIds: this.campaignWorld
+				.getSettlementsByState(state.ref.scopeId)
+				.map((settlement) => settlement.id),
+		});
+	});
+	readonly regionalContentEntries = computed<RegionalSheetEntry[]>(() => {
+		const resolution = this.regionalResolution();
+		if (!resolution) return [];
+		const entries = new Map<string, RegionalSheetEntry>();
+		const add = (entry: RegionalSheetEntry) => {
+			const current = entries.get(entry.content.id);
+			if (!current) {
+				entries.set(entry.content.id, entry);
+				return;
+			}
+			const locations = [...current.matchedLocations];
+			for (const relation of entry.matchedLocations) {
+				if (!locations.some((item) => item.scopeType === relation.scopeType && item.scopeId === relation.scopeId && item.relation === relation.relation)) {
+					locations.push(relation);
+				}
+			}
+			const organizations = [...(current.matchedOrganizations ?? [])];
+			for (const organization of entry.matchedOrganizations ?? []) {
+				if (!organizations.some((item) => item.id === organization.id)) organizations.push(organization);
+			}
+			entries.set(entry.content.id, {
+				...current,
+				matchedLocations: locations,
+				matchedOrganizations: organizations.length ? organizations : undefined,
+			});
+		};
+
+		for (const entry of [...resolution.here, ...resolution.stateRegion]) {
+			if (entry.kind === 'sheet') add(entry as RegionalSheetEntry);
+		}
+
+		const regionalOrganizations = resolution.organizations.filter(
+			(entry) => entry.section === 'here' || entry.section === 'state-region',
+		);
+		for (const sheet of this.homebrewSheets()) {
+			if (sheet.archived === true) continue;
+			const matchedOrganizations = regionalOrganizations
+				.filter(
+					(entry) =>
+						(sheet.organizationRefs ?? []).some((ref) => ref.organizationId === entry.organization.id) ||
+						(!!sheet.externalId && entry.presence.availableSheetExternalIds?.includes(sheet.externalId)),
+				)
+				.map((entry) => entry.organization);
+			if (!matchedOrganizations.length) continue;
+			add({
+				kind: 'sheet',
+				content: sheet,
+				section: 'state-region',
+				matchedLocations: [],
+				reason: 'organization',
+				matchedOrganizations,
+			});
+		}
+
+		return [...entries.values()].sort((left, right) => left.content.title.localeCompare(right.content.title));
+	});
+	readonly filteredRegionalContent = computed(() => {
+		const category = this.regionalCategoryFilter();
+		return this.regionalContentEntries().filter(
+			(entry) => category === 'all' || entry.content.category === category,
+		);
+	});
+	readonly visibleRegionalContent = computed(() =>
+		this.regionalContentExpanded() ? this.filteredRegionalContent() : [],
+	);
 	readonly locationSearchResults = computed(() =>
 		this.campaignWorld.searchLocations(this.searchQuery()).slice(0, 8),
 	);
@@ -156,12 +262,54 @@ export class WorldPage {
 	});
 
 	constructor() {
+		this.homebrewSheets.set(this.localStorage.listSheets());
 		effect(() => {
 			if (this.campaignWorld.status() !== 'ready') return;
 			const current = this.campaignContext.currentLocationRef();
 			const resolved = current && untracked(() => this.campaignWorld.resolveLocation(current));
 			if (resolved) this.selectedLocation.set(resolved.ref);
 		});
+	}
+
+	setRegionalCategoryFilter(category: RegionalCategoryFilter): void {
+		this.regionalCategoryFilter.set(category);
+	}
+
+	toggleRegionalContent(): void {
+		this.regionalContentExpanded.update((expanded) => !expanded);
+	}
+
+	homebrewSheetPresentation(sheet: SavedSheetInterface): HomebrewSheetPresentation {
+		return presentHomebrewSheet(sheet, this.campaignWorld.world());
+	}
+
+	regionalContentReasonLabel(entry: RegionalSheetEntry): string {
+		const locations = entry.matchedLocations.map((relation) => this.locationRelationLabel(relation.relation));
+		const organizations = (entry.matchedOrganizations ?? []).map((organization) => organization.name);
+		return [...new Set([...locations, ...organizations])].join(' · ') || 'Relação formal';
+	}
+
+	regionalCategoryCount(category: RegionalCategoryFilter): number {
+		if (category === 'all') return this.regionalContentEntries().length;
+		return this.regionalContentEntries().filter((entry) => entry.content.category === category).length;
+	}
+
+	openHomebrewSheetViewer(id: string): void {
+		const sheet = this.homebrewSheets().find((item) => item.id === id);
+		if (sheet) this.homebrewSheetViewer.set(sheet);
+	}
+
+	closeHomebrewSheetViewer(): void {
+		this.homebrewSheetViewer.set(null);
+	}
+
+	private locationRelationLabel(relation: string): string {
+		return {
+			base: 'Base ou residência',
+			occurrence: 'Ocorrência',
+			habitat: 'Habitat',
+			operation: 'Operação',
+		}[relation] ?? relation;
 	}
 
 	selectLocation(ref: CampaignLocationRef): void {

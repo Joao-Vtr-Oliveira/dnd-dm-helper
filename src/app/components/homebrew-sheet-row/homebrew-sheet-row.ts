@@ -15,6 +15,7 @@ export class HomebrewSheetRowComponent {
 	@Input() contextLabel = '';
 	@Input() contextDetail = '';
 	@Input() showUse = true;
+	@Input() showAdd = true;
 
 	@Output() readonly viewed = new EventEmitter<string>();
 	@Output() readonly used = new EventEmitter<string>();

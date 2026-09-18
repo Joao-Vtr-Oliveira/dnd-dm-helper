@@ -101,6 +101,37 @@ const WORLD = {
 	],
 } as const;
 
+function regionalSheet(
+	id: string,
+	title: string,
+	category: 'monster' | 'npc',
+	locationRefs: Array<{ scopeType: 'state' | 'settlement'; scopeId: string; relation: 'base' | 'occurrence' | 'habitat' | 'operation' }>,
+	overrides: Record<string, unknown> = {},
+) {
+	return {
+		id,
+		title,
+		createdAt: 1,
+		updatedAt: 1,
+		category,
+		tags: [],
+		source: 'Test',
+		locationRefs,
+		data: {
+			name: title,
+			armorClass: 10,
+			maxHp: 10,
+			spellSlots: [],
+			spells: [],
+			specialAbilities: [],
+			features: [],
+			creatureType: category === 'monster' ? 'Beast' : 'Humanoid',
+			challengeRating: category === 'monster' ? '3' : '1',
+		},
+		...overrides,
+	};
+}
+
 describe('WorldPage', () => {
 	let component: WorldPage;
 	let fixture: ComponentFixture<WorldPage>;
@@ -154,6 +185,111 @@ describe('WorldPage', () => {
 		expect(component.selectedLocation()).toEqual({ scopeType: 'settlement', scopeId: 'nagawoods' });
 		expect(fixture.nativeElement.textContent).toContain('Party atualmente aqui');
 		expect(fixture.nativeElement.textContent).toContain('The Bluefin');
+	});
+
+	it('shows active content for the whole visualized state while preserving each source location', async () => {
+		const world = structuredClone(WORLD) as unknown as CampaignWorld;
+		world.organizations[0].presence = [
+			{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'headquarters' },
+		];
+		localStorage.setItem(
+			APP_STORAGE_KEYS.sheets,
+			JSON.stringify([
+				regionalSheet('woods-wolf', 'Lobo de Nagawoods', 'monster', [
+					{ scopeType: 'settlement', scopeId: 'nagawoods', relation: 'occurrence' },
+				]),
+				regionalSheet('state-serpent', 'Serpente de Nagazav', 'monster', [
+					{ scopeType: 'state', scopeId: 'nagazav', relation: 'habitat' },
+				]),
+				regionalSheet('regional-npc', 'Guarda Regional', 'npc', [
+					{ scopeType: 'settlement', scopeId: 'nagazav-city', relation: 'base' },
+				]),
+				{
+					...regionalSheet('winterhold-agent', 'Agente Winterhold', 'npc', []),
+					organizationRefs: [{ organizationId: 'winterhold', relation: 'member' }],
+				},
+				regionalSheet('nirvak-threat', 'Ameaça de Nirvak', 'monster', [
+					{ scopeType: 'state', scopeId: 'nirvak', relation: 'occurrence' },
+				]),
+				regionalSheet(
+					'archived-wolf',
+					'Lobo Arquivado',
+					'monster',
+					[{ scopeType: 'state', scopeId: 'nagazav', relation: 'occurrence' }],
+					{ archived: true },
+				),
+			]),
+		);
+		await createPage({ scopeType: 'settlement', scopeId: 'nagawoods' }, world);
+
+		expect(component.regionalState()?.state?.id).toBe('nagazav');
+		expect(component.regionalContentEntries().map((entry) => entry.content.id)).toEqual([
+			'winterhold-agent',
+			'regional-npc',
+			'woods-wolf',
+			'state-serpent',
+		]);
+		expect(component.regionalContentReasonLabel(component.regionalContentEntries()[0])).toBe('Winterhold');
+		expect(component.homebrewSheetPresentation(component.regionalContentEntries()[1].content).formalLocations).toEqual([
+			'Mornk › Nagazav › Nagazav',
+		]);
+		expect(fixture.nativeElement.textContent).toContain('Conteúdo de Nagazav');
+		expect(fixture.nativeElement.textContent).toContain('Todos (4)');
+		expect(fixture.nativeElement.textContent).toContain('NPCs (2)');
+		expect(fixture.nativeElement.textContent).toContain('Monstros (2)');
+		expect(component.visibleRegionalContent()).toEqual([]);
+		expect(fixture.nativeElement.textContent).not.toContain('Lobo de Nagawoods');
+		expect(fixture.nativeElement.textContent).toContain('Mostrar fichas');
+		expect(fixture.nativeElement.textContent).toContain('Fichas ocultas');
+		component.toggleRegionalContent();
+		fixture.detectChanges();
+		expect(component.visibleRegionalContent().map((entry) => entry.content.id)).toEqual([
+			'winterhold-agent',
+			'regional-npc',
+			'woods-wolf',
+			'state-serpent',
+		]);
+		expect(fixture.nativeElement.textContent).toContain('Lobo de Nagawoods');
+		expect(fixture.nativeElement.textContent).toContain('Ocultar fichas');
+		expect(fixture.nativeElement.textContent).toContain('Fichas visíveis');
+		expect(fixture.nativeElement.textContent).not.toContain('Ameaça de Nirvak');
+		expect(fixture.nativeElement.textContent).not.toContain('Lobo Arquivado');
+		component.setRegionalCategoryFilter('npc');
+		fixture.detectChanges();
+		expect(component.filteredRegionalContent().map((entry) => entry.content.id)).toEqual([
+			'winterhold-agent',
+			'regional-npc',
+		]);
+		expect(fixture.nativeElement.textContent).toContain('2 fichas no filtro atual');
+		expect(component.regionalContentExpanded()).toBeTrue();
+		expect(component.visibleRegionalContent().map((entry) => entry.content.id)).toEqual([
+			'winterhold-agent',
+			'regional-npc',
+		]);
+		component.setRegionalCategoryFilter('all');
+
+		component.selectLocation({ scopeType: 'state', scopeId: 'nirvak' });
+		fixture.detectChanges();
+		expect(component.regionalState()?.state?.id).toBe('nirvak');
+		expect(component.regionalContentEntries().map((entry) => entry.content.id)).toEqual(['nirvak-threat']);
+	});
+
+	it('opens a regional quick preview without changing the visualized location', async () => {
+		localStorage.setItem(
+			APP_STORAGE_KEYS.sheets,
+			JSON.stringify([regionalSheet('woods-wolf', 'Lobo de Nagawoods', 'monster', [
+				{ scopeType: 'settlement', scopeId: 'nagawoods', relation: 'occurrence' },
+			])]),
+		);
+		await createPage({ scopeType: 'settlement', scopeId: 'nagawoods' });
+		component.openHomebrewSheetViewer('woods-wolf');
+		fixture.detectChanges();
+
+		expect(component.homebrewSheetViewer()?.id).toBe('woods-wolf');
+		expect(component.selectedLocation()).toEqual({ scopeType: 'settlement', scopeId: 'nagawoods' });
+		expect(fixture.nativeElement.textContent).toContain('Visualização da ficha');
+		component.closeHomebrewSheetViewer();
+		expect(component.homebrewSheetViewer()).toBeNull();
 	});
 
 	it('moves to a restored party location without reloading the page', async () => {

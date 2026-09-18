@@ -468,6 +468,58 @@ describe('HomebrewBuilder', () => {
 		]);
 	});
 
+	it('imports Legendary Resistance as a linked trait and daily-use ability', () => {
+		component.addCatalogFeature({
+			name: 'Legendary Resistance',
+			effect: 'If the creature fails a saving throw, it can choose to succeed instead. Input the number of uses per day.',
+			example: 'Legendary creature.',
+		});
+
+		const feature = component.creature().features[0];
+		const ability = component.creature().specialAbilities[0];
+		expect(feature).toEqual(
+			jasmine.objectContaining({
+				name: 'Legendary Resistance',
+				kind: 'trait',
+				description: 'If the creature fails a saving throw, it can choose to succeed instead.',
+			}),
+		);
+		expect(ability).toEqual(
+			jasmine.objectContaining({
+				featureId: feature.id,
+				name: feature.name,
+				recoveryType: 'uses-per-day',
+				maxUses: 3,
+			}),
+		);
+
+		component.setSpecialAbilityMaxUses(ability.id, 2);
+		component.updateFeature(feature.id, { name: 'Resistência Lendária' });
+		expect(component.creature().specialAbilities[0]).toEqual(
+			jasmine.objectContaining({ name: 'Resistência Lendária', maxUses: 2 }),
+		);
+		component.updateSpecialAbility(ability.id, { description: 'Descrição revisada.' });
+		expect(component.creature().features[0].description).toBe('Descrição revisada.');
+
+		component.removeFeature(feature.id);
+		expect(component.creature().features).toEqual([]);
+		expect(component.creature().specialAbilities).toEqual([]);
+	});
+
+	it('does not duplicate Legendary Resistance when the catalog item is added twice', () => {
+		const item = {
+			name: 'Legendary Resistance',
+			effect: 'If the creature fails a saving throw, it can choose to succeed instead. Input the number of uses per day.',
+			example: 'Legendary creature.',
+		};
+		component.addCatalogFeature(item);
+		component.addCatalogFeature(item);
+
+		expect(component.creature().features.filter((feature) => feature.name === 'Legendary Resistance')).toHaveSize(1);
+		expect(component.creature().specialAbilities.filter((ability) => ability.featureId)).toHaveSize(1);
+		expect(component.toast()?.type).toBe('warn');
+	});
+
 	it('filters the active feature catalog tab instead of showing resources and feats at once', () => {
 		component.monsterFeatures.set([
 			{ name: 'Pack Tactics', effect: 'Advantage with an ally.', example: 'Example.' },

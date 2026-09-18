@@ -32,19 +32,19 @@ export class ContextualContentResolverService {
 
 		for (const sheet of input.sheets) {
 			if (!includeArchived && sheet.archived === true) continue;
-			this.resolveContent(sheet, 'sheet', input.currentLocation, result);
+			this.resolveContent(sheet, 'sheet', input, result);
 		}
 		for (const encounter of input.encounters) {
 			if (!includeArchived && encounter.archived === true) continue;
-			this.resolveContent(encounter, 'encounter', input.currentLocation, result);
+			this.resolveContent(encounter, 'encounter', input, result);
 		}
 
 		for (const organization of input.organizations) {
 			if (!isCampaignOrganizationEligible(organization)) continue;
 			if (!includeArchived && organization.archived === true) continue;
 			for (const presence of organization.presence) {
-				const relevant = this.resolveOrganizationPresence(input.currentLocation, organization, presence);
-				if (relevant) result.organizations.push(relevant);
+				const relevant = this.resolveOrganizationPresence(input, organization, presence);
+				result.organizations.push(...relevant);
 			}
 		}
 
@@ -54,7 +54,7 @@ export class ContextualContentResolverService {
 	private resolveContent(
 		content: SavedSheetInterface | Encounter,
 		kind: 'sheet' | 'encounter',
-		currentLocation: ResolvedCampaignLocation,
+		input: ContextualContentResolverInput,
 		result: ContextualContentResolution,
 	): void {
 		if (kind === 'sheet' && (content as SavedSheetInterface).generic === true) {
@@ -70,9 +70,15 @@ export class ContextualContentResolverService {
 
 		const bySection = new Map<ResolvedContextualContentSection, ContentLocationRelation[]>();
 		for (const relation of content.locationRefs ?? []) {
-			const section = this.sectionForLocation(currentLocation, relation);
-			if (!section) continue;
-			bySection.set(section, [...(bySection.get(section) ?? []), relation]);
+			const sections = [
+				this.sectionForLocation(input.currentLocation!, relation),
+				this.sectionForRegion(input.regionalStateId, input.regionalSettlementIds, relation),
+			].filter((section, index, all): section is ResolvedContextualContentSection =>
+				!!section && all.indexOf(section) === index,
+			);
+			for (const section of sections) {
+				bySection.set(section, [...(bySection.get(section) ?? []), relation]);
+			}
 		}
 
 		for (const [section, matchedLocations] of bySection) {
@@ -102,22 +108,39 @@ export class ContextualContentResolverService {
 		return currentLocation.empire?.id === relation.scopeId ? 'broad-context' : null;
 	}
 
+	private sectionForRegion(
+		regionalStateId: string | undefined,
+		regionalSettlementIds: readonly string[] | undefined,
+		relation: ContentLocationRelation,
+	): ResolvedContextualContentSection | null {
+		if (!regionalStateId) return null;
+		if (relation.scopeType === 'state') return relation.scopeId === regionalStateId ? 'state-region' : null;
+		if (relation.scopeType === 'settlement') {
+			return regionalSettlementIds?.includes(relation.scopeId) ? 'state-region' : null;
+		}
+		return null;
+	}
+
 	private resolveOrganizationPresence(
-		currentLocation: ResolvedCampaignLocation,
+		input: ContextualContentResolverInput,
 		organization: RelevantCampaignOrganization['organization'],
 		presence: CampaignOrganizationPresence,
-	): RelevantCampaignOrganization | null {
-		const section = this.organizationSectionForPresence(currentLocation, presence);
-		if (!section) return null;
+	): RelevantCampaignOrganization[] {
+		const sections = [
+			this.organizationSectionForPresence(input.currentLocation!, presence),
+			this.organizationSectionForRegion(input.regionalStateId, input.regionalSettlementIds, presence),
+		].filter((section, index, all): section is ResolvedContextualContentSection =>
+			!!section && all.indexOf(section) === index,
+		);
 		const classification = this.classifyPresence(presence);
-		if (classification === 'network') return null;
-		return {
+		if (classification === 'network') return [];
+		return sections.map((section) => ({
 			organization,
 			presence,
 			section,
 			classification,
 			physical: classification === 'physical',
-		};
+		}));
 	}
 
 	private organizationSectionForPresence(
@@ -132,6 +155,23 @@ export class ContextualContentResolverService {
 			return currentLocation.state?.id === presence.scopeId ? 'state-region' : null;
 		}
 		return currentLocation.empire?.id === presence.scopeId ? 'broad-context' : null;
+	}
+
+	private organizationSectionForRegion(
+		regionalStateId: string | undefined,
+		regionalSettlementIds: readonly string[] | undefined,
+		presence: CampaignOrganizationPresence,
+	): ResolvedContextualContentSection | null {
+		if (!regionalStateId) return null;
+		if (presence.scopeType === 'state') {
+			return presence.scopeId === regionalStateId ? 'state-region' : null;
+		}
+		if (presence.scopeType === 'settlement') {
+			return presence.scopeId && regionalSettlementIds?.includes(presence.scopeId)
+				? 'state-region'
+				: null;
+		}
+		return null;
 	}
 
 	private classifyPresence(

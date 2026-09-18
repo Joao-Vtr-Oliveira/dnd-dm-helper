@@ -51,8 +51,10 @@
 				Usar
 			</button>
 		}
-		<button type="button" class="app-button app-button-primary px-2.5 py-1.5 text-xs" (click)="added.emit(sheet.id)">
-			Adicionar
-		</button>
+		@if (showAdd) {
+			<button type="button" class="app-button app-button-primary px-2.5 py-1.5 text-xs" (click)="added.emit(sheet.id)">
+				Adicionar
+			</button>
+		}
 	</div>
 </article>

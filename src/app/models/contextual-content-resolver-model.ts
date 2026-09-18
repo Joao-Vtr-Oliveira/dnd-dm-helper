@@ -39,6 +39,9 @@ export interface ContextualContentResolverInput {
 	encounters: Encounter[];
 	organizations: CampaignOrganization[];
 	includeArchived?: boolean;
+	/** Optional state-wide scope used by pages that browse a region instead of a position. */
+	regionalStateId?: string;
+	regionalSettlementIds?: readonly string[];
 }
 
 export interface ContextualContentResolution {
