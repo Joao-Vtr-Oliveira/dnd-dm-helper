@@ -2,7 +2,7 @@
   "app": "dnd-dm-helper",
   "schemaVersion": 2,
   "type": "campaign-backup",
-  "exportedAt": "2026-09-18T09:38:59.920Z",
+  "exportedAt": "2026-09-18T09:48:22.499Z",
   "data": {
     "encounters": [
       {
@@ -2846,11 +2846,10 @@
               ],
               "tags": [
                 "Komic",
-                "Barbarian",
-                "draft"
+                "Barbarian"
               ],
-              "origin": "Notion",
-              "source": "Notion",
+              "origin": "Luna",
+              "source": "Luna",
               "size": "Medium",
               "creatureType": "humanoid",
               "alignment": "Lawful Evil",
@@ -3002,11 +3001,10 @@
               "tags": [
                 "Komic",
                 "Rogue",
-                "Assassin",
-                "draft"
+                "Assassin"
               ],
-              "origin": "Notion",
-              "source": "Notion",
+              "origin": "Luna",
+              "source": "Luna",
               "size": "Medium",
               "creatureType": "humanoid",
               "alignment": "Lawful Evil",
@@ -3226,11 +3224,10 @@
               ],
               "tags": [
                 "Komic",
-                "Warlock",
-                "draft"
+                "Warlock"
               ],
-              "origin": "Notion",
-              "source": "Notion",
+              "origin": "Luna",
+              "source": "Luna",
               "size": "Medium",
               "creatureType": "humanoid",
               "alignment": "Lawful Neutral",
@@ -19579,15 +19576,7 @@
         "externalId": "9c1755e8-35f7-4ef1-9e6a-1f60fc108931",
         "title": "Mão do Tronco",
         "createdAt": 1782940339631,
-        "updatedAt": 1789365385569,
-        "category": "monster",
-        "tags": [
-          "Nagazav",
-          "Nagawoods",
-          "Morto-vivo",
-          "Banshee"
-        ],
-        "source": "",
+        "updatedAt": 1789724878824,
         "data": {
           "name": "Mão do Tronco",
           "maxHp": 18,
@@ -19703,14 +19692,7 @@
             }
           ],
           "passivePerception": 10
-        }
-      },
-      {
-        "id": "e98e26ca-1aba-4db5-abd8-9c32e1ac276d",
-        "externalId": "e98e26ca-1aba-4db5-abd8-9c32e1ac276d",
-        "title": "Eco Enraizado",
-        "createdAt": 1782940261073,
-        "updatedAt": 1789365385569,
+        },
         "category": "monster",
         "tags": [
           "Nagazav",
@@ -19718,7 +19700,21 @@
           "Morto-vivo",
           "Banshee"
         ],
-        "source": "Homebrew",
+        "source": "Notion",
+        "locationRefs": [
+          {
+            "scopeType": "settlement",
+            "scopeId": "nagawoods",
+            "relation": "occurrence"
+          }
+        ]
+      },
+      {
+        "id": "e98e26ca-1aba-4db5-abd8-9c32e1ac276d",
+        "externalId": "e98e26ca-1aba-4db5-abd8-9c32e1ac276d",
+        "title": "Eco Enraizado",
+        "createdAt": 1782940261073,
+        "updatedAt": 1789724878824,
         "data": {
           "name": "Eco Enraizado",
           "maxHp": 22,
@@ -19820,7 +19816,22 @@
             "understands Common but can't speak"
           ],
           "passivePerception": 10
-        }
+        },
+        "category": "monster",
+        "tags": [
+          "Nagazav",
+          "Nagawoods",
+          "Morto-vivo",
+          "Banshee"
+        ],
+        "source": "Homebrew",
+        "locationRefs": [
+          {
+            "scopeType": "settlement",
+            "scopeId": "nagawoods",
+            "relation": "occurrence"
+          }
+        ]
       },
       {
         "id": "ce6803d1-8aec-4a43-aa7e-5e4edc13c98f",
@@ -20476,14 +20487,7 @@
         "externalId": "bbd99638-69a7-4ccc-82d7-c257cbd39179",
         "title": "Abominação Instável",
         "createdAt": 1770560868108,
-        "updatedAt": 1789365385569,
-        "category": "monster",
-        "tags": [
-          "RedVortex",
-          "Red Vortex",
-          "Hotead"
-        ],
-        "source": "Notion",
+        "updatedAt": 1789724878824,
         "data": {
           "name": "Abominação Instável",
           "maxHp": 92,
@@ -20609,14 +20613,7 @@
             }
           ],
           "passivePerception": 11
-        }
-      },
-      {
-        "id": "13b9ed52-b030-431b-a4d2-7725646f9ce7",
-        "externalId": "13b9ed52-b030-431b-a4d2-7725646f9ce7",
-        "title": "Condutor do Vórtice",
-        "createdAt": 1770560660510,
-        "updatedAt": 1789365385569,
+        },
         "category": "monster",
         "tags": [
           "RedVortex",
@@ -20624,6 +20621,19 @@
           "Hotead"
         ],
         "source": "Notion",
+        "organizationRefs": [
+          {
+            "organizationId": "red-vortex",
+            "relation": "affiliated"
+          }
+        ]
+      },
+      {
+        "id": "13b9ed52-b030-431b-a4d2-7725646f9ce7",
+        "externalId": "13b9ed52-b030-431b-a4d2-7725646f9ce7",
+        "title": "Condutor do Vórtice",
+        "createdAt": 1770560660510,
+        "updatedAt": 1789724878824,
         "data": {
           "name": "Condutor do Vórtice",
           "maxHp": 78,
@@ -20851,21 +20861,27 @@
             "header": "The conductor is a spellcaster. Its spellcasting ability is Wisdom (spell save DC 15, +7 to hit with spell attacks)."
           },
           "passivePerception": 16
-        }
+        },
+        "category": "monster",
+        "tags": [
+          "RedVortex",
+          "Red Vortex",
+          "Hotead"
+        ],
+        "source": "Notion",
+        "organizationRefs": [
+          {
+            "organizationId": "red-vortex",
+            "relation": "affiliated"
+          }
+        ]
       },
       {
         "id": "2e298c43-7a7c-4b22-853a-14d8ad2768f5",
         "externalId": "npc-dodman-jac",
         "title": "Dodman Jac",
         "createdAt": 1770560171963,
-        "updatedAt": 1789469207512,
-        "category": "npc",
-        "tags": [
-          "Komic",
-          "Warlock",
-          "draft"
-        ],
-        "source": "Notion",
+        "updatedAt": 1789724878824,
         "data": {
           "name": "Dodman Jac",
           "maxHp": 88,
@@ -21004,11 +21020,10 @@
           ],
           "tags": [
             "Komic",
-            "Warlock",
-            "draft"
+            "Warlock"
           ],
-          "origin": "Notion",
-          "source": "Notion",
+          "origin": "Luna",
+          "source": "Luna",
           "size": "Medium",
           "creatureType": "humanoid",
           "alignment": "Lawful Neutral",
@@ -21077,22 +21092,30 @@
             "slotRecovery": "short-rest"
           },
           "passivePerception": 15
-        }
+        },
+        "category": "npc",
+        "tags": [
+          "Komic",
+          "Warlock"
+        ],
+        "source": "Luna",
+        "classes": [
+          "warlock"
+        ],
+        "locationRefs": [
+          {
+            "scopeType": "empire",
+            "scopeId": "komic",
+            "relation": "base"
+          }
+        ]
       },
       {
         "id": "2672cb08-eb37-4d3d-8ce6-00c535b8c1b0",
         "externalId": "npc-he-xiao",
         "title": "He Xiao",
         "createdAt": 1770560059918,
-        "updatedAt": 1789469207512,
-        "category": "npc",
-        "tags": [
-          "Komic",
-          "Rogue",
-          "Assassin",
-          "draft"
-        ],
-        "source": "Notion",
+        "updatedAt": 1789724878824,
         "data": {
           "name": "He Xiao",
           "maxHp": 78,
@@ -21171,11 +21194,10 @@
           "tags": [
             "Komic",
             "Rogue",
-            "Assassin",
-            "draft"
+            "Assassin"
           ],
-          "origin": "Notion",
-          "source": "Notion",
+          "origin": "Luna",
+          "source": "Luna",
           "size": "Medium",
           "creatureType": "humanoid",
           "alignment": "Lawful Evil",
@@ -21249,21 +21271,31 @@
             "Komic"
           ],
           "passivePerception": 14
-        }
+        },
+        "category": "npc",
+        "tags": [
+          "Komic",
+          "Rogue",
+          "Assassin"
+        ],
+        "source": "Luna",
+        "classes": [
+          "rogue"
+        ],
+        "locationRefs": [
+          {
+            "scopeType": "empire",
+            "scopeId": "komic",
+            "relation": "base"
+          }
+        ]
       },
       {
         "id": "b504f25f-36c5-4be1-8407-0a03379d5b57",
         "externalId": "npc-thorn-v",
         "title": "Thorn V.",
         "createdAt": 1770559768471,
-        "updatedAt": 1789469207512,
-        "category": "npc",
-        "tags": [
-          "Komic",
-          "Barbarian",
-          "draft"
-        ],
-        "source": "Notion",
+        "updatedAt": 1789724878825,
         "data": {
           "name": "Thorn V.",
           "maxHp": 112,
@@ -21355,11 +21387,10 @@
           ],
           "tags": [
             "Komic",
-            "Barbarian",
-            "draft"
+            "Barbarian"
           ],
-          "origin": "Notion",
-          "source": "Notion",
+          "origin": "Luna",
+          "source": "Luna",
           "size": "Medium",
           "creatureType": "humanoid",
           "alignment": "Lawful Evil",
@@ -21425,7 +21456,23 @@
             "Komic"
           ],
           "passivePerception": 14
-        }
+        },
+        "category": "npc",
+        "tags": [
+          "Komic",
+          "Barbarian"
+        ],
+        "source": "Luna",
+        "classes": [
+          "barbarian"
+        ],
+        "locationRefs": [
+          {
+            "scopeType": "empire",
+            "scopeId": "komic",
+            "relation": "base"
+          }
+        ]
       },
       {
         "id": "6e5bbbed-0ced-48d3-907d-407189c52d81",
@@ -21830,15 +21877,7 @@
         "externalId": "npc-talha-trusk",
         "title": "Talha Trusk",
         "createdAt": 1789469207512,
-        "updatedAt": 1789469207512,
-        "category": "npc",
-        "tags": [
-          "Mornk",
-          "Feng",
-          "Feudal",
-          "draft"
-        ],
-        "source": "Notion",
+        "updatedAt": 1789724878824,
         "data": {
           "name": "Talha Trusk",
           "maxHp": 128,
@@ -21943,11 +21982,10 @@
           "tags": [
             "Mornk",
             "Feng",
-            "Feudal",
-            "draft"
+            "Feudal"
           ],
-          "origin": "Notion",
-          "source": "Notion",
+          "origin": "Luna",
+          "source": "Luna",
           "size": "Medium",
           "creatureType": "humanoid",
           "alignment": "Lawful Good",
@@ -22020,7 +22058,29 @@
             "Komic"
           ],
           "passivePerception": 16
-        }
+        },
+        "category": "npc",
+        "tags": [
+          "Mornk",
+          "Feng",
+          "Feudal"
+        ],
+        "source": "Luna",
+        "classes": [
+          "fighter"
+        ],
+        "locationRefs": [
+          {
+            "scopeType": "state",
+            "scopeId": "feng",
+            "relation": "base"
+          },
+          {
+            "scopeType": "settlement",
+            "scopeId": "feng-city",
+            "relation": "operation"
+          }
+        ]
       }
     ],
     "calendar": {
