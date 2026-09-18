@@ -1,12 +1,12 @@
-import type { CampaignWorld } from '../../models/campaign-world-model';
-import type { ContentLocationRelation } from '../../models/content-context-model';
+import type { CampaignWorld } from './campaign-world-model';
+import type { ContentLocationRelation } from './content-context-model';
 import {
 	DND_5E_CHARACTER_CLASSES,
 	DND_5E_CREATURE_TYPES,
 	type Dnd5eCharacterClass,
 	type Dnd5eCreatureType,
-} from '../../models/dnd-5e-reference-model';
-import type { HomebrewCategory, SavedSheetInterface } from '../../services/local-storage-service/local-storage-service';
+	} from './dnd-5e-reference-model';
+import type { HomebrewCategory, SavedSheetInterface } from '../services/local-storage-service/local-storage-service';
 
 export type FilterAll<T extends string> = 'all' | T;
 export type HomebrewSheetStatusFilter = 'active' | 'archived' | 'all';
@@ -14,6 +14,7 @@ export type HomebrewSheetStatusFilter = 'active' | 'archived' | 'all';
 export interface HomebrewSheetFilters {
 	query: string;
 	category: FilterAll<HomebrewCategory>;
+	challengeRating?: FilterAll<string>;
 	tag: FilterAll<string>;
 	source: FilterAll<string>;
 	status: HomebrewSheetStatusFilter;
@@ -76,6 +77,13 @@ export function filterHomebrewSheets(
 		if (filters.status === 'archived' && !sheet.archived) return false;
 		if (filters.category !== 'all' && sheet.category !== filters.category) return false;
 		if (
+			filters.challengeRating &&
+			filters.challengeRating !== 'all' &&
+			normalizeHomebrewSheetFilterText(sheet.data.challengeRating ?? '') !==
+				normalizeHomebrewSheetFilterText(filters.challengeRating)
+		)
+			return false;
+		if (
 			filters.tag !== 'all' &&
 			!contentTagsFor(sheet).some(
 				(tag) => normalizeHomebrewSheetFilterText(tag) === normalizeHomebrewSheetFilterText(filters.tag),
@@ -105,7 +113,7 @@ export function filterHomebrewSheets(
 			return false;
 		if (!query) return true;
 
-		return searchableText(sheet).includes(query);
+		return searchableHomebrewSheetText(sheet, world).includes(query);
 	});
 }
 
@@ -182,7 +190,25 @@ function relationMatchesScope(
 	return relation.settlementId === selectedSettlement.id;
 }
 
-function searchableText(sheet: SavedSheetInterface): string {
+export function searchableHomebrewSheetText(sheet: SavedSheetInterface, world: CampaignWorld | null): string {
+	const formalOrganizations = (sheet.organizationRefs ?? [])
+		.map((ref) => world?.organizations.find((organization) => organization.id === ref.organizationId)?.name ?? '')
+		.filter(Boolean);
+	const formalLocations = (sheet.locationRefs ?? []).flatMap((ref) => {
+		if (!world) return [];
+		const resolved = resolveRelation(world, ref.scopeType, ref.scopeId);
+		return resolved
+			? [
+					world.empires.find((empire) => empire.id === resolved.empireId)?.name ?? '',
+					resolved.stateId
+						? world.states.find((state) => state.id === resolved.stateId)?.name ?? ''
+						: '',
+					resolved.settlementId
+						? world.settlements.find((settlement) => settlement.id === resolved.settlementId)?.name ?? ''
+						: '',
+				]
+			: [];
+	});
 	return [
 		sheet.title,
 		sheet.data.name,
@@ -195,6 +221,9 @@ function searchableText(sheet: SavedSheetInterface): string {
 		sheet.data.origin ?? '',
 		sheet.category,
 		sheet.data.creatureType ?? '',
+		...(sheet.classes ?? []),
+		...formalOrganizations,
+		...formalLocations,
 	]
 		.map(normalizeHomebrewSheetFilterText)
 		.join(' ');

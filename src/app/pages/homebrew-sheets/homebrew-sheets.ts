@@ -34,7 +34,7 @@ import {
 	HOME_BREW_SHEET_STATUS_OPTIONS,
 	type FilterAll,
 	type HomebrewSheetStatusFilter,
-} from './homebrew-sheet-filter';
+} from '../../models/homebrew-sheet-filter';
 import {
 	HomebrewSheetImportService,
 	type HomebrewSheetConflictResolution,

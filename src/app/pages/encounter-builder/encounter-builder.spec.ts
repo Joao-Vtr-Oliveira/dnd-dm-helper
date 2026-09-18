@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 
 import { EncounterBuilder } from './encounter-builder';
+import { presentHomebrewSheet } from '../../models/homebrew-sheet-presentation-model';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
 
@@ -272,6 +273,73 @@ describe('EncounterBuilder', () => {
 		fixture.detectChanges();
 		expect(fixture.nativeElement.textContent).toContain('Sugestões para esta posição');
 		expect(fixture.nativeElement.textContent).not.toContain('Organizações presentes');
+	});
+
+	it('presents formal metadata without treating legacy groups as organizations', () => {
+		component.campaignWorld.saveWorld({
+			schemaVersion: 1,
+			calendar: {
+				daysPerSeason: 30,
+				seasons: [
+					{ id: 'spring', label: 'Spring', color: '#9ae6b4' },
+					{ id: 'summer', label: 'Summer', color: '#f6e05e' },
+					{ id: 'autumn', label: 'Autumn', color: '#f6ad55' },
+					{ id: 'winter', label: 'Winter', color: '#90cdf4' },
+				],
+				epochDate: { year: 1, season: 'spring', day: 1, hour: 0, minute: 0 },
+				events: [],
+			},
+			empires: [{ id: 'mornk', name: 'Mornk', aliases: [] }],
+			states: [{ id: 'feng', name: 'Feng', aliases: [], empireId: 'mornk' }],
+			settlements: [{ id: 'feng-city', name: 'Feng City', aliases: [], stateId: 'feng', settlementType: 'city' }],
+			organizations: [{ id: 'winterhold', name: 'Winterhold', aliases: [], organizationType: 'guild', scope: 'campaign', presence: [] }],
+			pointsOfInterest: [],
+		});
+		const storage = TestBed.inject(LocalStorageService);
+		const sheet = storage.createSheet({
+			title: 'Wen Torger',
+			category: 'npc',
+			classes: ['warlock'],
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'feng-city', relation: 'base' }],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'member' }],
+			data: {
+				name: 'Wen Torger', challengeRating: '4', creatureType: 'humanoid', groups: ['Legacy Winterhold'],
+				armorClass: 13, maxHp: 20, spellSlots: [], spells: [], specialAbilities: [], features: [],
+			},
+		});
+
+		const presentation = presentHomebrewSheet(sheet, component.campaignWorld.world());
+		expect(presentation.categoryLabel).toBe('NPC');
+		expect(presentation.challengeRating).toBe('4');
+		expect(presentation.creatureType).toBe('Humanoid');
+		expect(presentation.classes).toEqual(['Warlock']);
+		expect(presentation.formalOrganizations).toEqual(['Winterhold']);
+		expect(presentation.formalLocations).toEqual(['Mornk › Feng › Feng City']);
+		expect(presentation.legacyGroups).toEqual(['Legacy Winterhold']);
+	});
+
+	it('filters the Homebrew browser and opens a non-mutating sheet preview', () => {
+		const storage = TestBed.inject(LocalStorageService);
+		const sheet = storage.createSheet({
+			title: 'Eco Enraizado', category: 'monster',
+			data: {
+				name: 'Eco Enraizado', challengeRating: '1', creatureType: 'plant', armorClass: 12, maxHp: 10,
+				spellSlots: [], spells: [], specialAbilities: [], features: [],
+			},
+		});
+		component.homebrewSheets.set([sheet]);
+		component.setHomebrewCategoryFilter('monster');
+		expect(component.filteredHomebrewSheets().map((item) => item.id)).toEqual([sheet.id]);
+
+		const before = JSON.stringify(component.encounter());
+		component.openHomebrewSheetViewer(sheet.id);
+		fixture.detectChanges();
+		expect(component.homebrewSheetViewer()?.id).toBe(sheet.id);
+		expect(fixture.nativeElement.textContent).toContain('Visualização da ficha');
+		expect(fixture.nativeElement.textContent).toContain('Eco Enraizado');
+		expect(JSON.stringify(component.encounter())).toBe(before);
+		component.closeHomebrewSheetViewer();
+		expect(component.homebrewSheetViewer()).toBeNull();
 	});
 
 	it('asks for initiatives before creating a battle', () => {

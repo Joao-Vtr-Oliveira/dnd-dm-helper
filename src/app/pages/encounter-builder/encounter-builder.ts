@@ -6,6 +6,8 @@ import { LucideBookOpen, LucideSearch } from '@lucide/angular';
 import { AppSelectComponent } from '../../components/app-select/app-select';
 import { AppNativeSelectDirective } from '../../components/app-select/app-native-select';
 import { SpellQuickViewComponent } from '../../components/spell-quick-view/spell-quick-view';
+import { CreatureStatBlockComponent } from '../../components/creature-stat-block/creature-stat-block';
+import { HomebrewSheetRowComponent } from '../../components/homebrew-sheet-row/homebrew-sheet-row';
 import { SpellReferenceTriggerDirective } from '../../components/reference-overlay/reference-trigger';
 import { ReferenceOverlayService } from '../../components/reference-overlay/reference-overlay-service';
 
@@ -22,11 +24,27 @@ import type {
 	CreatureSpell,
 } from '../../models/creature-sheet-model';
 import { normalizeArmorClass } from '../../models/creature-sheet-model';
-import type { ResolvedContextualContent } from '../../models/contextual-content-resolver-model';
+import type {
+	RelevantCampaignOrganization,
+	ResolvedContextualContent,
+} from '../../models/contextual-content-resolver-model';
 import {
 	isCampaignOrganizationEligible,
 	type CampaignLocationScope,
 } from '../../models/campaign-world-model';
+import {
+	filterHomebrewSheets,
+	HOME_BREW_SHEET_CLASS_OPTIONS,
+	HOME_BREW_SHEET_CREATURE_TYPE_OPTIONS,
+	HOME_BREW_SHEET_STATUS_OPTIONS,
+	type FilterAll,
+	type HomebrewSheetFilters,
+	type HomebrewSheetStatusFilter,
+} from '../../models/homebrew-sheet-filter';
+import {
+	presentHomebrewSheet,
+	type HomebrewSheetPresentation,
+} from '../../models/homebrew-sheet-presentation-model';
 import type {
 	ContentLocationRelation,
 	ContentLocationRelationKind,
@@ -55,6 +73,7 @@ import {
 	LocalStorageService,
 	type SavedEncounter,
 	type SavedSheetInterface,
+	type HomebrewCategory,
 } from '../../services/local-storage-service/local-storage-service';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 
@@ -109,6 +128,8 @@ type ContextualSheetSuggestion = Omit<ResolvedContextualContent, 'content'> & {
 	imports: [
 		AppNativeSelectDirective,
 		AppSelectComponent,
+		CreatureStatBlockComponent,
+		HomebrewSheetRowComponent,
 		SpellQuickViewComponent,
 		SpellReferenceTriggerDirective,
 		CommonModule,
@@ -141,6 +162,19 @@ export class EncounterBuilder {
 	readonly bestiarySpellcasterOnly = signal(false);
 	readonly bestiaryLegendaryOnly = signal(false);
 	readonly sheetQ = signal('');
+	readonly sheetSuggestionsOpen = signal(true);
+	readonly sheetFiltersOpen = signal(false);
+	readonly homebrewSheetViewer = signal<SavedSheetInterface | null>(null);
+	readonly sheetCategoryFilter = signal<FilterAll<HomebrewCategory>>('all');
+	readonly sheetChallengeRatingFilter = signal<FilterAll<string>>('all');
+	readonly sheetTagFilter = signal<FilterAll<string>>('all');
+	readonly sheetStatusFilter = signal<HomebrewSheetStatusFilter>('active');
+	readonly sheetCreatureTypeFilter = signal<(typeof HOME_BREW_SHEET_CREATURE_TYPE_OPTIONS)[number]['id']>('all');
+	readonly sheetClassFilter = signal<(typeof HOME_BREW_SHEET_CLASS_OPTIONS)[number]['id']>('all');
+	readonly sheetEmpireFilter = signal<FilterAll<string>>('all');
+	readonly sheetStateFilter = signal<FilterAll<string>>('all');
+	readonly sheetSettlementFilter = signal<FilterAll<string>>('all');
+	readonly sheetOrganizationFilter = signal<FilterAll<string>>('all');
 	readonly toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
 	readonly unsavedChangesModal = signal(false);
 	readonly initiativeSetupOpen = signal(false);
@@ -230,43 +264,163 @@ export class EncounterBuilder {
 			: 'Salvar e iniciar batalha',
 	);
 	readonly hasUnsavedChanges = computed(() => this.editorSnapshot() !== this.savedSnapshot());
+	readonly homebrewCategoryOptions: Array<{ id: FilterAll<HomebrewCategory>; label: string }> = [
+		{ id: 'all', label: 'Todas as categorias' },
+		{ id: 'npc', label: 'NPCs' },
+		{ id: 'monster', label: 'Monstros' },
+		{ id: 'pc', label: 'PCs' },
+		{ id: 'other', label: 'Outros' },
+	];
+	readonly homebrewStatusOptions = HOME_BREW_SHEET_STATUS_OPTIONS;
+	readonly homebrewCreatureTypeOptions = HOME_BREW_SHEET_CREATURE_TYPE_OPTIONS;
+	readonly homebrewClassOptions = HOME_BREW_SHEET_CLASS_OPTIONS;
+	readonly homebrewTagOptions = computed(() => {
+		const tags = new Set<string>();
+		for (const sheet of this.homebrewSheets()) {
+			for (const tag of [...(sheet.tags ?? []), ...(sheet.data.tags ?? []), ...(sheet.data.groups ?? [])]) {
+				if (tag.trim()) tags.add(tag.trim());
+			}
+		}
+		return ['all', ...Array.from(tags).sort((left, right) => left.localeCompare(right))];
+	});
+	readonly homebrewChallengeRatingOptions = computed(() => {
+		const ratings = new Set<string>();
+		for (const sheet of this.homebrewSheets()) {
+			const rating = sheet.data.challengeRating?.trim();
+			if (rating) ratings.add(rating);
+		}
+		return [
+			{ id: 'all', label: 'Todos os CR' },
+			...Array.from(ratings)
+				.sort(compareChallengeRatings)
+				.map((rating) => ({ id: rating, label: `CR ${rating}` })),
+		];
+	});
+	readonly homebrewEmpireOptions = computed(() => [
+		{ id: 'all', label: 'Todos os impérios' },
+		...(this.campaignWorld.world()?.empires ?? [])
+			.slice()
+			.sort((left, right) => left.name.localeCompare(right.name))
+			.map((empire) => ({ id: empire.id, label: empire.name })),
+	]);
+	readonly homebrewStateOptions = computed(() => {
+		const empireId = this.sheetEmpireFilter();
+		return [
+			{ id: 'all', label: 'Todos os estados' },
+			...(this.campaignWorld.world()?.states ?? [])
+				.filter((state) => empireId === 'all' || state.empireId === empireId)
+				.slice()
+				.sort((left, right) => left.name.localeCompare(right.name))
+				.map((state) => ({
+					id: state.id,
+					label:
+						this.campaignWorld.resolveLocation({ scopeType: 'state', scopeId: state.id })?.breadcrumb.join(' › ') ??
+						state.name,
+				})),
+		];
+	});
+	readonly homebrewSettlementOptions = computed(() => {
+		const empireId = this.sheetEmpireFilter();
+		const stateId = this.sheetStateFilter();
+		const world = this.campaignWorld.world();
+		return [
+			{ id: 'all', label: 'Todos os settlements' },
+			...(world?.settlements ?? [])
+				.filter((settlement) => {
+					if (stateId !== 'all') return settlement.stateId === stateId;
+					if (empireId === 'all') return true;
+					return world?.states.some((state) => state.id === settlement.stateId && state.empireId === empireId) ?? false;
+				})
+				.slice()
+				.sort((left, right) => left.name.localeCompare(right.name))
+				.map((settlement) => ({
+					id: settlement.id,
+					label:
+						this.campaignWorld
+							.resolveLocation({ scopeType: 'settlement', scopeId: settlement.id })
+							?.breadcrumb.join(' › ') ?? settlement.name,
+				})),
+		];
+	});
+	readonly homebrewFiltersActive = computed(
+		() =>
+			!!this.sheetQ().trim() ||
+			this.sheetCategoryFilter() !== 'all' ||
+			this.sheetChallengeRatingFilter() !== 'all' ||
+			this.sheetTagFilter() !== 'all' ||
+			this.sheetStatusFilter() !== 'active' ||
+			this.sheetCreatureTypeFilter() !== 'all' ||
+			this.sheetClassFilter() !== 'all' ||
+			this.sheetEmpireFilter() !== 'all' ||
+			this.sheetStateFilter() !== 'all' ||
+			this.sheetSettlementFilter() !== 'all' ||
+			this.sheetOrganizationFilter() !== 'all',
+	);
+	readonly homebrewFilters = computed<HomebrewSheetFilters>(() => ({
+		query: this.sheetQ(),
+		category: this.sheetCategoryFilter(),
+		challengeRating: this.sheetChallengeRatingFilter(),
+		tag: this.sheetTagFilter(),
+		source: 'all',
+		status: this.sheetStatusFilter(),
+		creatureType: this.sheetCreatureTypeFilter(),
+		characterClass: this.sheetClassFilter(),
+		empireId: this.sheetEmpireFilter(),
+		stateId: this.sheetStateFilter(),
+		settlementId: this.sheetSettlementFilter(),
+		organizationId: this.sheetOrganizationFilter(),
+	}));
+	readonly homebrewSheetPresentations = computed(
+		() => new Map(this.homebrewSheets().map((sheet) => [sheet.id, presentHomebrewSheet(sheet, this.campaignWorld.world())])),
+	);
 	readonly filteredHomebrewSheets = computed(() => {
-		const query = this.sheetQ().trim().toLowerCase();
-		if (!query) return this.homebrewSheets();
-		return this.homebrewSheets().filter((sheet) =>
-			`${sheet.title} ${sheet.data.name} ${sheet.tags.join(' ')} ${sheet.category} ${sheet.source}`
-				.toLowerCase()
-				.includes(query),
+		const filtered = filterHomebrewSheets(this.homebrewSheets(), this.homebrewFilters(), this.campaignWorld.world());
+		const contextualIds = new Set(
+			this.contextualSuggestionGroups().flatMap((group) => group.entries.map((entry) => entry.content.id)),
 		);
+		return filtered
+			.filter((sheet) => this.homebrewFiltersActive() || !contextualIds.has(sheet.id))
+			.sort((left, right) => left.title.localeCompare(right.title));
 	});
 	readonly contextualSheetSuggestions = computed(() => {
 		const resolution = this.contextualResolver.resolve({
 			currentLocation: this.campaignContext.resolvedCurrentLocation(),
 			sheets: this.homebrewSheets(),
 			encounters: [],
-			organizations: [],
+			organizations: this.campaignWorld.world()?.organizations ?? [],
 		});
 		const seen = new Set<string>();
 		const here = this.contextualSheetsFor(resolution.here, seen);
 		const stateRegion = this.contextualSheetsFor(resolution.stateRegion, seen);
 		const broadContext = this.contextualSheetsFor(resolution.broadContext, seen);
-		return { here, stateRegion, broadContext };
+		const organizations = this.contextualSheetsForOrganizations(resolution.organizations, seen);
+		return { here, stateRegion, organizations, broadContext };
 	});
 	readonly contextualSuggestionGroups = computed(() => {
 		const suggestions = this.contextualSheetSuggestions();
 		return [
 			{ id: 'here', label: 'Aqui', entries: suggestions.here },
 			{ id: 'state-region', label: 'Estado/região', entries: suggestions.stateRegion },
+			{ id: 'organizations', label: 'Organização relacionada', entries: suggestions.organizations },
 			{ id: 'broad-context', label: 'Regional/amplo', entries: suggestions.broadContext },
 		].filter((group) => group.entries.length > 0);
 	});
+	readonly contextualSuggestionsExpanded = computed(
+		() => this.sheetSuggestionsOpen() && !this.homebrewFiltersActive(),
+	);
+	readonly contextualSuggestionCount = computed(() =>
+		this.contextualSuggestionGroups().reduce((total, group) => total + group.entries.length, 0),
+	);
 
-	contextualSheetCategoryLabel(entry: ContextualSheetSuggestion): string {
-		return entry.content.category === 'npc' ? 'NPC' : 'Monstro';
+	homebrewSheetPresentation(sheet: SavedSheetInterface): HomebrewSheetPresentation {
+		return this.homebrewSheetPresentations().get(sheet.id) ?? presentHomebrewSheet(sheet, this.campaignWorld.world());
 	}
 
 	contextualSheetReasonLabel(entry: ContextualSheetSuggestion): string {
 		if (entry.reason === 'generic') return 'Arquétipo reutilizável';
+		if (entry.reason === 'organization') {
+			return entry.matchedOrganizations?.map((organization) => organization.name).join(' · ') || 'Relação formal';
+		}
 		return entry.matchedLocations
 			.map((location) => this.locationRelationLabel(location.relation))
 			.join(' · ');
@@ -601,11 +755,117 @@ export class EncounterBuilder {
 
 	openHomebrewModal() {
 		this.refreshHomebrewSheets();
+		this.resetHomebrewFilters();
 		this.homebrewModalOpen.set(true);
 	}
 
 	closeHomebrewModal() {
 		this.homebrewModalOpen.set(false);
+		this.homebrewSheetViewer.set(null);
+	}
+
+	setHomebrewQuery(query: string) {
+		this.sheetQ.set(query);
+		this.collapseHomebrewSuggestions();
+	}
+
+	setHomebrewCategoryFilter(value: string) {
+		this.sheetCategoryFilter.set(value as FilterAll<HomebrewCategory>);
+		this.collapseHomebrewSuggestions();
+	}
+
+	setHomebrewChallengeRatingFilter(value: string) {
+		this.sheetChallengeRatingFilter.set(value);
+		this.collapseHomebrewSuggestions();
+	}
+
+	setHomebrewTagFilter(value: string) {
+		this.sheetTagFilter.set(value);
+		this.collapseHomebrewSuggestions();
+	}
+
+	setHomebrewStatusFilter(value: string) {
+		this.sheetStatusFilter.set(value as HomebrewSheetStatusFilter);
+		this.collapseHomebrewSuggestions();
+	}
+
+	setHomebrewCreatureTypeFilter(value: string) {
+		this.sheetCreatureTypeFilter.set(value as (typeof HOME_BREW_SHEET_CREATURE_TYPE_OPTIONS)[number]['id']);
+		this.collapseHomebrewSuggestions();
+	}
+
+	setHomebrewClassFilter(value: string) {
+		this.sheetClassFilter.set(value as (typeof HOME_BREW_SHEET_CLASS_OPTIONS)[number]['id']);
+		this.collapseHomebrewSuggestions();
+	}
+
+	setHomebrewOrganizationFilter(value: string) {
+		this.sheetOrganizationFilter.set(value);
+		this.collapseHomebrewSuggestions();
+	}
+
+	setHomebrewEmpireFilter(value: string) {
+		this.sheetEmpireFilter.set(value);
+		this.sheetStateFilter.set('all');
+		this.sheetSettlementFilter.set('all');
+		this.collapseHomebrewSuggestions();
+	}
+
+	setHomebrewStateFilter(value: string) {
+		this.sheetStateFilter.set(value);
+		this.sheetSettlementFilter.set('all');
+		if (value !== 'all') {
+			const state = this.campaignWorld.world()?.states.find((item) => item.id === value);
+			if (state) this.sheetEmpireFilter.set(state.empireId);
+		}
+		this.collapseHomebrewSuggestions();
+	}
+
+	setHomebrewSettlementFilter(value: string) {
+		this.sheetSettlementFilter.set(value);
+		if (value !== 'all') {
+			const world = this.campaignWorld.world();
+			const settlement = world?.settlements.find((item) => item.id === value);
+			const state = settlement && world?.states.find((item) => item.id === settlement.stateId);
+			if (state) {
+				this.sheetStateFilter.set(state.id);
+				this.sheetEmpireFilter.set(state.empireId);
+			}
+		}
+		this.collapseHomebrewSuggestions();
+	}
+
+	resetHomebrewFilters() {
+		this.sheetQ.set('');
+		this.sheetSuggestionsOpen.set(true);
+		this.sheetFiltersOpen.set(false);
+		this.sheetCategoryFilter.set('all');
+		this.sheetChallengeRatingFilter.set('all');
+		this.sheetTagFilter.set('all');
+		this.sheetStatusFilter.set('active');
+		this.sheetCreatureTypeFilter.set('all');
+		this.sheetClassFilter.set('all');
+		this.sheetEmpireFilter.set('all');
+		this.sheetStateFilter.set('all');
+		this.sheetSettlementFilter.set('all');
+		this.sheetOrganizationFilter.set('all');
+	}
+
+	toggleHomebrewFilters() {
+		this.sheetFiltersOpen.update((open) => !open);
+	}
+
+	toggleHomebrewSuggestions() {
+		this.sheetSuggestionsOpen.update((open) => !open);
+	}
+
+	openHomebrewSheetViewer(id: string) {
+		const sheet = this.homebrewSheets().find((item) => item.id === id);
+		if (sheet) this.homebrewSheetViewer.set(sheet);
+	}
+
+	closeHomebrewSheetViewer() {
+		this.homebrewSheetViewer.set(null);
 	}
 
 	useSheetInDraft(id: string) {
@@ -748,6 +1008,10 @@ export class EncounterBuilder {
 
 	openSpellQuickView(spell: CreatureSpell) {
 		this.referenceOverlay.openSpell({ name: spell.name, source: spell.source });
+	}
+
+	openFeatureConditionReference(name: string) {
+		this.referenceOverlay.openCondition(name);
 	}
 
 	getSpellDraft(id: string): SpellDraft {
@@ -1116,6 +1380,37 @@ export class EncounterBuilder {
 		});
 	}
 
+	private contextualSheetsForOrganizations(
+		entries: RelevantCampaignOrganization[],
+		seen: Set<string>,
+	): ContextualSheetSuggestion[] {
+		return this.homebrewSheets()
+			.filter((sheet) => sheet.category === 'monster' || sheet.category === 'npc')
+			.flatMap((sheet) => {
+				const matches = entries.filter(
+					(entry) =>
+						(sheet.organizationRefs ?? []).some((ref) => ref.organizationId === entry.organization.id) ||
+						(!!sheet.externalId && entry.presence.availableSheetExternalIds?.includes(sheet.externalId)),
+				);
+				if (!matches.length || seen.has(sheet.id)) return [];
+				seen.add(sheet.id);
+				return [
+					{
+						kind: 'sheet' as const,
+						content: sheet,
+						section: matches[0].section,
+						matchedLocations: [],
+						reason: 'organization' as const,
+						matchedOrganizations: matches.map((entry) => entry.organization),
+					},
+				];
+			});
+	}
+
+	private collapseHomebrewSuggestions() {
+		this.sheetSuggestionsOpen.set(false);
+	}
+
 	private persistEncounter(): { encounter: SavedEncounter; created: boolean } | null {
 		try {
 			const current = structuredClone(this.encounter());
@@ -1333,6 +1628,13 @@ function uniqueOrganizationRelations(refs: ContentOrganizationRelation[]): Conte
 		seen.add(key);
 		return true;
 	});
+}
+
+function compareChallengeRatings(left: string, right: string): number {
+	const leftNumber = Number(left);
+	const rightNumber = Number(right);
+	if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) return leftNumber - rightNumber;
+	return left.localeCompare(right, undefined, { numeric: true });
 }
 
 export const canDeactivateEncounterBuilder: CanDeactivateFn<EncounterBuilder> = (component) =>

@@ -979,43 +979,85 @@
 
 @if (homebrewModalOpen()) {
 	<div
-		class="fixed inset-0 z-[var(--z-app-modal)] flex items-center justify-center bg-black/70 p-4"
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-4"
 		(click)="closeHomebrewModal()"
 	>
 		<section
 			role="dialog"
 			aria-modal="true"
+			aria-labelledby="homebrew-import-title"
 			[appDialogFocus]="true"
 			(appDialogEscape)="closeHomebrewModal()"
-			class="app-dialog w-full max-w-3xl p-5"
+			class="app-dialog flex max-h-[calc(100vh-1.5rem)] w-full max-w-5xl flex-col p-4 sm:max-h-[90vh] sm:p-5"
 			(click)="$event.stopPropagation()"
 		>
-			<div class="flex items-center justify-between">
-				<h2 class="text-xl font-semibold">Importar Homebrew</h2>
-				<button type="button" class="app-button app-button-ghost" (click)="closeHomebrewModal()">
-					Fechar
+			<div class="flex shrink-0 items-start justify-between gap-3 border-b border-app-divider pb-4">
+				<div class="min-w-0">
+					<div class="app-eyebrow text-violet-200/75">Adicionar ao encounter</div>
+					<h2 id="homebrew-import-title" class="mt-1 text-xl font-semibold text-app-text">Importar Homebrew</h2>
+					<p class="mt-1 text-sm text-app-muted">Encontre uma ficha por contexto, metadata ou busca textual.</p>
+				</div>
+				<button type="button" class="app-button app-modal-close h-10 w-10 shrink-0 p-0" (click)="closeHomebrewModal()" aria-label="Fechar importação Homebrew">
+					x
 				</button>
 			</div>
-			<input
-				class="app-field mt-4 w-full px-3 py-2"
-				placeholder="Buscar ficha"
-				[ngModel]="sheetQ()"
-				(ngModelChange)="sheetQ.set($event)"
-			/>
+			<div class="shrink-0 space-y-3 pt-4">
+				<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+					<label class="min-w-0 flex-1">
+						<span class="sr-only">Buscar ficha Homebrew</span>
+						<input class="app-field w-full px-3 py-2.5" placeholder="Nome, alias, tag, organização, tipo ou classe..." [ngModel]="sheetQ()" (ngModelChange)="setHomebrewQuery($event)" />
+					</label>
+					<div class="flex shrink-0 gap-2">
+						<button type="button" class="app-button app-button-secondary px-3 py-2 text-xs" (click)="toggleHomebrewFilters()" [attr.aria-expanded]="sheetFiltersOpen()">
+							Filtros{{ homebrewFiltersActive() ? ' ativos' : '' }}
+						</button>
+						@if (homebrewFiltersActive()) {
+							<button type="button" class="app-button app-button-ghost px-3 py-2 text-xs" (click)="resetHomebrewFilters()">Limpar</button>
+						}
+					</div>
+				</div>
+				<div class="flex flex-wrap gap-2 text-xs text-app-muted">
+					<span class="app-status border border-app-divider bg-app-inset">{{ filteredHomebrewSheets().length }} resultado{{ filteredHomebrewSheets().length === 1 ? '' : 's' }}</span>
+					<span class="app-status border border-app-divider bg-app-inset">{{ homebrewSheets().length }} fichas disponíveis</span>
+					@if (sheetStatusFilter() === 'active') {
+						<span class="app-status border border-emerald-300/20 bg-emerald-500/10 text-emerald-100">Arquivadas ocultas</span>
+					}
+				</div>
+				@if (sheetFiltersOpen()) {
+					<div class="grid gap-2 rounded-lg border border-app-divider bg-app-inset/40 p-3 sm:grid-cols-2 lg:grid-cols-4">
+						<app-select label="Categoria" [options]="homebrewCategoryOptions" optionValueKey="id" optionLabelKey="label" [value]="sheetCategoryFilter()" (valueChange)="setHomebrewCategoryFilter($any($event))" />
+						<app-select label="CR" [options]="homebrewChallengeRatingOptions()" optionValueKey="id" optionLabelKey="label" [value]="sheetChallengeRatingFilter()" (valueChange)="setHomebrewChallengeRatingFilter($any($event))" />
+						<app-select label="Tipo de criatura" [options]="homebrewCreatureTypeOptions" optionValueKey="id" optionLabelKey="label" [value]="sheetCreatureTypeFilter()" (valueChange)="setHomebrewCreatureTypeFilter($any($event))" />
+						<app-select label="Status" [options]="homebrewStatusOptions" optionValueKey="id" optionLabelKey="label" [value]="sheetStatusFilter()" (valueChange)="setHomebrewStatusFilter($any($event))" />
+						<app-select label="Tag" [options]="homebrewTagOptions()" [value]="sheetTagFilter()" [optionLabels]="{ all: 'Todas as tags' }" (valueChange)="setHomebrewTagFilter($any($event))" />
+						<app-select label="Classe/arquetipo" [options]="homebrewClassOptions" optionValueKey="id" optionLabelKey="label" [value]="sheetClassFilter()" (valueChange)="setHomebrewClassFilter($any($event))" />
+						<app-select label="Organização formal" [options]="organizationOptions()" optionValueKey="id" optionLabelKey="label" [value]="sheetOrganizationFilter()" [disabled]="!campaignWorld.world()" (valueChange)="setHomebrewOrganizationFilter($any($event))" />
+						<app-select label="Império" [options]="homebrewEmpireOptions()" optionValueKey="id" optionLabelKey="label" [value]="sheetEmpireFilter()" [disabled]="!campaignWorld.world()" (valueChange)="setHomebrewEmpireFilter($any($event))" />
+						<app-select label="Estado" [options]="homebrewStateOptions()" optionValueKey="id" optionLabelKey="label" [value]="sheetStateFilter()" [disabled]="!campaignWorld.world()" (valueChange)="setHomebrewStateFilter($any($event))" />
+						<app-select label="Settlement" [options]="homebrewSettlementOptions()" optionValueKey="id" optionLabelKey="label" [value]="sheetSettlementFilter()" [disabled]="!campaignWorld.world()" (valueChange)="setHomebrewSettlementFilter($any($event))" />
+					</div>
+				}
+			</div>
 			@if (contextualSuggestionGroups().length) {
-				<section class="app-inset mt-4 border-violet-300/20 bg-violet-500/[0.06] p-3" aria-label="Sugestões contextuais">
+				<section class="mt-3 shrink-0 rounded-lg border border-violet-300/20 bg-violet-500/[0.06] p-3" aria-label="Sugestões contextuais">
 					<div class="flex items-start justify-between gap-3">
 						<div>
 							<div class="text-sm font-semibold text-app-text">Sugestões para esta posição</div>
 							<div class="mt-1 text-xs text-app-muted">
-								Fichas de monstros e NPCs relacionadas formalmente à posição atual da party.
+								{{ contextualSuggestionCount() }} fichas priorizadas para o contexto atual.
 							</div>
 						</div>
-						<span class="app-status shrink-0 border border-violet-300/20 bg-violet-500/10 text-violet-100">
-							{{ campaignContext.resolvedCurrentLocation()?.label }}
-						</span>
+						<div class="flex shrink-0 items-center gap-2">
+							@if (campaignContext.resolvedCurrentLocation()?.label; as location) {
+								<span class="app-status hidden border border-violet-300/20 bg-violet-500/10 text-violet-100 sm:inline-flex">{{ location }}</span>
+							}
+							<button type="button" class="app-button app-button-ghost px-2.5 py-1.5 text-xs" (click)="toggleHomebrewSuggestions()" [attr.aria-expanded]="contextualSuggestionsExpanded()">
+								{{ contextualSuggestionsExpanded() ? 'Recolher' : 'Expandir' }}
+							</button>
+						</div>
 					</div>
-					<div class="mt-3 space-y-3">
+					@if (contextualSuggestionsExpanded()) {
+					<div class="mt-3 max-h-[min(28vh,15rem)] space-y-3 overflow-y-auto pr-1">
 						@for (group of contextualSuggestionGroups(); track group.id) {
 							<div>
 								<div class="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
@@ -1023,58 +1065,46 @@
 								</div>
 								<div class="space-y-1.5">
 									@for (entry of group.entries; track entry.content.id) {
-										<div class="flex items-center justify-between gap-3 rounded-lg border border-app-divider px-3 py-2">
-											<div class="min-w-0">
-												<div class="truncate text-sm font-medium text-app-text">{{ entry.content.title }}</div>
-												<div class="mt-0.5 text-xs text-app-subtle">
-													{{ contextualSheetCategoryLabel(entry) }} · {{ contextualSheetReasonLabel(entry) }}
-												</div>
-											</div>
-											<div class="flex shrink-0 gap-1.5">
-												<button type="button" class="app-button app-button-ghost px-2.5 py-1.5 text-xs" (click)="useSheetInDraft(entry.content.id)">
-													Usar
-												</button>
-												<button type="button" class="app-button app-button-primary px-2.5 py-1.5 text-xs" (click)="addFromSheet(entry.content.id)">
-													Adicionar
-												</button>
-											</div>
-										</div>
+										<app-homebrew-sheet-row [sheet]="entry.content" [presentation]="homebrewSheetPresentation(entry.content)" [contextLabel]="group.label" [contextDetail]="contextualSheetReasonLabel(entry)" (viewed)="openHomebrewSheetViewer($event)" (used)="useSheetInDraft($event)" (added)="addFromSheet($event)" />
 									}
 								</div>
 							</div>
 						}
 					</div>
+					}
 				</section>
 			}
-			<div class="mt-4 max-h-[55vh] space-y-2 overflow-auto">
+			<div class="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+				<div class="mb-2 flex items-center justify-between gap-3 text-xs text-app-muted">
+					<span>{{ homebrewFiltersActive() ? 'Resultados filtrados' : 'Outras fichas da biblioteca' }}</span>
+					<span>{{ filteredHomebrewSheets().length }} resultado{{ filteredHomebrewSheets().length === 1 ? '' : 's' }}</span>
+				</div>
+				<div class="space-y-2">
 				@for (sheet of filteredHomebrewSheets(); track sheet.id) {
-					<div
-						class="flex items-center justify-between gap-3 rounded-xl border border-white/10 p-3"
-					>
-						<div>
-							<div class="font-semibold">{{ sheet.title }}</div>
-							<div class="text-sm text-app-muted">{{ sheet.data.name }} · {{ sheet.category }}</div>
-						</div>
-						<div class="flex gap-2">
-							<button
-								type="button"
-								class="app-button app-button-ghost"
-								(click)="useSheetInDraft(sheet.id)"
-							>
-								Usar</button
-							><button
-								type="button"
-								class="app-button app-button-primary"
-								(click)="addFromSheet(sheet.id)"
-							>
-								Adicionar
-							</button>
-						</div>
-					</div>
+					<app-homebrew-sheet-row [sheet]="sheet" [presentation]="homebrewSheetPresentation(sheet)" (viewed)="openHomebrewSheetViewer($event)" (used)="useSheetInDraft($event)" (added)="addFromSheet($event)" />
 				} @empty {
-					<p class="text-app-muted">Nenhuma ficha encontrada.</p>
+					<div class="app-empty-state px-4 py-8 text-center">
+						<div class="font-semibold text-app-text">Nenhuma ficha encontrada</div>
+						<p class="mt-1 text-sm text-app-muted">Ajuste a busca ou os filtros para encontrar outra ficha.</p>
+					</div>
 				}
+				</div>
 			</div>
+		</section>
+	</div>
+}
+
+@if (homebrewSheetViewer(); as sheet) {
+	<div class="fixed inset-0 z-[var(--z-app-nested-modal)] flex items-end justify-center bg-black/75 p-3 backdrop-blur-sm sm:items-center sm:p-4" (click)="closeHomebrewSheetViewer()">
+		<section role="dialog" aria-modal="true" aria-labelledby="homebrew-sheet-viewer-title" [appDialogFocus]="true" (appDialogEscape)="closeHomebrewSheetViewer()" class="app-dialog max-h-[calc(100vh-1.5rem)] w-full max-w-5xl overflow-y-auto p-4 sm:max-h-[90vh] sm:p-5" (click)="$event.stopPropagation()">
+			<div class="mb-4 flex items-start justify-between gap-3">
+				<div class="min-w-0">
+					<div class="app-eyebrow text-violet-200/75">Visualização da ficha</div>
+					<h2 id="homebrew-sheet-viewer-title" class="mt-1 break-words text-2xl font-semibold text-app-text">{{ sheet.title }}</h2>
+				</div>
+				<button type="button" class="app-button app-modal-close h-10 w-10 shrink-0 p-0" (click)="closeHomebrewSheetViewer()" aria-label="Fechar preview da ficha">x</button>
+			</div>
+			<app-creature-stat-block [creature]="sheet.data" [category]="sheet.category" variant="embedded" [referenceInteractions]="true" (selectedSpell)="openSpellQuickView($event)" (selectedCondition)="openFeatureConditionReference($event)" />
 		</section>
 	</div>
 }

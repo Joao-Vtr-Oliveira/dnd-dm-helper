@@ -1,0 +1,58 @@
+<article class="flex flex-col gap-3 rounded-lg border border-app-divider bg-app-inset/35 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+	<div class="min-w-0 flex-1">
+		<div class="flex flex-wrap items-center gap-2">
+			<div class="min-w-0 truncate font-semibold text-app-text">{{ sheet.title }}</div>
+			<span class="app-status border text-[10px] uppercase tracking-[0.1em]" [ngClass]="categoryClass()">
+				{{ presentation.categoryLabel }}
+			</span>
+			@if (presentation.challengeRating) {
+				<span class="app-status border border-app-divider bg-app-surface text-[10px] text-app-muted">
+					CR {{ presentation.challengeRating }}
+				</span>
+			}
+		</div>
+		<div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-app-muted">
+			@if (presentation.creatureType) {
+				<span>{{ presentation.creatureType }}</span>
+			}
+			@if (presentation.classes.length) {
+				<span>{{ presentation.classes.join(' / ') }}</span>
+			}
+			@if (!presentation.creatureType && !presentation.classes.length) {
+				<span>{{ sheet.data.name }}</span>
+			}
+		</div>
+		<div class="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-app-subtle">
+			@for (organization of presentation.formalOrganizations; track organization) {
+				<span class="app-status border border-violet-300/20 bg-violet-500/10 text-violet-100">
+					{{ organization }}
+				</span>
+			}
+			@for (location of presentation.formalLocations; track location) {
+				<span>{{ location }}</span>
+			}
+			@if (presentation.legacyGroups.length && !presentation.formalOrganizations.length) {
+				<span class="text-app-subtle">Grupo legado: {{ presentation.legacyGroups.join(' · ') }}</span>
+			}
+			@if (contextLabel) {
+				<span class="font-medium text-violet-100">{{ contextLabel }}</span>
+			}
+			@if (contextDetail) {
+				<span>{{ contextDetail }}</span>
+			}
+		</div>
+	</div>
+	<div class="flex shrink-0 flex-wrap gap-1.5 sm:justify-end">
+		<button type="button" class="app-button app-button-ghost px-2.5 py-1.5 text-xs" (click)="viewed.emit(sheet.id)">
+			Ver ficha
+		</button>
+		@if (showUse) {
+			<button type="button" class="app-button app-button-ghost px-2.5 py-1.5 text-xs" (click)="used.emit(sheet.id)">
+				Usar
+			</button>
+		}
+		<button type="button" class="app-button app-button-primary px-2.5 py-1.5 text-xs" (click)="added.emit(sheet.id)">
+			Adicionar
+		</button>
+	</div>
+</article>

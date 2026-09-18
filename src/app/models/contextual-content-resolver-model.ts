@@ -15,7 +15,8 @@ export interface ResolvedContextualContent {
 	content: SavedSheetInterface | Encounter;
 	section: ResolvedContextualContentSection;
 	matchedLocations: ContentLocationRelation[];
-	reason: 'location' | 'generic';
+	reason: 'location' | 'generic' | 'organization';
+	matchedOrganizations?: CampaignOrganization[];
 }
 
 export type CampaignOrganizationPresenceClassification =

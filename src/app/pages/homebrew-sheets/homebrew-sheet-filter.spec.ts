@@ -1,7 +1,7 @@
 import type { CampaignWorld } from '../../models/campaign-world-model';
 import type { CreatureSheet } from '../../models/creature-sheet-model';
 import type { SavedSheetInterface } from '../../services/local-storage-service/local-storage-service';
-import { filterHomebrewSheets, type HomebrewSheetFilters } from './homebrew-sheet-filter';
+import { filterHomebrewSheets, type HomebrewSheetFilters } from '../../models/homebrew-sheet-filter';
 
 describe('filterHomebrewSheets', () => {
 	const world = {
@@ -254,5 +254,19 @@ describe('filterHomebrewSheets', () => {
 		).toHaveSize(1);
 		expect(filterHomebrewSheets([tagOnly], filters({ stateId: 'state-frost' }), world)).toEqual([]);
 		expect(filterHomebrewSheets([talha], filters({ settlementId: 'settlement-ice' }), world)).toEqual([talha]);
+	});
+
+	it('filters by challenge rating and searches formal organization and location metadata', () => {
+		const formal = sheet({
+			title: 'Wen Torger',
+			data: { name: 'Wen Torger', challengeRating: '4', aliases: ['The Contact'] },
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'settlement-ice', relation: 'base' }],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'member' }],
+		});
+		const other = sheet({ title: 'Other', data: { name: 'Other', challengeRating: '1' } });
+
+		expect(filterHomebrewSheets([formal, other], filters({ challengeRating: '4' }), world)).toEqual([formal]);
+		expect(filterHomebrewSheets([formal, other], filters({ query: 'winterhold' }), world)).toEqual([formal]);
+		expect(filterHomebrewSheets([formal, other], filters({ query: 'ice' }), world)).toEqual([formal]);
 	});
 });
