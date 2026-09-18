@@ -2,7 +2,7 @@
   "app": "dnd-dm-helper",
   "schemaVersion": 2,
   "type": "campaign-backup",
-  "exportedAt": "2026-09-18T09:48:22.499Z",
+  "exportedAt": "2026-09-18T10:23:28.953Z",
   "data": {
     "encounters": [
       {
@@ -1690,7 +1690,7 @@
                 {
                   "id": "Notion::Elyra dos Cedros::trait::2",
                   "name": "Ligada às Árvores Marcadas",
-                  "description": "While at least one Árvore Marcada is active in the encounter, Elyra can use Passo entre Cedros and the Mãos da Floresta hazard remains active.\nWhen all marked trees are disabled or destroyed, Elyra loses her resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks until the end of the encounter.",
+                  "description": "While at least one Árvore Marcada is active in the encounter, Elyra can use Passo entre Cedros and the Mãos da Floresta hazard remains active. When all marked trees are disabled or destroyed, Elyra loses her resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks until the end of the encounter.",
                   "kind": "trait"
                 },
                 {
@@ -7125,7 +7125,7 @@
                 {
                   "id": "Notion::Elyra dos Cedros::trait::2",
                   "name": "Ligada às Árvores Marcadas",
-                  "description": "While at least one Árvore Marcada is active in the encounter, Elyra can use Passo entre Cedros and the Mãos da Floresta hazard remains active.\nWhen all marked trees are disabled or destroyed, Elyra loses her resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks until the end of the encounter.",
+                  "description": "While at least one Árvore Marcada is active in the encounter, Elyra can use Passo entre Cedros and the Mãos da Floresta hazard remains active. When all marked trees are disabled or destroyed, Elyra loses her resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks until the end of the encounter.",
                   "kind": "trait"
                 },
                 {
@@ -7764,7 +7764,7 @@
               {
                 "id": "Notion::Elyra dos Cedros::trait::2",
                 "name": "Ligada às Árvores Marcadas",
-                "description": "While at least one Árvore Marcada is active in the encounter, Elyra can use Passo entre Cedros and the Mãos da Floresta hazard remains active.\nWhen all marked trees are disabled or destroyed, Elyra loses her resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks until the end of the encounter.",
+                "description": "While at least one Árvore Marcada is active in the encounter, Elyra can use Passo entre Cedros and the Mãos da Floresta hazard remains active. When all marked trees are disabled or destroyed, Elyra loses her resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks until the end of the encounter.",
                 "kind": "trait"
               },
               {
@@ -19838,15 +19838,7 @@
         "externalId": "ce6803d1-8aec-4a43-aa7e-5e4edc13c98f",
         "title": "Elyra dos Cedros — Banshee de Nagawoods",
         "createdAt": 1782940187192,
-        "updatedAt": 1789365385569,
-        "category": "monster",
-        "tags": [
-          "Nagazav",
-          "Nagawoods",
-          "morto-vivo",
-          "Banshee"
-        ],
-        "source": "Homebrew",
+        "updatedAt": 1789726970268,
         "data": {
           "name": "Elyra dos Cedros",
           "maxHp": 110,
@@ -19895,7 +19887,7 @@
             {
               "id": "Notion::Elyra dos Cedros::trait::2",
               "name": "Ligada às Árvores Marcadas",
-              "description": "While at least one Árvore Marcada is active in the encounter, Elyra can use Passo entre Cedros and the Mãos da Floresta hazard remains active.\nWhen all marked trees are disabled or destroyed, Elyra loses her resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks until the end of the encounter.",
+              "description": "While at least one Árvore Marcada is active in the encounter, Elyra can use Passo entre Cedros and the Mãos da Floresta hazard remains active. When all marked trees are disabled or destroyed, Elyra loses her resistance to bludgeoning, piercing, and slashing damage from nonmagical attacks until the end of the encounter.",
               "kind": "trait"
             },
             {
@@ -20086,7 +20078,22 @@
             "intro": "Elyra can take 2 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. Elyra regains spent legendary actions at the start of her turn."
           },
           "passivePerception": 15
-        }
+        },
+        "category": "monster",
+        "tags": [
+          "Nagazav",
+          "Nagawoods",
+          "morto-vivo",
+          "Banshee"
+        ],
+        "source": "Homebrew",
+        "locationRefs": [
+          {
+            "scopeType": "settlement",
+            "scopeId": "nagawoods",
+            "relation": "occurrence"
+          }
+        ]
       },
       {
         "id": "51de9d4e-ea2c-4d86-8d22-68fd31e14ce5",
