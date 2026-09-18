@@ -191,14 +191,14 @@ describe('CampaignWorldService', () => {
 		}
 	});
 
-	it('rejects local organization scope', () => {
+	it('migrates local organization scope out of the loaded world', () => {
 		load({
 			...VALID_WORLD,
 			organizations: [{ ...VALID_WORLD.organizations[0], scope: 'local' }],
 		});
 
-		expect(service.status()).toBe('error');
-		expect(service.error()).toContain('Organização possui campos inválidos');
+		expect(service.status()).toBe('ready');
+		expect(service.getOrganization('guild')).toBeNull();
 	});
 
 	it('rejects invalid organization lifecycle values', () => {

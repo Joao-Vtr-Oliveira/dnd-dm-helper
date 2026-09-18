@@ -223,4 +223,29 @@ describe('WorkspaceService', () => {
 		).toBe(raw);
 		expect(legacyCampaignWorld.organizations).toHaveSize(13);
 	});
+
+	it('migrates legacy remote organizations before strict validation', () => {
+		const legacyWorld = structuredClone(legacyCampaignWorld) as unknown as {
+			organizations: Array<Record<string, unknown>>;
+			pointsOfInterest: Array<Record<string, unknown>>;
+		};
+		legacyWorld.organizations = legacyWorld.organizations.map((organization) => {
+			const { scope: _scope, ...withoutScope } = organization;
+			return withoutScope;
+		});
+		const localCommunity = {
+			...legacyWorld.organizations[0],
+			id: 'legacy-local-community',
+			name: 'Comunidade legada',
+			sourcePath: 'Mundo/Impérios/Mornk/3-Nirvak/Guildas.md',
+		};
+		legacyWorld.organizations.push(localCommunity);
+		legacyWorld.pointsOfInterest[0]['organizationIds'] = ['winterhold', 'legacy-local-community'];
+
+		const migrated = new WorkspaceService().migrateCampaignWorld(legacyWorld)!;
+
+		expect(migrated.organizations.find((item) => item.id === 'winterhold')?.scope).toBe('campaign');
+		expect(migrated.organizations).not.toContain(jasmine.objectContaining({ id: 'legacy-local-community' }));
+		expect(migrated.pointsOfInterest[0].organizationIds).toEqual(['winterhold']);
+	});
 });

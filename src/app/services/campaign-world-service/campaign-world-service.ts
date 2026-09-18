@@ -79,7 +79,8 @@ export class CampaignWorldService {
 	}
 
 	private loadRawWorld(raw: unknown): void {
-		const validation = validateCampaignWorld(raw);
+		const migrated = this.workspaces.migrateCampaignWorld(raw);
+		const validation = validateCampaignWorld(migrated ?? raw);
 		if (!validation.valid || !validation.world) {
 			this.clearWorld(validation.error ?? 'Mundo da campanha inválido.');
 			return;
@@ -120,7 +121,8 @@ export class CampaignWorldService {
 		} catch {
 			throw new Error('O mundo remoto não contém JSON válido.');
 		}
-		const validation = validateCampaignWorld(raw);
+		const migrated = this.workspaces.migrateCampaignWorld(raw);
+		const validation = validateCampaignWorld(migrated ?? raw);
 		if (!validation.valid || !validation.world) throw new Error(validation.error ?? 'Mundo remoto inválido.');
 		return validation.world;
 	}

@@ -37,6 +37,10 @@ export class WorkspaceService {
 		this.bootstrapCampaignWorlds();
 	}
 
+	migrateCampaignWorld(raw: unknown): CampaignWorld | null {
+		return this.repairOrganizationOnlyWorld(raw);
+	}
+
 	createWorkspace(name: string, remote?: Workspace['remote']): Workspace {
 		const now = Date.now();
 		const workspace: Workspace = {
@@ -259,7 +263,7 @@ export class WorkspaceService {
 			)
 		)
 			return null;
-		const incompatibleIds = new Set(
+		const removedIds = new Set(
 			organizations
 				.filter((item) => {
 					const organization = item as Record<string, unknown>;
@@ -268,12 +272,19 @@ export class WorkspaceService {
 				.map((item) => (item as Record<string, unknown>)['id'])
 				.filter((id): id is string => typeof id === 'string'),
 		);
-		if (!incompatibleIds.size) return null;
+		const normalizedOrganizations = organizations
+			.filter((item) => !removedIds.has((item as Record<string, unknown>)['id'] as string))
+			.map((item) => {
+				const organization = item as Record<string, unknown>;
+				return organization['scope'] === undefined
+					? { ...organization, scope: 'campaign' }
+					: item;
+			});
+		const organizationsChanged = normalizedOrganizations.some((item, index) => item !== organizations[index]);
+		if (!removedIds.size && !organizationsChanged) return null;
 		const sanitized = {
 			...candidate,
-			organizations: organizations.filter(
-				(item) => !incompatibleIds.has((item as Record<string, unknown>)['id'] as string),
-			),
+			organizations: normalizedOrganizations,
 			pointsOfInterest: candidate['pointsOfInterest'].map((item) => {
 				if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
 				const pointOfInterest = item as Record<string, unknown>;
@@ -281,7 +292,7 @@ export class WorkspaceService {
 				return {
 					...pointOfInterest,
 					organizationIds: pointOfInterest['organizationIds'].filter(
-						(id): id is string => typeof id === 'string' && !incompatibleIds.has(id),
+						(id): id is string => typeof id === 'string' && !removedIds.has(id),
 					),
 				};
 			}),
