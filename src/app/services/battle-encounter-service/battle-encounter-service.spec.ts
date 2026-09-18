@@ -309,12 +309,75 @@ describe('BattleEncounterService', () => {
 		source.traps = [];
 
 		const battle = service.createBattleFromEncounter(source);
-		const next = service.advanceTurn(battle);
-
-		expect(next.activeSpecialTurn).toEqual(
+		expect(battle.activeSpecialTurn).toEqual(
 			jasmine.objectContaining({ type: 'lair-action', eventId: 'lair-before-first', initiative: 20 }),
 		);
-		expect(service.getCurrentCombatant(next)).toBeNull();
+		const legacyBattle = structuredClone(battle);
+		delete legacyBattle.activeSpecialTurn;
+		expect(service.normalizeBattleEncounter(legacyBattle).activeSpecialTurn).toEqual(
+			jasmine.objectContaining({ type: 'lair-action', eventId: 'lair-before-first' }),
+		);
+		const next = service.advanceTurn(battle);
+
+		expect(next.activeSpecialTurn).toBeUndefined();
+		expect(service.getCurrentCombatant(next)?.name).toBe('Goblin Boss');
+	});
+
+	it('pauses for a round-end trap before advancing to the next round', () => {
+		const source = structuredClone(encounter);
+		source.lairActions = [];
+		source.traps = [
+			{
+				id: 'trap-round-end',
+				name: 'Round End Trap',
+				triggerType: 'round-end',
+				active: true,
+				frequency: 'every-round',
+			},
+		];
+
+		const battle = service.createBattleFromEncounter(source);
+		const secondCombatant = service.advanceTurn(battle);
+		const trapTurn = service.advanceTurn(secondCombatant);
+
+		expect(trapTurn.activeSpecialTurn).toEqual(
+			jasmine.objectContaining({ type: 'trap', eventId: 'trap-round-end', triggerType: 'round-end' }),
+		);
+		expect(trapTurn.round).toBe(1);
+
+		const nextRound = service.advanceTurn(trapTurn);
+		expect(nextRound.round).toBe(2);
+		expect(nextRound.activeSpecialTurn).toBeUndefined();
+		expect(nextRound.traps[0].lastTriggeredAtRound).toBe(1);
+	});
+
+	it('pauses for a round-start trap before the first combatant of the next round', () => {
+		const source = structuredClone(encounter);
+		source.lairActions = [];
+		source.traps = [
+			{
+				id: 'trap-round-start',
+				name: 'Round Start Trap',
+				triggerType: 'round-start',
+				active: true,
+				frequency: 'every-round',
+			},
+		];
+
+		const battle = service.createBattleFromEncounter(source);
+		const firstCombatant = service.advanceTurn(battle);
+		const secondCombatant = service.advanceTurn(firstCombatant);
+		const trapTurn = service.advanceTurn(secondCombatant);
+
+		expect(trapTurn.activeSpecialTurn).toEqual(
+			jasmine.objectContaining({ type: 'trap', eventId: 'trap-round-start', triggerType: 'round-start' }),
+		);
+		expect(trapTurn.round).toBe(2);
+
+		const nextCombatant = service.advanceTurn(trapTurn);
+		expect(nextCombatant.round).toBe(2);
+		expect(nextCombatant.activeSpecialTurn).toBeUndefined();
+		expect(nextCombatant.traps[0].lastTriggeredAtRound).toBe(2);
 	});
 
 	it('snapshots and restores the same canonical runtime shape', () => {

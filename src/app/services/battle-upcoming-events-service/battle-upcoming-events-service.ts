@@ -47,15 +47,17 @@ export class BattleUpcomingEventsService {
 		for (const slot of turnSlots) {
 			if (!firstTurnByRound.has(slot.round)) firstTurnByRound.set(slot.round, slot);
 		}
+		const activeSpecialEvent = this.buildActiveSpecialEvent(battle);
 
 		const events: UpcomingEventCandidate[] = [
+			...(activeSpecialEvent ? [activeSpecialEvent] : []),
 			...this.buildTurnEvents(turnSlots),
 			...this.buildRoundStartEvents(battle, roundStates, firstTurnByRound),
 			...this.buildPendingCombatantEvents(roundStates, firstTurnByRound),
 			...this.buildConditionEvents(battle, turnSlots, firstTurnByRound),
 			...this.buildAbilityRechargeEvents(battle, turnSlots, firstTurnByRound),
-			...this.buildLairActionEvents(battle, roundStates, firstTurnByRound, currentInitiative),
-			...this.buildTrapEvents(battle, roundStates, firstTurnByRound, currentInitiative),
+			...this.buildLairActionEvents(battle, roundStates, turnSlots, firstTurnByRound, currentInitiative),
+			...this.buildTrapEvents(battle, roundStates, turnSlots, firstTurnByRound, currentInitiative),
 		];
 
 		return events
@@ -65,7 +67,18 @@ export class BattleUpcomingEventsService {
 				return left.priority - right.priority;
 			})
 			.slice(0, limit)
-			.map(({ sortOrder, ...event }) => event);
+			.map(({ sortOrder, ...event }, index) => {
+				if (index === 0 && (event.type === 'lair-action' || event.type === 'trap')) {
+					const name = event.label.startsWith('Agora: ')
+						? event.label.slice('Agora: '.length)
+						: event.label.slice(event.label.lastIndexOf(': ') + 2);
+					return { ...event, label: `Agora: ${name}` };
+				}
+				if (index > 0 && event.type === 'turn' && event.label.startsWith('Agora: ')) {
+					return { ...event, label: event.label.replace('Agora: ', 'Depois: ') };
+				}
+				return event;
+			});
 	}
 
 	buildUpcomingTurnEvents(battle: BattleEncounter, limit = 3): BattleUpcomingEvent[] {
@@ -97,6 +110,27 @@ export class BattleUpcomingEventsService {
 			actorType: 'combatant',
 			sortOrder: slot.sortOrder,
 		}));
+	}
+
+	private buildActiveSpecialEvent(battle: BattleEncounter): UpcomingEventCandidate | null {
+		const specialTurn = battle.activeSpecialTurn;
+		if (!specialTurn) return null;
+		const name =
+			specialTurn.type === 'lair-action'
+				? battle.lairActions.find((action) => action.id === specialTurn.eventId)?.name
+				: battle.traps.find((trap) => trap.id === specialTurn.eventId)?.name;
+		if (!name) return null;
+
+		return {
+			id: `active-special-${specialTurn.type}-${specialTurn.eventId}-${specialTurn.round}`,
+			type: specialTurn.type,
+			label: `Agora: ${name}`,
+			round: specialTurn.round,
+			turnIndex: specialTurn.anchorTurnIndex >= 0 ? specialTurn.anchorTurnIndex : undefined,
+			priority: -10,
+			actorType: specialTurn.type === 'lair-action' ? 'lair-action' : 'trap',
+			sortOrder: -1,
+		};
 	}
 
 	private buildRoundStartEvents(
@@ -273,6 +307,7 @@ export class BattleUpcomingEventsService {
 	private buildLairActionEvents(
 		battle: BattleEncounter,
 		roundStates: RoundState[],
+		turnSlots: TurnSlot[],
 		firstTurnByRound: Map<number, TurnSlot>,
 		currentInitiative: number | null,
 	): UpcomingEventCandidate[] {
@@ -288,9 +323,14 @@ export class BattleUpcomingEventsService {
 				type: 'lair-action',
 				label: `Round ${targetRound} / iniciativa ${action.initiative}: ${action.name}`,
 				round: targetRound,
-				priority: 45,
-				actorType: 'lair-action',
-				sortOrder: (firstTurnByRound.get(targetRound)?.sortOrder ?? targetRound * 100) - 1,
+			priority: 45,
+			actorType: 'lair-action',
+				sortOrder: this.sortOrderForInitiative(
+					targetRound,
+					action.initiative,
+					turnSlots,
+					firstTurnByRound,
+				),
 			});
 		}
 
@@ -300,6 +340,7 @@ export class BattleUpcomingEventsService {
 	private buildTrapEvents(
 		battle: BattleEncounter,
 		roundStates: RoundState[],
+		turnSlots: TurnSlot[],
 		firstTurnByRound: Map<number, TurnSlot>,
 		currentInitiative: number | null,
 	): UpcomingEventCandidate[] {
@@ -325,8 +366,16 @@ export class BattleUpcomingEventsService {
 				priority: 50,
 				actorType: 'trap',
 				sortOrder:
-					(firstTurnByRound.get(targetRound)?.sortOrder ?? targetRound * 100) +
-					(trap.triggerType === 'round-end' ? 2 : -1),
+					trap.triggerType === 'initiative'
+						? this.sortOrderForInitiative(
+								targetRound,
+								trap.initiative!,
+								turnSlots,
+								firstTurnByRound,
+						  )
+						: trap.triggerType === 'round-start'
+							? (firstTurnByRound.get(targetRound)?.sortOrder ?? targetRound * 100) - 2
+							: this.lastTurnSortOrder(targetRound, turnSlots, firstTurnByRound) + 1,
 			});
 		}
 
@@ -459,7 +508,7 @@ export class BattleUpcomingEventsService {
 
 		if (action.lastTriggeredAtRound === battle.round) return battle.round + 1;
 		if (currentInitiative == null) return battle.round + 1;
-		return battle.round;
+		return action.initiative >= currentInitiative ? battle.round : battle.round + 1;
 	}
 
 	private getNextTrapRound(
@@ -478,10 +527,31 @@ export class BattleUpcomingEventsService {
 		if (trap.triggerType === 'initiative') {
 			if (trap.lastTriggeredAtRound === battle.round) return battle.round + 1;
 			if (currentInitiative == null || trap.initiative == null) return battle.round + 1;
-			return battle.round;
+			return trap.initiative >= currentInitiative ? battle.round : battle.round + 1;
 		}
 
 		return null;
+	}
+
+	private sortOrderForInitiative(
+		round: number,
+		initiative: number,
+		turnSlots: TurnSlot[],
+		firstTurnByRound: Map<number, TurnSlot>,
+	): number {
+		const roundSlots = turnSlots.filter((slot) => slot.round === round);
+		const nextSlot = roundSlots.find((slot) => slot.combatant.initiative <= initiative);
+		if (nextSlot) return nextSlot.sortOrder - 1;
+		return this.lastTurnSortOrder(round, turnSlots, firstTurnByRound) + 1;
+	}
+
+	private lastTurnSortOrder(
+		round: number,
+		turnSlots: TurnSlot[],
+		firstTurnByRound: Map<number, TurnSlot>,
+	): number {
+		const roundSlots = turnSlots.filter((slot) => slot.round === round);
+		return roundSlots.at(-1)?.sortOrder ?? firstTurnByRound.get(round)?.sortOrder ?? round * 100;
 	}
 
 	private isEligibleCombatant(combatant: BattleCombatant, round: number): boolean {

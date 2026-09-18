@@ -133,7 +133,26 @@ describe('BattleUpcomingEventsService', () => {
 		const events = service.buildUpcomingBattleEvents(withLairAction, 8);
 
 		expect(events.some((event) => event.type === 'lair-action' && event.label.includes('Olho do Covil'))).toBeTrue();
+		expect(events[0].type).toBe('lair-action');
+		expect(events[0].label).toBe('Agora: Olho do Covil');
+		expect(events[1].label).toContain('Depois:');
 		expect(withLairAction.combatants).toHaveSize(3);
+	});
+
+	it('shows an active opening lair action as the current event', () => {
+		const battle = battleService.createBattleFromEncounter({
+			...encounter,
+			lairActions: [
+				{ id: 'opening-lair', name: 'Opening Lair', initiative: 20, active: true, frequency: 'every-round' },
+			],
+			traps: [],
+		});
+		const events = service.buildUpcomingBattleEvents(battle, 4);
+
+		expect(events[0]).toEqual(
+			jasmine.objectContaining({ type: 'lair-action', label: 'Agora: Opening Lair', round: 1 }),
+		);
+		expect(events[1].label).toContain('Depois:');
 	});
 
 	it('does not show manual traps as upcoming automatic events', () => {

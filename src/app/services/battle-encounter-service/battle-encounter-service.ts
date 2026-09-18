@@ -137,6 +137,14 @@ export class BattleEncounterService {
 			})),
 		);
 		const initialTurnIndex = this.normalizeActiveTurnIndex(combatants, 0, 1);
+		const lairActions = this.mapEncounterLairActions(encounter.lairActions);
+		const traps = this.mapEncounterTraps(encounter.traps);
+		const initialSpecialTurn = this.findInitialSpecialTurn(
+			combatants,
+			lairActions,
+			traps,
+			1,
+		);
 
 		return {
 			id: this.createId(),
@@ -154,8 +162,9 @@ export class BattleEncounterService {
 			referenceSheets,
 			combatants,
 			pendingCombatants: [],
-			lairActions: this.mapEncounterLairActions(encounter.lairActions),
-			traps: this.mapEncounterTraps(encounter.traps),
+			lairActions,
+			traps,
+			...(initialSpecialTurn ? { activeSpecialTurn: initialSpecialTurn } : {}),
 			turnHistory: [],
 			dmNotes: '',
 			pendingActions: [],
@@ -223,6 +232,16 @@ export class BattleEncounterService {
 			combatants,
 			pendingCombatants,
 		);
+		const status =
+			raw.status === 'active' || raw.status === 'paused' || raw.status === 'completed'
+				? raw.status
+				: 'active';
+		const round = Math.max(1, this.toNonNegativeInt(raw.round) || 1);
+		const normalizedActiveSpecialTurn =
+			this.normalizeSpecialTurn(raw.activeSpecialTurn, round, combatants) ??
+			(status === 'active' || status === 'paused'
+				? this.findInitialSpecialTurn(combatants, lairActions, traps, round)
+				: null);
 
 		return {
 			id: typeof raw.id === 'string' ? raw.id : this.createId(),
@@ -231,19 +250,14 @@ export class BattleEncounterService {
 				: {}),
 			name: typeof raw.name === 'string' ? raw.name : 'Batalha local',
 			description: typeof raw.description === 'string' ? raw.description : undefined,
-			status:
-				raw.status === 'active' || raw.status === 'paused' || raw.status === 'completed'
-					? raw.status
-					: 'active',
-			round: Math.max(1, this.toNonNegativeInt(raw.round) || 1),
+			status,
+			round,
 			activeTurnIndex: this.normalizeActiveTurnIndex(
 				combatants,
 				this.toNonNegativeInt(raw.activeTurnIndex),
-				Math.max(1, this.toNonNegativeInt(raw.round) || 1),
+				round,
 			),
-			...(this.normalizeSpecialTurn(raw.activeSpecialTurn, raw.round, combatants)
-				? { activeSpecialTurn: this.normalizeSpecialTurn(raw.activeSpecialTurn, raw.round, combatants) }
-				: {}),
+			...(normalizedActiveSpecialTurn ? { activeSpecialTurn: normalizedActiveSpecialTurn } : {}),
 			createdAt,
 			startedAt: this.normalizeIso(raw.startedAt ?? raw.createdAt),
 			updatedAt,
@@ -455,6 +469,18 @@ export class BattleEncounterService {
 			currentCombatant == null
 				? Math.max(-1, currentSpecialTurn?.anchorTurnIndex ?? -1)
 				: battle.combatants.findIndex((combatant) => combatant.id === currentCombatant.id);
+		const resolvedSpecialTurn = currentSpecialTurn
+			? this.resolveSpecialTurnEvent(battle, currentSpecialTurn)
+			: {
+					lairActions: battle.lairActions,
+					traps: battle.traps,
+					messages: [],
+				};
+		const battleWithResolvedSpecialTurn = {
+			...battle,
+			lairActions: resolvedSpecialTurn.lairActions,
+			traps: resolvedSpecialTurn.traps,
+		};
 		const endExpire = this.conditionService.expireConditionsAtTiming(
 			battle.combatants,
 			{ round: battle.round, turnIndex: Math.max(0, currentTurnIndex) },
@@ -467,7 +493,7 @@ export class BattleEncounterService {
 			battle.round,
 		);
 		const nextSpecialTurn = this.findNextSpecialTurn(
-			battle,
+			battleWithResolvedSpecialTurn,
 			currentCombatant?.initiative ?? currentSpecialTurn?.initiative ?? null,
 			currentSpecialTurn,
 			currentTurnIndex,
@@ -479,6 +505,15 @@ export class BattleEncounterService {
 					this.createTurnHistoryEntry(battle, currentCombatant, timestamp, durationSeconds, notes),
 				);
 			}
+			turnHistory.push(
+				...resolvedSpecialTurn.messages.map((message) =>
+					this.createSystemHistoryEntry(
+						{ round: battle.round, turnIndex: Math.max(0, currentTurnIndex) },
+						timestamp,
+						message,
+					),
+				),
+			);
 			return {
 				...battle,
 				activeTurnIndex: nextSpecialTurn.anchorTurnIndex,
@@ -487,6 +522,8 @@ export class BattleEncounterService {
 				turnStartedAt: timestamp,
 				currentTurnElapsedSeconds: 0,
 				combatants: endExpire.combatants,
+				lairActions: resolvedSpecialTurn.lairActions,
+				traps: resolvedSpecialTurn.traps,
 				turnHistory,
 				turnSnapshots: this.appendTurnSnapshot(battle, turnSnapshot),
 			};
@@ -521,10 +558,17 @@ export class BattleEncounterService {
 			roundAdvanced,
 		);
 		const encounterEventAdvance = this.advanceEncounterEventCooldowns(
-			battle.lairActions,
-			battle.traps,
+			resolvedSpecialTurn.lairActions,
+			resolvedSpecialTurn.traps,
 			roundAdvanced,
 		);
+		const roundStartSpecialTurn = roundAdvanced
+			? this.findNextRoundStartSpecialTurn(
+					encounterEventAdvance.traps,
+					nextRound,
+					nextTurnIndex,
+				)
+			: null;
 
 		const turnHistory = [...battle.turnHistory];
 		if (currentCombatant) {
@@ -535,6 +579,7 @@ export class BattleEncounterService {
 
 		for (const message of [
 			...endExpire.messages,
+			...resolvedSpecialTurn.messages,
 			...roundStartMessages,
 			...startExpire.messages,
 			...cooldownAdvance.messages,
@@ -550,6 +595,29 @@ export class BattleEncounterService {
 					message,
 				),
 			);
+		}
+
+		if (roundStartSpecialTurn) {
+			return this.ensureDeathSavePendingAction({
+				...battle,
+				round: nextRound,
+				activeTurnIndex: nextTurnIndex,
+				activeSpecialTurn: roundStartSpecialTurn,
+				updatedAt: timestamp,
+				turnStartedAt: timestamp,
+				currentTurnElapsedSeconds: 0,
+				combatants: cooldownAdvance.combatants,
+				pendingCombatants: nextPendingCombatants,
+				lairActions: encounterEventAdvance.lairActions,
+				traps: encounterEventAdvance.traps,
+				turnHistory,
+				pendingActions: this.reconcilePendingActionsForCombatants(
+					battle.pendingActions,
+					cooldownAdvance.combatants,
+					nextPendingCombatants,
+				),
+				turnSnapshots: this.appendTurnSnapshot(battle, turnSnapshot),
+			});
 		}
 
 		return this.ensureDeathSavePendingAction({
@@ -2515,6 +2583,8 @@ export class BattleEncounterService {
 			nextCombatantIndex >= 0 ? battle.combatants[nextCombatantIndex].initiative : null;
 		const firstEligibleTurnIndex = this.findFirstEligibleTurnIndex(battle.combatants, battle.round);
 		const atRoundStart = currentTurnIndex <= firstEligibleTurnIndex;
+		const roundWillAdvance =
+			nextCombatantIndex < 0 || (currentTurnIndex >= 0 && nextCombatantIndex <= currentTurnIndex);
 		const candidates: BattleSpecialTurn[] = [
 			...(battle.lairActions ?? [])
 				.filter(
@@ -2530,6 +2600,7 @@ export class BattleEncounterService {
 					round: battle.round,
 					initiative: action.initiative,
 					anchorTurnIndex: Math.max(0, currentTurnIndex),
+					triggerType: undefined,
 				})),
 			...(battle.traps ?? [])
 				.filter(
@@ -2548,12 +2619,55 @@ export class BattleEncounterService {
 					round: battle.round,
 					initiative: trap.initiative!,
 					anchorTurnIndex: Math.max(0, currentTurnIndex),
+					triggerType: 'initiative' as const,
 				})),
+			...(battle.traps ?? [])
+				.filter(
+					(trap) =>
+						trap.active &&
+						trap.triggerType === 'round-end' &&
+						trap.frequency !== 'manual' &&
+						(trap.currentCooldownRounds ?? 0) <= 0 &&
+						!(trap.frequency === 'every-round' && trap.lastTriggeredAtRound === battle.round) &&
+						!(trap.frequency === 'once' && trap.lastTriggeredAtRound != null),
+				)
+				.map((trap) => ({
+					type: 'trap' as const,
+					eventId: trap.id,
+					round: battle.round,
+					initiative: -1,
+					anchorTurnIndex: Math.max(0, currentTurnIndex),
+					triggerType: 'round-end' as const,
+				})),
+			...(currentSpecialTurn?.triggerType === 'round-start'
+				? (battle.traps ?? [])
+						.filter(
+							(trap) =>
+								trap.active &&
+								trap.triggerType === 'round-start' &&
+								trap.frequency !== 'manual' &&
+								(trap.currentCooldownRounds ?? 0) <= 0 &&
+								!(trap.frequency === 'every-round' && trap.lastTriggeredAtRound === battle.round) &&
+								!(trap.frequency === 'once' && trap.lastTriggeredAtRound != null),
+						)
+						.map((trap) => ({
+							type: 'trap' as const,
+							eventId: trap.id,
+							round: battle.round,
+							initiative: 1000,
+							anchorTurnIndex: Math.max(0, currentTurnIndex),
+							triggerType: 'round-start' as const,
+						}))
+					: []),
 		]
 			.filter((event) => {
-				if (event.initiative > currentInitiative && !atRoundStart) return false;
 				if (event.initiative === currentInitiative && event.eventId === currentSpecialTurn?.eventId)
 					return false;
+				if (event.triggerType === 'round-end') return roundWillAdvance;
+				if (event.triggerType === 'round-start') {
+					return currentSpecialTurn?.triggerType === 'round-start';
+				}
+				if (event.initiative > currentInitiative && !atRoundStart) return false;
 				return nextCombatantInitiative == null || event.initiative >= nextCombatantInitiative;
 			})
 			.sort((left, right) => {
@@ -2562,6 +2676,90 @@ export class BattleEncounterService {
 			});
 
 		return candidates[0] ?? null;
+	}
+
+	private findNextRoundStartSpecialTurn(
+		traps: BattleTrap[],
+		round: number,
+		anchorTurnIndex: number,
+	): BattleSpecialTurn | null {
+		const trap = traps
+			.filter(
+				(candidate) =>
+					candidate.active &&
+					candidate.triggerType === 'round-start' &&
+					candidate.frequency !== 'manual' &&
+					(candidate.currentCooldownRounds ?? 0) <= 0 &&
+					!(candidate.frequency === 'every-round' && candidate.lastTriggeredAtRound === round) &&
+					!(candidate.frequency === 'once' && candidate.lastTriggeredAtRound != null),
+			)
+			.sort((left, right) => left.id.localeCompare(right.id))[0];
+		if (!trap) return null;
+
+		return {
+			type: 'trap',
+			eventId: trap.id,
+			round,
+			initiative: 1000,
+			anchorTurnIndex: Math.max(0, anchorTurnIndex),
+			triggerType: 'round-start',
+		};
+	}
+
+	private findInitialSpecialTurn(
+		combatants: BattleCombatant[],
+		lairActions: BattleLairAction[],
+		traps: BattleTrap[],
+		round: number,
+	): BattleSpecialTurn | null {
+		const firstTurnIndex = this.findFirstEligibleTurnIndex(combatants, round);
+		if (firstTurnIndex < 0) return null;
+		const firstInitiative = combatants[firstTurnIndex].initiative;
+		const candidates: BattleSpecialTurn[] = [
+			...lairActions
+				.filter(
+					(action) =>
+						action.active &&
+						action.frequency !== 'manual' &&
+						(action.currentCooldownRounds ?? 0) <= 0 &&
+						action.lastTriggeredAtRound !== round &&
+						action.initiative >= firstInitiative,
+				)
+				.map((action) => ({
+					type: 'lair-action' as const,
+					eventId: action.id,
+					round,
+					initiative: action.initiative,
+					anchorTurnIndex: -1,
+				})),
+			...traps
+				.filter(
+					(trap) =>
+						trap.active &&
+						trap.frequency !== 'manual' &&
+						(trap.currentCooldownRounds ?? 0) <= 0 &&
+						trap.lastTriggeredAtRound !== round &&
+						((trap.triggerType === 'round-start') ||
+							(trap.triggerType === 'initiative' &&
+								trap.initiative != null &&
+								trap.initiative >= firstInitiative)),
+				)
+				.map((trap) => ({
+					type: 'trap' as const,
+					eventId: trap.id,
+					round,
+					initiative: trap.triggerType === 'round-start' ? 1000 : trap.initiative!,
+					anchorTurnIndex: -1,
+					triggerType: trap.triggerType,
+				})),
+		];
+
+		return (
+			candidates.sort((left, right) => {
+				if (right.initiative !== left.initiative) return right.initiative - left.initiative;
+				return left.eventId.localeCompare(right.eventId);
+			})[0] ?? null
+		);
 	}
 
 	private normalizeSpecialTurn(
@@ -2577,14 +2775,24 @@ export class BattleEncounterService {
 			!Number.isFinite(candidate.initiative)
 		)
 			return undefined;
+		const anchorTurnIndex = Number.isFinite(Number(candidate.anchorTurnIndex))
+			? Math.floor(Number(candidate.anchorTurnIndex))
+			: -1;
 		return {
 			type: candidate.type,
 			eventId: candidate.eventId,
 			round: Math.max(1, this.toNonNegativeInt(round) || 1),
 			initiative: candidate.initiative as number,
 			anchorTurnIndex: combatants.length
-				? Math.min(Math.max(0, this.toNonNegativeInt(candidate.anchorTurnIndex)), combatants.length - 1)
+				? anchorTurnIndex < 0
+					? -1
+					: Math.min(anchorTurnIndex, combatants.length - 1)
 				: -1,
+			...(candidate.triggerType === 'initiative' ||
+			candidate.triggerType === 'round-start' ||
+			candidate.triggerType === 'round-end'
+				? { triggerType: candidate.triggerType }
+				: {}),
 		};
 	}
 
@@ -2821,6 +3029,67 @@ export class BattleEncounterService {
 			lairActions: nextLairActions,
 			traps: nextTraps,
 			messages,
+		};
+	}
+
+	private resolveSpecialTurnEvent(
+		battle: BattleEncounter,
+		specialTurn: BattleSpecialTurn,
+	): EncounterEventAdvanceResult {
+		const round = specialTurn.round || battle.round;
+		if (specialTurn.type === 'lair-action') {
+			let resolvedName: string | null = null;
+			const lairActions = battle.lairActions.map((action) => {
+				if (
+					action.id !== specialTurn.eventId ||
+					!action.active ||
+					(action.currentCooldownRounds ?? 0) > 0
+				) {
+					return action;
+				}
+				resolvedName = action.name;
+				return {
+					...action,
+					currentCooldownRounds:
+						action.frequency === 'cooldown-rounds'
+							? Math.max(1, action.cooldownRounds ?? 1)
+							: action.currentCooldownRounds,
+					lastTriggeredAtRound: round,
+				};
+			});
+			return {
+				lairActions,
+				traps: battle.traps,
+				messages: resolvedName ? [`Ação de covil executada: ${resolvedName}.`] : [],
+			};
+		}
+
+		let resolvedName: string | null = null;
+		const traps = battle.traps.map((trap) => {
+			if (
+				trap.id !== specialTurn.eventId ||
+				!trap.active ||
+				(trap.currentCooldownRounds ?? 0) > 0
+			) {
+				return trap;
+			}
+			resolvedName = trap.name;
+			if (trap.frequency === 'once') {
+				return { ...trap, active: false, lastTriggeredAtRound: round };
+			}
+			return {
+				...trap,
+				currentCooldownRounds:
+					trap.frequency === 'cooldown-rounds'
+						? Math.max(1, trap.cooldownRounds ?? 1)
+						: trap.currentCooldownRounds,
+				lastTriggeredAtRound: round,
+			};
+		});
+		return {
+			lairActions: battle.lairActions,
+			traps,
+			messages: resolvedName ? [`Armadilha disparada: ${resolvedName}.`] : [],
 		};
 	}
 

@@ -48,6 +48,7 @@ export interface BattleSpecialTurn {
 	round: number;
 	initiative: number;
 	anchorTurnIndex: number;
+	triggerType?: BattleTrapTriggerType;
 }
 
 export interface BattleCondition {
