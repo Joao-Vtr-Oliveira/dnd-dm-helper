@@ -21,7 +21,10 @@ import type {
 	ContentOrganizationRelation,
 	ContentOrganizationRelationKind,
 } from '../../models/content-context-model';
-import { isCampaignOrganizationType, type CampaignLocationScope } from '../../models/campaign-world-model';
+import {
+	isCampaignOrganizationEligible,
+	type CampaignLocationScope,
+} from '../../models/campaign-world-model';
 import {
 	DND_5E_CHARACTER_CLASSES,
 	DND_5E_CREATURE_TYPES,
@@ -241,7 +244,7 @@ export class HomebrewBuilder {
 	});
 	readonly organizationOptions = computed(() =>
 		(this.campaignWorld.world()?.organizations ?? [])
-			.filter((organization) => isCampaignOrganizationType(organization.organizationType))
+			.filter((organization) => isCampaignOrganizationEligible(organization))
 			.map((organization) => ({
 				value: organization.id,
 				label: `${organization.name}${organization.archived ? ' [arquivada]' : ''}`,

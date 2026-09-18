@@ -108,8 +108,9 @@ export class LocalStorageService {
 			...patch,
 			updatedAt: Date.now(),
 		};
-		this.upsertEncounter(updated);
-		return updated;
+		const normalized = this.normalizeEncounter(updated);
+		this.upsertEncounter(normalized);
+		return normalized;
 	}
 
 	deleteEncounter(id: string) {
@@ -124,6 +125,9 @@ export class LocalStorageService {
 			schemaVersion: 1,
 			type: 'dnd-dm-helper-encounter',
 			tags: curr.tags,
+			...(curr.archived ? { archived: true } : {}),
+			...(curr.locationRefs?.length ? { locationRefs: curr.locationRefs } : {}),
+			...(curr.organizationRefs?.length ? { organizationRefs: curr.organizationRefs } : {}),
 			description: curr.description,
 			notes: curr.notes,
 			participants: curr.participants.map((participant) => ({
@@ -365,8 +369,21 @@ export class LocalStorageService {
 		encounter: Encounter,
 		sheetsById = new Map<string, SavedSheetInterface>(),
 	): SavedEncounter {
+		const locationRefs = Array.isArray(encounter.locationRefs)
+			? normalizeContentLocationRelations(encounter.locationRefs)
+			: undefined;
+		const organizationRefs = Array.isArray(encounter.organizationRefs)
+			? normalizeContentOrganizationRelations(encounter.organizationRefs)
+			: undefined;
+		const normalized = structuredClone(encounter);
+		if (encounter.archived === true) normalized.archived = true;
+		else delete normalized.archived;
+		if (locationRefs?.length) normalized.locationRefs = locationRefs;
+		else delete normalized.locationRefs;
+		if (organizationRefs?.length) normalized.organizationRefs = organizationRefs;
+		else delete normalized.organizationRefs;
 		return {
-			...structuredClone(encounter),
+			...normalized,
 			participants: encounter.participants.map((participant, index) =>
 				this.normalizeParticipant(participant, index, sheetsById),
 			),

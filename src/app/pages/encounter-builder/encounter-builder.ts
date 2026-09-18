@@ -22,6 +22,16 @@ import type {
 	CreatureSpell,
 } from '../../models/creature-sheet-model';
 import { normalizeArmorClass } from '../../models/creature-sheet-model';
+import {
+	isCampaignOrganizationEligible,
+	type CampaignLocationScope,
+} from '../../models/campaign-world-model';
+import type {
+	ContentLocationRelation,
+	ContentLocationRelationKind,
+	ContentOrganizationRelation,
+	ContentOrganizationRelationKind,
+} from '../../models/content-context-model';
 import { abilityModifier } from '../../models/creature-sheet-rules';
 import type {
 	Encounter,
@@ -37,6 +47,7 @@ import { CompendiumBestiaryRepositoryService } from '../../services/compendium-b
 import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
 import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
+import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
 import {
 	LocalStorageService,
 	type SavedEncounter,
@@ -126,6 +137,61 @@ export class EncounterBuilder {
 	readonly lairActionDraft = signal<LairActionDraft>(this.createLairActionDraft());
 	readonly trapDraft = signal<TrapDraft>(this.createTrapDraft());
 	readonly homebrewSheets = signal<SavedSheetInterface[]>([]);
+	readonly editingLocationRefIndex = signal<number | null>(null);
+	readonly editingOrganizationRefIndex = signal<number | null>(null);
+	readonly locationScopeType = signal<CampaignLocationScope>('state');
+	readonly locationScopeId = signal('');
+	readonly locationRelation = signal<ContentLocationRelationKind>('base');
+	readonly organizationId = signal('');
+	readonly organizationRelation = signal<ContentOrganizationRelationKind>('member');
+	readonly campaignWorld = inject(CampaignWorldService);
+	readonly locationScopeTypeOptions: Array<{ value: CampaignLocationScope; label: string }> = [
+		{ value: 'empire', label: 'Império' },
+		{ value: 'state', label: 'Estado' },
+		{ value: 'settlement', label: 'Localidade' },
+	];
+	readonly locationRelationOptions: Array<{ value: ContentLocationRelationKind; label: string }> = [
+		{ value: 'base', label: 'Base ou residência' },
+		{ value: 'occurrence', label: 'Ocorrência' },
+		{ value: 'habitat', label: 'Habitat' },
+		{ value: 'operation', label: 'Operação' },
+	];
+	readonly organizationRelationOptions: Array<{
+		value: ContentOrganizationRelationKind;
+		label: string;
+	}> = [
+		{ value: 'member', label: 'Membro' },
+		{ value: 'leader', label: 'Liderança' },
+		{ value: 'affiliated', label: 'Afiliado' },
+		{ value: 'institution', label: 'Ficha institucional' },
+		{ value: 'trained_by', label: 'Treinado por' },
+	];
+	readonly locationScopeOptions = computed(() => {
+		const scopeType = this.locationScopeType();
+		const world = this.campaignWorld.world();
+		if (!world) return [];
+		const entities =
+			scopeType === 'empire'
+				? world.empires
+				: scopeType === 'state'
+					? world.states
+					: world.settlements;
+		return entities
+			.map((entity) => {
+				const location = this.campaignWorld.resolveLocation({ scopeType, scopeId: entity.id });
+				return { value: entity.id, label: location?.breadcrumb.join(' › ') ?? entity.name };
+			})
+			.sort((left, right) => left.label.localeCompare(right.label));
+	});
+	readonly organizationOptions = computed(() =>
+		(this.campaignWorld.world()?.organizations ?? [])
+			.filter((organization) => isCampaignOrganizationEligible(organization))
+			.map((organization) => ({
+				value: organization.id,
+				label: `${organization.name}${organization.archived ? ' [arquivada]' : ''}`,
+			}))
+			.sort((left, right) => left.label.localeCompare(right.label)),
+	);
 	readonly saveAndBattleLabel = computed(() =>
 		this.savedId() && this.battleStorage.getActiveBattleByEncounterId(this.savedId()!)
 			? 'Salvar e continuar batalha'
@@ -241,6 +307,174 @@ export class EncounterBuilder {
 			),
 		];
 		this.updateEncounter({ tags });
+	}
+
+	setArchived(archived: boolean) {
+		this.updateEncounter({ archived: archived ? true : undefined });
+	}
+
+	setLocationScopeType(scopeType: CampaignLocationScope) {
+		this.locationScopeType.set(scopeType);
+		this.locationScopeId.set('');
+	}
+
+	setLocationScopeId(scopeId: string) {
+		this.locationScopeId.set(scopeId);
+	}
+
+	setLocationRelation(relation: ContentLocationRelationKind) {
+		this.locationRelation.set(relation);
+	}
+
+	editLocationRef(index: number) {
+		const ref = this.encounter().locationRefs?.[index];
+		if (!ref) return;
+		this.editingLocationRefIndex.set(index);
+		this.locationScopeType.set(ref.scopeType);
+		this.locationScopeId.set(ref.scopeId);
+		this.locationRelation.set(ref.relation);
+	}
+
+	cancelLocationRefEdit() {
+		this.editingLocationRefIndex.set(null);
+		this.locationScopeType.set('state');
+		this.locationScopeId.set('');
+		this.locationRelation.set('base');
+	}
+
+	saveLocationRef() {
+		const scopeType = this.locationScopeType();
+		const scopeId = this.locationScopeId();
+		if (!this.campaignWorld.resolveLocation({ scopeType, scopeId })) {
+			this.showToast({ type: 'warn', text: 'Escolha uma localização válida.' });
+			return;
+		}
+		const relation: ContentLocationRelation = {
+			scopeType,
+			scopeId,
+			relation: this.locationRelation(),
+		};
+		const refs = this.encounter().locationRefs ?? [];
+		const editingIndex = this.editingLocationRefIndex();
+		if (
+			refs.some(
+				(item, index) =>
+					index !== editingIndex &&
+					item.scopeType === relation.scopeType &&
+					item.scopeId === relation.scopeId &&
+					item.relation === relation.relation,
+			)
+		) {
+			this.showToast({ type: 'warn', text: 'Esta relação de localização já foi adicionada.' });
+			return;
+		}
+		this.updateEncounter({
+			locationRefs:
+				editingIndex === null
+					? [...refs, relation]
+					: refs.map((item, index) => (index === editingIndex ? relation : item)),
+		});
+		this.cancelLocationRefEdit();
+	}
+
+	removeLocationRef(index: number) {
+		const refs = (this.encounter().locationRefs ?? []).filter((_, itemIndex) => itemIndex !== index);
+		this.updateEncounter({ locationRefs: refs.length ? refs : undefined });
+		const editingIndex = this.editingLocationRefIndex();
+		if (editingIndex === index) this.cancelLocationRefEdit();
+		else if (editingIndex !== null && index < editingIndex) this.editingLocationRefIndex.set(editingIndex - 1);
+	}
+
+	setOrganizationId(organizationId: string) {
+		this.organizationId.set(organizationId);
+	}
+
+	setOrganizationRelation(relation: ContentOrganizationRelationKind) {
+		this.organizationRelation.set(relation);
+	}
+
+	editOrganizationRef(index: number) {
+		const ref = this.encounter().organizationRefs?.[index];
+		if (!ref) return;
+		this.editingOrganizationRefIndex.set(index);
+		this.organizationId.set(ref.organizationId);
+		this.organizationRelation.set(ref.relation);
+	}
+
+	cancelOrganizationRefEdit() {
+		this.editingOrganizationRefIndex.set(null);
+		this.organizationId.set('');
+		this.organizationRelation.set('member');
+	}
+
+	saveOrganizationRef() {
+		const organizationId = this.organizationId();
+		const organization = this.campaignWorld.getOrganization(organizationId);
+		if (!organization || !isCampaignOrganizationEligible(organization)) {
+			this.showToast({ type: 'warn', text: 'Escolha uma guilda ou grupo formal válido.' });
+			return;
+		}
+		const relation: ContentOrganizationRelation = {
+			organizationId,
+			relation: this.organizationRelation(),
+		};
+		const refs = this.encounter().organizationRefs ?? [];
+		const editingIndex = this.editingOrganizationRefIndex();
+		if (
+			refs.some(
+				(item, index) =>
+					index !== editingIndex &&
+					item.organizationId === relation.organizationId &&
+					item.relation === relation.relation,
+			)
+		) {
+			this.showToast({ type: 'warn', text: 'Esta relação de organização já foi adicionada.' });
+			return;
+		}
+		this.updateEncounter({
+			organizationRefs:
+				editingIndex === null
+					? [...refs, relation]
+					: refs.map((item, index) => (index === editingIndex ? relation : item)),
+		});
+		this.cancelOrganizationRefEdit();
+	}
+
+	removeOrganizationRef(index: number) {
+		const refs = (this.encounter().organizationRefs ?? []).filter((_, itemIndex) => itemIndex !== index);
+		this.updateEncounter({ organizationRefs: refs.length ? refs : undefined });
+		const editingIndex = this.editingOrganizationRefIndex();
+		if (editingIndex === index) this.cancelOrganizationRefEdit();
+		else if (editingIndex !== null && index < editingIndex)
+			this.editingOrganizationRefIndex.set(editingIndex - 1);
+	}
+
+	locationRefLabel(ref: ContentLocationRelation): string {
+		return this.campaignWorld.resolveLocation(ref)?.breadcrumb.join(' › ') ?? `ID removido: ${ref.scopeId}`;
+	}
+
+	organizationRefLabel(ref: ContentOrganizationRelation): string {
+		const organization = this.campaignWorld.getOrganization(ref.organizationId);
+		return organization && isCampaignOrganizationEligible(organization)
+			? organization.name
+			: `ID não elegível: ${ref.organizationId}`;
+	}
+
+	locationRelationLabel(relation: ContentLocationRelationKind): string {
+		return this.locationRelationOptions.find((option) => option.value === relation)?.label ?? relation;
+	}
+
+	organizationRelationLabel(relation: ContentOrganizationRelationKind): string {
+		return this.organizationRelationOptions.find((option) => option.value === relation)?.label ?? relation;
+	}
+
+	isBrokenLocationRef(ref: ContentLocationRelation): boolean {
+		return !this.campaignWorld.resolveLocation(ref);
+	}
+
+	isBrokenOrganizationRef(ref: ContentOrganizationRelation): boolean {
+		const organization = this.campaignWorld.getOrganization(ref.organizationId);
+		return !organization || !isCampaignOrganizationEligible(organization);
 	}
 
 	setDraftName(name: string) {

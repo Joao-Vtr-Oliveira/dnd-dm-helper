@@ -19,7 +19,8 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
 - [x] Task 3: metadata contextual de CreatureSheets revisada conforme o contrato vigente.
 - [x] Task 4: filtros de CreatureSheets revisados sem fallback contextual de tags/groups.
 - [x] Revisão pós-Task 4: compatibilidade contextual, registry restrito a guildas/grupos e navegação do World corrigidos conforme o contrato vigente.
-- [ ] Proxima task: Task 5 de metadata contextual de Encounters; não implementada nesta revisão.
+- [x] Task 5: metadata contextual de Encounters concluída conforme o contrato vigente.
+- [ ] Próxima task: Task 6 de filtros editoriais/contextuais de Encounters.
 
 ## Regras antigas superseded
 
@@ -51,7 +52,7 @@ O bloco anterior de “Correções pós-Task 4” foi substituído. Em particula
   categoria, tags e source vivem nele. `CreatureSheet.data` e o stat block
   reutilizavel.
 - Fichas usam `archived?`, `generic?`, `classes?` (somente NPC/PC), `locationRefs?` e `organizationRefs?` no envelope
-  `SavedSheetInterface`; encounters ainda nao possuem essa metadata.
+  `SavedSheetInterface`; encounters usam `archived?`, `locationRefs?` e `organizationRefs?` no root da entidade de preparação.
 - Homebrew Sheets filtra texto, categoria, tag, source, lifecycle, tipo de criatura,
   classe por tag canonica, localizacao e organizacao formal. Encounter Hub ja filtra
   texto e estado de batalha, mas esse estado nao e o ciclo de vida editorial.
@@ -211,6 +212,8 @@ Status: concluida.
   alterar o comportamento mecanico existente.
 
 ### Task 5: Adicionar metadata contextual a Encounters
+
+Status: concluída.
 
 - Objetivo: adicionar lifecycle e relacoes opcionais ao encounter de preparacao.
 - Arquivos/areas provavelmente afetados: `encounter-model.ts`,

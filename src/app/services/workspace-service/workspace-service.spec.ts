@@ -158,10 +158,37 @@ describe('WorkspaceService', () => {
 			...world.organizations[0],
 			id: 'old-family',
 			name: 'Família antiga',
-			organizationType: 'family' as 'guild',
+			organizationType: 'family',
+		};
+		const oldLocalCommunity = {
+			...world.organizations[0],
+			id: 'old-local-community',
+			name: 'Comunidade antiga',
+			scope: 'local' as const,
+			sourcePath: 'Mundo/Impérios/Mornk/3-Nirvak/Guildas.md',
+		};
+		const formalLocalGuild = {
+			...world.organizations[0],
+			id: 'formal-local-guild',
+			name: 'Guilda local formal',
+			scope: 'local' as const,
+			sourcePath: 'Guildas & Grupos/Guilda local formal.md',
+		};
+		const oldLocalSourceCommunity = {
+			...world.organizations[0],
+			id: 'old-local-source-community',
+			name: 'Comunidade de fonte local',
+			scope: 'regional' as const,
+			organizationType: 'community',
+			sourcePath: 'Mundo/Impérios/Mornk/3-Nirvak/Guildas.md',
 		};
 		world.organizations.push(oldOrganization);
-		world.pointsOfInterest[0].organizationIds = ['old-family'];
+		world.organizations.push(oldLocalCommunity, formalLocalGuild, oldLocalSourceCommunity);
+		world.pointsOfInterest[0].organizationIds = [
+			'old-family',
+			'old-local-community',
+			'old-local-source-community',
+		];
 		const raw = JSON.stringify(world);
 		const worldKey = workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.campaignWorld);
 		localStorage.setItem(worldKey, raw);
@@ -175,17 +202,25 @@ describe('WorkspaceService', () => {
 		expect(repaired.pointsOfInterest).toEqual(
 			world.pointsOfInterest.map((point) => ({
 				...point,
-				...(point.organizationIds
-					? { organizationIds: point.organizationIds.filter((id) => id !== 'old-family') }
+					...(point.organizationIds
+						? {
+								organizationIds: point.organizationIds.filter(
+									(id) =>
+										!['old-local-community', 'formal-local-guild', 'old-local-source-community'].includes(id),
+								),
+						}
 					: {}),
 			})),
 		);
-		expect(repaired.organizations).not.toContain(jasmine.objectContaining({ id: 'old-family' }));
+		expect(repaired.organizations).toContain(jasmine.objectContaining({ id: 'old-family' }));
+		expect(repaired.organizations).not.toContain(jasmine.objectContaining({ id: 'old-local-community' }));
+		expect(repaired.organizations).not.toContain(jasmine.objectContaining({ id: 'formal-local-guild' }));
+		expect(repaired.organizations).not.toContain(jasmine.objectContaining({ id: 'old-local-source-community' }));
 		expect(
 			localStorage.getItem(
 				workspaceStorageKey(workspace.id, APP_STORAGE_KEYS.safetyWorldBeforeBootstrap),
 			),
 		).toBe(raw);
-		expect(legacyCampaignWorld.organizations).toHaveSize(10);
+		expect(legacyCampaignWorld.organizations).toHaveSize(13);
 	});
 });

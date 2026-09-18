@@ -8,6 +8,10 @@ import type {
 	BattleTrapFrequency,
 	BattleTrapTriggerType,
 } from './battle-encounter-model';
+import type {
+	ContentLocationRelation,
+	ContentOrganizationRelation,
+} from './content-context-model';
 
 export interface EncounterLairAction {
 	id: string;
@@ -51,6 +55,9 @@ export interface Encounter {
 	updatedAt: number;
 	description?: string;
 	tags: string[];
+	archived?: boolean;
+	locationRefs?: ContentLocationRelation[];
+	organizationRefs?: ContentOrganizationRelation[];
 	notes?: string;
 	participants: EncounterParticipant[];
 	lairActions: EncounterLairAction[];

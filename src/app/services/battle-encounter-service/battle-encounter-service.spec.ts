@@ -44,6 +44,9 @@ describe('BattleEncounterService', () => {
 		createdAt: 1,
 		updatedAt: 1,
 		tags: [],
+		archived: true,
+		locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'operation' }],
+		organizationRefs: [{ organizationId: 'winterhold', relation: 'affiliated' }],
 		participants: [
 			boss,
 			{
@@ -120,6 +123,9 @@ describe('BattleEncounterService', () => {
 		expect(battle.sourceEncounterId).toBe(encounter.id);
 		expect(battle.name).toBe(encounter.title);
 		expect(battle.description).toBe(encounter.description);
+		expect('archived' in battle).toBeFalse();
+		expect('locationRefs' in battle).toBeFalse();
+		expect('organizationRefs' in battle).toBeFalse();
 		expect(combatant.sourceParticipantId).toBe(boss.id);
 		expect(combatant.sourceSheetId).toBe(boss.sourceSheetId);
 		expect(combatant.referenceSheetId).toBe(reference.id);

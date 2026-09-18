@@ -137,6 +137,55 @@ describe('LocalStorageService', () => {
 		expect('organizationRefs' in encounter.participants[0].sheet).toBeFalse();
 	});
 
+	it('preserves encounter metadata through creation, editing, duplication, and legacy loading', () => {
+		const encounter = service.createEncounter('Ruins Patrol', {
+			schemaVersion: 1,
+			type: 'dnd-dm-helper-encounter',
+			tags: ['ruins'],
+			archived: true,
+			locationRefs: [
+				{ scopeType: 'state', scopeId: 'feng', relation: 'operation' },
+				{ scopeType: 'settlement', scopeId: 'feng-city', relation: 'occurrence' },
+			],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'affiliated' }],
+			participants: [],
+			lairActions: [],
+			traps: [],
+		});
+
+		const duplicate = service.duplicateEncounter(encounter.id)!;
+		expect(encounter.archived).toBeTrue();
+		expect(duplicate.archived).toBeTrue();
+		expect(duplicate.locationRefs).toEqual(encounter.locationRefs);
+		expect(duplicate.organizationRefs).toEqual(encounter.organizationRefs);
+
+		service.updateEncounter(encounter.id, { archived: false, tags: ['updated'] });
+		expect(service.getEncounter(encounter.id)?.archived).toBeUndefined();
+		expect(service.getEncounter(encounter.id)?.tags).toEqual(['updated']);
+
+		localStorage.setItem(
+			'dnd-dm-helper.encounters.v2',
+			JSON.stringify([
+				{
+					schemaVersion: 1,
+					type: 'dnd-dm-helper-encounter',
+					id: 'legacy-encounter',
+					title: 'Legacy',
+					createdAt: 1,
+					updatedAt: 1,
+					tags: [],
+					participants: [],
+					lairActions: [],
+					traps: [],
+				},
+			]),
+		);
+		const legacy = service.getEncounter('legacy-encounter');
+		expect(legacy?.archived).toBeUndefined();
+		expect(legacy?.locationRefs).toBeUndefined();
+		expect(legacy?.organizationRefs).toBeUndefined();
+	});
+
 	it('preserves formal classes through creation, editing, duplication, and normalization', () => {
 		const sheet = service.createSheet({
 			title: 'Ranger NPC',

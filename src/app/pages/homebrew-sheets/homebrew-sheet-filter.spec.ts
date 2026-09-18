@@ -23,6 +23,7 @@ describe('filterHomebrewSheets', () => {
 				name: 'Winterhold',
 				aliases: ['Winter Hold'],
 				organizationType: 'guild',
+				scope: 'campaign',
 				presence: [],
 			},
 		],

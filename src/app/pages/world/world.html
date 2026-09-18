@@ -172,11 +172,16 @@
 							}
 						</select></label
 					><label class="text-sm font-semibold"
-						>Tipo<select class="app-field mt-2 w-full" [(ngModel)]="editorTypeValue">
-							@for (option of organizationTypeOptions; track option.value) {
+						>Tipo<input
+							class="app-field mt-2 w-full"
+							[(ngModel)]="editorTypeValue"
+							list="campaign-organization-types"
+							placeholder="guild, group, cult..."
+						/><datalist id="campaign-organization-types">
+							@for (option of organizationTypeOptions(); track option.value) {
 								<option [value]="option.value">{{ option.label }}</option>
 							}
-						</select></label
+						</datalist></label
 					>
 					<label class="text-sm font-semibold"
 						>Escopo<select class="app-field mt-2 w-full" [(ngModel)]="editorOrganizationScope">

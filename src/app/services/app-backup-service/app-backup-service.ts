@@ -421,6 +421,12 @@ export class AppBackupService {
 			this.isFiniteNumber(value['updatedAt']) &&
 			Array.isArray(value['tags']) &&
 			value['tags'].every((tag) => typeof tag === 'string') &&
+			(value['archived'] === undefined || typeof value['archived'] === 'boolean') &&
+			(value['locationRefs'] === undefined ||
+				(Array.isArray(value['locationRefs']) && value['locationRefs'].every(isContentLocationRelation))) &&
+			(value['organizationRefs'] === undefined ||
+				(Array.isArray(value['organizationRefs']) &&
+					value['organizationRefs'].every(isContentOrganizationRelation))) &&
 			Array.isArray(value['participants']) &&
 			value['participants'].every((participant) => this.isEncounterParticipant(participant)) &&
 			Array.isArray(value['lairActions']) &&

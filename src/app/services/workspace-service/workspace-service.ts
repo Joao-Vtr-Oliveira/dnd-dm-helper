@@ -7,14 +7,10 @@ import {
 import type { Workspace, WorkspaceRegistry } from '../../models/workspace-model';
 import { workspaceStorageKey } from './workspace-storage-key';
 import legacyCampaignWorld from '../../../../rpg_files/campaign-world.json';
-import {
-	isCampaignOrganizationType,
-	validateCampaignWorld,
-	type CampaignWorld,
-} from '../../models/campaign-world-model';
+import { validateCampaignWorld, type CampaignWorld } from '../../models/campaign-world-model';
 
 export const WORKSPACE_REGISTRY_KEY = 'dnd-dm-helper.workspaces.v1';
-export const CAMPAIGN_WORLD_BOOTSTRAP_VERSION = 1;
+export const CAMPAIGN_WORLD_BOOTSTRAP_VERSION = 4;
 
 const EMPTY_REGISTRY: WorkspaceRegistry = {
 	schemaVersion: 1,
@@ -267,10 +263,7 @@ export class WorkspaceService {
 			organizations
 				.filter((item) => {
 					const organization = item as Record<string, unknown>;
-					return (
-						typeof organization['organizationType'] === 'string' &&
-						!isCampaignOrganizationType(organization['organizationType'])
-					);
+					return this.isLegacyLocalWorldMaterial(organization);
 				})
 				.map((item) => (item as Record<string, unknown>)['id'])
 				.filter((id): id is string => typeof id === 'string'),
@@ -295,6 +288,14 @@ export class WorkspaceService {
 		};
 		const validation = validateCampaignWorld(sanitized);
 		return validation.valid && validation.world ? validation.world : null;
+	}
+
+	private isLegacyLocalWorldMaterial(organization: Record<string, unknown>): boolean {
+		if (organization['scope'] === 'local') return true;
+		return (
+			typeof organization['sourcePath'] === 'string' &&
+			/^Mundo\/.*\/Guildas\.md$/.test(organization['sourcePath'])
+		);
 	}
 
 	private updateWorkspace(workspaceId: string, updater: (workspace: Workspace) => Workspace): void {

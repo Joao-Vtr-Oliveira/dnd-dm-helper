@@ -10,8 +10,7 @@ import {
 	type CampaignOrganization,
 	type CampaignOrganizationScope,
 	type CampaignWorldScopeType,
-	CAMPAIGN_ORGANIZATION_TYPES,
-	isCampaignOrganizationType,
+	isCampaignOrganizationEligible,
 	normalizeCampaignWorldSearchText,
 	POINT_OF_INTEREST_TYPE_LABELS,
 	SETTLEMENT_TYPE_LABELS,
@@ -52,14 +51,14 @@ export class WorldPage {
 	readonly pointOfInterestTypeOptions = Object.entries(POINT_OF_INTEREST_TYPE_LABELS).map(
 		([value, label]) => ({ value, label }),
 	);
-	readonly organizationTypeOptions = [
-		{ value: 'guild', label: 'Guilda' },
-		{ value: 'group', label: 'Grupo' },
-	];
+	readonly organizationTypeOptions = computed(() =>
+		[...new Set((this.campaignWorld.world()?.organizations ?? []).map((item) => item.organizationType))]
+			.sort()
+			.map((value) => ({ value, label: value })),
+	);
 	readonly organizationScopeOptions: Array<{ value: CampaignOrganizationScope; label: string }> = [
 		{ value: 'campaign', label: 'Campanha ou internacional' },
 		{ value: 'regional', label: 'Regional' },
-		{ value: 'local', label: 'Local' },
 	];
 	readonly presenceTypeSuggestions = [
 		'global-network',
@@ -106,18 +105,18 @@ export class WorldPage {
 	);
 	readonly campaignOrganizations = computed(() =>
 		(this.campaignWorld.world()?.organizations ?? []).filter(
-			(organization) => !organization.archived,
+			(organization) => !organization.archived && isCampaignOrganizationEligible(organization),
 		),
 	);
 	readonly archivedCampaignOrganizations = computed(() =>
 		(this.campaignWorld.world()?.organizations ?? []).filter(
-			(organization) => organization.archived,
+			(organization) => organization.archived && isCampaignOrganizationEligible(organization),
 		),
 	);
 	readonly organizationParentOptions = computed(() => {
 		const editingId = this.editingOrganizationId();
 		return (this.campaignWorld.world()?.organizations ?? []).filter(
-			(organization) => organization.id !== editingId,
+			(organization) => organization.id !== editingId && isCampaignOrganizationEligible(organization),
 		);
 	});
 	readonly managedOrganization = computed(() => {
@@ -496,8 +495,12 @@ export class WorldPage {
 				return;
 			}
 			const organizationType = this.editorTypeValue.trim();
-			if (!isCampaignOrganizationType(organizationType)) {
-				this.editorMessage.set(`Escolha um tipo válido: ${CAMPAIGN_ORGANIZATION_TYPES.join(' ou ')}.`);
+			if (!organizationType) {
+				this.editorMessage.set('Informe um tipo descritivo para a organização.');
+				return;
+			}
+			if (this.editorOrganizationScope !== 'campaign' && this.editorOrganizationScope !== 'regional') {
+				this.editorMessage.set('Organizações formais devem ter escopo de campanha ou regional.');
 				return;
 			}
 			const organization: CampaignOrganization = {

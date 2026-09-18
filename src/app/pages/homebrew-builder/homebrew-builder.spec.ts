@@ -57,15 +57,30 @@ describe('HomebrewBuilder', () => {
 		expect(component).toBeTruthy();
 	});
 
-	it('lists only formal guilds and groups for sheet organization relations', () => {
+	it('lists only formal organizations for sheet organization relations', () => {
 		const world = TestBed.inject(CampaignWorldService);
 		world.world.set({
 			empires: [],
 			states: [],
 			settlements: [],
 			organizations: [
-				{ id: 'winterhold', name: 'Winterhold', aliases: [], organizationType: 'guild', presence: [] },
-				{ id: 'community', name: 'Comunidade local', aliases: [], organizationType: 'community', presence: [] },
+				{
+					id: 'winterhold',
+					name: 'Winterhold',
+					aliases: [],
+					organizationType: 'guild',
+					scope: 'campaign',
+					presence: [],
+				},
+				{
+					id: 'community',
+					name: 'Comunidade local',
+					aliases: [],
+					organizationType: 'group',
+					scope: 'local',
+					sourcePath: 'Mundo/Impérios/Mornk/3-Nirvak/Guildas.md',
+					presence: [],
+				},
 			],
 			pointsOfInterest: [],
 		} as never);

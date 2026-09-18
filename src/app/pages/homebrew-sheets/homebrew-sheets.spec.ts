@@ -184,7 +184,7 @@ describe('HomebrewSheets', () => {
 		expect(component.organizationFilter()).toBe('all');
 	});
 
-	it('lists only formal guilds and groups in the organization dropdown', () => {
+	it('lists only formal organizations in the organization dropdown', () => {
 		component.campaignWorld.world.set({
 			empires: [],
 			states: [],
@@ -195,6 +195,7 @@ describe('HomebrewSheets', () => {
 					name: 'Winterhold',
 					aliases: [],
 					organizationType: 'guild',
+					scope: 'campaign',
 					presence: [],
 				},
 				{
@@ -202,13 +203,16 @@ describe('HomebrewSheets', () => {
 					name: 'Adaga Sob Luar',
 					aliases: [],
 					organizationType: 'group',
+					scope: 'regional',
 					presence: [],
 				},
 				{
 					id: 'nirvak-community',
 					name: 'Comunidade dos Lotes de Nirvak',
 					aliases: [],
-					organizationType: 'community',
+					organizationType: 'group',
+					scope: 'local',
+					sourcePath: 'Mundo/Impérios/Mornk/3-Nirvak/Guildas.md',
 					presence: [],
 				},
 			],

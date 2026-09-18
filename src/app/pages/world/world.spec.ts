@@ -266,7 +266,7 @@ describe('WorldPage', () => {
 
 	it('creates organizations without an implicit global presence', async () => {
 		await createPage();
-		expect(component.organizationTypeOptions.map((option) => option.value)).toEqual(['guild', 'group']);
+		expect(component.organizationTypeOptions().map((option) => option.value)).toEqual(['guild']);
 		component.openEditor('organization');
 		component.onEditorNameChange('Academia Prisma');
 		component.editorTypeValue = 'group';
@@ -284,15 +284,17 @@ describe('WorldPage', () => {
 		);
 	});
 
-	it('rejects an organization type outside the formal guild and group registry', async () => {
+	it('accepts descriptive organization types outside the legacy type registry', async () => {
 		await createPage();
 		component.openEditor('organization');
 		component.onEditorNameChange('Comunidade Temporária');
 		component.editorTypeValue = 'community';
 		component.saveEditor();
 
-		expect(component.campaignWorld.world()?.organizations).toHaveSize(1);
-		expect(component.editorMessage()).toContain('tipo válido');
+		expect(component.campaignWorld.world()?.organizations).toHaveSize(2);
+		expect(component.campaignWorld.world()?.organizations[1]).toEqual(
+		jasmine.objectContaining({ organizationType: 'community', scope: 'campaign' }),
+	);
 	});
 
 	it('edits and archives an organization without changing its identity or presences', async () => {

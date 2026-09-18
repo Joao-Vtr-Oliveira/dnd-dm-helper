@@ -370,6 +370,33 @@
       "presence": [
         { "scopeType": "global", "presenceType": "travelling-group" }
       ]
+    },
+    {
+      "id": "red-vortex",
+      "name": "Red Vortex",
+      "organizationType": "cult",
+      "scope": "campaign",
+      "aliases": [],
+      "sourcePath": "Guildas & Grupos/Red Vortex.md",
+      "presence": []
+    },
+    {
+      "id": "daniels",
+      "name": "Daniels",
+      "organizationType": "family",
+      "scope": "campaign",
+      "aliases": [],
+      "sourcePath": "Guildas & Grupos/Daniels.md",
+      "presence": []
+    },
+    {
+      "id": "genya",
+      "name": "Genya",
+      "organizationType": "group",
+      "scope": "campaign",
+      "aliases": [],
+      "sourcePath": "Guildas & Grupos/Genya.md",
+      "presence": []
     }
   ],
   "pointsOfInterest": [

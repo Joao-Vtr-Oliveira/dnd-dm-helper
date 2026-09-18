@@ -41,6 +41,7 @@ const VALID_WORLD: CampaignWorld = {
 			id: 'guild',
 			name: 'Guild',
 			organizationType: 'guild',
+			scope: 'campaign',
 			aliases: [],
 			sourcePath: 'Guild.md',
 			presence: [
@@ -177,7 +178,7 @@ describe('CampaignWorldService', () => {
 		);
 	});
 
-	it('rejects non-guild and non-group organization types', () => {
+	it('accepts descriptive organization types without using an allowlist', () => {
 		for (const [index, organizationType] of ['cult', 'family', 'institution', 'government', 'community'].entries()) {
 			if (index > 0) service.load();
 			load({
@@ -185,9 +186,19 @@ describe('CampaignWorldService', () => {
 				organizations: [{ ...VALID_WORLD.organizations[0], organizationType }],
 			});
 
-			expect(service.status()).toBe('error');
-			expect(service.error()).toContain('Organização possui campos inválidos');
+			expect(service.status()).toBe('ready');
+			expect(service.getOrganization('guild')?.organizationType).toBe(organizationType);
 		}
+	});
+
+	it('rejects local organization scope', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [{ ...VALID_WORLD.organizations[0], scope: 'local' }],
+		});
+
+		expect(service.status()).toBe('error');
+		expect(service.error()).toContain('Organização possui campos inválidos');
 	});
 
 	it('rejects invalid organization lifecycle values', () => {
@@ -341,6 +352,7 @@ describe('CampaignWorldService', () => {
 					id: 'state-guild',
 					name: 'State Guild',
 					organizationType: 'guild',
+					scope: 'regional',
 					aliases: [],
 					sourcePath: 'State.md',
 					presence: [{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'agent' }],
@@ -349,6 +361,7 @@ describe('CampaignWorldService', () => {
 					id: 'empire-guild',
 					name: 'Empire Guild',
 					organizationType: 'guild',
+					scope: 'campaign',
 					aliases: [],
 					sourcePath: 'Empire.md',
 					presence: [
@@ -389,6 +402,7 @@ describe('CampaignWorldService', () => {
 					id: 'winterhold',
 					name: 'Winterhold',
 					organizationType: 'guild',
+					scope: 'campaign',
 					aliases: [],
 					presence: [
 						{ scopeType: 'global', presenceType: 'network' },

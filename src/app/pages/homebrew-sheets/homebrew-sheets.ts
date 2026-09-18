@@ -26,7 +26,7 @@ import type { ResolvedSpellReference } from '../../models/spell-reference-model'
 import { conditionReferenceFor, type ConditionReference } from '../../models/condition-reference-model';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
-import { isCampaignOrganizationType } from '../../models/campaign-world-model';
+import { isCampaignOrganizationEligible } from '../../models/campaign-world-model';
 import {
 	filterHomebrewSheets,
 	HOME_BREW_SHEET_CLASS_OPTIONS,
@@ -459,7 +459,7 @@ export class HomebrewSheets {
 	readonly organizationOptions = computed(() => [
 		{ id: 'all', label: 'Todas as organizações' },
 		...(this.campaignWorld.world()?.organizations ?? [])
-			.filter((organization) => isCampaignOrganizationType(organization.organizationType))
+			.filter((organization) => isCampaignOrganizationEligible(organization))
 			.slice()
 			.sort((left, right) => left.name.localeCompare(right.name))
 			.map((organization) => ({

@@ -79,6 +79,9 @@ describe('AppBackupService', () => {
 			type: 'dnd-dm-helper-encounter',
 			description: 'Cultists ambush the party in a cave.',
 			tags: ['cult', 'cave'],
+			archived: true,
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'nagawoods', relation: 'occurrence' }],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'affiliated' }],
 			participants: [
 				{
 					id: 'participant-cultist',
@@ -138,6 +141,9 @@ describe('AppBackupService', () => {
 		expect(backup.data.encounters[0]).toEqual(jasmine.objectContaining({
 			description: 'Cultists ambush the party in a cave.',
 			tags: ['cult', 'cave'],
+			archived: true,
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'nagawoods', relation: 'occurrence' }],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'affiliated' }],
 		}));
 		expect(backup.data.encounters[0].participants[0].id).toBe('participant-cultist');
 		expect(backup.data.calendar?.season).toBe('winter');
@@ -145,6 +151,14 @@ describe('AppBackupService', () => {
 		expect(backup.data.campaignContext).toEqual({ currentLocation: null });
 
 		service.applyBackup(backup);
+		const restoredEncounter = localStorageService.listEncounters()[0];
+		expect(restoredEncounter.archived).toBeTrue();
+		expect(restoredEncounter.locationRefs).toEqual([
+			{ scopeType: 'settlement', scopeId: 'nagawoods', relation: 'occurrence' },
+		]);
+		expect(restoredEncounter.organizationRefs).toEqual([
+			{ organizationId: 'winterhold', relation: 'affiliated' },
+		]);
 		const restored = localStorageService.listSheets()[0];
 		expect(restored.generic).toBeFalse();
 		expect(restored.locationRefs).toEqual([

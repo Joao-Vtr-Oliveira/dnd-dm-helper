@@ -1,8 +1,7 @@
 import type { CampaignCalendar, DeityId, Season } from './calendar-model';
 
 export type CampaignSettlementType = string;
-export const CAMPAIGN_ORGANIZATION_TYPES = ['guild', 'group'] as const;
-export type CampaignOrganizationType = (typeof CAMPAIGN_ORGANIZATION_TYPES)[number];
+export type CampaignOrganizationType = string;
 export type CampaignOrganizationScope = 'campaign' | 'regional' | 'local';
 export type CampaignPointOfInterestType = string;
 export type CampaignWorldScopeType = 'global' | 'empire' | 'state' | 'settlement';
@@ -95,8 +94,8 @@ export interface DirectCampaignOrganization {
 	directPresences: CampaignOrganizationPresence[];
 }
 
-export function isCampaignOrganizationType(value: unknown): value is CampaignOrganizationType {
-	return typeof value === 'string' && CAMPAIGN_ORGANIZATION_TYPES.includes(value as CampaignOrganizationType);
+export function isCampaignOrganizationEligible(organization: CampaignOrganization): boolean {
+	return organization.scope === 'campaign' || organization.scope === 'regional';
 }
 
 export const SETTLEMENT_TYPE_LABELS: Record<string, string> = {
@@ -138,7 +137,7 @@ export interface CampaignWorldValidationResult {
 	error?: string;
 }
 
-const ORGANIZATION_SCOPES: CampaignOrganizationScope[] = ['campaign', 'regional', 'local'];
+const ORGANIZATION_SCOPES: CampaignOrganizationScope[] = ['campaign', 'regional'];
 
 /** Older worlds did not classify organizations. Preserve them with a deterministic fallback. */
 export function resolveCampaignOrganizationScope(
@@ -379,10 +378,9 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 		if (
 			error ||
 			!isRecord(organization) ||
-			!isCampaignOrganizationType(organization.organizationType) ||
+			!hasText(organization.organizationType) ||
 			!Array.isArray(organization.presence) ||
-			(organization.scope !== undefined &&
-				!ORGANIZATION_SCOPES.includes(organization.scope as CampaignOrganizationScope)) ||
+			!ORGANIZATION_SCOPES.includes(organization.scope as CampaignOrganizationScope) ||
 			(organization.parentOrganizationId !== undefined &&
 				!hasText(organization.parentOrganizationId)) ||
 			(organization.archived !== undefined && typeof organization.archived !== 'boolean')
