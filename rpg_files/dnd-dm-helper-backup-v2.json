@@ -2,7 +2,7 @@
   "app": "dnd-dm-helper",
   "schemaVersion": 2,
   "type": "campaign-backup",
-  "exportedAt": "2026-09-18T10:23:28.953Z",
+  "exportedAt": "2026-09-18T10:41:03.752Z",
   "data": {
     "encounters": [
       {
@@ -164,8 +164,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::action-3",
                   "recoveryType": "dice-recharge",
-                  "name": "Infernal Brand (Recharge 5–6)",
-                  "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+                  "name": "Marca Infernal (Recarga 5–6)",
+                  "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
                   "rechargeDice": "d6",
                   "rechargeOn": [
                     5,
@@ -175,8 +175,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::bonus-1",
                   "recoveryType": "dice-recharge",
-                  "name": "Fiendish Step (Recharge 4–6)",
-                  "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+                  "name": "Passo Infernal (Recarga 4–6)",
+                  "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
                   "rechargeDice": "d6",
                   "rechargeOn": [
                     4,
@@ -187,8 +187,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::reaction-1",
                   "recoveryType": "uses-per-day",
-                  "name": "Hellish Rebuke (2/Day)",
-                  "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+                  "name": "Hellish Rebuke (2/dia)",
+                  "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
                   "maxUses": 2
                 }
               ],
@@ -196,55 +196,55 @@
                 {
                   "id": "Notion::Wen Torger::trait::1",
                   "name": "Caçador da Winterhold",
-                  "description": "Wen has advantage on Intelligence (Arcana), Intelligence (Investigation), and Wisdom (Survival) checks made to track or identify undead, fiends, curses, or ritual traces.",
+                  "description": "Wen tem vantagem em testes de Arcanismo, Investigação e Sobrevivência feitos para rastrear ou identificar mortos-vivos, ínferos, maldições ou rastros rituais.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::trait::2",
                   "name": "Pacto Infernal Controlado",
-                  "description": "When Wen reduces a hostile creature to 0 hit points, he gains 5 temporary hit points. If this happens during a scene where his patron's influence is narratively relevant, describe a brief smell of ash, iron, or old parchment.",
+                  "description": "Quando Wen reduz uma criatura hostil a 0 PV, ele ganha 5 PV temporários. Narrativamente, pode surgir cheiro de cinzas, ferro ou pergaminho antigo.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::trait::3",
                   "name": "NPC de Apoio",
-                  "description": "Wen should help the party without stealing the spotlight. In the banshee encounter, prefer using him to identify clues, protect a weakened character, or damage minions instead of solving the main objective alone.",
+                  "description": "Use Wen para ajudar a mesa sem roubar a cena: identificar pistas, proteger alguém fraco ou segurar lacaios. Evite que ele resolva sozinho os objetivos principais.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::action::1",
                   "name": "Eldritch Blast",
-                  "description": "r attack +7, range 120 ft. (two beams). Hit: 9 (1d10 + 4) Force damage per beam.",
+                  "description": "Ataque mágico à distância: +7 para atingir, alcance 36 m, dois raios. Dano: 1d10 + 4 de força por raio.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::action::2",
-                  "name": "Pact Knife",
-                  "description": "m,r attack +7, reach 5 ft. or range 20/60 ft. Hit: 6 (1d4 + 4) Piercing damage plus 7 (2d6) Fire damage.",
+                  "name": "Faca do Pacto",
+                  "description": "Ataque corpo a corpo ou à distância: +7 para atingir, alcance 1,5 m ou 6/18 m. Dano: 1d4 + 4 perfurante + 2d6 fogo.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::action::3",
-                  "name": "Infernal Brand (Recharge 5–6)",
-                  "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+                  "name": "Marca Infernal (Recarga 5–6)",
+                  "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::bonus::1",
-                  "name": "Fiendish Step (Recharge 4–6)",
-                  "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+                  "name": "Passo Infernal (Recarga 4–6)",
+                  "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
                   "kind": "bonus"
                 },
                 {
                   "id": "Notion::Wen Torger::reaction::1",
-                  "name": "Hellish Rebuke (2/Day)",
-                  "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+                  "name": "Hellish Rebuke (2/dia)",
+                  "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
                   "kind": "reaction"
                 },
                 {
                   "id": "Notion::Wen Torger::spellcasting::spellcasting-1",
-                  "name": "Spellcasting",
-                  "description": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest.",
+                  "name": "Conjuração de Bruxo",
+                  "description": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo.",
                   "kind": "spellcasting"
                 }
               ],
@@ -350,7 +350,7 @@
                 "ability": "cha",
                 "spellSaveDc": 15,
                 "spellAttackBonus": 7,
-                "header": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest."
+                "header": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo."
               },
               "passivePerception": 13
             }
@@ -845,8 +845,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::action-3",
                   "recoveryType": "dice-recharge",
-                  "name": "Infernal Brand (Recharge 5–6)",
-                  "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+                  "name": "Marca Infernal (Recarga 5–6)",
+                  "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
                   "rechargeDice": "d6",
                   "rechargeOn": [
                     5,
@@ -856,8 +856,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::bonus-1",
                   "recoveryType": "dice-recharge",
-                  "name": "Fiendish Step (Recharge 4–6)",
-                  "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+                  "name": "Passo Infernal (Recarga 4–6)",
+                  "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
                   "rechargeDice": "d6",
                   "rechargeOn": [
                     4,
@@ -868,8 +868,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::reaction-1",
                   "recoveryType": "uses-per-day",
-                  "name": "Hellish Rebuke (2/Day)",
-                  "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+                  "name": "Hellish Rebuke (2/dia)",
+                  "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
                   "maxUses": 2
                 }
               ],
@@ -877,55 +877,55 @@
                 {
                   "id": "Notion::Wen Torger::trait::1",
                   "name": "Caçador da Winterhold",
-                  "description": "Wen has advantage on Intelligence (Arcana), Intelligence (Investigation), and Wisdom (Survival) checks made to track or identify undead, fiends, curses, or ritual traces.",
+                  "description": "Wen tem vantagem em testes de Arcanismo, Investigação e Sobrevivência feitos para rastrear ou identificar mortos-vivos, ínferos, maldições ou rastros rituais.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::trait::2",
                   "name": "Pacto Infernal Controlado",
-                  "description": "When Wen reduces a hostile creature to 0 hit points, he gains 5 temporary hit points. If this happens during a scene where his patron's influence is narratively relevant, describe a brief smell of ash, iron, or old parchment.",
+                  "description": "Quando Wen reduz uma criatura hostil a 0 PV, ele ganha 5 PV temporários. Narrativamente, pode surgir cheiro de cinzas, ferro ou pergaminho antigo.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::trait::3",
                   "name": "NPC de Apoio",
-                  "description": "Wen should help the party without stealing the spotlight. In the banshee encounter, prefer using him to identify clues, protect a weakened character, or damage minions instead of solving the main objective alone.",
+                  "description": "Use Wen para ajudar a mesa sem roubar a cena: identificar pistas, proteger alguém fraco ou segurar lacaios. Evite que ele resolva sozinho os objetivos principais.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::action::1",
                   "name": "Eldritch Blast",
-                  "description": "r attack +7, range 120 ft. (two beams). Hit: 9 (1d10 + 4) Force damage per beam.",
+                  "description": "Ataque mágico à distância: +7 para atingir, alcance 36 m, dois raios. Dano: 1d10 + 4 de força por raio.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::action::2",
-                  "name": "Pact Knife",
-                  "description": "m,r attack +7, reach 5 ft. or range 20/60 ft. Hit: 6 (1d4 + 4) Piercing damage plus 7 (2d6) Fire damage.",
+                  "name": "Faca do Pacto",
+                  "description": "Ataque corpo a corpo ou à distância: +7 para atingir, alcance 1,5 m ou 6/18 m. Dano: 1d4 + 4 perfurante + 2d6 fogo.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::action::3",
-                  "name": "Infernal Brand (Recharge 5–6)",
-                  "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+                  "name": "Marca Infernal (Recarga 5–6)",
+                  "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::bonus::1",
-                  "name": "Fiendish Step (Recharge 4–6)",
-                  "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+                  "name": "Passo Infernal (Recarga 4–6)",
+                  "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
                   "kind": "bonus"
                 },
                 {
                   "id": "Notion::Wen Torger::reaction::1",
-                  "name": "Hellish Rebuke (2/Day)",
-                  "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+                  "name": "Hellish Rebuke (2/dia)",
+                  "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
                   "kind": "reaction"
                 },
                 {
                   "id": "Notion::Wen Torger::spellcasting::spellcasting-1",
-                  "name": "Spellcasting",
-                  "description": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest.",
+                  "name": "Conjuração de Bruxo",
+                  "description": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo.",
                   "kind": "spellcasting"
                 }
               ],
@@ -1031,7 +1031,7 @@
                 "ability": "cha",
                 "spellSaveDc": 15,
                 "spellAttackBonus": 7,
-                "header": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest."
+                "header": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo."
               },
               "passivePerception": 13
             }
@@ -2486,8 +2486,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::action-3",
                   "recoveryType": "dice-recharge",
-                  "name": "Infernal Brand (Recharge 5–6)",
-                  "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+                  "name": "Marca Infernal (Recarga 5–6)",
+                  "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
                   "rechargeDice": "d6",
                   "rechargeOn": [
                     5,
@@ -2497,8 +2497,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::bonus-1",
                   "recoveryType": "dice-recharge",
-                  "name": "Fiendish Step (Recharge 4–6)",
-                  "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+                  "name": "Passo Infernal (Recarga 4–6)",
+                  "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
                   "rechargeDice": "d6",
                   "rechargeOn": [
                     4,
@@ -2509,8 +2509,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::reaction-1",
                   "recoveryType": "uses-per-day",
-                  "name": "Hellish Rebuke (2/Day)",
-                  "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+                  "name": "Hellish Rebuke (2/dia)",
+                  "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
                   "maxUses": 2
                 }
               ],
@@ -2518,55 +2518,55 @@
                 {
                   "id": "Notion::Wen Torger::trait::1",
                   "name": "Caçador da Winterhold",
-                  "description": "Wen has advantage on Intelligence (Arcana), Intelligence (Investigation), and Wisdom (Survival) checks made to track or identify undead, fiends, curses, or ritual traces.",
+                  "description": "Wen tem vantagem em testes de Arcanismo, Investigação e Sobrevivência feitos para rastrear ou identificar mortos-vivos, ínferos, maldições ou rastros rituais.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::trait::2",
                   "name": "Pacto Infernal Controlado",
-                  "description": "When Wen reduces a hostile creature to 0 hit points, he gains 5 temporary hit points. If this happens during a scene where his patron's influence is narratively relevant, describe a brief smell of ash, iron, or old parchment.",
+                  "description": "Quando Wen reduz uma criatura hostil a 0 PV, ele ganha 5 PV temporários. Narrativamente, pode surgir cheiro de cinzas, ferro ou pergaminho antigo.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::trait::3",
                   "name": "NPC de Apoio",
-                  "description": "Wen should help the party without stealing the spotlight. In the banshee encounter, prefer using him to identify clues, protect a weakened character, or damage minions instead of solving the main objective alone.",
+                  "description": "Use Wen para ajudar a mesa sem roubar a cena: identificar pistas, proteger alguém fraco ou segurar lacaios. Evite que ele resolva sozinho os objetivos principais.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::action::1",
                   "name": "Eldritch Blast",
-                  "description": "r attack +7, range 120 ft. (two beams). Hit: 9 (1d10 + 4) Force damage per beam.",
+                  "description": "Ataque mágico à distância: +7 para atingir, alcance 36 m, dois raios. Dano: 1d10 + 4 de força por raio.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::action::2",
-                  "name": "Pact Knife",
-                  "description": "m,r attack +7, reach 5 ft. or range 20/60 ft. Hit: 6 (1d4 + 4) Piercing damage plus 7 (2d6) Fire damage.",
+                  "name": "Faca do Pacto",
+                  "description": "Ataque corpo a corpo ou à distância: +7 para atingir, alcance 1,5 m ou 6/18 m. Dano: 1d4 + 4 perfurante + 2d6 fogo.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::action::3",
-                  "name": "Infernal Brand (Recharge 5–6)",
-                  "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+                  "name": "Marca Infernal (Recarga 5–6)",
+                  "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::bonus::1",
-                  "name": "Fiendish Step (Recharge 4–6)",
-                  "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+                  "name": "Passo Infernal (Recarga 4–6)",
+                  "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
                   "kind": "bonus"
                 },
                 {
                   "id": "Notion::Wen Torger::reaction::1",
-                  "name": "Hellish Rebuke (2/Day)",
-                  "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+                  "name": "Hellish Rebuke (2/dia)",
+                  "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
                   "kind": "reaction"
                 },
                 {
                   "id": "Notion::Wen Torger::spellcasting::spellcasting-1",
-                  "name": "Spellcasting",
-                  "description": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest.",
+                  "name": "Conjuração de Bruxo",
+                  "description": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo.",
                   "kind": "spellcasting"
                 }
               ],
@@ -2672,7 +2672,7 @@
                 "ability": "cha",
                 "spellSaveDc": 15,
                 "spellAttackBonus": 7,
-                "header": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest."
+                "header": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo."
               },
               "passivePerception": 13
             }
@@ -6677,8 +6677,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::action-3",
                   "recoveryType": "dice-recharge",
-                  "name": "Infernal Brand (Recharge 5–6)",
-                  "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+                  "name": "Marca Infernal (Recarga 5–6)",
+                  "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
                   "rechargeDice": "d6",
                   "rechargeOn": [
                     5,
@@ -6688,8 +6688,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::bonus-1",
                   "recoveryType": "dice-recharge",
-                  "name": "Fiendish Step (Recharge 4–6)",
-                  "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+                  "name": "Passo Infernal (Recarga 4–6)",
+                  "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
                   "rechargeDice": "d6",
                   "rechargeOn": [
                     4,
@@ -6700,8 +6700,8 @@
                 {
                   "id": "Notion::Wen Torger::ability::reaction-1",
                   "recoveryType": "uses-per-day",
-                  "name": "Hellish Rebuke (2/Day)",
-                  "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+                  "name": "Hellish Rebuke (2/dia)",
+                  "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
                   "maxUses": 2
                 }
               ],
@@ -6709,55 +6709,55 @@
                 {
                   "id": "Notion::Wen Torger::trait::1",
                   "name": "Caçador da Winterhold",
-                  "description": "Wen has advantage on Intelligence (Arcana), Intelligence (Investigation), and Wisdom (Survival) checks made to track or identify undead, fiends, curses, or ritual traces.",
+                  "description": "Wen tem vantagem em testes de Arcanismo, Investigação e Sobrevivência feitos para rastrear ou identificar mortos-vivos, ínferos, maldições ou rastros rituais.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::trait::2",
                   "name": "Pacto Infernal Controlado",
-                  "description": "When Wen reduces a hostile creature to 0 hit points, he gains 5 temporary hit points. If this happens during a scene where his patron's influence is narratively relevant, describe a brief smell of ash, iron, or old parchment.",
+                  "description": "Quando Wen reduz uma criatura hostil a 0 PV, ele ganha 5 PV temporários. Narrativamente, pode surgir cheiro de cinzas, ferro ou pergaminho antigo.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::trait::3",
                   "name": "NPC de Apoio",
-                  "description": "Wen should help the party without stealing the spotlight. In the banshee encounter, prefer using him to identify clues, protect a weakened character, or damage minions instead of solving the main objective alone.",
+                  "description": "Use Wen para ajudar a mesa sem roubar a cena: identificar pistas, proteger alguém fraco ou segurar lacaios. Evite que ele resolva sozinho os objetivos principais.",
                   "kind": "trait"
                 },
                 {
                   "id": "Notion::Wen Torger::action::1",
                   "name": "Eldritch Blast",
-                  "description": "r attack +7, range 120 ft. (two beams). Hit: 9 (1d10 + 4) Force damage per beam.",
+                  "description": "Ataque mágico à distância: +7 para atingir, alcance 36 m, dois raios. Dano: 1d10 + 4 de força por raio.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::action::2",
-                  "name": "Pact Knife",
-                  "description": "m,r attack +7, reach 5 ft. or range 20/60 ft. Hit: 6 (1d4 + 4) Piercing damage plus 7 (2d6) Fire damage.",
+                  "name": "Faca do Pacto",
+                  "description": "Ataque corpo a corpo ou à distância: +7 para atingir, alcance 1,5 m ou 6/18 m. Dano: 1d4 + 4 perfurante + 2d6 fogo.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::action::3",
-                  "name": "Infernal Brand (Recharge 5–6)",
-                  "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+                  "name": "Marca Infernal (Recarga 5–6)",
+                  "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
                   "kind": "action"
                 },
                 {
                   "id": "Notion::Wen Torger::bonus::1",
-                  "name": "Fiendish Step (Recharge 4–6)",
-                  "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+                  "name": "Passo Infernal (Recarga 4–6)",
+                  "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
                   "kind": "bonus"
                 },
                 {
                   "id": "Notion::Wen Torger::reaction::1",
-                  "name": "Hellish Rebuke (2/Day)",
-                  "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+                  "name": "Hellish Rebuke (2/dia)",
+                  "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
                   "kind": "reaction"
                 },
                 {
                   "id": "Notion::Wen Torger::spellcasting::spellcasting-1",
-                  "name": "Spellcasting",
-                  "description": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest.",
+                  "name": "Conjuração de Bruxo",
+                  "description": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo.",
                   "kind": "spellcasting"
                 }
               ],
@@ -6858,7 +6858,7 @@
                 "ability": "cha",
                 "spellSaveDc": 15,
                 "spellAttackBonus": 7,
-                "header": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest."
+                "header": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo."
               },
               "passivePerception": 13
             }
@@ -7399,8 +7399,8 @@
             "specialAbilities": [
               {
                 "id": "Notion::Wen Torger::ability::action-3",
-                "name": "Infernal Brand (Recharge 5–6)",
-                "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+                "name": "Marca Infernal (Recarga 5–6)",
+                "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
                 "recoveryType": "dice-recharge",
                 "rechargeType": "dice",
                 "usedCount": 0,
@@ -7415,8 +7415,8 @@
               },
               {
                 "id": "Notion::Wen Torger::ability::bonus-1",
-                "name": "Fiendish Step (Recharge 4–6)",
-                "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+                "name": "Passo Infernal (Recarga 4–6)",
+                "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
                 "recoveryType": "dice-recharge",
                 "rechargeType": "dice",
                 "usedCount": 0,
@@ -7432,8 +7432,8 @@
               },
               {
                 "id": "Notion::Wen Torger::ability::reaction-1",
-                "name": "Hellish Rebuke (2/Day)",
-                "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+                "name": "Hellish Rebuke (2/dia)",
+                "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
                 "recoveryType": "uses-per-day",
                 "rechargeType": "manual",
                 "maxUses": 2,
@@ -7533,55 +7533,55 @@
               {
                 "id": "Notion::Wen Torger::trait::1",
                 "name": "Caçador da Winterhold",
-                "description": "Wen has advantage on Intelligence (Arcana), Intelligence (Investigation), and Wisdom (Survival) checks made to track or identify undead, fiends, curses, or ritual traces.",
+                "description": "Wen tem vantagem em testes de Arcanismo, Investigação e Sobrevivência feitos para rastrear ou identificar mortos-vivos, ínferos, maldições ou rastros rituais.",
                 "kind": "trait"
               },
               {
                 "id": "Notion::Wen Torger::trait::2",
                 "name": "Pacto Infernal Controlado",
-                "description": "When Wen reduces a hostile creature to 0 hit points, he gains 5 temporary hit points. If this happens during a scene where his patron's influence is narratively relevant, describe a brief smell of ash, iron, or old parchment.",
+                "description": "Quando Wen reduz uma criatura hostil a 0 PV, ele ganha 5 PV temporários. Narrativamente, pode surgir cheiro de cinzas, ferro ou pergaminho antigo.",
                 "kind": "trait"
               },
               {
                 "id": "Notion::Wen Torger::trait::3",
                 "name": "NPC de Apoio",
-                "description": "Wen should help the party without stealing the spotlight. In the banshee encounter, prefer using him to identify clues, protect a weakened character, or damage minions instead of solving the main objective alone.",
+                "description": "Use Wen para ajudar a mesa sem roubar a cena: identificar pistas, proteger alguém fraco ou segurar lacaios. Evite que ele resolva sozinho os objetivos principais.",
                 "kind": "trait"
               },
               {
                 "id": "Notion::Wen Torger::action::1",
                 "name": "Eldritch Blast",
-                "description": "r attack +7, range 120 ft. (two beams). Hit: 9 (1d10 + 4) Force damage per beam.",
+                "description": "Ataque mágico à distância: +7 para atingir, alcance 36 m, dois raios. Dano: 1d10 + 4 de força por raio.",
                 "kind": "action"
               },
               {
                 "id": "Notion::Wen Torger::action::2",
-                "name": "Pact Knife",
-                "description": "m,r attack +7, reach 5 ft. or range 20/60 ft. Hit: 6 (1d4 + 4) Piercing damage plus 7 (2d6) Fire damage.",
+                "name": "Faca do Pacto",
+                "description": "Ataque corpo a corpo ou à distância: +7 para atingir, alcance 1,5 m ou 6/18 m. Dano: 1d4 + 4 perfurante + 2d6 fogo.",
                 "kind": "action"
               },
               {
                 "id": "Notion::Wen Torger::action::3",
-                "name": "Infernal Brand (Recharge 5–6)",
-                "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+                "name": "Marca Infernal (Recarga 5–6)",
+                "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
                 "kind": "action"
               },
               {
                 "id": "Notion::Wen Torger::bonus::1",
-                "name": "Fiendish Step (Recharge 4–6)",
-                "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+                "name": "Passo Infernal (Recarga 4–6)",
+                "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
                 "kind": "bonus"
               },
               {
                 "id": "Notion::Wen Torger::reaction::1",
-                "name": "Hellish Rebuke (2/Day)",
-                "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+                "name": "Hellish Rebuke (2/dia)",
+                "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
                 "kind": "reaction"
               },
               {
                 "id": "Notion::Wen Torger::spellcasting::spellcasting-1",
-                "name": "Spellcasting",
-                "description": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest.",
+                "name": "Conjuração de Bruxo",
+                "description": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo.",
                 "kind": "spellcasting"
               }
             ]
@@ -8203,301 +8203,6 @@
           {
             "organizationId": "winterhold",
             "relation": "affiliated"
-          }
-        ]
-      },
-      {
-        "id": "e4028a4d-f4e2-48d9-bb7c-e2bbfaef69a0",
-        "externalId": "npc-roberta-winterhold",
-        "title": "Roberta — Maga Marcada pelo Cosmos",
-        "createdAt": 1789724260058,
-        "updatedAt": 1789724260058,
-        "data": {
-          "name": "Roberta",
-          "maxHp": 36,
-          "armorClass": 15,
-          "spellSlots": [
-            {
-              "level": 1,
-              "max": 4
-            },
-            {
-              "level": 2,
-              "max": 3
-            },
-            {
-              "level": 3,
-              "max": 3
-            }
-          ],
-          "spells": [
-            {
-              "id": "Notion::Roberta::spell::1",
-              "name": "Fire Bolt",
-              "source": "PHB",
-              "level": 0,
-              "castingGroup": "at-will"
-            },
-            {
-              "id": "Notion::Roberta::spell::2",
-              "name": "Mage Hand",
-              "source": "PHB",
-              "level": 0,
-              "castingGroup": "at-will"
-            },
-            {
-              "id": "Notion::Roberta::spell::3",
-              "name": "Minor Illusion",
-              "source": "PHB",
-              "level": 0,
-              "castingGroup": "at-will"
-            },
-            {
-              "id": "Notion::Roberta::spell::4",
-              "name": "Ray of Frost",
-              "source": "PHB",
-              "level": 0,
-              "castingGroup": "at-will"
-            },
-            {
-              "id": "Notion::Roberta::spell::5",
-              "name": "Mage Armor",
-              "source": "PHB",
-              "level": 1,
-              "castingGroup": "slot"
-            },
-            {
-              "id": "Notion::Roberta::spell::6",
-              "name": "Magic Missile",
-              "source": "PHB",
-              "level": 1,
-              "castingGroup": "slot"
-            },
-            {
-              "id": "Notion::Roberta::spell::7",
-              "name": "Shield",
-              "source": "PHB",
-              "level": 1,
-              "castingGroup": "slot"
-            },
-            {
-              "id": "Notion::Roberta::spell::8",
-              "name": "Detect Thoughts",
-              "source": "PHB",
-              "level": 2,
-              "castingGroup": "slot"
-            },
-            {
-              "id": "Notion::Roberta::spell::9",
-              "name": "Misty Step",
-              "source": "PHB",
-              "level": 2,
-              "castingGroup": "slot"
-            },
-            {
-              "id": "Notion::Roberta::spell::10",
-              "name": "Counterspell",
-              "source": "PHB",
-              "level": 3,
-              "castingGroup": "slot"
-            },
-            {
-              "id": "Notion::Roberta::spell::11",
-              "name": "Dispel Magic",
-              "source": "PHB",
-              "level": 3,
-              "castingGroup": "slot"
-            },
-            {
-              "id": "Notion::Roberta::spell::12",
-              "name": "Fireball",
-              "source": "PHB",
-              "level": 3,
-              "castingGroup": "slot"
-            },
-            {
-              "id": "Notion::Roberta::spell::13",
-              "name": "Fly",
-              "source": "PHB",
-              "level": 3,
-              "castingGroup": "slot"
-            },
-            {
-              "id": "Notion::Roberta::spell::14",
-              "name": "Hypnotic Pattern",
-              "source": "PHB",
-              "level": 3,
-              "castingGroup": "slot"
-            }
-          ],
-          "specialAbilities": [
-            {
-              "id": "Notion::Roberta::ability::action-paralaxe-da-maldicao",
-              "recoveryType": "uses-per-combat",
-              "featureId": "Notion::Roberta::action-paralaxe-da-maldicao",
-              "name": "Paralaxe da Maldição (1/Combat)",
-              "description": "Roberta escolhe um ponto que possa ver a até 90 pés. Um mapa de estrelas se abre em uma esfera de 15 pés de raio. Cada criatura na área deve fazer um teste de resistência de Destreza CD 15. Em uma falha, sofre 18 (4d8) de dano de força e é puxada até 15 pés em direção ao centro; em um sucesso, sofre metade do dano e não é movida. Até o início do próximo turno de Roberta, a área é terreno difícil para criaturas hostis. Depois de resolver os testes, Roberta pode se teleportar para um espaço desocupado dentro da área.",
-              "maxUses": 1
-            }
-          ],
-          "features": [
-            {
-              "id": "Notion::Roberta::trait-maldicao",
-              "name": "Maldição do Firmamento",
-              "description": "A maldição deixa uma luz azul nas pupilas de Roberta e faz pequenos pontos luminosos percorrerem sua pele quando ela conjura. Ela tem vantagem em testes de Inteligência (Arcanismo) e Inteligência (Investigação) para identificar teletransportes, distorções planares, tempestades anômalas e efeitos cósmicos. A maldição não é totalmente controlada: depois de usar Paralaxe da Maldição, Roberta não pode usar reações até o início do próximo turno.",
-              "kind": "trait"
-            },
-            {
-              "id": "Notion::Roberta::trait-pesquisadora",
-              "name": "Pesquisadora de Anomalias",
-              "description": "Roberta tem vantagem em testes de Arcanismo ou Investigação relacionados ao aparelho experimental, ao sangue de Vael e às tempestades que ele investiga. Ela prefere analisar uma situação antes de entrar em combate.",
-              "kind": "trait"
-            },
-            {
-              "id": "Notion::Roberta::action-paralaxe-da-maldicao",
-              "name": "Paralaxe da Maldição (1/Combat)",
-              "description": "Roberta escolhe um ponto que possa ver a até 90 pés. Um mapa de estrelas se abre em uma esfera de 15 pés de raio. Cada criatura na área deve fazer um teste de resistência de Destreza CD 15. Em uma falha, sofre 18 (4d8) de dano de força e é puxada até 15 pés em direção ao centro; em um sucesso, sofre metade do dano e não é movida. Até o início do próximo turno de Roberta, a área é terreno difícil para criaturas hostis. Depois de resolver os testes, Roberta pode se teleportar para um espaço desocupado dentro da área.",
-              "kind": "action"
-            },
-            {
-              "id": "Notion::Roberta::action-fire-bolt",
-              "name": "Fire Bolt",
-              "description": "Ataque mágico à distância: +7 para atingir, alcance 120 pés, um alvo. Acerto: 11 (2d10) de dano de fogo.",
-              "kind": "action"
-            },
-            {
-              "id": "Notion::Roberta::reaction-shield",
-              "name": "Shield",
-              "description": "Reação: quando é atingida por um ataque ou alvo de Magic Missile, Roberta conjura Shield usando um espaço de 1º nível. Ela recebe +5 de CA até o início do próximo turno, podendo fazer o ataque errar, e não sofre dano de Magic Missile.",
-              "kind": "reaction"
-            },
-            {
-              "id": "Notion::Roberta::spellcasting",
-              "name": "Spellcasting",
-              "description": "Roberta é uma maga de 6º nível. Sua habilidade de conjuração é Inteligência (CD de resistência 15, +7 para atingir com ataques mágicos). Ela possui quatro espaços de 1º nível, três de 2º nível e três de 3º nível, recuperados ao concluir um descanso longo.",
-              "kind": "spellcasting"
-            }
-          ],
-          "fiveEToolsIdentity": {
-            "name": "Roberta",
-            "source": "Notion"
-          },
-          "aliases": [
-            "Roberta",
-            "Maga da Winterhold",
-            "Marcada pelo Cosmos"
-          ],
-          "groups": [
-            "Winterhold"
-          ],
-          "tags": [
-            "Winterhold",
-            "Maga",
-            "Cosmos",
-            "Maldição",
-            "draft"
-          ],
-          "origin": "Notion",
-          "source": "Notion",
-          "size": "Medium",
-          "creatureType": "humanoid",
-          "alignment": "Neutral Good",
-          "challengeRating": "5",
-          "level": 6,
-          "armorClassNote": "Mage Armor, defesa arcana",
-          "hitPointFormula": "6d6 + 12",
-          "speed": [
-            {
-              "type": "walk",
-              "distance": "30 ft."
-            }
-          ],
-          "abilityScores": {
-            "str": 8,
-            "dex": 14,
-            "con": 14,
-            "int": 18,
-            "wis": 12,
-            "cha": 10
-          },
-          "savingThrows": [
-            {
-              "ability": "int",
-              "bonus": 7
-            },
-            {
-              "ability": "wis",
-              "bonus": 4
-            }
-          ],
-          "skills": [
-            {
-              "name": "arcana",
-              "bonus": 7,
-              "ability": "int",
-              "proficiencyMultiplier": 1
-            },
-            {
-              "name": "history",
-              "bonus": 7,
-              "ability": "int",
-              "proficiencyMultiplier": 1
-            },
-            {
-              "name": "investigation",
-              "bonus": 7,
-              "ability": "int",
-              "proficiencyMultiplier": 1
-            },
-            {
-              "name": "insight",
-              "bonus": 4,
-              "ability": "wis",
-              "proficiencyMultiplier": 1
-            },
-            {
-              "name": "religion",
-              "bonus": 7,
-              "ability": "int",
-              "proficiencyMultiplier": 1
-            }
-          ],
-          "spellcasting": {
-            "ability": "int",
-            "spellSaveDc": 15,
-            "spellAttackBonus": 7,
-            "header": "Roberta é uma maga de 6º nível. Sua habilidade de conjuração é Inteligência (CD de resistência 15, +7 para atingir com ataques mágicos). Ela possui quatro espaços de 1º nível, três de 2º nível e três de 3º nível, recuperados ao concluir um descanso longo."
-          },
-          "passivePerception": 11
-        },
-        "category": "npc",
-        "tags": [
-          "Winterhold",
-          "Maga",
-          "Cosmos",
-          "Maldição",
-          "draft"
-        ],
-        "source": "Notion",
-        "classes": [
-          "wizard"
-        ],
-        "locationRefs": [
-          {
-            "scopeType": "settlement",
-            "scopeId": "khaer-morn-capital",
-            "relation": "base"
-          },
-          {
-            "scopeType": "settlement",
-            "scopeId": "plomos-city",
-            "relation": "operation"
-          }
-        ],
-        "organizationRefs": [
-          {
-            "organizationId": "winterhold",
-            "relation": "member"
           }
         ]
       },
@@ -9345,7 +9050,7 @@
         "externalId": "creature-threadwraith",
         "title": "Threadwraith",
         "createdAt": 1789724260056,
-        "updatedAt": 1789724260056,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Threadwraith",
           "maxHp": 52,
@@ -9472,8 +9177,7 @@
         "tags": [
           "Feng",
           "undead",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -9489,7 +9193,7 @@
         "externalId": "creature-spirit-of-the-bridge",
         "title": "Spirit of the Bridge",
         "createdAt": 1789724260056,
-        "updatedAt": 1789724260056,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Spirit of the Bridge",
           "maxHp": 95,
@@ -9635,8 +9339,7 @@
         "tags": [
           "Feng",
           "Ponte Velha",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -9813,7 +9516,7 @@
         "externalId": "creature-sombralamina-ancestral",
         "title": "Sombralâmina Ancestral",
         "createdAt": 1789724260056,
-        "updatedAt": 1789724260056,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Sombralâmina Ancestral",
           "maxHp": 187,
@@ -9948,8 +9651,7 @@
         "tags": [
           "Drek",
           "legendary",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -9965,7 +9667,7 @@
         "externalId": "creature-snowbound-hunter",
         "title": "Snowbound Hunter",
         "createdAt": 1789724260055,
-        "updatedAt": 1789724260055,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Snowbound Hunter",
           "maxHp": 102,
@@ -10098,8 +9800,7 @@
           "Dortx",
           "Treuz",
           "cold",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -10442,7 +10143,7 @@
         "externalId": "creature-sicario-da-asl",
         "title": "Sicário da ASL",
         "createdAt": 1789724260055,
-        "updatedAt": 1789724260055,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Sicário da ASL",
           "maxHp": 60,
@@ -10550,8 +10251,7 @@
         "tags": [
           "ASL",
           "humanoid",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -12041,7 +11741,7 @@
         "externalId": "creature-predador-da-copa-de-drek",
         "title": "Predador da Copa de Drek",
         "createdAt": 1789724260054,
-        "updatedAt": 1789724260054,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Predador da Copa de Drek",
           "maxHp": 85,
@@ -12148,8 +11848,7 @@
         "category": "monster",
         "tags": [
           "Drek",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -12165,7 +11864,7 @@
         "externalId": "creature-porcelain-sentinel",
         "title": "Porcelain Sentinel",
         "createdAt": 1789724260054,
-        "updatedAt": 1789724260054,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Porcelain Sentinel",
           "maxHp": 82,
@@ -12306,8 +12005,7 @@
         "tags": [
           "Feng",
           "construct",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -12940,7 +12638,7 @@
         "externalId": "creature-javali-titanico",
         "title": "Javali Titânico",
         "createdAt": 1789724260053,
-        "updatedAt": 1789724260053,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Javali Titânico",
           "maxHp": 85,
@@ -13013,8 +12711,7 @@
         "category": "monster",
         "tags": [
           "Nagazav",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -13030,7 +12727,7 @@
         "externalId": "creature-ironpine-sentinel",
         "title": "Ironpine Sentinel",
         "createdAt": 1789724260053,
-        "updatedAt": 1789724260053,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Ironpine Sentinel",
           "maxHp": 95,
@@ -13158,8 +12855,7 @@
           "Dortx",
           "Treuz",
           "plant",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -15442,7 +15138,7 @@
         "externalId": "creature-executor-da-asl",
         "title": "Executor da ASL",
         "createdAt": 1789724260051,
-        "updatedAt": 1789724260051,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Executor da ASL",
           "maxHp": 95,
@@ -15556,8 +15252,7 @@
         "tags": [
           "ASL",
           "humanoid",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -15869,7 +15564,7 @@
         "externalId": "creature-enamel-ooze",
         "title": "Enamel Ooze",
         "createdAt": 1789724260051,
-        "updatedAt": 1789724260051,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Enamel Ooze",
           "maxHp": 60,
@@ -16003,8 +15698,7 @@
           "Dortx",
           "Treuz",
           "ooze",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -17164,7 +16858,7 @@
         "externalId": "creature-ceramic-siren",
         "title": "Ceramic Siren",
         "createdAt": 1789724260050,
-        "updatedAt": 1789724260050,
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Ceramic Siren",
           "maxHp": 75,
@@ -17302,8 +16996,7 @@
         "category": "monster",
         "tags": [
           "Feng",
-          "homebrew",
-          "draft"
+          "homebrew"
         ],
         "source": "Luna",
         "locationRefs": [
@@ -20100,14 +19793,7 @@
         "externalId": "51de9d4e-ea2c-4d86-8d22-68fd31e14ce5",
         "title": "Wen Torger",
         "createdAt": 1782939609458,
-        "updatedAt": 1789383689158,
-        "category": "npc",
-        "tags": [
-          "Warlock",
-          "Winterhold",
-          "Nagawoods"
-        ],
-        "source": "Notion",
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Wen Torger",
           "maxHp": 58,
@@ -20201,8 +19887,8 @@
             {
               "id": "Notion::Wen Torger::ability::action-3",
               "recoveryType": "dice-recharge",
-              "name": "Infernal Brand (Recharge 5–6)",
-              "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+              "name": "Marca Infernal (Recarga 5–6)",
+              "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
               "rechargeDice": "d6",
               "rechargeOn": [
                 5,
@@ -20212,8 +19898,8 @@
             {
               "id": "Notion::Wen Torger::ability::bonus-1",
               "recoveryType": "dice-recharge",
-              "name": "Fiendish Step (Recharge 4–6)",
-              "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+              "name": "Passo Infernal (Recarga 4–6)",
+              "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
               "rechargeDice": "d6",
               "rechargeOn": [
                 4,
@@ -20224,8 +19910,8 @@
             {
               "id": "Notion::Wen Torger::ability::reaction-1",
               "recoveryType": "uses-per-day",
-              "name": "Hellish Rebuke (2/Day)",
-              "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+              "name": "Hellish Rebuke (2/dia)",
+              "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
               "maxUses": 2
             }
           ],
@@ -20233,55 +19919,55 @@
             {
               "id": "Notion::Wen Torger::trait::1",
               "name": "Caçador da Winterhold",
-              "description": "Wen has advantage on Intelligence (Arcana), Intelligence (Investigation), and Wisdom (Survival) checks made to track or identify undead, fiends, curses, or ritual traces.",
+              "description": "Wen tem vantagem em testes de Arcanismo, Investigação e Sobrevivência feitos para rastrear ou identificar mortos-vivos, ínferos, maldições ou rastros rituais.",
               "kind": "trait"
             },
             {
               "id": "Notion::Wen Torger::trait::2",
               "name": "Pacto Infernal Controlado",
-              "description": "When Wen reduces a hostile creature to 0 hit points, he gains 5 temporary hit points. If this happens during a scene where his patron's influence is narratively relevant, describe a brief smell of ash, iron, or old parchment.",
+              "description": "Quando Wen reduz uma criatura hostil a 0 PV, ele ganha 5 PV temporários. Narrativamente, pode surgir cheiro de cinzas, ferro ou pergaminho antigo.",
               "kind": "trait"
             },
             {
               "id": "Notion::Wen Torger::trait::3",
               "name": "NPC de Apoio",
-              "description": "Wen should help the party without stealing the spotlight. In the banshee encounter, prefer using him to identify clues, protect a weakened character, or damage minions instead of solving the main objective alone.",
+              "description": "Use Wen para ajudar a mesa sem roubar a cena: identificar pistas, proteger alguém fraco ou segurar lacaios. Evite que ele resolva sozinho os objetivos principais.",
               "kind": "trait"
             },
             {
               "id": "Notion::Wen Torger::action::1",
               "name": "Eldritch Blast",
-              "description": "r attack +7, range 120 ft. (two beams). Hit: 9 (1d10 + 4) Force damage per beam.",
+              "description": "Ataque mágico à distância: +7 para atingir, alcance 36 m, dois raios. Dano: 1d10 + 4 de força por raio.",
               "kind": "action"
             },
             {
               "id": "Notion::Wen Torger::action::2",
-              "name": "Pact Knife",
-              "description": "m,r attack +7, reach 5 ft. or range 20/60 ft. Hit: 6 (1d4 + 4) Piercing damage plus 7 (2d6) Fire damage.",
+              "name": "Faca do Pacto",
+              "description": "Ataque corpo a corpo ou à distância: +7 para atingir, alcance 1,5 m ou 6/18 m. Dano: 1d4 + 4 perfurante + 2d6 fogo.",
               "kind": "action"
             },
             {
               "id": "Notion::Wen Torger::action::3",
-              "name": "Infernal Brand (Recharge 5–6)",
-              "description": "Wen marks one creature he can see within 60 feet. The target must make a WIS Save DC 15. Failure: 13 (3d8) Psychic damage, and the next attack roll made against the target before the end of Wen's next turn has advantage. Success: Half damage, and no advantage is granted.",
+              "name": "Marca Infernal (Recarga 5–6)",
+              "description": "Wen marca uma criatura que possa ver a até 18 m. O alvo faz resistência de Sabedoria CD 15. Falha: 13 (3d8) de dano psíquico, e o próximo ataque contra o alvo antes do fim do próximo turno de Wen tem vantagem. Sucesso: metade do dano e sem vantagem.",
               "kind": "action"
             },
             {
               "id": "Notion::Wen Torger::bonus::1",
-              "name": "Fiendish Step (Recharge 4–6)",
-              "description": "Wen teleports up to 30 feet to an unoccupied space he can see. After teleporting, he gains 5 temporary hit points.",
+              "name": "Passo Infernal (Recarga 4–6)",
+              "description": "Wen se teleporta até 9 m para um espaço desocupado que possa ver. Depois do teleporte, ganha 5 PV temporários.",
               "kind": "bonus"
             },
             {
               "id": "Notion::Wen Torger::reaction::1",
-              "name": "Hellish Rebuke (2/Day)",
-              "description": "Trigger: Wen is damaged by a creature within 60 feet that he can see. Response: The creature must make a DEX Save DC 15. Failure: 11 (2d10) Fire damage. Success: Half damage.",
+              "name": "Hellish Rebuke (2/dia)",
+              "description": "Quando Wen sofre dano de uma criatura que possa ver a até 18 m, a criatura faz resistência de Destreza CD 15. Falha: 11 (2d10) de dano de fogo. Sucesso: metade.",
               "kind": "reaction"
             },
             {
               "id": "Notion::Wen Torger::spellcasting::spellcasting-1",
-              "name": "Spellcasting",
-              "description": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest.",
+              "name": "Conjuração de Bruxo",
+              "description": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo.",
               "kind": "spellcasting"
             }
           ],
@@ -20387,10 +20073,33 @@
             "ability": "cha",
             "spellSaveDc": 15,
             "spellAttackBonus": 7,
-            "header": "Wen is a 5th-level warlock. His spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). Wen has two 3rd-level spell slots, which he regains when he finishes a short or long rest."
+            "header": "Wen é um bruxo de 5º nível. Sua habilidade de conjuração é Carisma (CD de resistência 15, +7 para atingir com ataques mágicos). Wen possui dois espaços de magia de 3º nível, recuperados ao concluir um descanso curto ou longo."
           },
           "passivePerception": 13
-        }
+        },
+        "category": "npc",
+        "tags": [
+          "Warlock",
+          "Winterhold",
+          "Nagawoods"
+        ],
+        "source": "Notion",
+        "classes": [
+          "warlock"
+        ],
+        "locationRefs": [
+          {
+            "scopeType": "settlement",
+            "scopeId": "nagawoods",
+            "relation": "operation"
+          }
+        ],
+        "organizationRefs": [
+          {
+            "organizationId": "winterhold",
+            "relation": "member"
+          }
+        ]
       },
       {
         "id": "4ea74a32-a2c2-4ded-8ad0-c34a1b0136c9",
@@ -21507,15 +21216,9 @@
       {
         "id": "73e2ebe7-8960-4ec3-be5c-96f71a73f01b",
         "externalId": "73e2ebe7-8960-4ec3-be5c-96f71a73f01b",
-        "title": "Rosa V.",
+        "title": "Rosa V. — Maga da Winterhold (Nv 5)",
         "createdAt": 1769180700878,
-        "updatedAt": 1789365385569,
-        "category": "npc",
-        "tags": [
-          "Winterhold",
-          "Wizard"
-        ],
-        "source": "Notion",
+        "updatedAt": 1789728010102,
         "data": {
           "name": "Rosa V.",
           "maxHp": 32,
@@ -21667,9 +21370,9 @@
           "source": "Notion",
           "size": "Medium",
           "creatureType": "humanoid",
-          "alignment": "Lawful Good",
+          "alignment": "Neutral Good",
           "level": 5,
-          "armorClassNote": "Mage Armor",
+          "armorClassNote": "13 (16 com Mage Armor)",
           "hitPointFormula": "5d6 + 5",
           "speed": [
             {
@@ -21730,10 +21433,32 @@
           "spellcasting": {
             "spellSaveDc": 14,
             "spellAttackBonus": 6,
-            "header": "Classe: Mago (Escola da Abjuração)\nCD de Magia: 14\nAtaque Mágico: +6\nRosa tem vantagem em testes de **Arcana ou Investigação** relacionados a:\n- contratos mágicos\n- selos\n- runas\n- documentos encantados\nUma vez por descanso longo, quando Rosa falha um teste de magia importante, ela pode:\n- repetir o teste\n- mas fica Abalada (desvantagem no próximo teste de Sabedoria)"
+            "header": "Rosa é uma maga de 5º nível da Escola da Abjuração. Sua habilidade de conjuração é Inteligência (CD de resistência 14, +6 para atingir com ataques mágicos)."
           },
           "passivePerception": 11
-        }
+        },
+        "category": "npc",
+        "tags": [
+          "Winterhold",
+          "Wizard"
+        ],
+        "source": "Notion",
+        "classes": [
+          "wizard"
+        ],
+        "locationRefs": [
+          {
+            "scopeType": "settlement",
+            "scopeId": "plomos-city",
+            "relation": "operation"
+          }
+        ],
+        "organizationRefs": [
+          {
+            "organizationId": "winterhold",
+            "relation": "member"
+          }
+        ]
       },
       {
         "id": "6fa71b20-4dc8-4630-8783-a89437d78e69",
@@ -22099,8 +21824,8 @@
     },
     "campaignContext": {
       "currentLocation": {
-        "scopeType": "settlement",
-        "scopeId": "nagawoods"
+        "scopeType": "state",
+        "scopeId": "nagazav"
       }
     },
     "fiveEToolsHomebrew": {
