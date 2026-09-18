@@ -129,6 +129,9 @@ export class WorkspaceTransferService {
 			workspace.remote.backupUrl,
 			workspace.remote.worldUrl,
 		);
+		if (this.workspaces.activeWorkspace()?.id !== workspace.id) {
+			throw new Error('A campanha ativa mudou durante a sincronização. Nenhum dado foi importado.');
+		}
 		this.applyImport(preview);
 		this.workspaces.markActiveWorkspaceSynced();
 		return preview;

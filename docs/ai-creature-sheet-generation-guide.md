@@ -99,6 +99,19 @@ normalmente não possuem classe e devem omitir esse campo. `locationRefs` e
 devem duplicar classe, categoria, tipo de criatura, status, localização ou organização
 em fichas novas.
 
+### Escolha de organização e escopo
+
+Antes de preencher `organizationRefs`, confirme que a organização pertence ao registry
+formal de `dnd/Guildas & Grupos/`. O tipo é apenas descritivo: `guild`, `group`, `cult`,
+`family` e outros tipos revisados não determinam elegibilidade. Red Vortex, Daniels e
+Genya continuam disponíveis por serem organizações formais dessa fonte.
+
+Uma entrada que existe apenas em `Mundo/.../Guildas.md` representa contexto local,
+presença, serviço ou infraestrutura e não deve ser promovida automaticamente a
+Organization. Para uma comunidade ou serviço limitado à vila, use contexto local ou um
+POI, não uma relação organizacional formal. Nunca derive `organizationRefs` de tags,
+`groups`, nome, profissão, presença ou proximidade.
+
 ## `data`: campos obrigatórios
 
 O objeto `data` representa o stat block reutilizável da criatura. Estes campos sempre devem existir:

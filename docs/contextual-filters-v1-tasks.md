@@ -5,11 +5,12 @@
 Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
 
 > [!important] Contrato semântico vigente
-> Leia `docs/contextual-content-contract-draft.md` antes de executar ou revisar
-> qualquer task. Ele substitui as decisões antigas deste arquivo sobre fallback de
-> tags, escopo `generic`, elegibilidade de organizações locais e composição da Guarda.
-> Esta lista continua sendo o roadmap técnico, mas não é mais a autoridade semântica.
-> Para retomar o trabalho, use também `docs/prompt-retomar-correcao-contextual-filters.md`.
+> Leia `dnd/AI-Knowledge/Contextual Content Contract.md` antes de executar ou revisar
+> qualquer task. O contrato permanente e o handoff técnico substituem as decisões
+> antigas deste arquivo sobre fallback de tags, escopo `generic`, elegibilidade de
+> organizações locais e composição da Guarda. Esta lista continua sendo o roadmap
+> técnico, mas não é a autoridade semântica. O draft técnico deve permanecer alinhado
+> ao contrato, sem alterar dados canônicos.
 
 ## Andamento
 
@@ -18,9 +19,12 @@ Planejamento aprovado. Este documento divide a V1 em entregas sequenciais.
 - [x] Task 2: Organization Presence CRUD concluído em 2026-09-17.
 - [x] Task 3: metadata contextual de CreatureSheets revisada conforme o contrato vigente.
 - [x] Task 4: filtros de CreatureSheets revisados sem fallback contextual de tags/groups.
-- [x] Revisão pós-Task 4: compatibilidade contextual, registry restrito a guildas/grupos e navegação do World corrigidos conforme o contrato vigente.
+- [x] Revisão pós-Task 4: compatibilidade contextual, registry formal por fonte e navegação do World corrigidos conforme o contrato vigente.
 - [x] Task 5: metadata contextual de Encounters concluída conforme o contrato vigente.
-- [ ] Próxima task: Task 6 de filtros editoriais/contextuais de Encounters.
+- [x] Task 6: filtros editoriais/contextuais de Encounters concluídos.
+- [x] Task 7: Context Resolver derivado concluído.
+- [x] Task 8: sugestões contextuais de criaturas no Encounter Builder concluídas.
+- [x] Task 9: consolidação de backup, workspace e regressões concluída.
 
 ## Regras antigas superseded
 
@@ -31,23 +35,26 @@ O bloco anterior de “Correções pós-Task 4” foi substituído. Em particula
 - `generic` é uma flag explícita de arquétipo reutilizável, não uma relação de
   localização;
 - filtros organizacionais usam `organizationId` formal;
-- somente guildas e grupos formais são Organizations; comunidades locais e
-  infraestrutura permanecem fora do registry mesmo quando têm presença registrada;
+- Organizations formais vêm de `dnd/Guildas & Grupos/`; o tipo não restringe a
+  elegibilidade, então cultos e famílias formais permanecem válidos;
+- comunidades locais e infraestrutura encontradas apenas em `Mundo/.../Guildas.md`
+  permanecem fora do registry mesmo quando têm nome, POI, escopo ou presença;
 - as regras exatas de hierarquia e exibição estão no contrato movido.
 
 ## Estado atual encontrado
 
-- `CampaignWorld.organizations` e o registry formal de guildas e grupos: possui ID,
-  nome, aliases, tipo restrito, organizacao-pai e `presence[]`. Comunidades locais,
-  familias, cultos e infraestrutura ficam fora dele.
+- `CampaignWorld.organizations` e o registry formal derivado de `dnd/Guildas & Grupos/`:
+  possui ID, nome, aliases, tipo descritivo, organizacao-pai e `presence[]`. A fonte
+  formal preserva guildas, grupos, cultos e familias; material encontrado apenas em
+  notas locais fica fora dele.
 - `CampaignWorldService` preserva presencas e oferece lookup formal por escopo; a
   navegacao territorial nao exibe uma lista de Organizations.
 - `CampaignContextService` ja persiste e resolve `currentLocation` para
   `empire | state | settlement`. POI e deliberadamente excluido.
 - `WorldPage` lista, cria, edita, arquiva e restaura organizacoes. Tambem permite
   cadastrar, editar e remover presencas globais, imperiais, estaduais e locais.
-- O tipo de organizacao aceita somente `guild` ou `group`; a interface sugere apenas
-  esses dois valores.
+- O tipo de organizacao e uma string descritiva. `guild`, `group`, `cult` e `family`
+  sao exemplos validos; o tipo nao decide elegibilidade.
 - `SavedSheetInterface` ja e o envelope editorial de uma `CreatureSheet`: ID,
   categoria, tags e source vivem nele. `CreatureSheet.data` e o stat block
   reutilizavel.
@@ -71,7 +78,8 @@ O bloco anterior de “Correções pós-Task 4” foi substituído. Em particula
   preserva mundos existentes.
 - Presencas permanecem em `CampaignOrganization.presence`, com escopos `global`,
   `empire`, `state` e `settlement`. POI fica fora da V1.
-- Tipos de organizacao sao restritos a `guild` e `group`. Tipos de presenca continuam
+- A origem formal em `dnd/Guildas & Grupos/` decide elegibilidade do registry; o tipo
+  permanece descritivo e livre para valores revisados. Tipos de presenca continuam
   livres para preservar o dado narrativo, mas nao sao exibidos automaticamente no World.
 - Criar tipos compartilhados para `ContentLocationRelation` e
   `ContentOrganizationRelation`.
@@ -136,12 +144,14 @@ Status: concluida.
 - Comportamento esperado: criacao sem presenca global implicita; edicao preserva
   ID; aliases, tipo e pai sao editaveis; arquivamento nao apaga referencias nem
   arquiva filhas automaticamente.
-- Compatibilidade necessaria: guildas e grupos existentes continuam validos; tipos
-  nao-formais sao rejeitados; entidades locais, familiares, cultuais e publicas nao
-  sao criadas no registry; nenhuma organizacao de Mornk e codificada.
+- Compatibilidade necessaria: Organizations formais existentes continuam validas;
+  tipos descritivos como `cult` e `family` nao sao rejeitados; entidades locais
+  encontradas apenas em notas estaduais nao sao criadas no registry; nenhuma
+  organizacao de Mornk e codificada.
 - Testes obrigatorios: criar, editar, aliases, ID estavel, pai opcional,
-  arquivamento, tipos `guild` e `group`, rejeicao de tipos invalidos, fixture
-  Winterhold sem duplicacao e isolamento entre dois workspaces.
+  arquivamento, tipos `guild`, `group`, `cult` e `family`, rejeicao apenas de
+  registros sem tipo ou identidade formal, fixture Winterhold sem duplicacao e
+  isolamento entre dois workspaces.
 - Dependencias de tasks anteriores: Task 0.
 - Criterio de conclusao: World permite manter organizacoes ativas e arquivadas sem
   JSON manual, com persistencia por workspace.
@@ -252,6 +262,8 @@ Status: concluída.
 
 ### Task 7: Criar Context Resolver derivado
 
+Status: concluída.
+
 - Objetivo: resolver conteudo formal contra a localizacao atual sem inferencias
   narrativas.
 - Arquivos/areas provavelmente afetados: novo servico de resolver,
@@ -271,27 +283,28 @@ Status: concluída.
 - Criterio de conclusao: servico puro e testavel retorna grupos explicaveis para
   fichas, encounters e organizacoes, sem Missions.
 
-### Task 8: Entregar o painel "Disponivel aqui"
+### Task 8: Sugerir criaturas contextuais no Encounter Builder
 
-- Objetivo: apresentar a primeira UI operacional para a mesa.
-- Arquivos/areas provavelmente afetados: `pages/encounter-hub/`, novo resolver e
-  rotas existentes para abrir ficha, encounter e World.
-- Models envolvidos: resultado do Context Resolver, `CampaignContextState`,
-  `SavedSheetInterface`, `Encounter` e `CampaignOrganization`.
-- Comportamento esperado: painel no Dashboard/Encounter Hub, antes dos filtros,
-  agrupado em "Aqui", "Estado/regiao", "Organizacoes" e "Regional/amplo"; estado
-  neutro sem posicao; conteudo organizacional deixa claro que e vinculo, nao
-  presenca fisica.
-- Compatibilidade necessaria: nao transformar Mundo em dashboard grande; nao
-  duplicar seletor de posicao; nao incluir Missions, POIs ou busca semantica.
-- Testes obrigatorios: sem localizacao; agrupamento correto; link para conteudo;
-  organizacao relacionada sem falsa presenca individual; arquivado oculto; tag
-  `dm_only` nao gera ocultacao automatica.
+Status: concluída conforme escopo corrigido.
+
+- Objetivo: sugerir criaturas relevantes no fluxo de montagem de encounters.
+- Arquivos/areas afetados: `pages/encounter-builder/`, resolver contextual e specs.
+- Models envolvidos: resultado do Context Resolver, `CampaignContextState` e
+  `SavedSheetInterface`.
+- Comportamento esperado: o modal Homebrew mostra sugestões agrupadas em
+  "Aqui", "Estado/região" e "Regional/amplo"; somente categorias `monster` e
+  `npc` entram nas sugestões; PCs e `other` permanecem na busca geral.
+- Compatibilidade necessária: Organizations não aparecem nessa UI; tags, grupos,
+  presenças e texto não criam sugestões; a busca geral continua disponível.
+- Testes obrigatórios: posição ausente; hierarquia geográfica; filtro de categoria;
+  arquétipo genérico; ficha fora da região; ações Usar/Adicionar.
 - Dependencias de tasks anteriores: Tasks 4, 6 e 7.
 - Criterio de conclusao: o DM consulta conteudo contextual da posicao atual com
   grupos simples e sem semantica enganosa.
 
 ### Task 9: Consolidar backup, migracao, workspace e regressoes
+
+Status: concluída.
 
 - Objetivo: validar persistencia integral e compatibilidade apos todas as mudancas.
 - Arquivos/areas provavelmente afetados: `app-backup-service.ts`, validadores V2,
@@ -327,12 +340,12 @@ Status: concluída.
 - [x] CRUD e arquivamento de organizacoes.
 - [x] CRUD de presencas sem presenca automatica de membros.
 - [x] Metadata opcional e compativel em fichas.
-- [ ] Metadata opcional e compativel em encounters.
+- [x] Metadata opcional e compativel em encounters.
 - [x] Filtros formais de ficha.
-- [ ] Filtros formais de encounter.
+- [x] Filtros formais de encounter.
 - [x] Catalogos imutaveis de classe e tipo de criatura 5e, sem catalogo customizado de funcao.
-- [ ] Resolver restrito a imperio, estado e settlement.
-- [ ] "Disponivel aqui" simples no Encounter Hub.
-- [ ] Backup V2, World, Workspaces, import/export e snapshots cobertos por regressoes.
+- [x] Resolver restrito a imperio, estado e settlement.
+- [x] Sugestoes contextuais de monstros e NPCs no Encounter Builder.
+- [x] Backup V2, World, Workspaces, import/export e snapshots cobertos por regressoes.
 - [ ] Nenhuma Mission, importacao Obsidian, POI contextual, confidence/provenance
   engine ou organizacao hardcoded.

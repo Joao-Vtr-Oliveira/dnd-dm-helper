@@ -1890,7 +1890,22 @@ export class BattleEncounterService {
 	}
 
 	private createReferenceSheet(sheet: CreatureSheet, id = this.createId()): BattleReferenceSheet {
-		return { id, sheet: structuredClone(sheet) };
+		return { id, sheet: this.stripEditorialSheetFields(sheet) };
+	}
+
+	private stripEditorialSheetFields(sheet: CreatureSheet): CreatureSheet {
+		const normalized = structuredClone(sheet) as CreatureSheet & Record<string, unknown>;
+		for (const field of [
+			'archived',
+			'generic',
+			'classes',
+			'tags',
+			'locationRefs',
+			'organizationRefs',
+		]) {
+			delete normalized[field];
+		}
+		return normalized;
 	}
 
 	private normalizeDamageDefenses(values: unknown): CreatureDamageDefense[] | undefined {
@@ -1929,7 +1944,7 @@ export class BattleEncounterService {
 					: `reference-sheet-${index + 1}`;
 			if (ids.has(id)) return [];
 			ids.add(id);
-			return [{ id, sheet: structuredClone(candidate.sheet) }];
+			return [{ id, sheet: this.stripEditorialSheetFields(candidate.sheet as CreatureSheet) }];
 		});
 	}
 

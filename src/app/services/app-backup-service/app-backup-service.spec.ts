@@ -505,4 +505,73 @@ describe('AppBackupService', () => {
 		expect(reexported.data).toEqual(backup.data);
 		expect(reexported.data.rawLocalStorage).toEqual({});
 	});
+
+	it('restores older V2 records that do not have contextual metadata', () => {
+		const backup = service.exportAll();
+		backup.data.homebrewSheets = backup.data.homebrewSheets.map((sheet) => {
+			const legacy = { ...sheet } as Record<string, unknown>;
+			delete legacy['archived'];
+			delete legacy['generic'];
+			delete legacy['classes'];
+			delete legacy['locationRefs'];
+			delete legacy['organizationRefs'];
+			return legacy as unknown as typeof sheet;
+		});
+		backup.data.encounters = backup.data.encounters.map((encounter) => {
+			const legacy = { ...encounter } as Record<string, unknown>;
+			delete legacy['archived'];
+			delete legacy['locationRefs'];
+			delete legacy['organizationRefs'];
+			return legacy as unknown as typeof encounter;
+		});
+
+		expect(service.validateBackup(backup).valid).toBeTrue();
+		service.applyBackup(backup);
+		expect(service.exportAll().data.homebrewSheets.every((sheet) => !('locationRefs' in sheet))).toBeTrue();
+		expect(service.exportAll().data.encounters.every((encounter) => !('locationRefs' in encounter))).toBeTrue();
+	});
+
+	it('keeps contextual metadata in preparation while restoring a battle as runtime-only data', () => {
+		const sheet = localStorageService.createSheet({
+			title: 'Contextual Guard',
+			category: 'npc',
+			classes: ['ranger'],
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'old-town', relation: 'base' }],
+			organizationRefs: [{ organizationId: 'guard', relation: 'member' }],
+			tags: [],
+			source: 'Mesa',
+			data: {
+				name: 'Contextual Guard', armorClass: 12, maxHp: 10, spellSlots: [], spells: [],
+				specialAbilities: [], features: [],
+			},
+		});
+		const encounter = localStorageService.createEncounter('Contextual Patrol', {
+			schemaVersion: 1,
+			type: 'dnd-dm-helper-encounter',
+			tags: [],
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'old-town', relation: 'occurrence' }],
+			organizationRefs: [{ organizationId: 'guard', relation: 'institution' }],
+			participants: [{
+				id: 'participant-guard', sourceSheetId: sheet.id, name: sheet.data.name, category: 'npc', initiative: 10,
+				sheet: structuredClone(sheet.data),
+			}],
+			lairActions: [], traps: [],
+		});
+		const battle = battleStorage.createBattleFromEncounter(encounter);
+		const backup = service.exportAll();
+
+		service.applyBackup(backup);
+		const restoredBattle = battleStorage.getBattleEncounterById(battle.id)!;
+
+		expect(service.exportAll().data.homebrewSheets[0].locationRefs).toEqual([
+			{ scopeType: 'settlement', scopeId: 'old-town', relation: 'base' },
+		]);
+		expect(service.exportAll().data.encounters[0].organizationRefs).toEqual([
+			{ organizationId: 'guard', relation: 'institution' },
+		]);
+		expect('locationRefs' in restoredBattle).toBeFalse();
+		expect('organizationRefs' in restoredBattle).toBeFalse();
+		expect(restoredBattle.combatants.every((item) => !('locationRefs' in item))).toBeTrue();
+		expect(restoredBattle.referenceSheets.every((item) => !('organizationRefs' in item.sheet))).toBeTrue();
+	});
 });

@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 
 import { EncounterHub } from './encounter-hub';
 import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
+import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 
 describe('EncounterHub', () => {
 	let component: EncounterHub;
@@ -96,4 +97,65 @@ describe('EncounterHub', () => {
 		component.onEscape();
 		expect(component.battleSetupModal()).toBeNull();
 	});
+
+	it('exposes formal contextual options and keeps geographic selections hierarchical', () => {
+		component.campaignWorld.world.set({
+			empires: [{ id: 'mornk', name: 'Mornk', aliases: [] }],
+			states: [{ id: 'feng', name: 'Feng', aliases: [], empireId: 'mornk' }],
+			settlements: [
+				{ id: 'feng-city', name: 'Feng City', aliases: [], stateId: 'feng', settlementType: 'city' },
+			],
+			organizations: [
+				{
+					id: 'odl',
+					name: 'Olhos de Luna',
+					aliases: [],
+					organizationType: 'guild',
+					scope: 'campaign',
+					presence: [],
+				},
+				{
+					id: 'community',
+					name: 'Local community',
+					aliases: [],
+					organizationType: 'group',
+					scope: 'local',
+					presence: [],
+				},
+			],
+			pointsOfInterest: [],
+		} as never);
+
+		expect(component.organizationOptions().map((option) => option.label)).toEqual([
+			'Todas as organizações',
+			'Olhos de Luna',
+		]);
+		component.setEmpireFilter('mornk');
+		expect(component.stateOptions().map((option) => option.id)).toEqual(['all', 'feng']);
+		component.setStateFilter('feng');
+		component.setSettlementFilter('feng-city');
+		expect(component.filters()).toEqual(
+			jasmine.objectContaining({ empireId: 'mornk', stateId: 'feng', settlementId: 'feng-city' }),
+		);
+	});
+
+	it('keeps an active battle accessible through the ongoing battles panel when its encounter is archived', () => {
+		const encounter = TestBed.inject(LocalStorageService).createEncounter('Archived session', {
+			schemaVersion: 1,
+			type: 'dnd-dm-helper-encounter',
+			tags: [],
+			archived: true,
+			participants: [],
+			lairActions: [],
+			traps: [],
+		});
+		const battleStorage = TestBed.inject(BattleEncounterStorageService);
+		const battle = battleStorage.createBattleFromEncounter(encounter);
+		battleStorage.saveBattleEncounter({ ...battle, status: 'active' });
+		component.encounters.set([encounter]);
+		component.battles.set(battleStorage.getBattleEncounters());
+
+		expect(component.ongoingBattles().map((item) => item.sourceEncounterId)).toEqual([encounter.id]);
+	});
+
 });

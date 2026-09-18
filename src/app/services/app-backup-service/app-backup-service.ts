@@ -283,7 +283,9 @@ export class AppBackupService {
 				settings: {
 					encounterHubFilters:
 						data.settings && this.isRecord(data.settings)
-							? (data.settings.encounterHubFilters ?? null)
+							? data.settings.encounterHubFilters
+								? this.encounterHubFilterService.normalizeFilters(data.settings.encounterHubFilters)
+								: null
 							: null,
 				},
 				rawLocalStorage,
@@ -544,8 +546,16 @@ export class AppBackupService {
 
 	private isEncounterHubFilters(value: unknown): value is EncounterHubFilters {
 		if (!this.isRecord(value)) return false;
+		const optionalTextFields = ['tag', 'empireId', 'stateId', 'settlementId', 'organizationId'];
 		return (
 			typeof value['query'] === 'string' &&
+			optionalTextFields.every(
+				(field) => value[field] === undefined || typeof value[field] === 'string',
+			) &&
+			(value['lifecycle'] === undefined ||
+				value['lifecycle'] === 'active' ||
+				value['lifecycle'] === 'archived' ||
+				value['lifecycle'] === 'all') &&
 			(value['status'] === 'all' ||
 				value['status'] === 'prepared' ||
 				value['status'] === 'active' ||

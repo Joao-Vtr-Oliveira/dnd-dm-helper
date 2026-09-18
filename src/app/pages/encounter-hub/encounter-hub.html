@@ -62,7 +62,7 @@
 	}
 
 	<section class="app-panel p-4" aria-label="Buscar e filtrar encounters">
-		<div class="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+		<div class="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,0.9fr))]">
 			<label class="text-sm text-app-muted">
 				<span class="mb-1 block">Buscar</span>
 				<input
@@ -74,7 +74,26 @@
 			</label>
 
 			<app-select
-				label="Filtrar por status"
+				label="Tag"
+				[options]="tagOptions()"
+				[value]="filters().tag"
+				[optionLabels]="{ all: 'Todas as tags' }"
+				(valueChange)="updateTag($any($event))"
+			/>
+
+			<app-select
+				label="Ciclo editorial"
+				[options]="[
+					{ value: 'active', label: 'Ativos' },
+					{ value: 'archived', label: 'Arquivados' },
+					{ value: 'all', label: 'Todos' },
+				]"
+				[value]="filters().lifecycle"
+				(valueChange)="updateLifecycle($any($event))"
+			/>
+
+			<app-select
+				label="Status da batalha"
 				[options]="[
 					{ value: 'all', label: 'Todos' },
 					{ value: 'prepared', label: 'Encontros preparados' },
@@ -85,7 +104,9 @@
 				[value]="filters().status"
 				(valueChange)="updateStatus($any($event))"
 			/>
+		</div>
 
+		<div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 			<app-select
 				label="Ordenar por"
 				[options]="[
@@ -98,9 +119,51 @@
 				[value]="filters().sort"
 				(valueChange)="updateSort($any($event))"
 			/>
+			<app-select
+				label="Organização"
+				[options]="organizationOptions()"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="filters().organizationId"
+				[disabled]="!campaignWorld.world()"
+				(valueChange)="updateOrganization($any($event))"
+			/>
+			<app-select
+				label="Império"
+				[options]="empireOptions()"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="filters().empireId"
+				[disabled]="!campaignWorld.world()"
+				(valueChange)="setEmpireFilter($any($event))"
+			/>
+			<app-select
+				label="Estado"
+				[options]="stateOptions()"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="filters().stateId"
+				[disabled]="!campaignWorld.world()"
+				(valueChange)="setStateFilter($any($event))"
+			/>
+		</div>
+
+		<div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+			<app-select
+				label="Settlement"
+				[options]="settlementOptions()"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="filters().settlementId"
+				[disabled]="!campaignWorld.world()"
+				(valueChange)="setSettlementFilter($any($event))"
+			/>
 		</div>
 
 		<div class="mt-3 flex flex-wrap gap-2 text-xs text-app-muted">
+			<span class="app-status border border-app-divider bg-app-inset">{{
+				lifecycleLabel(filters().lifecycle)
+			}}</span>
 			<span class="app-status border border-app-divider bg-app-inset">{{
 				filterLabel(filters().status)
 			}}</span>

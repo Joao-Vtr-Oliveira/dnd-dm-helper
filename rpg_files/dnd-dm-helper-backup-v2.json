@@ -2,7 +2,7 @@
   "app": "dnd-dm-helper",
   "schemaVersion": 2,
   "type": "campaign-backup",
-  "exportedAt": "2026-09-15T10:46:47.512Z",
+  "exportedAt": "2026-09-18T07:36:03.000Z",
   "data": {
     "encounters": [
       {
@@ -2740,6 +2740,8 @@
           "player"
         ],
         "source": "player",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Guillian",
           "armorClass": null,
@@ -2762,6 +2764,8 @@
           "Pc"
         ],
         "source": "",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Yuren",
           "armorClass": null,
@@ -2784,6 +2788,8 @@
           "Pc"
         ],
         "source": "",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Baralho",
           "armorClass": null,
@@ -2808,6 +2814,8 @@
           "Banshee"
         ],
         "source": "",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Mão do Tronco",
           "armorClass": 13,
@@ -2942,6 +2950,8 @@
           "Banshee"
         ],
         "source": "Homebrew",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Eco Enraizado",
           "armorClass": 13,
@@ -3059,6 +3069,8 @@
           "Banshee"
         ],
         "source": "Homebrew",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Elyra dos Cedros",
           "armorClass": 14,
@@ -3310,6 +3322,8 @@
           "Nagawoods"
         ],
         "source": "Notion",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Wen Torger",
           "armorClass": 15,
@@ -3600,6 +3614,8 @@
           "Hotead"
         ],
         "source": "Notion",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Ritual Focus (Anchor)",
           "armorClass": 12,
@@ -3699,6 +3715,8 @@
           "Hotead"
         ],
         "source": "Notion",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Abominação Instável",
           "armorClass": 15,
@@ -3842,6 +3860,8 @@
           "Hotead"
         ],
         "source": "Notion",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Condutor do Vórtice",
           "armorClass": 15,
@@ -4082,6 +4102,8 @@
           "draft"
         ],
         "source": "Notion",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Dodman Jac",
           "armorClass": 15,
@@ -4305,6 +4327,8 @@
           "draft"
         ],
         "source": "Notion",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "He Xiao",
           "armorClass": 16,
@@ -4468,6 +4492,8 @@
           "draft"
         ],
         "source": "Notion",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Thorn V.",
           "armorClass": 17,
@@ -4640,6 +4666,8 @@
           "PC"
         ],
         "source": "",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Solane",
           "armorClass": null,
@@ -4662,6 +4690,8 @@
           "Wizard"
         ],
         "source": "Notion",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Rosa V.",
           "armorClass": 16,
@@ -4889,6 +4919,8 @@
           "PC"
         ],
         "source": "",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Takahashi",
           "armorClass": null,
@@ -4911,6 +4943,8 @@
           "PC"
         ],
         "source": "",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Vael",
           "armorClass": null,
@@ -4933,6 +4967,8 @@
           "Banshee"
         ],
         "source": "5eTools",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Árvore Marcada",
           "armorClass": 12,
@@ -5036,6 +5072,8 @@
           "draft"
         ],
         "source": "Notion",
+        "locationRefs": [],
+        "organizationRefs": [],
         "data": {
           "name": "Talha Trusk",
           "armorClass": 18,

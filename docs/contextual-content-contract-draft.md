@@ -71,9 +71,11 @@ This is a library filter, not a claim of availability in the party's exact posit
 
 ## 3. Regra definitiva de organizações
 
-`CampaignWorld.organizations` stores only a formal guild or group that is relevant to the campaign. `organizationType` is restricted to `guild` or `group`.
+`CampaignWorld.organizations` stores formal campaign Organizations sourced from the top-level `dnd/Guildas & Grupos/` notes and global index. Registry eligibility comes from that formal source and review, not from `organizationType`.
 
-It does not store a community, residents' council, workers' table, local company, family, cult, public body, guard, shop, tavern, branch building, academy building, dojo building, temple, district, street market, or temporary event. Those remain world material, POIs, or infrastructure, even when they are described in `Guildas.md`.
+`organizationType` is descriptive and accepts reviewed campaign values such as `guild`, `group`, `cult`, and `family`. Red Vortex remains a valid formal Organization as a cult; Daniels and Genya remain valid formal Organizations as families.
+
+An entry found only in `Mundo/.../Guildas.md` is local distribution, presence, service, community, or infrastructure. It does not enter the formal registry merely because it has a name, `scope`, POI, or presence. Local councils, workers' tables, local businesses, shops, taverns, branch buildings, academies, dojos, temples, districts, markets, and temporary events remain local world material or POIs unless they are separately established in the top-level formal registry source.
 
 Examples:
 
@@ -83,7 +85,7 @@ Examples:
 - Rede equestre de Hotead is not an organization: the notes explicitly leave its formal association undecided.
 - Guarda de Mornk is a public institution and remains outside this registry.
 
-Organization `scope` remains `campaign`, `regional`, or `local`; it describes reach, never physical presence.
+Organization `scope` remains `campaign`, `regional`, or `local`; it describes intended reach or management, never physical presence and never registry eligibility by itself. Creation should make the distinction visible: formal campaign/regional Organizations come from `Guildas & Grupos/`; village-only context belongs in local notes or POIs.
 
 ## 4. Regra de presença
 
@@ -121,7 +123,7 @@ Legacy free-form presence labels are preserved for compatibility but must not be
 - A territory view shows an organization only when it has an explicit presence whose `scopeType` and `scopeId` exactly match the selected territory.
 - Descendant presences are not included in the territory's main organization list. If they become useful later, show them in a separate section grouped by their actual state or settlement.
 - A `global-network` alone never produces a territorial card.
-- The registry contains only formal guilds and groups. A local community or infrastructure record is not eligible merely because it has a name, a POI, or a presence.
+- The registry contains formal Organizations sourced from `dnd/Guildas & Grupos/`. A local community or infrastructure record is not eligible merely because it has a name, a POI, or a presence; formal cults and families remain eligible.
 
 ## 6. Regra de "Disponível aqui"
 
@@ -291,7 +293,7 @@ Use exact IDs and explicit entries in the native sheet envelope. Do not use a ta
 
 ## 11. Lacunas restantes
 
-- The current `campaign-world.json` intentionally excludes local communities, families, cults, and public institutions from the organization registry. Their Markdown notes and POIs remain campaign material.
+  - The current data must be reviewed against the formal-source rule before any future JSON migration. Do not assume that every family or cult is excluded: formal entries such as Red Vortex, Daniels, and Genya must remain eligible. Local communities and infrastructure found only in state `Guildas.md` remain Markdown context or POIs.
 - The current `campaign-world.json` has no `guarda-de-mornk` organization or composition records. The narrative decision is closed; adding a public institution would require a future semantic decision outside this registry.
 - Existing ODL Khaer Morn data says `headquarters`, but canonical prose says clandestine contact. Correct the data only in a reviewed migration.
 - Existing Backup V2 has no formal contextual metadata for its current sheets. The Helper must support and preserve the new fields without inventing them.
@@ -299,7 +301,7 @@ Use exact IDs and explicit entries in the native sheet envelope. Do not use a ta
 
 # Prompt para correção do dnd-dm-helper
 
-You are correcting the contextual-content implementation in `dnd-dm-helper`. Treat this prompt as the approved semantic contract. Do not decide campaign meaning yourself and do not read tags, names, folders, prose, or organization presence as hidden location/affiliation data.
+You are correcting the contextual-content implementation in `dnd-dm-helper`. Treat this prompt as the approved semantic contract. Do not decide campaign meaning yourself and do not read tags, names, prose, or organization presence as hidden location/affiliation data. Canonical source provenance is allowed only for deciding whether a record belongs to the formal Organization registry; it never creates a sheet relation by itself.
 
 ## Scope
 
@@ -318,13 +320,13 @@ The task list is partially implemented but its post-Task-4 decisions are superse
 
 1. Remove legacy tag/group derivation from all contextual location, organization, and availability filters. `sheet.tags`, `sheet.data.tags`, and `sheet.data.groups` remain only text/tag search facets.
 2. Remove `regional` and `generic` as `ContentLocationRelation.relation` values. Keep only `base`, `habitat`, `occurrence`, and `operation`.
-3. Accept only formal guilds and groups as Organizations. A local scope does not make a community or infrastructure record eligible.
+3. Accept formal Organizations from the top-level `dnd/Guildas & Grupos/` source. `organizationType` is descriptive and must not exclude formal cults or families. A local `Mundo/.../Guildas.md` record does not become an Organization merely because it has a name, scope, POI, or presence.
 4. Do not use a global organization scope or `global-network` presence to create territorial organization cards.
 5. Do not use an organization presence to infer physical presence of every linked member or sheet.
 
 ## Keep And Implement
 
-1. Keep `CampaignWorld.organizations` as the sole organization registry. It contains only formal guilds and groups; do not create a parallel guild catalog.
+1. Keep `CampaignWorld.organizations` as the sole organization registry. It contains formal Organizations sourced from `dnd/Guildas & Grupos/`; do not create a parallel guild catalog or promote local state notes automatically.
 2. Keep formal contextual metadata on the `SavedSheetInterface` envelope, never inside `CreatureSheet.data`.
 3. Keep optional `classes`, `locationRefs`, `organizationRefs`, tags, and `archived`; add explicit `generic?: boolean` to the saved sheet envelope. `classes` applies only to NPCs/PCs with an established class; monsters normally omit it.
 4. Preserve sheets, imports, exports, backups, and references that omit new fields. Omission means active but unreviewed context, never global location.
@@ -362,11 +364,11 @@ Organization filters use only `organizationRefs.organizationId`. Tags and `group
 
 ## Presence And Territorial UI
 
-- An Organization is a formal guild or group relevant to the campaign. Its scope may describe reach, but scope alone does not qualify a local community or infrastructure record.
+- An Organization is a formal collective sourced from `dnd/Guildas & Grupos/`. Its type may be guild, group, cult, family, or another reviewed value. Scope describes reach, but scope alone does not qualify a local community or infrastructure record.
 - A shop, branch building, dojo, academy, tavern, or district is a POI, not an Organization.
-- Local communities, councils, workers' tables, families, cults, public bodies, and informal professional networks stay outside the Organization registry.
+- Local communities, councils, workers' tables, local businesses, public bodies, and informal professional networks found only in local notes stay outside the Organization registry. Formal families and cults from `dnd/Guildas & Grupos/`, including Daniels, Genya, and Red Vortex, remain in the registry.
 - Presence says where the Organization has a documented form of activity. It never moves its members or sheets.
-- Root displays the formal guild/group registry. World territory pages do not display an organization or presence list.
+- Root displays the formal Organization registry. World territory pages do not display an organization or presence list.
 - Presence records remain available in the data for future explicit features, but navigation never renders them automatically.
 - `global-network` is root-only. `remote-contact` is access, not physical presence.
 
@@ -390,7 +392,7 @@ Do not add a generic composition field to Organization presences as part of this
 
 ## Legacy Data And Migration
 
-- Do not infer or persist relationships from legacy tags/groups at runtime.
+- Do not infer or persist sheet relationships from legacy tags/groups, folder names, titles, or prose at runtime. The formal source folder is registry provenance only; it does not create `organizationRefs`.
 - Provide an explicit review/migration flow later if useful: it may show tag-based suggestions but requires a user selection before saving formal metadata.
 - Backup V2 must persist new formal sheet metadata. Existing sheets without it remain valid and unlocated.
 - Do not invent metadata for the current Backup V2. A reviewed backup migration will arrive separately.
@@ -405,7 +407,7 @@ Add and run tests for all of these:
 4. A Feng state habitat appears in Feng and in `Estado/regiao` from Hotead, not as direct `Aqui` for every Feng settlement.
 5. ODL/global-network does not produce territorial presence in Feng or Plomos. Explicit agent/contact presence does appear only at its documented scope.
 6. An organization presence does not make an organization-linked NPC physically local.
-7. The registry and dropdowns contain only `guild` and `group`; local communities and infrastructure are not selectable Organizations.
+7. The registry and dropdowns contain only formal Organizations from `dnd/Guildas & Grupos/`; `organizationType` does not restrict them to `guild` or `group`, while local communities and infrastructure from state `Guildas.md` are not selectable Organizations.
 8. Tags and `groups` remain searchable but cannot satisfy geographic, organization, or availability filtering.
 9. `Patrulheiro de Contato C` remains outside the Organization registry until a separate approved institutional-composition model exists.
 10. Archived filtering, import/export, Backup V2 restore, workspace isolation, broken IDs, and the `CreatureSheet -> Encounter -> BattleEncounter` runtime boundary continue to work.

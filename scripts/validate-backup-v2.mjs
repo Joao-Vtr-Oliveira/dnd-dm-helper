@@ -9,6 +9,10 @@ const categories = new Set(['monster', 'npc', 'pc', 'other']);
 const locationScopes = new Set(['empire', 'state', 'settlement']);
 const locationRelations = new Set(['base', 'habitat', 'occurrence', 'operation']);
 const organizationRelations = new Set(['member', 'leader', 'institution', 'trained_by', 'affiliated']);
+const characterClasses = new Set([
+	'artificer', 'barbarian', 'bard', 'cleric', 'druid', 'fighter', 'monk',
+	'paladin', 'ranger', 'rogue', 'sorcerer', 'warlock', 'wizard',
+]);
 
 function assert(condition, message) {
 	if (!condition) throw new Error(message);
@@ -63,6 +67,39 @@ function validateSheetContext(sheet, field) {
 			);
 		}
 	}
+	if (sheet.classes !== undefined) {
+		assert(
+			(sheet.category === 'npc' || sheet.category === 'pc') &&
+			Array.isArray(sheet.classes) &&
+			sheet.classes.every((value) => characterClasses.has(value)),
+			`${field}.classes is invalid.`,
+		);
+	}
+}
+
+function validateEncounterContext(encounter, field) {
+	assert(
+		encounter.archived === undefined || typeof encounter.archived === 'boolean',
+		`${field}.archived is invalid.`,
+	);
+	if (encounter.locationRefs !== undefined) {
+		assert(Array.isArray(encounter.locationRefs), `${field}.locationRefs must be an array.`);
+		for (const [index, ref] of encounter.locationRefs.entries()) {
+			assert(
+				isRecord(ref) && hasText(ref.scopeId) && locationScopes.has(ref.scopeType) && locationRelations.has(ref.relation),
+				`${field}.locationRefs[${index}] is invalid.`,
+			);
+		}
+	}
+	if (encounter.organizationRefs !== undefined) {
+		assert(Array.isArray(encounter.organizationRefs), `${field}.organizationRefs must be an array.`);
+		for (const [index, ref] of encounter.organizationRefs.entries()) {
+			assert(
+				isRecord(ref) && hasText(ref.organizationId) && organizationRelations.has(ref.relation),
+				`${field}.organizationRefs[${index}] is invalid.`,
+			);
+		}
+	}
 }
 
 function validateCombatant(combatant, field) {
@@ -107,6 +144,7 @@ export function validateBackupV2(input) {
 	assert(input.app === 'dnd-dm-helper', 'Backup app must be dnd-dm-helper.');
 	assert(input.type === 'campaign-backup', 'Backup type must be campaign-backup.');
 	assert(input.schemaVersion === 2, 'Backup schemaVersion must be 2.');
+	assert(isRecord(input.data), 'Backup data must be an object.');
 	assert(
 		input.data.fiveEToolsHomebrew === null || isRecord(input.data.fiveEToolsHomebrew),
 		'Backup data.fiveEToolsHomebrew must be object|null.',
@@ -119,7 +157,6 @@ export function validateBackupV2(input) {
 		hasText(input.exportedAt) && !Number.isNaN(Date.parse(input.exportedAt)),
 		'Backup exportedAt must be an ISO date string.',
 	);
-	assert(isRecord(input.data), 'Backup data must be an object.');
 	assert(Array.isArray(input.data.encounters), 'Backup data.encounters must be an array.');
 	assert(Array.isArray(input.data.homebrewSheets), 'Backup data.homebrewSheets must be an array.');
 	assert(
@@ -150,6 +187,7 @@ export function validateBackupV2(input) {
 			Array.isArray(encounter.tags) && Array.isArray(encounter.participants),
 			`${field} has invalid collections.`,
 		);
+		validateEncounterContext(encounter, field);
 		validateConfig(encounter.lairActions, `${field}.lairActions`);
 		validateConfig(encounter.traps, `${field}.traps`);
 		const participantIds = new Set();

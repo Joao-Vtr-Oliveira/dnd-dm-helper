@@ -14,6 +14,13 @@ const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
 const canonicalName = (value) => String(value ?? '').trim().normalize('NFC').toLocaleLowerCase('pt-BR');
 const category = (value) =>
 	value === 'pc' || value === 'npc' || value === 'other' || value === 'monster' ? value : 'monster';
+const locationScopes = new Set(['empire', 'state', 'settlement']);
+const locationRelations = new Set(['base', 'habitat', 'occurrence', 'operation']);
+const organizationRelations = new Set(['member', 'leader', 'institution', 'trained_by', 'affiliated']);
+const characterClasses = new Set([
+	'artificer', 'barbarian', 'bard', 'cleric', 'druid', 'fighter', 'monk',
+	'paladin', 'ranger', 'rogue', 'sorcerer', 'warlock', 'wizard',
+]);
 const finiteNumber = (value) => {
 	if (value == null || value === '') return null;
 	const numeric = typeof value === 'number' ? value : Number(String(value).trim());
@@ -90,6 +97,40 @@ function normalizeSheetData(raw, report, fallbackName) {
 	};
 }
 
+function normalizeContextFields(source, { categoryValue, allowGeneric = false } = {}) {
+	const locationRefs = Array.isArray(source.locationRefs)
+		? source.locationRefs.filter((ref) =>
+				isRecord(ref) && hasText(ref.scopeId) && locationScopes.has(ref.scopeType) && locationRelations.has(ref.relation),
+		  ).map((ref) => ({
+				scopeType: ref.scopeType,
+				scopeId: ref.scopeId.trim(),
+				relation: ref.relation,
+		  }))
+		: [];
+	const organizationRefs = Array.isArray(source.organizationRefs)
+		? source.organizationRefs.filter((ref) =>
+				isRecord(ref) && hasText(ref.organizationId) && organizationRelations.has(ref.relation),
+		  ).map((ref) => ({
+				organizationId: ref.organizationId.trim(),
+				relation: ref.relation,
+		  }))
+		: [];
+	const generic = allowGeneric && typeof source.generic === 'boolean' ? source.generic : undefined;
+	return {
+		...(typeof source.archived === 'boolean' ? { archived: source.archived } : {}),
+		...(generic !== undefined ? { generic } : {}),
+		...(categoryValue === 'npc' || categoryValue === 'pc'
+			? {
+					...(Array.isArray(source.classes)
+						? { classes: source.classes.filter((value) => characterClasses.has(value)) }
+						: {}),
+			  }
+			: {}),
+		...(generic === true ? {} : locationRefs.length ? { locationRefs } : {}),
+		...(organizationRefs.length ? { organizationRefs } : {}),
+	};
+}
+
 function normalizeSheet(raw, index, report) {
 	const source = isRecord(raw) ? raw : {};
 	const title = hasText(source.title) ? source.title.trim() : `Sheet ${index + 1}`;
@@ -105,6 +146,7 @@ function normalizeSheet(raw, index, report) {
 		category: category(source.category),
 		tags: Array.isArray(source.tags) ? source.tags.filter(hasText).map((tag) => tag.trim()) : [],
 		source: hasText(source.source) ? source.source.trim() : '',
+		...normalizeContextFields(source, { categoryValue: category(source.category), allowGeneric: true }),
 		data,
 	};
 }
@@ -213,6 +255,7 @@ function normalizeEncounter(raw, index, report) {
 		...(hasText(source.description) ? { description: source.description.trim() } : {}),
 		tags: Array.isArray(source.tags) ? source.tags.filter(hasText).map((tag) => tag.trim()) : [],
 		...(hasText(source.notes) ? { notes: source.notes.trim() } : {}),
+		...normalizeContextFields(source),
 		participants,
 		lairActions: [
 			...(Array.isArray(source.lairActions) ? source.lairActions.map(normalizeLairAction) : []),

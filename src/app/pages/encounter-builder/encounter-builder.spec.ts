@@ -165,6 +165,115 @@ describe('EncounterBuilder', () => {
 		]);
 	});
 
+	it('suggests formal encounter context from source sheets without copying tags or stat-block data', () => {
+		const storage = TestBed.inject(LocalStorageService);
+		const sheet = storage.createSheet({
+			title: 'Feng patrol',
+			category: 'npc',
+			locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'base' }],
+			organizationRefs: [{ organizationId: 'guild', relation: 'member' }],
+			tags: ['Feng', 'patrol'],
+			data: {
+				name: 'Feng patrol',
+				armorClass: 13,
+				maxHp: 10,
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+				features: [],
+			},
+		});
+		component.homebrewSheets.set(storage.listSheets());
+		component.addFromSheet(sheet.id);
+
+		expect(component.participantContextSuggestion()).toEqual(
+			jasmine.objectContaining({ sourceCount: 1, hasSuggestions: true }),
+		);
+		expect(component.encounter().locationRefs).toBeUndefined();
+
+		component.applyParticipantContext();
+
+		expect(component.encounter().locationRefs).toEqual([
+			{ scopeType: 'state', scopeId: 'feng', relation: 'base' },
+		]);
+		expect(component.encounter().organizationRefs).toEqual([
+			{ organizationId: 'guild', relation: 'member' },
+		]);
+		expect(component.encounter().tags).toEqual([]);
+	});
+
+	it('suggests only monsters and NPCs for the party position in the Homebrew modal', () => {
+		component.campaignWorld.saveWorld({
+			schemaVersion: 1,
+			calendar: {
+				daysPerSeason: 30,
+				seasons: [
+					{ id: 'spring', label: 'Spring', color: '#9ae6b4' },
+					{ id: 'summer', label: 'Summer', color: '#f6e05e' },
+					{ id: 'autumn', label: 'Autumn', color: '#f6ad55' },
+					{ id: 'winter', label: 'Winter', color: '#90cdf4' },
+				],
+				epochDate: { year: 1, season: 'spring', day: 1, hour: 0, minute: 0 },
+				events: [],
+			},
+			empires: [{ id: 'mornk', name: 'Mornk', aliases: [] }],
+			states: [{ id: 'feng', name: 'Feng', aliases: [], empireId: 'mornk' }],
+			settlements: [
+				{ id: 'feng-city', name: 'Feng City', aliases: [], stateId: 'feng', settlementType: 'city' },
+			],
+			organizations: [],
+			pointsOfInterest: [],
+		});
+		component.campaignContext.setCurrentLocation({ scopeType: 'settlement', scopeId: 'feng-city' });
+		const storage = TestBed.inject(LocalStorageService);
+		const data = (name: string) => ({
+			name,
+			armorClass: 12,
+			maxHp: 10,
+			spellSlots: [],
+			spells: [],
+			specialAbilities: [],
+			features: [],
+		});
+		const hereMonster = storage.createSheet({
+			title: 'Feng wolf',
+			category: 'monster',
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'feng-city', relation: 'habitat' }],
+			data: data('Feng wolf'),
+		});
+		const stateNpc = storage.createSheet({
+			title: 'Feng scout',
+			category: 'npc',
+			locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'base' }],
+			data: data('Feng scout'),
+		});
+		const pc = storage.createSheet({
+			title: 'Party wizard',
+			category: 'pc',
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'feng-city', relation: 'base' }],
+			data: data('Party wizard'),
+		});
+		const generic = storage.createSheet({ title: 'Generic wolf', category: 'monster', generic: true, data: data('Generic wolf') });
+		component.homebrewSheets.set([hereMonster, stateNpc, pc, generic]);
+
+		expect(component.contextualSuggestionGroups().map((group) => group.label)).toEqual([
+			'Aqui',
+			'Estado/região',
+			'Regional/amplo',
+		]);
+		expect(component.contextualSuggestionGroups().flatMap((group) => group.entries).map((entry) => entry.content.id)).toEqual([
+			hereMonster.id,
+			stateNpc.id,
+			generic.id,
+		]);
+		expect(component.contextualSuggestionGroups().flatMap((group) => group.entries).map((entry) => entry.content.id)).not.toContain(pc.id);
+
+		component.openHomebrewModal();
+		fixture.detectChanges();
+		expect(fixture.nativeElement.textContent).toContain('Sugestões para esta posição');
+		expect(fixture.nativeElement.textContent).not.toContain('Organizações presentes');
+	});
+
 	it('asks for initiatives before creating a battle', () => {
 		const router = TestBed.inject(Router);
 		const navigate = spyOn(router, 'navigate').and.resolveTo(true);

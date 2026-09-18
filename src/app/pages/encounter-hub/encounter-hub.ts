@@ -15,21 +15,24 @@ import type {
 	BattleEncounter,
 	BattleEncounterCreateOptions,
 } from '../../models/battle-encounter-model';
+import { isCampaignOrganizationEligible } from '../../models/campaign-world-model';
 import type { EncounterParticipant } from '../../models/encounter-model';
 import { abilityModifier } from '../../models/creature-sheet-rules';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
 import { BattleEncounterService } from '../../services/battle-encounter-service/battle-encounter-service';
+import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
 import {
 	EncounterHubFilterService,
 	type EncounterHubFilters,
 	type EncounterHubItem,
+	type EncounterHubLifecycleFilter,
 	type EncounterHubSortOption,
 	type EncounterHubStatusFilter,
 } from '../../services/encounter-hub-filter-service/encounter-hub-filter-service';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 import {
 	LocalStorageService,
-	SavedEncounter,
+	type SavedEncounter,
 } from '../../services/local-storage-service/local-storage-service';
 
 type ConfirmModalState = {
@@ -73,6 +76,7 @@ export class EncounterHub {
 	private readonly hubFilterService = inject(EncounterHubFilterService);
 
 	private readonly initialFilters = this.hubFilterService.loadFilters();
+	readonly campaignWorld = inject(CampaignWorldService);
 
 	readonly filters = signal<EncounterHubFilters>(this.initialFilters);
 	readonly encounters = signal<SavedEncounter[]>(this.ls.listEncounters());
@@ -90,10 +94,81 @@ export class EncounterHub {
 
 	readonly filteredItems = computed(() =>
 		this.hubFilterService.sortItems(
-			this.hubFilterService.filterItems(this.items(), this.filters()),
+			this.hubFilterService.filterItems(this.items(), this.filters(), this.campaignWorld.world()),
 			this.filters().sort,
 		),
 	);
+
+	readonly tagOptions = computed(() => {
+		const tags = new Set<string>();
+		for (const encounter of this.encounters()) {
+			for (const tag of encounter.tags) if (tag.trim()) tags.add(tag.trim());
+		}
+		return ['all', ...Array.from(tags).sort((left, right) => left.localeCompare(right))];
+	});
+
+	readonly empireOptions = computed(() => [
+		{ id: 'all', label: 'Todos os impérios' },
+		...(this.campaignWorld.world()?.empires ?? [])
+			.slice()
+			.sort((left, right) => left.name.localeCompare(right.name))
+			.map((empire) => ({ id: empire.id, label: empire.name })),
+	]);
+
+	readonly stateOptions = computed(() => {
+		const empireId = this.filters().empireId;
+		return [
+			{ id: 'all', label: 'Todos os estados' },
+			...(this.campaignWorld.world()?.states ?? [])
+				.filter((state) => empireId === 'all' || state.empireId === empireId)
+				.slice()
+				.sort((left, right) => left.name.localeCompare(right.name))
+				.map((state) => ({
+					id: state.id,
+					label:
+						this.campaignWorld.resolveLocation({ scopeType: 'state', scopeId: state.id })?.breadcrumb.join(' › ') ??
+						state.name,
+				})),
+		];
+	});
+
+	readonly settlementOptions = computed(() => {
+		const empireId = this.filters().empireId;
+		const stateId = this.filters().stateId;
+		const world = this.campaignWorld.world();
+		return [
+			{ id: 'all', label: 'Todos os settlements' },
+			...(world?.settlements ?? [])
+				.filter((settlement) => {
+					if (stateId !== 'all') return settlement.stateId === stateId;
+					if (empireId === 'all') return true;
+					return world?.states.some(
+						(state) => state.id === settlement.stateId && state.empireId === empireId,
+					);
+				})
+				.slice()
+				.sort((left, right) => left.name.localeCompare(right.name))
+				.map((settlement) => ({
+					id: settlement.id,
+					label:
+						this.campaignWorld
+							.resolveLocation({ scopeType: 'settlement', scopeId: settlement.id })
+							?.breadcrumb.join(' › ') ?? settlement.name,
+				})),
+		];
+	});
+
+	readonly organizationOptions = computed(() => [
+		{ id: 'all', label: 'Todas as organizações' },
+		...(this.campaignWorld.world()?.organizations ?? [])
+			.filter((organization) => isCampaignOrganizationEligible(organization))
+			.slice()
+			.sort((left, right) => left.name.localeCompare(right.name))
+			.map((organization) => ({
+				id: organization.id,
+				label: organization.archived ? `${organization.name} (arquivada)` : organization.name,
+			})),
+	]);
 
 	readonly groupedItems = computed(() => this.hubFilterService.groupItems(this.filteredItems()));
 
@@ -405,6 +480,12 @@ export class EncounterHub {
 		return 'Todos';
 	}
 
+	lifecycleLabel(lifecycle: EncounterHubLifecycleFilter): string {
+		if (lifecycle === 'archived') return 'Arquivados';
+		if (lifecycle === 'all') return 'Todos os ciclos';
+		return 'Ativos';
+	}
+
 	sortLabel(sort: EncounterHubSortOption): string {
 		if (sort === 'recent') return 'Mais recentes primeiro';
 		if (sort === 'oldest') return 'Mais antigos primeiro';
@@ -516,12 +597,50 @@ export class EncounterHub {
 		this.filters.update((filters) => ({ ...filters, query: value }));
 	}
 
+	updateTag(tag: string) {
+		this.filters.update((filters) => ({ ...filters, tag }));
+	}
+
+	updateLifecycle(lifecycle: EncounterHubLifecycleFilter) {
+		this.filters.update((filters) => ({ ...filters, lifecycle }));
+	}
+
 	updateStatus(status: EncounterHubStatusFilter) {
 		this.filters.update((filters) => ({ ...filters, status }));
 	}
 
 	updateSort(sort: EncounterHubSortOption) {
 		this.filters.update((filters) => ({ ...filters, sort }));
+	}
+
+	updateOrganization(organizationId: string) {
+		this.filters.update((filters) => ({ ...filters, organizationId }));
+	}
+
+	setEmpireFilter(empireId: string) {
+		this.filters.update((filters) => ({
+			...filters,
+			empireId,
+			stateId: 'all',
+			settlementId: 'all',
+		}));
+	}
+
+	setStateFilter(stateId: string) {
+		this.filters.update((filters) => ({ ...filters, stateId, settlementId: 'all' }));
+		if (stateId === 'all') return;
+		const state = this.campaignWorld.world()?.states.find((item) => item.id === stateId);
+		if (state) this.filters.update((filters) => ({ ...filters, empireId: state.empireId }));
+	}
+
+	setSettlementFilter(settlementId: string) {
+		this.filters.update((filters) => ({ ...filters, settlementId }));
+		if (settlementId === 'all') return;
+		const world = this.campaignWorld.world();
+		const settlement = world?.settlements.find((item) => item.id === settlementId);
+		const state = settlement && world?.states.find((item) => item.id === settlement.stateId);
+		if (!state) return;
+		this.filters.update((filters) => ({ ...filters, stateId: state.id, empireId: state.empireId }));
 	}
 
 	private refresh() {

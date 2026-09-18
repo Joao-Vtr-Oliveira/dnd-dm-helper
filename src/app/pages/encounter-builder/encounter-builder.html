@@ -46,10 +46,38 @@
 		</div>
 	</header>
 
-	<details class="app-panel p-4 sm:p-5" open>
+	@if (participantContextSuggestion(); as suggestion) {
+		@if (suggestion.sourceCount > 0) {
+			<section class="app-panel border-violet-300/20 bg-violet-500/[0.06] p-4 sm:p-5">
+				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<div class="min-w-0">
+						<div class="app-eyebrow">Contexto sugerido</div>
+						<p class="mt-1 text-sm text-app-muted">
+							{{ suggestion.sourceCount }} ficha(s) dos integrantes possuem metadata formal de localização ou organização.
+						</p>
+					</div>
+					<button
+						type="button"
+						class="app-button app-button-secondary shrink-0"
+						[disabled]="!suggestion.hasSuggestions"
+						(click)="applyParticipantContext()"
+					>
+						Aplicar contexto dos integrantes
+					</button>
+				</div>
+				@if (!suggestion.hasSuggestions) {
+					<p class="mt-2 text-xs text-app-subtle">
+						Essas fichas não possuem relações formais para copiar. Participantes manuais e tags não geram sugestões.
+					</p>
+				}
+			</section>
+		}
+	}
+
+	<details class="app-panel p-4 sm:p-5">
 		<summary class="cursor-pointer list-none font-semibold text-app-text">
 			<span class="flex justify-between"
-				>Contexto do encounter
+				>Editar contexto formal
 				<span class="text-sm font-normal text-app-muted">{{ encounter().locationRefs?.length ?? 0 }} locais · {{ encounter().organizationRefs?.length ?? 0 }} organizações</span>
 			</span>
 		</summary>
@@ -974,6 +1002,50 @@
 				[ngModel]="sheetQ()"
 				(ngModelChange)="sheetQ.set($event)"
 			/>
+			@if (contextualSuggestionGroups().length) {
+				<section class="app-inset mt-4 border-violet-300/20 bg-violet-500/[0.06] p-3" aria-label="Sugestões contextuais">
+					<div class="flex items-start justify-between gap-3">
+						<div>
+							<div class="text-sm font-semibold text-app-text">Sugestões para esta posição</div>
+							<div class="mt-1 text-xs text-app-muted">
+								Fichas de monstros e NPCs relacionadas formalmente à posição atual da party.
+							</div>
+						</div>
+						<span class="app-status shrink-0 border border-violet-300/20 bg-violet-500/10 text-violet-100">
+							{{ campaignContext.resolvedCurrentLocation()?.label }}
+						</span>
+					</div>
+					<div class="mt-3 space-y-3">
+						@for (group of contextualSuggestionGroups(); track group.id) {
+							<div>
+								<div class="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-app-subtle">
+									{{ group.label }}
+								</div>
+								<div class="space-y-1.5">
+									@for (entry of group.entries; track entry.content.id) {
+										<div class="flex items-center justify-between gap-3 rounded-lg border border-app-divider px-3 py-2">
+											<div class="min-w-0">
+												<div class="truncate text-sm font-medium text-app-text">{{ entry.content.title }}</div>
+												<div class="mt-0.5 text-xs text-app-subtle">
+													{{ contextualSheetCategoryLabel(entry) }} · {{ contextualSheetReasonLabel(entry) }}
+												</div>
+											</div>
+											<div class="flex shrink-0 gap-1.5">
+												<button type="button" class="app-button app-button-ghost px-2.5 py-1.5 text-xs" (click)="useSheetInDraft(entry.content.id)">
+													Usar
+												</button>
+												<button type="button" class="app-button app-button-primary px-2.5 py-1.5 text-xs" (click)="addFromSheet(entry.content.id)">
+													Adicionar
+												</button>
+											</div>
+										</div>
+									}
+								</div>
+							</div>
+						}
+					</div>
+				</section>
+			}
 			<div class="mt-4 max-h-[55vh] space-y-2 overflow-auto">
 				@for (sheet of filteredHomebrewSheets(); track sheet.id) {
 					<div

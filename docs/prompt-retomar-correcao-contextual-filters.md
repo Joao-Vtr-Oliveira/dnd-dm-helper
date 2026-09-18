@@ -81,9 +81,17 @@ Tags não substituem `classes`. Tags novas servem apenas para busca de caracter�
 
 `CampaignWorld.organizations` continua sendo o único registry de organizações.
 
-Uma Organization é somente uma guilda ou grupo formal relevante para a campanha. `organizationType` aceita apenas `guild` e `group`.
+ Uma Organization formal vem de uma nota no nível superior `dnd/Guildas & Grupos/` e
+ pertence ao único registry `CampaignWorld.organizations`. `organizationType` é
+ descritivo e pode ser `guild`, `group`, `cult`, `family` ou outro valor de campanha
+ revisado. Red Vortex, Daniels e Genya devem permanecer elegíveis por serem entradas
+ formais dessa fonte.
 
-Comunidades locais, conselhos, mesas de trabalhadores, companhias locais, famílias, cultos, instituições públicas, guardas, POIs e infraestrutura não são Organizations. Permanecem como material de mundo ou POI.
+ Comunidades locais, conselhos, mesas de trabalhadores, companhias locais, serviços,
+ POIs e infraestrutura encontrados apenas em `Mundo/.../Guildas.md` não são
+ Organizations formais. Permanecem como contexto local ou POI, mesmo que tenham nome,
+ escopo ou presença. O escopo de criação deve ser explícito: Organization formal para
+ alcance de campanha/regional; contexto local ou POI para algo restrito à vila.
 
 Não transforme em Organization:
 
@@ -98,7 +106,7 @@ Não transforme em Organization:
 
 Esses elementos são POIs ou infraestrutura. Podem apontar para uma Organization.
 
-Não promova um registro local ao registry apenas porque ele tem nome, escopo ou presença. O Conselho do Corte de Nagawoods e a rede equestre de Hotead permanecem material de mundo, não Organizations formais.
+Não promova um registro local ao registry apenas porque ele tem nome, escopo ou presença. O Conselho do Corte de Nagawoods e a rede equestre de Hotead permanecem material de mundo, não Organizations formais. Não remova uma Organization formal apenas porque seu tipo é `cult` ou `family`.
 
 Filtros de organização usam somente:
 
@@ -112,7 +120,7 @@ Presence descreve onde a organização possui atividade documentada. Não coloca
 
 Uma presença global não deve gerar card em toda página territorial. Uma presença `remote-contact` representa acesso, não presença física. Uma operação temporária não deve ser criada a partir de material planejado.
 
-O root pode listar o registry formal de guildas e grupos. Páginas territoriais não exibem Organizations nem presenças automaticamente.
+O root pode listar o registry formal de Organizations. Páginas territoriais não exibem Organizations nem presenças automaticamente.
 
 Não invente presenças por associação profissional, nome de tag, POI, menção narrativa ou existência de membros.
 
@@ -174,7 +182,8 @@ Outros casos:
 - referência direta a Hotead encontra Hotead e o filtro agregado de Feng, mas não outro settlement de Feng;
 - criatura com habitat estadual em Nagazav não aparece diretamente em todos os settlements de Nagazav;
 - Snowbound Hunter usa uma ficha para Dortx e Treuz, sem duplicação;
-- Organization local válida aparece somente onde há presença explícita;
+- Organization formal aparece somente onde há presença explícita; contexto local não
+  vira Organization por possuir uma entrada em `Guildas.md`;
 - POI associado a Winterhold não cria uma segunda Organization;
 - ficha genérica sem localização não aparece como `Aqui`.
 
@@ -197,7 +206,8 @@ Antes de iniciar Task 5, todos estes pontos devem estar verdadeiros:
 - nenhum resolver contextual usa tags/groups como fallback;
 - `generic` não é relation geográfica;
 - filtro organizacional usa ID formal;
-- organizações locais não são descartadas por regra geral;
+- Organizations formais não são descartadas por `organizationType`; cultos e famílias
+  formais permanecem válidos, enquanto material local não é promovido automaticamente;
 - presença não injeta membros ou fichas;
 - Talha passa no caso Feng/Drek;
 - Guarda usa uma ficha reutilizável com composição separada;

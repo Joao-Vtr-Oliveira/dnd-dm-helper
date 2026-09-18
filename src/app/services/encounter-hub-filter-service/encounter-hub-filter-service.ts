@@ -1,10 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
+import type { CampaignWorld } from '../../models/campaign-world-model';
 import type { SavedEncounter } from '../local-storage-service/local-storage-service';
 import { WorkspaceStorageService } from '../workspace-service/workspace-storage-service';
 
 export type EncounterHubStatusFilter = 'all' | 'prepared' | 'active' | 'paused' | 'completed';
+export type EncounterHubLifecycleFilter = 'active' | 'archived' | 'all';
 export type EncounterHubSortOption = 'smart' | 'recent' | 'oldest' | 'updated' | 'name';
 export type EncounterHubGroupLabel =
 	| 'Hoje'
@@ -15,6 +17,12 @@ export type EncounterHubGroupLabel =
 
 export interface EncounterHubFilters {
 	query: string;
+	tag: string;
+	lifecycle: EncounterHubLifecycleFilter;
+	empireId: string;
+	stateId: string;
+	settlementId: string;
+	organizationId: string;
 	status: EncounterHubStatusFilter;
 	sort: EncounterHubSortOption;
 }
@@ -38,15 +46,27 @@ export class EncounterHubFilterService {
 			const raw = this.storage.getItem(this.storageKey);
 			if (!raw) return this.defaultFilters();
 
-			const parsed = JSON.parse(raw) as Partial<EncounterHubFilters>;
-			return {
-				query: typeof parsed.query === 'string' ? parsed.query : '',
-				status: this.normalizeStatus(parsed.status),
-				sort: this.normalizeSort(parsed.sort),
-			};
+			return this.normalizeFilters(JSON.parse(raw));
 		} catch {
 			return this.defaultFilters();
 		}
+	}
+
+	normalizeFilters(value: unknown): EncounterHubFilters {
+		const parsed = value && typeof value === 'object' && !Array.isArray(value)
+			? (value as Partial<EncounterHubFilters>)
+			: {};
+		return {
+			query: typeof parsed.query === 'string' ? parsed.query : '',
+			tag: typeof parsed.tag === 'string' ? parsed.tag : 'all',
+			lifecycle: this.normalizeLifecycle(parsed.lifecycle),
+			empireId: typeof parsed.empireId === 'string' ? parsed.empireId : 'all',
+			stateId: typeof parsed.stateId === 'string' ? parsed.stateId : 'all',
+			settlementId: typeof parsed.settlementId === 'string' ? parsed.settlementId : 'all',
+			organizationId: typeof parsed.organizationId === 'string' ? parsed.organizationId : 'all',
+			status: this.normalizeStatus(parsed.status),
+			sort: this.normalizeSort(parsed.sort),
+		};
 	}
 
 	saveFilters(filters: EncounterHubFilters) {
@@ -79,26 +99,45 @@ export class EncounterHubFilterService {
 		});
 	}
 
-	filterItems(items: EncounterHubItem[], filters: EncounterHubFilters): EncounterHubItem[] {
-		const query = filters.query.trim().toLowerCase();
+	filterItems(
+		items: EncounterHubItem[],
+		filters: EncounterHubFilters,
+		world: CampaignWorld | null = null,
+	): EncounterHubItem[] {
+		const query = normalizeFilterText(filters.query);
 
 		return items.filter((item) => {
+			if (filters.lifecycle === 'active' && item.encounter.archived) return false;
+			if (filters.lifecycle === 'archived' && !item.encounter.archived) return false;
 			if (filters.status !== 'all' && item.status !== filters.status) return false;
+			if (
+				filters.tag !== 'all' &&
+				!item.encounter.tags.some((tag) => normalizeFilterText(tag) === normalizeFilterText(filters.tag))
+			)
+				return false;
+			if (!matchesLocationFilters(item.encounter.locationRefs ?? [], filters, world)) return false;
+			if (
+				filters.organizationId !== 'all' &&
+				!(item.encounter.organizationRefs ?? []).some(
+					(ref) => ref.organizationId === filters.organizationId,
+				)
+			)
+				return false;
 			if (!query) return true;
 
 			const tags = item.encounter.tags;
 			const description = item.encounter.description ?? '';
 			const creatureNames = item.encounter.participants.map((participant) => participant.name).join(' ');
+			const notes = item.encounter.notes ?? '';
 
-			const haystack = [
+			const haystack = normalizeFilterText([
 				item.encounter.title,
 				description,
 				tags.join(' '),
 				creatureNames,
+				notes,
 				item.latestBattle?.name ?? '',
-			]
-				.join(' ')
-				.toLowerCase();
+			].join(' '));
 
 			return haystack.includes(query);
 		});
@@ -175,9 +214,20 @@ export class EncounterHubFilterService {
 	private defaultFilters(): EncounterHubFilters {
 		return {
 			query: '',
+			tag: 'all',
+			lifecycle: 'active',
+			empireId: 'all',
+			stateId: 'all',
+			settlementId: 'all',
+			organizationId: 'all',
 			status: 'all',
 			sort: 'smart',
 		};
+	}
+
+	private normalizeLifecycle(value: unknown): EncounterHubLifecycleFilter {
+		if (value === 'active' || value === 'archived' || value === 'all') return value;
+		return 'active';
 	}
 
 	private normalizeStatus(value: unknown): EncounterHubStatusFilter {
@@ -205,4 +255,80 @@ export class EncounterHubFilterService {
 		}
 		return 'smart';
 	}
+}
+
+type ResolvedRelation = {
+	scopeType: 'empire' | 'state' | 'settlement';
+	empireId: string;
+	stateId?: string;
+	settlementId?: string;
+};
+
+function normalizeFilterText(value: string): string {
+	return value
+		.trim()
+		.toLowerCase()
+		.normalize('NFKD')
+		.replace(/[\u0300-\u036f]/g, '');
+}
+
+function matchesLocationFilters(
+	locationRefs: NonNullable<SavedEncounter['locationRefs']>,
+	filters: EncounterHubFilters,
+	world: CampaignWorld | null,
+): boolean {
+	const selections = [
+		['empire', filters.empireId],
+		['state', filters.stateId],
+		['settlement', filters.settlementId],
+	] as const;
+	if (selections.every(([, id]) => id === 'all')) return true;
+	if (!world) return false;
+
+	return selections.every(([scopeType, scopeId]) => {
+		if (scopeId === 'all') return true;
+		return locationRefs.some((relation) => {
+			const resolved = resolveRelation(world, relation.scopeType, relation.scopeId);
+			return resolved ? relationMatchesScope(world, resolved, scopeType, scopeId) : false;
+		});
+	});
+}
+
+function resolveRelation(
+	world: CampaignWorld,
+	scopeType: ResolvedRelation['scopeType'],
+	scopeId: string,
+): ResolvedRelation | null {
+	if (scopeType === 'empire') {
+		return world.empires.some((empire) => empire.id === scopeId)
+			? { scopeType, empireId: scopeId }
+			: null;
+	}
+	if (scopeType === 'state') {
+		const state = world.states.find((item) => item.id === scopeId);
+		return state && world.empires.some((empire) => empire.id === state.empireId)
+			? { scopeType, empireId: state.empireId, stateId: state.id }
+			: null;
+	}
+	const settlement = world.settlements.find((item) => item.id === scopeId);
+	if (!settlement) return null;
+	const state = world.states.find((item) => item.id === settlement.stateId);
+	return state && world.empires.some((empire) => empire.id === state.empireId)
+		? { scopeType, empireId: state.empireId, stateId: state.id, settlementId: settlement.id }
+		: null;
+}
+
+function relationMatchesScope(
+	world: CampaignWorld,
+	relation: ResolvedRelation,
+	scopeType: ResolvedRelation['scopeType'],
+	scopeId: string,
+): boolean {
+	if (scopeType === 'empire') return relation.empireId === scopeId;
+	if (scopeType === 'state') {
+		const selectedState = world.states.find((state) => state.id === scopeId);
+		return !!selectedState && relation.scopeType !== 'empire' && relation.stateId === selectedState.id;
+	}
+	const selectedSettlement = world.settlements.find((settlement) => settlement.id === scopeId);
+	return !!selectedSettlement && relation.scopeType === 'settlement' && relation.settlementId === scopeId;
 }

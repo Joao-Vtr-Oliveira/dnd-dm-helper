@@ -112,6 +112,14 @@ describe('BattleEncounterService', () => {
 
 	it('creates isolated runtime combatants from encounter participants', () => {
 		const source = structuredClone(encounter);
+		Object.assign(source.participants[0].sheet as unknown as Record<string, unknown>, {
+			archived: true,
+			generic: false,
+			classes: ['ranger'],
+			tags: ['editorial'],
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'nagawoods', relation: 'base' }],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'member' }],
+		});
 		const battle = service.createBattleFromEncounter(
 			source,
 			undefined,
@@ -130,6 +138,10 @@ describe('BattleEncounterService', () => {
 		expect(combatant.sourceSheetId).toBe(boss.sourceSheetId);
 		expect(combatant.referenceSheetId).toBe(reference.id);
 		expect(reference.sheet).toEqual(boss.sheet);
+		for (const field of ['archived', 'generic', 'classes', 'tags', 'locationRefs', 'organizationRefs']) {
+			expect(field in reference.sheet).withContext(field).toBeFalse();
+			expect(field in combatant).withContext(field).toBeFalse();
+		}
 		expect(reference.sheet).not.toBe(source.participants[0].sheet);
 		expect(combatant.currentHp).toBe(combatant.maxHp);
 		expect(combatant.temporaryHp).toBe(0);
@@ -151,7 +163,16 @@ describe('BattleEncounterService', () => {
 			}),
 		);
 		expect(combatant.privateNotes).toBe(boss.notes);
-		expect(source).toEqual(encounter);
+		expect(source.participants[0].sheet).toEqual(
+			jasmine.objectContaining({ locationRefs: [{ scopeType: 'settlement', scopeId: 'nagawoods', relation: 'base' }] }),
+		);
+
+		const advanced = service.advanceTurn(battle, new Date('2026-01-01T10:00:05Z'));
+		const snapshot = advanced.turnSnapshots[0];
+		expect(snapshot).toBeDefined();
+		expect('referenceSheets' in snapshot.state).toBeFalse();
+		expect(snapshot.state.combatants.every((item) => !('locationRefs' in item))).toBeTrue();
+		expect(snapshot.state.pendingCombatants.every((item) => !('organizationRefs' in item))).toBeTrue();
 	});
 
 	it('creates Wen Torger from the current rich sheet without pseudo-spells or converted recharge', () => {
@@ -364,6 +385,21 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('normalizes persisted battles to canonical runtime fields only', () => {
+		const persistedReferenceSheet = {
+			id: 'reference-1',
+			sheet: {
+				name: 'Mage reference',
+				armorClass: 15,
+				maxHp: 40,
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+				features: [],
+				size: 'Medium',
+				locationRefs: [{ scopeType: 'settlement', scopeId: 'old-town', relation: 'base' }],
+				organizationRefs: [{ organizationId: 'guild', relation: 'member' }],
+			},
+		} as unknown as import('../../models/battle-encounter-model').BattleReferenceSheet;
 		const normalized = service.normalizeBattleEncounter({
 			id: 'battle-1',
 			sourceEncounterId: 'enc-1',
@@ -399,21 +435,7 @@ describe('BattleEncounterService', () => {
 					damageResistances: [{ types: ['fire'], note: 'while shielded' }],
 				},
 			],
-			referenceSheets: [
-				{
-					id: 'reference-1',
-					sheet: {
-						name: 'Mage reference',
-						armorClass: 15,
-						maxHp: 40,
-						spellSlots: [],
-						spells: [],
-						specialAbilities: [],
-						features: [],
-						size: 'Medium',
-					},
-				},
-			],
+			referenceSheets: [persistedReferenceSheet],
 			pendingCombatants: [],
 			lairActions: [],
 			traps: [],
@@ -426,6 +448,8 @@ describe('BattleEncounterService', () => {
 		expect(normalized.combatants[0].referenceSheetId).toBe('reference-1');
 		expect(normalized.combatants[0].spells[0].name).toBe('Magic Missile');
 		expect(normalized.combatants[0].spells[0].source).toBe('PHB');
+		expect('locationRefs' in normalized.referenceSheets[0].sheet).toBeFalse();
+		expect('organizationRefs' in normalized.referenceSheets[0].sheet).toBeFalse();
 		expect(normalized.combatants[0].features[0].name).toBe('Spellcasting');
 		expect(normalized.combatants[0].damageResistances).toEqual([
 			{ types: ['fire'], note: 'while shielded' },

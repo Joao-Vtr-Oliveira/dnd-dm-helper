@@ -22,6 +22,7 @@ import type {
 	CreatureSpell,
 } from '../../models/creature-sheet-model';
 import { normalizeArmorClass } from '../../models/creature-sheet-model';
+import type { ResolvedContextualContent } from '../../models/contextual-content-resolver-model';
 import {
 	isCampaignOrganizationEligible,
 	type CampaignLocationScope,
@@ -43,11 +44,13 @@ import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type { CompendiumBestiaryMonsterIndexEntry } from '../../models/compendium-bestiary-model';
 import type { ResolvedSpellReference } from '../../models/spell-reference-model';
 import { BattleEncounterStorageService } from '../../services/battle-encounter-storage-service/battle-encounter-storage-service';
+import { CampaignContextService } from '../../services/campaign-context-service/campaign-context-service';
 import { CompendiumBestiaryRepositoryService } from '../../services/compendium-bestiary-repository-service/compendium-bestiary-repository-service';
 import { CompendiumCreatureAdapterService } from '../../services/compendium-creature-adapter-service/compendium-creature-adapter-service';
 import { CreatureTemplateService } from '../../services/creature-template-service/creature-template-service';
 import { FiveEToolsHomebrewService } from '../../services/fiveetools-homebrew-service/fiveetools-homebrew-service';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
+import { ContextualContentResolverService } from '../../services/contextual-content-resolver-service/contextual-content-resolver-service';
 import {
 	LocalStorageService,
 	type SavedEncounter,
@@ -89,6 +92,17 @@ type TrapDraft = {
 	cooldownRounds: string;
 };
 
+type ParticipantContextSuggestion = {
+	sourceCount: number;
+	locationRefs: ContentLocationRelation[];
+	organizationRefs: ContentOrganizationRelation[];
+	hasSuggestions: boolean;
+};
+
+type ContextualSheetSuggestion = Omit<ResolvedContextualContent, 'content'> & {
+	content: SavedSheetInterface;
+};
+
 @Component({
 	selector: 'app-encounter-builder',
 	standalone: true,
@@ -108,6 +122,7 @@ type TrapDraft = {
 export class EncounterBuilder {
 	readonly normalizeArmorClass = normalizeArmorClass;
 	private readonly referenceOverlay = inject(ReferenceOverlayService);
+	private readonly contextualResolver = inject(ContextualContentResolverService);
 	readonly encounter = signal<Encounter>(this.createDefaultEncounter());
 	readonly participants = computed(() => this.encounter().participants);
 	readonly savedId = signal<string | null>(null);
@@ -145,6 +160,7 @@ export class EncounterBuilder {
 	readonly organizationId = signal('');
 	readonly organizationRelation = signal<ContentOrganizationRelationKind>('member');
 	readonly campaignWorld = inject(CampaignWorldService);
+	readonly campaignContext = inject(CampaignContextService);
 	readonly locationScopeTypeOptions: Array<{ value: CampaignLocationScope; label: string }> = [
 		{ value: 'empire', label: 'Império' },
 		{ value: 'state', label: 'Estado' },
@@ -190,8 +206,24 @@ export class EncounterBuilder {
 				value: organization.id,
 				label: `${organization.name}${organization.archived ? ' [arquivada]' : ''}`,
 			}))
-			.sort((left, right) => left.label.localeCompare(right.label)),
+		.sort((left, right) => left.label.localeCompare(right.label)),
 	);
+	readonly participantContextSuggestion = computed<ParticipantContextSuggestion>(() => {
+		const sheetsById = new Map(this.homebrewSheets().map((sheet) => [sheet.id, sheet]));
+		const sourceSheets = this.participants()
+			.map((participant) => (participant.sourceSheetId ? sheetsById.get(participant.sourceSheetId) : undefined))
+			.filter((sheet): sheet is SavedSheetInterface => !!sheet);
+		const locationRefs = uniqueLocationRelations(sourceSheets.flatMap((sheet) => sheet.locationRefs ?? []));
+		const organizationRefs = uniqueOrganizationRelations(
+			sourceSheets.flatMap((sheet) => sheet.organizationRefs ?? []),
+		);
+		return {
+			sourceCount: new Set(sourceSheets.map((sheet) => sheet.id)).size,
+			locationRefs,
+			organizationRefs,
+			hasSuggestions: locationRefs.length > 0 || organizationRefs.length > 0,
+		};
+	});
 	readonly saveAndBattleLabel = computed(() =>
 		this.savedId() && this.battleStorage.getActiveBattleByEncounterId(this.savedId()!)
 			? 'Salvar e continuar batalha'
@@ -207,6 +239,38 @@ export class EncounterBuilder {
 				.includes(query),
 		);
 	});
+	readonly contextualSheetSuggestions = computed(() => {
+		const resolution = this.contextualResolver.resolve({
+			currentLocation: this.campaignContext.resolvedCurrentLocation(),
+			sheets: this.homebrewSheets(),
+			encounters: [],
+			organizations: [],
+		});
+		const seen = new Set<string>();
+		const here = this.contextualSheetsFor(resolution.here, seen);
+		const stateRegion = this.contextualSheetsFor(resolution.stateRegion, seen);
+		const broadContext = this.contextualSheetsFor(resolution.broadContext, seen);
+		return { here, stateRegion, broadContext };
+	});
+	readonly contextualSuggestionGroups = computed(() => {
+		const suggestions = this.contextualSheetSuggestions();
+		return [
+			{ id: 'here', label: 'Aqui', entries: suggestions.here },
+			{ id: 'state-region', label: 'Estado/região', entries: suggestions.stateRegion },
+			{ id: 'broad-context', label: 'Regional/amplo', entries: suggestions.broadContext },
+		].filter((group) => group.entries.length > 0);
+	});
+
+	contextualSheetCategoryLabel(entry: ContextualSheetSuggestion): string {
+		return entry.content.category === 'npc' ? 'NPC' : 'Monstro';
+	}
+
+	contextualSheetReasonLabel(entry: ContextualSheetSuggestion): string {
+		if (entry.reason === 'generic') return 'Arquétipo reutilizável';
+		return entry.matchedLocations
+			.map((location) => this.locationRelationLabel(location.relation))
+			.join(' · ');
+	}
 	readonly filteredBestiaryMonsters = computed(() => {
 		const query = this.bestiaryQ().trim().toLowerCase();
 		return this.bestiaryMonsters().filter(
@@ -311,6 +375,28 @@ export class EncounterBuilder {
 
 	setArchived(archived: boolean) {
 		this.updateEncounter({ archived: archived ? true : undefined });
+	}
+
+	applyParticipantContext() {
+		const suggestion = this.participantContextSuggestion();
+		if (!suggestion.hasSuggestions) {
+			this.showToast({ type: 'warn', text: 'Nenhum integrante possui contexto formal para sugerir.' });
+			return;
+		}
+
+		const locationRefs = uniqueLocationRelations([
+			...(this.encounter().locationRefs ?? []),
+			...suggestion.locationRefs,
+		]);
+		const organizationRefs = uniqueOrganizationRelations([
+			...(this.encounter().organizationRefs ?? []),
+			...suggestion.organizationRefs,
+		]);
+		this.updateEncounter({
+			locationRefs: locationRefs.length ? locationRefs : undefined,
+			organizationRefs: organizationRefs.length ? organizationRefs : undefined,
+		});
+		this.showToast({ type: 'success', text: 'Contexto formal dos integrantes aplicado.' });
 	}
 
 	setLocationScopeType(scopeType: CampaignLocationScope) {
@@ -1016,6 +1102,20 @@ export class EncounterBuilder {
 		].sort((left, right) => left.localeCompare(right));
 	}
 
+	private contextualSheetsFor(
+		entries: ResolvedContextualContent[],
+		seen: Set<string>,
+	): ContextualSheetSuggestion[] {
+		return entries.flatMap((entry) => {
+			if (entry.kind !== 'sheet') return [];
+			const sheet = entry.content as SavedSheetInterface;
+			if (sheet.category !== 'monster' && sheet.category !== 'npc') return [];
+			if (seen.has(sheet.id)) return [];
+			seen.add(sheet.id);
+			return [{ ...entry, content: sheet }];
+		});
+	}
+
 	private persistEncounter(): { encounter: SavedEncounter; created: boolean } | null {
 		try {
 			const current = structuredClone(this.encounter());
@@ -1213,6 +1313,26 @@ export class EncounterBuilder {
 		this.toast.set(toast);
 		this.toastTimer = window.setTimeout(() => this.toast.set(null), ms);
 	}
+}
+
+function uniqueLocationRelations(refs: ContentLocationRelation[]): ContentLocationRelation[] {
+	const seen = new Set<string>();
+	return refs.filter((ref) => {
+		const key = `${ref.scopeType}:${ref.scopeId}:${ref.relation}`;
+		if (seen.has(key)) return false;
+		seen.add(key);
+		return true;
+	});
+}
+
+function uniqueOrganizationRelations(refs: ContentOrganizationRelation[]): ContentOrganizationRelation[] {
+	const seen = new Set<string>();
+	return refs.filter((ref) => {
+		const key = `${ref.organizationId}:${ref.relation}`;
+		if (seen.has(key)) return false;
+		seen.add(key);
+		return true;
+	});
 }
 
 export const canDeactivateEncounterBuilder: CanDeactivateFn<EncounterBuilder> = (component) =>

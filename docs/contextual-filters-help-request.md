@@ -5,6 +5,15 @@
 > em `docs/contextual-content-contract-draft.md`; não use a seção “Decisões
 > Necessárias” como perguntas abertas de produto.
 
+> [!important] Resolução semântica vigente
+> O registry formal de `CampaignWorld.organizations` deve ser abastecido pelas notas
+> de `dnd/Guildas & Grupos/`, não por qualquer entrada local de
+> `Mundo/.../Guildas.md`. `organizationType` é descritivo: cultos e famílias formais
+> continuam válidos, incluindo Red Vortex, Daniels e Genya. Comunidades, serviços e
+> infraestrutura encontrados apenas nas notas locais permanecem contexto local ou POI.
+> Esta resolução atualiza as decisões históricas abaixo, mas não autoriza nenhuma
+> migração ou alteração de JSON neste documento.
+
 ## Situação
 
 O modelo atual de filtros contextuais e a apresentação de organizações no World não
@@ -166,6 +175,9 @@ fluxo precisa ser revalidado contra os dados reais carregados no navegador antes
 qualquer novo desenho.
 
 ### Organizações no World
+
+As regras abaixo registram o comportamento observado quando este pedido foi escrito;
+elas são históricas e foram superseded pela resolução semântica no início do arquivo.
 
 `src/app/pages/world/` tem as seguintes regras atuais:
 

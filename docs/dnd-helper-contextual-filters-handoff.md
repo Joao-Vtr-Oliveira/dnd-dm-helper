@@ -235,8 +235,17 @@ ficha estar na pasta `Bestiário/Guarda de Mornk`.
 
 Existem dois níveis principais:
 
-- `dnd/Guildas & Grupos/`: organizações globais, grupos, cultos e famílias;
-- `Mundo/Impérios/Mornk/<estado>/Guildas.md`: distribuição e presença local.
+- `dnd/Guildas & Grupos/`: fonte formal do registry de Organizations, incluindo
+  organizações globais, grupos, cultos e famílias;
+- `Mundo/Impérios/Mornk/<estado>/Guildas.md`: distribuição, presença e contexto local;
+  não cria uma Organization formal por si só.
+
+O pertencimento ao registry vem da fonte formal e da revisão narrativa, não do valor de
+`organizationType`. Cultos e famílias formais continuam válidos: Red Vortex, Daniels e
+Genya não devem ser removidos por tipo. Comunidades, serviços, negócios e infraestrutura
+que aparecem apenas nas notas estaduais continuam locais ou POIs. A criação deve deixar
+visível a diferença entre uma Organization de alcance de campanha/regional e um contexto
+local da vila; não se deve usar nome, tag ou allowlist para decidir isso.
 
 O índice global `Guildas & Grupos/Guildas & Grupos.md` lista, entre outros:
 
@@ -1462,14 +1471,21 @@ permitir uma integração futura.
 
 ## 17. Pontos que a IA do Helper precisa decidir lendo o código
 
+> [!note] Itens históricos superseded
+> As perguntas abaixo preservam a auditoria original. A decisão semântica atual já
+> está fechada no contrato permanente: `dnd/Guildas & Grupos/` é a fonte formal do
+> registry; `organizationType` é descritivo e não exclui cultos ou famílias formais;
+> entradas apenas locais permanecem contexto ou POI. Não reabra essas decisões ao
+> executar uma task técnica.
+
 Antes de implementar, a IA deve responder no repositório:
 
 1. `campaign-world.organizations` é o local correto para o registry ou é necessário
    um registry contextual separado?
 2. O modelo atual aceita POI como localização contextual sem quebrar
    `currentLocation`?
-3. O tipo de organização atual (`guild`, `group`, `cult`, `family`) precisa incluir
-   `institution`, `company`, `government` ou tipos customizados?
+3. O tipo de organização atual é uma string descritiva; tipos adicionais só precisam
+   de decisão quando uma nova entidade formal for revisada.
 4. Como preservar IDs e aliases em múltiplos workspaces?
 5. Quais componentes de formulário e serviços de storage já devem ser reutilizados?
 6. Como os novos campos entram em `AppBackup`, migração e segurança de restauração?
