@@ -1,4 +1,5 @@
 import type { CreatureAbilityKey, CreatureSheet, CreatureSkill } from './creature-sheet-model';
+import type { Dnd5eCharacterClass } from './dnd-5e-reference-model';
 
 const skillAbilities: Record<string, CreatureAbilityKey> = {
 	acrobatics: 'dex',
@@ -59,6 +60,55 @@ export function proficiencyBonusForCreature(
 		: null;
 }
 
+const spellcastingAbilities: Partial<Record<Dnd5eCharacterClass, CreatureAbilityKey>> = {
+	artificer: 'int',
+	bard: 'cha',
+	cleric: 'wis',
+	druid: 'wis',
+	paladin: 'cha',
+	ranger: 'wis',
+	sorcerer: 'cha',
+	warlock: 'cha',
+	wizard: 'int',
+};
+
+export function spellcastingAbilityForClass(
+	characterClass: Dnd5eCharacterClass,
+): CreatureAbilityKey | undefined {
+	return spellcastingAbilities[characterClass];
+}
+
+/** Resolves multiclass NPCs only when every spellcasting class agrees. */
+export function spellcastingAbilityForClasses(
+	classes: readonly Dnd5eCharacterClass[],
+): CreatureAbilityKey | undefined {
+	const abilities = new Set(
+		classes.flatMap((characterClass) => {
+			const ability = spellcastingAbilityForClass(characterClass);
+			return ability ? [ability] : [];
+		}),
+	);
+	return abilities.size === 1 ? [...abilities][0] : undefined;
+}
+
+export function calculatedSpellSaveDc(
+	creature: Pick<CreatureSheet, 'abilityScores' | 'challengeRating' | 'level' | 'spellcasting'>,
+): number | null {
+	const ability = creature.spellcasting?.ability;
+	const modifier = ability ? abilityModifier(creature.abilityScores?.[ability]) : null;
+	const proficiency = proficiencyBonusForCreature(creature);
+	return modifier == null || proficiency == null ? null : 8 + proficiency + modifier;
+}
+
+export function calculatedSpellAttackBonus(
+	creature: Pick<CreatureSheet, 'abilityScores' | 'challengeRating' | 'level' | 'spellcasting'>,
+): number | null {
+	const ability = creature.spellcasting?.ability;
+	const modifier = ability ? abilityModifier(creature.abilityScores?.[ability]) : null;
+	const proficiency = proficiencyBonusForCreature(creature);
+	return modifier == null || proficiency == null ? null : proficiency + modifier;
+}
+
 export function skillAbilityForName(name: unknown): CreatureAbilityKey | undefined {
 	return typeof name === 'string' ? skillAbilities[name.trim().toLocaleLowerCase()] : undefined;
 }
@@ -108,11 +158,29 @@ export function applyCreatureDerivedValues(creature: CreatureSheet): CreatureShe
 		};
 		return { ...next, bonus: calculatedSkillBonus(next, creature) ?? skill.bonus };
 	});
+	const spellcasting = creature.spellcasting
+		? {
+			...creature.spellcasting,
+			...(calculatedSpellSaveDc(creature) != null
+				? {
+					spellSaveDc:
+						creature.spellcasting.spellSaveDcOverride ?? calculatedSpellSaveDc(creature)!,
+				}
+				: {}),
+			...(calculatedSpellAttackBonus(creature) != null
+				? {
+					spellAttackBonus:
+						creature.spellcasting.spellAttackBonusOverride ?? calculatedSpellAttackBonus(creature)!,
+				}
+				: {}),
+		}
+		: undefined;
 	return {
 		...creature,
 		...(savingThrows?.length ? { savingThrows } : {}),
 		...(skills?.length ? { skills } : {}),
 		passivePerception: resolvePassivePerception({ abilityScores: creature.abilityScores, skills }),
+		...(spellcasting ? { spellcasting } : {}),
 	};
 }
 

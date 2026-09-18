@@ -188,6 +188,7 @@ export class AppSelectComponent {
 	}
 
 	@HostListener('window:resize')
+	@HostListener('window:scroll')
 	@HostListener('document:scroll')
 	onViewportChange() {
 		if (this.open) this.positionMenu();
@@ -271,7 +272,7 @@ export class AppSelectComponent {
 		const above = rect.top - gap - margin;
 		const openAbove = below < 220 && above > below;
 		const maxHeight = Math.max(160, Math.min(320, openAbove ? above : below));
-		const width = Math.max(rect.width, 224);
+		const width = Math.min(Math.max(rect.width, 224), Math.max(0, window.innerWidth - margin * 2));
 		this.menuPosition = {
 			left: Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin)),
 			width,

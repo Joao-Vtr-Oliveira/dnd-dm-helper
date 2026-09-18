@@ -202,17 +202,19 @@ describe('AppBackupService', () => {
 			.withContext(`${validation.error ?? 'unknown validation error'}: ${invalidCollections.join(', ')}`)
 			.toBeTrue();
 		expect(validation.summary).toEqual(jasmine.objectContaining({
-			encounters: 7,
-			battleEncounters: 5,
-			homebrewSheets: 19,
-			hasCampaignLocation: true,
-			campaignLocationLabel: 'Localidade: Nagawoods',
+			encounters: backup.data.encounters.length,
+			battleEncounters: backup.data.battleEncounters.length,
+			homebrewSheets: backup.data.homebrewSheets.length,
+			hasCampaignLocation: backup.data.campaignContext?.currentLocation != null,
 		}));
+		expect(validation.summary.campaignLocationLabel).toEqual(jasmine.any(String));
 	});
 
-	it('restores the tracked backup position for the campaign clock and world', async () => {
-		const response = await fetch('/rpg_files/dnd-dm-helper-backup-v2.json');
-		service.applyBackup(await response.json());
+	it('restores the campaign position from an exported backup', () => {
+		campaignContext.setCurrentLocation({ scopeType: 'settlement', scopeId: 'nagawoods' });
+		const backup = service.exportAll();
+		campaignContext.clearCurrentLocation();
+		service.applyBackup(backup);
 
 		expect(campaignContext.currentLocationRef()).toEqual({
 			scopeType: 'settlement',

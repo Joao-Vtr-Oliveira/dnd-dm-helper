@@ -77,7 +77,27 @@
 			</div>
 		</div>
 		@if (editorType(); as type) {
-			<div class="mt-5 grid gap-4 border-t border-app-divider pt-5 sm:grid-cols-2">
+			<div
+				class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+				role="presentation"
+				(click)="cancelEditor()"
+			>
+				<div
+					class="app-dialog max-h-[calc(100vh-1.5rem)] w-full max-w-4xl overflow-y-auto p-5 sm:max-h-[calc(100vh-3rem)] sm:p-6"
+					role="dialog"
+					aria-modal="true"
+					(click)="$event.stopPropagation()"
+					[appDialogFocus]="true"
+					(appDialogEscape)="cancelEditor()"
+				>
+					<div class="mb-4 flex items-start justify-between gap-3 border-b border-app-divider pb-4">
+						<div>
+							<div class="app-eyebrow">Editor do mundo</div>
+							<h2 class="mt-1 text-2xl font-semibold">{{ editingEntityId() || editingOrganizationId() ? 'Editar' : 'Criar' }} {{ type }}</h2>
+						</div>
+						<button type="button" class="app-button app-modal-close h-9 w-9 p-0" (click)="cancelEditor()" aria-label="Fechar editor">x</button>
+					</div>
+					<div class="grid gap-4 sm:grid-cols-2">
 				<label class="text-sm font-semibold"
 					>Nome<input
 						class="app-field mt-2 w-full"
@@ -159,6 +179,21 @@
 							[(ngModel)]="editorSummary"
 						></textarea>
 					</label>
+					<div class="sm:col-span-2 text-sm font-semibold">
+						Organizações relacionadas
+						<div class="mt-2 grid gap-2 sm:grid-cols-2">
+							@for (organization of campaignOrganizations(); track organization.id) {
+								<label class="app-inset flex items-center gap-2 px-3 py-2 font-normal">
+									<input
+										type="checkbox"
+										[checked]="editorOrganizationIds.includes(organization.id)"
+																	(change)="toggleEditorOrganization(organization.id, $any($event.target).checked)"
+									/>
+									<span>{{ organization.name }}</span>
+								</label>
+							}
+						</div>
+					</div>
 				}
 				@if (type === 'organization') {
 					<label class="text-sm font-semibold"
@@ -200,6 +235,8 @@
 					><button type="button" class="app-button app-button-secondary" (click)="cancelEditor()">
 						Cancelar
 					</button>
+				</div>
+					</div>
 				</div>
 			</div>
 		}
@@ -441,6 +478,8 @@
 									+ Criar POI aqui
 								</button>
 							}
+							<button type="button" class="app-action-button rounded-xl border border-white/15 bg-white/5 text-sm hover:bg-white/10" (click)="openEditor(location.ref.scopeType, location.ref.scopeId)">Editar</button>
+							<button type="button" class="app-action-button rounded-xl border border-red-400/25 bg-red-500/10 text-sm text-red-100 hover:bg-red-500/20" (click)="deleteEntity(location.ref.scopeType, location.ref.scopeId)">Excluir</button>
 						</div>
 					</div>
 				}
@@ -452,16 +491,16 @@
 						@if ((campaignWorld.world()?.empires ?? []).length) {
 							<div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
 								@for (empire of campaignWorld.world()?.empires ?? []; track empire.id) {
-									<button
-										type="button"
-										class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-fuchsia-300/40 hover:bg-violet-500/10 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
-										(click)="selectLocation({ scopeType: 'empire', scopeId: empire.id })"
-									>
-										<div class="font-semibold text-white">{{ empire.name }}</div>
-										<div class="mt-2 text-sm text-white/55">
-											{{ campaignWorld.getStatesByEmpire(empire.id).length }} estados
+									<article class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-fuchsia-300/40 hover:bg-violet-500/10">
+										<button type="button" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60" (click)="selectLocation({ scopeType: 'empire', scopeId: empire.id })">
+											<div class="font-semibold text-white">{{ empire.name }}</div>
+											<div class="mt-2 text-sm text-white/55">{{ campaignWorld.getStatesByEmpire(empire.id).length }} estados</div>
+										</button>
+										<div class="mt-3 flex gap-2">
+											<button type="button" class="app-button app-button-secondary text-xs" (click)="openEditor('empire', empire.id)">Editar</button>
+											<button type="button" class="app-button app-button-danger text-xs" (click)="deleteEntity('empire', empire.id)">Excluir</button>
 										</div>
-									</button>
+									</article>
 								}
 							</div>
 						} @else {
@@ -727,16 +766,16 @@
 										state of campaignWorld.getStatesByEmpire(location.ref.scopeId);
 										track state.id
 									) {
-										<button
-											type="button"
-											class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-fuchsia-300/40 hover:bg-violet-500/10 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
-											(click)="selectLocation({ scopeType: 'state', scopeId: state.id })"
-										>
-											<div class="font-semibold text-white">{{ locationLabel({ scopeType: 'state', scopeId: state.id }) }}</div>
-											<div class="mt-2 text-sm text-white/55">
-												{{ campaignWorld.getSettlementsByState(state.id).length }} localidades
+										<article class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-fuchsia-300/40 hover:bg-violet-500/10">
+											<button type="button" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60" (click)="selectLocation({ scopeType: 'state', scopeId: state.id })">
+												<div class="font-semibold text-white">{{ locationLabel({ scopeType: 'state', scopeId: state.id }) }}</div>
+												<div class="mt-2 text-sm text-white/55">{{ campaignWorld.getSettlementsByState(state.id).length }} localidades</div>
+											</button>
+											<div class="mt-3 flex gap-2">
+												<button type="button" class="app-button app-button-secondary text-xs" (click)="openEditor('state', state.id)">Editar</button>
+												<button type="button" class="app-button app-button-danger text-xs" (click)="deleteEntity('state', state.id)">Excluir</button>
 											</div>
-										</button>
+										</article>
 									}
 								</div>
 							} @else {
@@ -756,18 +795,16 @@
 										settlement of campaignWorld.getSettlementsByState(location.ref.scopeId);
 										track settlement.id
 									) {
-										<button
-											type="button"
-											class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-fuchsia-300/40 hover:bg-violet-500/10 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
-											(click)="selectLocation({ scopeType: 'settlement', scopeId: settlement.id })"
-										>
-											<div class="font-semibold text-white">{{ locationLabel({ scopeType: 'settlement', scopeId: settlement.id }) }}</div>
-											<div class="mt-2 text-sm text-white/55">
-												{{ settlementTypeLabels[settlement.settlementType] }} ·
-												{{ campaignWorld.getPointsOfInterestBySettlement(settlement.id).length }}
-												POIs
+										<article class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-fuchsia-300/40 hover:bg-violet-500/10">
+											<button type="button" class="w-full text-left focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60" (click)="selectLocation({ scopeType: 'settlement', scopeId: settlement.id })">
+												<div class="font-semibold text-white">{{ locationLabel({ scopeType: 'settlement', scopeId: settlement.id }) }}</div>
+												<div class="mt-2 text-sm text-white/55">{{ settlementTypeLabels[settlement.settlementType] }} · {{ campaignWorld.getPointsOfInterestBySettlement(settlement.id).length }} POIs</div>
+											</button>
+											<div class="mt-3 flex gap-2">
+												<button type="button" class="app-button app-button-secondary text-xs" (click)="openEditor('settlement', settlement.id)">Editar</button>
+												<button type="button" class="app-button app-button-danger text-xs" (click)="deleteEntity('settlement', settlement.id)">Excluir</button>
 											</div>
-										</button>
+										</article>
 									}
 								</div>
 							} @else {
@@ -803,12 +840,16 @@
 													>{{ pointOfInterestTypeLabel(pointOfInterest.poiType) }}</span
 												>
 											</div>
-											@if (pointOfInterest.summary) {
-												<p class="mt-2 max-w-3xl text-sm leading-6 text-white/65">
-													{{ pointOfInterest.summary }}
-												</p>
-											}
-										</article>
+													@if (pointOfInterest.summary) {
+														<p class="mt-2 max-w-3xl text-sm leading-6 text-white/65">
+															{{ pointOfInterest.summary }}
+														</p>
+													}
+													<div class="mt-3 flex gap-2">
+														<button type="button" class="app-button app-button-secondary text-xs" (click)="openEditor('poi', pointOfInterest.id)">Editar</button>
+														<button type="button" class="app-button app-button-danger text-xs" (click)="deleteEntity('poi', pointOfInterest.id)">Excluir</button>
+													</div>
+												</article>
 									}
 								</div>
 							} @else {
@@ -823,3 +864,40 @@
 		</div>
 	}
 </section>
+
+@if (deleteRequest(); as request) {
+	<div
+		class="fixed inset-0 z-[var(--z-app-modal)] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+		role="presentation"
+		(click)="cancelDeleteEntity()"
+	>
+		<section
+			class="app-dialog w-full max-w-lg p-5 sm:p-6"
+			role="dialog"
+			aria-modal="true"
+			(click)="$event.stopPropagation()"
+			[appDialogFocus]="true"
+			(appDialogEscape)="cancelDeleteEntity()"
+		>
+			<h2 class="text-xl font-semibold">Excluir {{ request.name }}?</h2>
+			@if (request.dependencies.length) {
+				<p class="mt-3 text-sm text-amber-100">
+					Não é possível excluir enquanto existirem dependências:
+				</p>
+				<ul class="mt-2 list-disc pl-5 text-sm text-amber-100/90">
+					@for (dependency of request.dependencies; track dependency) {
+						<li>{{ dependency }}</li>
+					}
+				</ul>
+			} @else {
+				<p class="mt-3 text-sm text-app-muted">
+					A entidade será removida sem apagar outras referências automaticamente.
+				</p>
+			}
+			<div class="mt-5 flex flex-wrap justify-end gap-2">
+				<button type="button" class="app-button app-button-secondary" (click)="cancelDeleteEntity()">Cancelar</button>
+				<button type="button" class="app-button app-button-danger" [disabled]="request.dependencies.length > 0" (click)="confirmDeleteEntity()">Excluir</button>
+			</div>
+		</section>
+	</div>
+}

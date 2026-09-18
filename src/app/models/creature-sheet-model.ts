@@ -90,6 +90,8 @@ export interface CreatureSpellcastingMetadata {
 	ability?: CreatureAbilityKey;
 	spellSaveDc?: number;
 	spellAttackBonus?: number;
+	spellSaveDcOverride?: number;
+	spellAttackBonusOverride?: number;
 	header?: string;
 	slotRecovery?: string;
 }

@@ -37,11 +37,13 @@
 
 				<div class="min-w-0 rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
 					<div class="text-xs uppercase tracking-[0.2em] opacity-60">Turno atual</div>
-					<div class="mt-1 break-words text-lg font-semibold">
-						{{
-							currentCombatant()?.displayName ||
-								currentCombatant()?.name ||
-								'Nenhum combatente ativo na iniciativa'
+							<div class="mt-1 break-words text-lg font-semibold">
+								{{
+									currentSpecialTurn()
+										? specialTurnEvent()?.name || specialTurnTypeLabel()
+										: currentCombatant()?.displayName ||
+									currentCombatant()?.name ||
+									'Nenhum combatente ativo na iniciativa'
 						}}
 					</div>
 				</div>
@@ -120,10 +122,47 @@
 
 		<div class="grid gap-6 2xl:grid-cols-[minmax(0,1.72fr)_minmax(360px,0.88fr)]">
 			<div class="space-y-4">
+				@if (currentSpecialTurn(); as specialTurn) {
+					<section
+						data-testid="current-special-turn-cockpit"
+						class="rounded-app-panel border-2 border-fuchsia-300/65 bg-fuchsia-500/15 p-5 shadow-app-modal"
+					>
+						<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+							<div>
+								<div class="text-xs font-black uppercase tracking-[0.25em] text-fuchsia-100">
+									{{ specialTurnTypeLabel() }}
+								</div>
+								<h3 class="mt-2 text-2xl font-semibold text-white">
+									{{ specialTurnEvent()?.name || 'Evento especial' }}
+								</h3>
+								<p class="mt-2 text-sm font-semibold text-fuchsia-50">
+									É hora de resolver este evento especial antes de continuar a iniciativa.
+								</p>
+								@if (specialTurnEvent()?.description; as description) {
+									<p class="mt-2 max-w-2xl text-sm text-fuchsia-50/80">{{ description }}</p>
+								}
+								<div class="mt-3 flex flex-wrap gap-3 text-sm text-fuchsia-50/80">
+									<span>Round {{ battle()!.round }}</span>
+									<span>Iniciativa {{ specialTurn.initiative }}</span>
+								</div>
+							</div>
+							@if (battle()!.status === 'active') {
+								<button
+									type="button"
+									data-testid="special-turn-next"
+									class="app-button h-12 border-fuchsia-200/60 bg-fuchsia-400/25 px-5 font-semibold text-white hover:bg-fuchsia-400/35"
+									(click)="nextTurn()"
+								>
+									Próximo turno
+								</button>
+							}
+						</div>
+					</section>
+				}
 				@if (currentCombatant(); as combatant) {
 					<section
 						data-testid="current-turn-cockpit"
-						class="sticky top-[4.5rem] z-20 rounded-app-panel border border-amber-300/35 bg-app-surface-raised/95 p-4 shadow-app-modal backdrop-blur"
+						class="sticky top-[4.5rem] z-20 rounded-app-panel border border-amber-300/35 bg-app-surface-raised/95 p-4 shadow-app-modal"
 					>
 						<div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
 							<div class="min-w-0">
@@ -375,17 +414,24 @@
 							</div>
 
 							<div class="mt-3 flex flex-wrap gap-2">
-								<select
-									class="h-10 min-w-44 cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 text-sm"
-									[ngModel]="getConditionDraft(combatant.id).preset"
-									(ngModelChange)="setConditionDraft(combatant.id, { preset: $event })"
-								>
-									@for (option of conditionOptions; track option.name) {
-										@if (option.name !== 'custom') {
-											<option [value]="option.name">{{ option.label }}</option>
-										}
-									}
-								</select>
+								<app-select
+									data-testid="cockpit-condition-select"
+									label=""
+									class="min-w-44"
+									[options]="cockpitConditionOptions"
+									optionValueKey="name"
+									optionLabelKey="label"
+									[value]="getConditionDraft(combatant.id).preset"
+									(valueChange)="setConditionDraft(combatant.id, { preset: $event })"
+								/>
+								@if (conditionImmunityWarning(combatant.id); as warning) {
+									<span
+										role="alert"
+										class="inline-flex items-center rounded-2xl border border-amber-300/35 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-100"
+									>
+										{{ warning }}. Ainda é possível aplicar.
+									</span>
+								}
 								<button
 									type="button"
 									data-testid="cockpit-add-condition"
@@ -939,16 +985,24 @@
 
 											<label class="text-sm">
 												<span class="mb-1 block opacity-70">Condição base</span>
-												<select
-													class="w-full cursor-pointer rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
-													[ngModel]="getConditionDraft(combatant.id).preset"
-													(ngModelChange)="setConditionDraft(combatant.id, { preset: $event })"
+								<app-select
+									data-testid="combatant-condition-select"
+									label=""
+									[options]="conditionOptions"
+									optionValueKey="name"
+									optionLabelKey="label"
+									[value]="getConditionDraft(combatant.id).preset"
+									(valueChange)="setConditionDraft(combatant.id, { preset: $event })"
+								/>
+											@if (conditionImmunityWarning(combatant.id); as warning) {
+												<div
+													role="alert"
+													class="mt-2 rounded-2xl border border-amber-300/35 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-100"
 												>
-													@for (option of conditionOptions; track option.name) {
-														<option [value]="option.name">{{ option.label }}</option>
-													}
-												</select>
-											</label>
+													{{ warning }}. Ainda é possível aplicar.
+												</div>
+											}
+										</label>
 
 											<label class="text-sm">
 												<span class="mb-1 block opacity-70">Nome exibido</span>

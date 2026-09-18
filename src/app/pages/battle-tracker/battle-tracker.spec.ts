@@ -107,6 +107,7 @@ describe('BattleTrackerPage', () => {
 									durationType: 'manual',
 								},
 							],
+							conditionImmunities: ['poisoned'],
 							specialAbilities: [
 								{
 									id: 'fire-breath',
@@ -174,7 +175,7 @@ describe('BattleTrackerPage', () => {
 							triggerType: 'initiative',
 							initiative: 10,
 							active: true,
-							frequency: 'every-round',
+							frequency: 'manual',
 						},
 					],
 					turnHistory: [],
@@ -232,6 +233,82 @@ describe('BattleTrackerPage', () => {
 		expect(
 			fixture.nativeElement.querySelector('[data-testid="current-turn-cockpit"]')?.textContent,
 		).toContain('Dodman');
+	});
+
+	it('renders lair and trap initiative slots as explicit special turns', () => {
+		component.battle.update((battle) =>
+			battle
+				? {
+						...battle,
+						lairActions: [
+							{
+								id: 'lair-slot',
+								name: 'Lair Action',
+								initiative: 14,
+								active: true,
+								frequency: 'every-round',
+							},
+						],
+						traps: [{ ...battle.traps[0], frequency: 'every-round' as const, initiative: 10 }],
+					}
+				: null,
+		);
+		fixture.detectChanges();
+
+		component.nextTurn();
+		fixture.detectChanges();
+		expect(component.currentCombatant()).toBeNull();
+		expect(fixture.nativeElement.querySelector('[data-testid="current-special-turn-cockpit"]')?.textContent).toContain('LAIR ACTION');
+
+		fixture.nativeElement.querySelector('[data-testid="special-turn-next"]')?.click();
+		fixture.detectChanges();
+		expect(component.currentCombatant()?.id).toBe('c2');
+
+		component.nextTurn();
+		fixture.detectChanges();
+		expect(component.currentSpecialTurn()?.type).toBe('trap');
+		expect(fixture.nativeElement.querySelector('[data-testid="current-special-turn-cockpit"]')).not.toBeNull();
+	});
+
+	it('warns about condition immunity in the cockpit without blocking application', () => {
+		const select = fixture.nativeElement.querySelector(
+			'[data-testid="cockpit-condition-select"] button',
+		) as HTMLButtonElement;
+		select.click();
+		fixture.detectChanges();
+		Array.from(fixture.nativeElement.querySelectorAll('[role="option"]') as NodeListOf<HTMLButtonElement>)
+			.find((option) => option.textContent?.includes('Envenenado'))
+			?.click();
+		fixture.detectChanges();
+
+		expect(component.conditionImmunityWarning('c1')).toContain('Imune');
+		expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain('Ainda é possível aplicar');
+
+		component.addCondition('c1');
+		expect(component.battle()?.combatants[0].conditions.some((condition) => condition.name === 'poisoned')).toBeTrue();
+	});
+
+	it('shows the same condition immunity warning in the expanded combatant card', () => {
+		component.toggleCombatantInspector('c1');
+		fixture.detectChanges();
+		const select = fixture.nativeElement.querySelector(
+			'[data-testid="combatant-condition-select"] button',
+		) as HTMLButtonElement;
+		select.click();
+		fixture.detectChanges();
+		Array.from(fixture.nativeElement.querySelectorAll('[role="option"]') as NodeListOf<HTMLButtonElement>)
+			.find((option) => option.textContent?.includes('Envenenado'))
+			?.click();
+		fixture.detectChanges();
+
+		expect(
+			Array.from(
+				fixture.nativeElement.querySelectorAll('[role="alert"]') as NodeListOf<HTMLElement>,
+			).some((element) =>
+				element.textContent?.includes('Imune a'),
+			),
+		).toBeTrue();
+		expect(component.conditionImmunityWarning('c2')).toBeNull();
 	});
 
 	it('keeps a fixed combat order through seven turns and the next round', () => {
@@ -790,6 +867,15 @@ describe('BattleTrackerPage', () => {
 	});
 
 	it('keeps the next environment event in the cockpit without the upcoming-turn queue', () => {
+		component.battle.update((battle) =>
+			battle
+				? {
+						...battle,
+						traps: battle.traps.map((trap) => ({ ...trap, frequency: 'every-round' as const })),
+					}
+				: null,
+		);
+		fixture.detectChanges();
 		expect(component.nextEnvironmentEvent()?.label).toContain('Ritual Pulse');
 
 		const cockpitText = fixture.nativeElement.querySelector('[data-testid="current-turn-cockpit"]')

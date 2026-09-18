@@ -457,8 +457,9 @@ export class BattleUpcomingEventsService {
 			return battle.round + (action.currentCooldownRounds ?? 0);
 		}
 
+		if (action.lastTriggeredAtRound === battle.round) return battle.round + 1;
 		if (currentInitiative == null) return battle.round + 1;
-		return currentInitiative > action.initiative ? battle.round : battle.round + 1;
+		return battle.round;
 	}
 
 	private getNextTrapRound(
@@ -475,8 +476,9 @@ export class BattleUpcomingEventsService {
 		if (trap.triggerType === 'round-start') return battle.round + 1;
 		if (trap.triggerType === 'round-end') return battle.round;
 		if (trap.triggerType === 'initiative') {
+			if (trap.lastTriggeredAtRound === battle.round) return battle.round + 1;
 			if (currentInitiative == null || trap.initiative == null) return battle.round + 1;
-			return currentInitiative > trap.initiative ? battle.round : battle.round + 1;
+			return battle.round;
 		}
 
 		return null;

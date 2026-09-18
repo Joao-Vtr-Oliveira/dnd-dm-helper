@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { By } from '@angular/platform-browser';
 
 import { AppSelectComponent } from './app-select';
 
@@ -85,5 +86,23 @@ describe('AppSelectComponent', () => {
 		host.disabled.set(true);
 		fixture.detectChanges();
 		expect(trigger().disabled).toBeTrue();
+	});
+
+	it('anchors the menu to the trigger and reclamps it after viewport scroll', async () => {
+		const button = trigger();
+		const select = fixture.debugElement.query(By.directive(AppSelectComponent)).componentInstance as AppSelectComponent;
+		const initialRect = new DOMRect(700, 500, 100, 40);
+		const scrolledRect = new DOMRect(80, 120, 100, 40);
+		const rectSpy = spyOn(button, 'getBoundingClientRect').and.returnValue(initialRect);
+		button.click();
+		fixture.detectChanges();
+		await fixture.whenStable();
+
+		expect(select.menuPosition.left).toBeGreaterThanOrEqual(8);
+		expect(select.menuPosition.top !== undefined || select.menuPosition.bottom !== undefined).toBeTrue();
+
+		rectSpy.and.returnValue(scrolledRect);
+		select.onViewportChange();
+		expect(select.menuPosition.left).toBeLessThanOrEqual(80);
 	});
 });

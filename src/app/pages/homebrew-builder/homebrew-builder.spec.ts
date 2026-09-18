@@ -149,6 +149,34 @@ describe('HomebrewBuilder', () => {
 		expect(component.passivePerception()).toBe(17);
 	});
 
+	it('keeps spellcasting values derived from the selected ability and proficiency', () => {
+		component.setCreatureText('challengeRating', '5');
+		component.setAbilityScore('int', 18);
+		component.setSpellcastingMetadata('ability', 'int');
+
+		expect(component.creature().spellcasting).toEqual(
+			jasmine.objectContaining({ ability: 'int', spellSaveDc: 15, spellAttackBonus: 7 }),
+		);
+
+		component.setAbilityScore('int', 20);
+		expect(component.creature().spellcasting).toEqual(
+			jasmine.objectContaining({ spellSaveDc: 16, spellAttackBonus: 8 }),
+		);
+
+		component.setAbilityScore('wis', 14);
+		component.setSpellcastingMetadata('ability', 'wis');
+		expect(component.creature().spellcasting).toEqual(
+			jasmine.objectContaining({ ability: 'wis', spellSaveDc: 13, spellAttackBonus: 5 }),
+		);
+	});
+
+	it('selects Charisma automatically for an NPC Warlock', () => {
+		component.setCategory('npc');
+		component.setClass('warlock', true);
+
+		expect(component.creature().spellcasting?.ability).toBe('cha');
+	});
+
 	it('keeps special ability recovery data consistent when changing its recovery type', () => {
 		component.setAbilityDraft({
 			name: 'Passo sombrio',

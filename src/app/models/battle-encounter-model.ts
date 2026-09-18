@@ -40,6 +40,16 @@ export type BattleUpcomingEventType =
 	| 'trap'
 	| 'pending-combatant';
 
+export type BattleSpecialTurnType = 'lair-action' | 'trap';
+
+export interface BattleSpecialTurn {
+	type: BattleSpecialTurnType;
+	eventId: string;
+	round: number;
+	initiative: number;
+	anchorTurnIndex: number;
+}
+
 export interface BattleCondition {
 	id: string;
 	name: string;
@@ -213,6 +223,7 @@ export interface BattleTurnSnapshotState {
 	status: BattleEncounterStatus;
 	round: number;
 	activeTurnIndex: number;
+	activeSpecialTurn?: BattleSpecialTurn;
 	completedAt?: string;
 	turnStartedAt?: string;
 	currentTurnElapsedSeconds?: number;
@@ -249,6 +260,7 @@ export interface BattleEncounter {
 	status: BattleEncounterStatus;
 	round: number;
 	activeTurnIndex: number;
+	activeSpecialTurn?: BattleSpecialTurn;
 	createdAt: string;
 	startedAt: string;
 	updatedAt: string;

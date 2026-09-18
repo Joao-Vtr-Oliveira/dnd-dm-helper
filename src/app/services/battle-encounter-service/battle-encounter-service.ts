@@ -12,6 +12,7 @@ import type {
 	BattleLairAction,
 	BattlePendingAction,
 	BattleReferenceSheet,
+	BattleSpecialTurn,
 	BattleSpecialAbility,
 	BattleSpellSlotLevel,
 	BattleTrap,
@@ -240,6 +241,9 @@ export class BattleEncounterService {
 				this.toNonNegativeInt(raw.activeTurnIndex),
 				Math.max(1, this.toNonNegativeInt(raw.round) || 1),
 			),
+			...(this.normalizeSpecialTurn(raw.activeSpecialTurn, raw.round, combatants)
+				? { activeSpecialTurn: this.normalizeSpecialTurn(raw.activeSpecialTurn, raw.round, combatants) }
+				: {}),
 			createdAt,
 			startedAt: this.normalizeIso(raw.startedAt ?? raw.createdAt),
 			updatedAt,
@@ -379,11 +383,16 @@ export class BattleEncounterService {
 	}
 
 	getCurrentCombatant(battle: BattleEncounter): BattleCombatant | null {
+		if (battle.activeSpecialTurn) return null;
 		if (!battle.combatants.length || battle.activeTurnIndex < 0) return null;
 		const current = battle.combatants[battle.activeTurnIndex] ?? null;
 		if (current && this.isCombatantEligibleForInitiative(current, battle.round)) return current;
 		const fallbackIndex = this.findFirstEligibleTurnIndex(battle.combatants, battle.round);
 		return fallbackIndex >= 0 ? (battle.combatants[fallbackIndex] ?? null) : null;
+	}
+
+	getCurrentSpecialTurn(battle: BattleEncounter): BattleSpecialTurn | null {
+		return battle.activeSpecialTurn ?? null;
 	}
 
 	getCurrentTurnElapsedSeconds(battle: BattleEncounter, now = new Date()): number {
@@ -440,10 +449,11 @@ export class BattleEncounterService {
 
 		const timestamp = this.toIso(now);
 		const currentCombatant = this.getCurrentCombatant(battle);
+		const currentSpecialTurn = battle.activeSpecialTurn;
 		const durationSeconds = this.getCurrentTurnElapsedSeconds(battle, now);
 		const currentTurnIndex =
 			currentCombatant == null
-				? -1
+				? Math.max(-1, currentSpecialTurn?.anchorTurnIndex ?? -1)
 				: battle.combatants.findIndex((combatant) => combatant.id === currentCombatant.id);
 		const endExpire = this.conditionService.expireConditionsAtTiming(
 			battle.combatants,
@@ -456,6 +466,31 @@ export class BattleEncounterService {
 			Math.max(-1, currentTurnIndex),
 			battle.round,
 		);
+		const nextSpecialTurn = this.findNextSpecialTurn(
+			battle,
+			currentCombatant?.initiative ?? currentSpecialTurn?.initiative ?? null,
+			currentSpecialTurn,
+			currentTurnIndex,
+		);
+		if (nextSpecialTurn) {
+			const turnHistory = [...battle.turnHistory];
+			if (currentCombatant) {
+				turnHistory.push(
+					this.createTurnHistoryEntry(battle, currentCombatant, timestamp, durationSeconds, notes),
+				);
+			}
+			return {
+				...battle,
+				activeTurnIndex: nextSpecialTurn.anchorTurnIndex,
+				activeSpecialTurn: nextSpecialTurn,
+				updatedAt: timestamp,
+				turnStartedAt: timestamp,
+				currentTurnElapsedSeconds: 0,
+				combatants: endExpire.combatants,
+				turnHistory,
+				turnSnapshots: this.appendTurnSnapshot(battle, turnSnapshot),
+			};
+		}
 		let nextRound = battle.round;
 		let nextCombatants = endExpire.combatants;
 		let nextPendingCombatants = battle.pendingCombatants;
@@ -521,6 +556,7 @@ export class BattleEncounterService {
 			...battle,
 			round: nextRound,
 			activeTurnIndex: nextTurnIndex,
+			activeSpecialTurn: undefined,
 			updatedAt: timestamp,
 			turnStartedAt: nextTurnIndex >= 0 ? timestamp : undefined,
 			currentTurnElapsedSeconds: 0,
@@ -550,11 +586,12 @@ export class BattleEncounterService {
 			status: state.status,
 			round: state.round,
 			activeTurnIndex: state.activeTurnIndex,
+			activeSpecialTurn: state.activeSpecialTurn,
 			updatedAt: timestamp,
 			completedAt: state.completedAt,
 			turnStartedAt:
 				state.status === 'active' && state.activeTurnIndex >= 0 ? timestamp : undefined,
-			currentTurnElapsedSeconds: 0,
+			currentTurnElapsedSeconds: state.currentTurnElapsedSeconds ?? 0,
 			combatants: state.combatants,
 			pendingCombatants: state.pendingCombatants,
 			lairActions: state.lairActions,
@@ -2224,6 +2261,9 @@ export class BattleEncounterService {
 				this.toNonNegativeInt(candidate.activeTurnIndex),
 				round,
 			),
+			...(this.normalizeSpecialTurn(candidate.activeSpecialTurn, round, combatants)
+				? { activeSpecialTurn: this.normalizeSpecialTurn(candidate.activeSpecialTurn, round, combatants) }
+				: {}),
 			completedAt: typeof candidate.completedAt === 'string' ? candidate.completedAt : undefined,
 			turnStartedAt:
 				typeof candidate.turnStartedAt === 'string' ? candidate.turnStartedAt : undefined,
@@ -2248,6 +2288,7 @@ export class BattleEncounterService {
 			status: battle.status,
 			round: battle.round,
 			activeTurnIndex: battle.activeTurnIndex,
+			activeSpecialTurn: battle.activeSpecialTurn,
 			completedAt: battle.completedAt,
 			turnStartedAt: battle.turnStartedAt,
 			currentTurnElapsedSeconds: battle.currentTurnElapsedSeconds,
@@ -2456,6 +2497,95 @@ export class BattleEncounterService {
 			}
 		}
 		return -1;
+	}
+
+	private findNextSpecialTurn(
+		battle: BattleEncounter,
+		currentInitiative: number | null,
+		currentSpecialTurn: BattleSpecialTurn | undefined,
+		currentTurnIndex: number,
+	): BattleSpecialTurn | null {
+		if (currentInitiative == null) return null;
+		const nextCombatantIndex = this.findNextEligibleTurnIndex(
+			battle.combatants,
+			currentTurnIndex,
+			battle.round,
+		);
+		const nextCombatantInitiative =
+			nextCombatantIndex >= 0 ? battle.combatants[nextCombatantIndex].initiative : null;
+		const firstEligibleTurnIndex = this.findFirstEligibleTurnIndex(battle.combatants, battle.round);
+		const atRoundStart = currentTurnIndex <= firstEligibleTurnIndex;
+		const candidates: BattleSpecialTurn[] = [
+			...(battle.lairActions ?? [])
+				.filter(
+					(action) =>
+						action.active &&
+						action.frequency !== 'manual' &&
+						(action.currentCooldownRounds ?? 0) <= 0 &&
+						!(action.frequency === 'every-round' && action.lastTriggeredAtRound === battle.round),
+				)
+				.map((action) => ({
+					type: 'lair-action' as const,
+					eventId: action.id,
+					round: battle.round,
+					initiative: action.initiative,
+					anchorTurnIndex: Math.max(0, currentTurnIndex),
+				})),
+			...(battle.traps ?? [])
+				.filter(
+					(trap) =>
+						trap.active &&
+						trap.triggerType === 'initiative' &&
+						trap.frequency !== 'manual' &&
+						trap.initiative != null &&
+						(trap.currentCooldownRounds ?? 0) <= 0 &&
+						!(trap.frequency === 'every-round' && trap.lastTriggeredAtRound === battle.round) &&
+						!(trap.frequency === 'once' && trap.lastTriggeredAtRound != null),
+				)
+				.map((trap) => ({
+					type: 'trap' as const,
+					eventId: trap.id,
+					round: battle.round,
+					initiative: trap.initiative!,
+					anchorTurnIndex: Math.max(0, currentTurnIndex),
+				})),
+		]
+			.filter((event) => {
+				if (event.initiative > currentInitiative && !atRoundStart) return false;
+				if (event.initiative === currentInitiative && event.eventId === currentSpecialTurn?.eventId)
+					return false;
+				return nextCombatantInitiative == null || event.initiative >= nextCombatantInitiative;
+			})
+			.sort((left, right) => {
+				if (right.initiative !== left.initiative) return right.initiative - left.initiative;
+				return left.eventId.localeCompare(right.eventId);
+			});
+
+		return candidates[0] ?? null;
+	}
+
+	private normalizeSpecialTurn(
+		raw: unknown,
+		round: unknown,
+		combatants: BattleCombatant[],
+	): BattleSpecialTurn | undefined {
+		if (!raw || typeof raw !== 'object') return undefined;
+		const candidate = raw as Partial<BattleSpecialTurn>;
+		if (
+			(candidate.type !== 'lair-action' && candidate.type !== 'trap') ||
+			typeof candidate.eventId !== 'string' ||
+			!Number.isFinite(candidate.initiative)
+		)
+			return undefined;
+		return {
+			type: candidate.type,
+			eventId: candidate.eventId,
+			round: Math.max(1, this.toNonNegativeInt(round) || 1),
+			initiative: candidate.initiative as number,
+			anchorTurnIndex: combatants.length
+				? Math.min(Math.max(0, this.toNonNegativeInt(candidate.anchorTurnIndex)), combatants.length - 1)
+				: -1,
+		};
 	}
 
 	private normalizeActiveTurnIndex(

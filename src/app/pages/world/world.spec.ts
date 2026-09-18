@@ -419,4 +419,88 @@ describe('WorldPage', () => {
 			{ scopeType: 'global', presenceType: 'remote-contact' },
 		]);
 	});
+
+	it('edits geographic entities without changing their IDs or source paths', async () => {
+		await createPage();
+
+		component.openEditor('empire', 'mornk');
+		component.editorName = 'Mornk Renovado';
+		component.saveEditor();
+		expect(component.campaignWorld.getEmpire('mornk')).toEqual(
+			jasmine.objectContaining({ id: 'mornk', name: 'Mornk Renovado', sourcePath: 'Mornk.md' }),
+		);
+
+		component.openEditor('state', 'nagazav');
+		component.editorName = 'Nagazav Renovado';
+		component.saveEditor();
+		expect(component.campaignWorld.getState('nagazav')).toEqual(
+			jasmine.objectContaining({ id: 'nagazav', name: 'Nagazav Renovado', empireId: 'mornk' }),
+		);
+
+		component.openEditor('settlement', 'nagawoods');
+		component.editorName = 'Nagawoods Renovado';
+		component.editorTypeValue = 'city';
+		component.saveEditor();
+		expect(component.campaignWorld.getSettlement('nagawoods')).toEqual(
+			jasmine.objectContaining({ id: 'nagawoods', name: 'Nagawoods Renovado', stateId: 'nagazav', settlementType: 'city' }),
+		);
+
+		component.openEditor('poi', 'bluefin');
+		component.editorName = 'Bluefin Renovado';
+		component.editorSummary = 'Resumo atualizado';
+		component.saveEditor();
+		expect(component.campaignWorld.getPointOfInterest('bluefin')).toEqual(
+			jasmine.objectContaining({ id: 'bluefin', name: 'Bluefin Renovado', summary: 'Resumo atualizado' }),
+		);
+	});
+
+	it('requires dependency resolution before deleting world entities', async () => {
+		await createPage({ scopeType: 'settlement', scopeId: 'jukes' });
+
+		component.deleteEntity('empire', 'mornk');
+		expect(component.deleteRequest()?.dependencies).toContain('2 estado(s)');
+		component.confirmDeleteEntity();
+		expect(component.campaignWorld.getEmpire('mornk')).not.toBeNull();
+
+		component.deleteEntity('settlement', 'jukes');
+		expect(component.deleteRequest()?.dependencies).toContain('a localização atual da party');
+		component.confirmDeleteEntity();
+		expect(component.campaignWorld.getSettlement('jukes')).not.toBeNull();
+	});
+
+	it('deletes an entity without dependencies only after explicit confirmation', async () => {
+		await createPage();
+		component.deleteEntity('empire', 'komic');
+		expect(component.deleteRequest()?.name).toBe('Komic');
+		component.cancelDeleteEntity();
+		expect(component.campaignWorld.getEmpire('komic')).not.toBeNull();
+
+		component.deleteEntity('empire', 'komic');
+		component.confirmDeleteEntity();
+		expect(component.campaignWorld.getEmpire('komic')).toBeNull();
+	});
+
+	it('keeps the explored settlement while creating, editing, and deleting a POI', async () => {
+		await createPage({ scopeType: 'state', scopeId: 'nagazav' });
+		component.selectLocation({ scopeType: 'settlement', scopeId: 'nagawoods' });
+
+		component.openEditor('poi');
+		component.editorName = 'New Shrine';
+		component.saveEditor();
+		TestBed.flushEffects();
+		expect(component.selectedLocation()).toEqual({ scopeType: 'settlement', scopeId: 'nagawoods' });
+
+		const created = component.campaignWorld.world()?.pointsOfInterest.find((item) => item.name === 'New Shrine');
+		expect(created).toBeDefined();
+		component.openEditor('poi', created!.id);
+		component.editorName = 'Updated Shrine';
+		component.saveEditor();
+		TestBed.flushEffects();
+		expect(component.selectedLocation()).toEqual({ scopeType: 'settlement', scopeId: 'nagawoods' });
+
+		component.deleteEntity('poi', created!.id);
+		component.confirmDeleteEntity();
+		TestBed.flushEffects();
+		expect(component.selectedLocation()).toEqual({ scopeType: 'settlement', scopeId: 'nagawoods' });
+	});
 });

@@ -70,3 +70,33 @@ export function conditionReferenceFor(name: string): ConditionReference {
 		description: 'Esta é uma condição personalizada sem regras de referência cadastradas.',
 	};
 }
+
+function normalizedConditionText(value: string): string {
+	return value
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLocaleLowerCase()
+		.replace(/[^a-z0-9]+/g, ' ')
+		.trim();
+}
+
+/** Resolves canonical condition IDs from internal names or translated labels. */
+export function conditionKeyFor(value: string): string | undefined {
+	const candidate = normalizedConditionText(value);
+	if (!candidate) return undefined;
+	for (const [key, reference] of Object.entries(CONDITION_REFERENCES)) {
+		if (candidate === normalizedConditionText(key)) return key;
+		if (reference.label.split('/').some((label) => candidate === normalizedConditionText(label))) return key;
+	}
+	return undefined;
+}
+
+export function conditionImmunityMatches(
+	immunities: readonly string[] | undefined,
+	conditionName: string,
+	conditionLabel?: string,
+): boolean {
+	const conditionKey = conditionKeyFor(conditionName) ?? conditionKeyFor(conditionLabel ?? '');
+	if (!conditionKey) return false;
+	return (immunities ?? []).some((immunity) => conditionKeyFor(immunity) === conditionKey);
+}

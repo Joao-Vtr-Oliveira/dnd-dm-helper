@@ -216,7 +216,7 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('applies setup changes to an existing battle with the same tie ordering', () => {
-		const battle = service.createBattleFromEncounter(encounter);
+		const battle = service.createBattleFromEncounter({ ...encounter, lairActions: [], traps: [] });
 		const updated = service.applyBattleSetup(battle, {
 			name: 'Updated battle',
 			combatantSides: { 'participant-boss': 'ally', 'participant-minion': 'player' },
@@ -250,6 +250,71 @@ describe('BattleEncounterService', () => {
 			}),
 		);
 		expect('currentCooldownRounds' in encounter.lairActions[0]).toBeFalse();
+	});
+
+	it('pauses on initiative special turns instead of skipping them', () => {
+		const source = structuredClone(encounter);
+		source.participants = [
+			...source.participants,
+			structuredClone(source.participants[0]),
+		].map((participant, index) => ({
+			...participant,
+			id: `special-${index}`,
+			name: ['Creature A', 'Creature B', 'Creature C'][index],
+			initiative: [18, 12, 9][index],
+		}));
+		source.lairActions = [
+			{ id: 'lair-between', name: 'Lair Action', initiative: 15, active: true, frequency: 'every-round' },
+		];
+		source.traps = [
+			{
+				id: 'trap-between',
+				name: 'Trap',
+				triggerType: 'initiative',
+				initiative: 10,
+				active: true,
+				frequency: 'every-round',
+			},
+		];
+
+		const battle = service.createBattleFromEncounter(source);
+		const lairTurn = service.advanceTurn(battle);
+		expect(service.getCurrentCombatant(lairTurn)).toBeNull();
+		expect(lairTurn.activeSpecialTurn).toEqual(
+			jasmine.objectContaining({ type: 'lair-action', eventId: 'lair-between' }),
+		);
+
+		const creatureB = service.advanceTurn(lairTurn);
+		expect(service.getCurrentCombatant(creatureB)?.name).toBe('Creature B');
+
+		const trapTurn = service.advanceTurn(creatureB);
+		expect(service.getCurrentCombatant(trapTurn)).toBeNull();
+		expect(trapTurn.activeSpecialTurn).toEqual(
+			jasmine.objectContaining({ type: 'trap', eventId: 'trap-between' }),
+		);
+
+		const creatureC = service.advanceTurn(trapTurn);
+		expect(service.getCurrentCombatant(creatureC)?.name).toBe('Creature C');
+
+		const undone = service.undoTurn(trapTurn);
+		expect(undone.activeSpecialTurn).toBeUndefined();
+		expect(service.getCurrentCombatant(undone)?.name).toBe('Creature B');
+	});
+
+	it('surfaces a lair action above the first combatant in the current round', () => {
+		const source = structuredClone(encounter);
+		source.lairActions = [
+			{ id: 'lair-before-first', name: 'High Lair Action', initiative: 20, active: true, frequency: 'every-round' },
+		];
+		source.traps = [];
+
+		const battle = service.createBattleFromEncounter(source);
+		const next = service.advanceTurn(battle);
+
+		expect(next.activeSpecialTurn).toEqual(
+			jasmine.objectContaining({ type: 'lair-action', eventId: 'lair-before-first', initiative: 20 }),
+		);
+		expect(service.getCurrentCombatant(next)).toBeNull();
 	});
 
 	it('snapshots and restores the same canonical runtime shape', () => {
@@ -293,7 +358,7 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('keeps damage, conditions, and spell-slot state isolated to the battle', () => {
-		const battle = service.createBattleFromEncounter(encounter);
+		const battle = service.createBattleFromEncounter({ ...encounter, lairActions: [], traps: [] });
 		const combatantId = battle.combatants[0].id;
 		const withTemporaryHp = service.updateCombatantHp(battle, combatantId, { temporaryHp: 5 });
 		const damaged = service.applyDamage(withTemporaryHp, combatantId, 8);
@@ -320,7 +385,7 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('keeps dice recharge physical and accepts one recorded result per round', () => {
-		const battle = service.createBattleFromEncounter(encounter);
+		const battle = service.createBattleFromEncounter({ ...encounter, lairActions: [], traps: [] });
 		const combatantId = battle.combatants[0].id;
 		const abilityId = battle.combatants[0].specialAbilities[0].id;
 		const used = service.useSpecialAbility(battle, combatantId, abilityId);
@@ -349,7 +414,7 @@ describe('BattleEncounterService', () => {
 	});
 
 	it('keeps dice recharge, round cooldown, and combat uses as distinct runtime mechanics', () => {
-		const source = structuredClone(encounter);
+		const source = structuredClone({ ...encounter, lairActions: [], traps: [] });
 		source.participants[0].sheet.specialAbilities = [
 			{ id: 'recharge', name: 'Recharge 4-6', recoveryType: 'dice-recharge', rechargeDice: 'd6', rechargeOn: [4, 5, 6] },
 			{ id: 'rounds', name: 'Round cooldown', recoveryType: 'round-cooldown', cooldownRounds: 2 },

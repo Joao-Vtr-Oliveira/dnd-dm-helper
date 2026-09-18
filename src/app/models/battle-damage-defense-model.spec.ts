@@ -14,6 +14,22 @@ describe('resolveDamageDefenses', () => {
 		expect(adjustedDamage(7, resolution.suggestedMultiplier!)).toBe(3);
 	});
 
+	it('suggests vulnerability and immunity adjustments, including zero', () => {
+		const vulnerable = resolveDamageDefenses(
+			combatant({ damageVulnerabilities: [{ types: ['fire'] }] }),
+			'fire',
+		);
+		const immune = resolveDamageDefenses(
+			combatant({ damageImmunities: [{ types: ['poison'] }] }),
+			'poison',
+		);
+
+		expect(vulnerable.suggestedMultiplier).toBe(2);
+		expect(adjustedDamage(7, vulnerable.suggestedMultiplier!)).toBe(14);
+		expect(immune.suggestedMultiplier).toBe(0);
+		expect(adjustedDamage(7, immune.suggestedMultiplier!)).toBe(0);
+	});
+
 	it('keeps noted defenses manual', () => {
 		const resolution = resolveDamageDefenses(
 			combatant({ damageImmunities: [{ types: ['poison'], note: 'against inhaled poison' }] }),

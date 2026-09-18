@@ -17,7 +17,6 @@ import type {
 	BattleConcentrationCheckPendingAction,
 	BattleCondition,
 	BattleConditionDurationType,
-	BattleConditionPreset,
 	BattleEncounter,
 	BattleLairAction,
 	BattlePendingAction,
@@ -28,7 +27,11 @@ import type {
 } from '../../models/battle-encounter-model';
 import type { CreatureCategory, CreatureSheet } from '../../models/creature-sheet-model';
 import type { ResolvedSpellReference } from '../../models/spell-reference-model';
-import { conditionReferenceFor, type ConditionReference } from '../../models/condition-reference-model';
+import {
+	conditionImmunityMatches,
+	conditionReferenceFor,
+	type ConditionReference,
+} from '../../models/condition-reference-model';
 import {
 	BattleEncounterService,
 	type CreateBattleLairActionInput,
@@ -175,9 +178,10 @@ export class BattleTrackerPage {
 		);
 	});
 
-	readonly conditionOptions: BattleConditionPreset[] = DEFAULT_BATTLE_CONDITIONS.filter(
+	readonly conditionOptions = DEFAULT_BATTLE_CONDITIONS.filter(
 		(option) => option.name !== 'concentrating',
-	);
+	).map((option) => ({ ...option, value: option.name }));
+	readonly cockpitConditionOptions = this.conditionOptions.filter((option) => option.name !== 'custom');
 	readonly combatants = computed(() => [
 		...(this.battle()?.combatants ?? []),
 		...(this.battle()?.pendingCombatants ?? []),
@@ -186,6 +190,10 @@ export class BattleTrackerPage {
 	readonly currentCombatant = computed(() => {
 		const battle = this.battle();
 		return battle ? this.battleService.getCurrentCombatant(battle) : null;
+	});
+	readonly currentSpecialTurn = computed(() => {
+		const battle = this.battle();
+		return battle ? this.battleService.getCurrentSpecialTurn(battle) : null;
 	});
 	readonly selectedCombatantId = signal<string | null>(null);
 	readonly currentTurnElapsedSeconds = computed(() => {
@@ -479,6 +487,17 @@ export class BattleTrackerPage {
 				...patch,
 			},
 		}));
+	}
+
+	conditionImmunityWarning(combatantId: string): string | null {
+		const combatant = this.combatants().find((item) => item.id === combatantId);
+		if (!combatant) return null;
+		const draft = this.getConditionDraft(combatantId);
+		const preset = this.conditionOptions.find((option) => option.name === draft.preset);
+		if (!preset || !conditionImmunityMatches(combatant.conditionImmunities, preset.name, preset.label)) {
+			return null;
+		}
+		return `Imune a ${preset.label}`;
 	}
 
 	addCondition(combatantId: string) {
@@ -869,6 +888,20 @@ export class BattleTrackerPage {
 		if (event.type === 'round-start') return 'Início do round';
 		if (event.type === 'pending-combatant') return 'Entrada na iniciativa';
 		return 'Próximo turno';
+	}
+
+	specialTurnEvent(): BattleLairAction | BattleTrap | null {
+		const specialTurn = this.currentSpecialTurn();
+		if (!specialTurn) return null;
+		const battle = this.battle();
+		if (!battle) return null;
+		return specialTurn.type === 'lair-action'
+			? battle.lairActions.find((action) => action.id === specialTurn.eventId) ?? null
+			: battle.traps.find((trap) => trap.id === specialTurn.eventId) ?? null;
+	}
+
+	specialTurnTypeLabel(): string {
+		return this.currentSpecialTurn()?.type === 'lair-action' ? 'LAIR ACTION' : 'ARMADILHA';
 	}
 
 	abilityAvailabilityClasses(ability: BattleSpecialAbility): string {

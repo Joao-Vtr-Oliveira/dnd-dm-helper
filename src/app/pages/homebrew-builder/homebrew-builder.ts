@@ -44,6 +44,7 @@ import { normalizeArmorClass } from '../../models/creature-sheet-model';
 import {
 	abilityModifier,
 	applyCreatureDerivedValues,
+	spellcastingAbilityForClasses,
 	proficiencyBonusForCreature,
 	resolvePassivePerception,
 	skillAbilityForName,
@@ -452,7 +453,7 @@ export class HomebrewBuilder {
 	constructor() {
 		void this.loadSuggestions();
 		const id = this.route.snapshot.paramMap.get('id');
-		if (id) {
+			if (id) {
 			const sheet = this.ls.getSheet(id);
 			if (sheet) {
 				this.sheetId.set(id);
@@ -472,6 +473,7 @@ export class HomebrewBuilder {
 				this.organizationRefs.set(structuredClone(sheet.organizationRefs ?? []));
 			}
 		}
+		this.applyAutomaticSpellcastingAbility();
 		this.syncCreatureType();
 		this.markSaved();
 	}
@@ -569,6 +571,7 @@ export class HomebrewBuilder {
 	setCategory(category: HomebrewCategory): void {
 		this.category.set(category);
 		if (category !== 'npc' && category !== 'pc') this.classes.set([]);
+		this.applyAutomaticSpellcastingAbility();
 	}
 
 	setClass(value: Dnd5eCharacterClass, checked: boolean): void {
@@ -580,6 +583,14 @@ export class HomebrewBuilder {
 					: [...classes, value]
 				: classes.filter((item) => item !== value),
 		);
+		this.applyAutomaticSpellcastingAbility();
+	}
+
+	private applyAutomaticSpellcastingAbility() {
+		if (this.category() !== 'npc') return;
+		const ability = spellcastingAbilityForClasses(this.classes());
+		if (!ability || this.creature().spellcasting?.ability) return;
+		this.setSpellcastingMetadata('ability', ability);
 	}
 
 	setTitle(v: string) {
@@ -684,7 +695,7 @@ export class HomebrewBuilder {
 			const next = { ...creature };
 			if (value === '' || value == null || !Number.isFinite(Number(value))) delete next[key];
 			else next[key] = this.parseNonNegInt(value);
-			return next;
+			return applyCreatureDerivedValues(next);
 		});
 	}
 
@@ -1328,23 +1339,30 @@ export class HomebrewBuilder {
 		this.creature.update((creature) => {
 			const spellcasting = { ...(creature.spellcasting ?? {}) };
 			if (key === 'ability') {
-				if (this.isAbilityKey(value)) spellcasting.ability = value;
-				else delete spellcasting.ability;
+				if (this.isAbilityKey(value)) {
+					spellcasting.ability = value;
+					delete spellcasting.spellSaveDcOverride;
+					delete spellcasting.spellAttackBonusOverride;
+				} else delete spellcasting.ability;
 			} else if (key === 'header' || key === 'slotRecovery') {
 				const text = String(value ?? '').trim();
 				if (text) spellcasting[key] = text;
 				else delete spellcasting[key];
 			} else if (value === '' || value == null || !Number.isFinite(Number(value))) {
 				delete spellcasting[key];
+				delete spellcasting[`${key}Override` as 'spellSaveDcOverride' | 'spellAttackBonusOverride'];
 			} else {
-				spellcasting[key] =
-					key === 'spellSaveDc' ? this.parseNonNegInt(value) : this.parseSignedInt(value);
+				const parsed = key === 'spellSaveDc' ? this.parseNonNegInt(value) : this.parseSignedInt(value);
+				spellcasting[key] = parsed;
+				spellcasting[
+					`${key}Override` as 'spellSaveDcOverride' | 'spellAttackBonusOverride'
+				] = parsed;
 			}
-			return this.replaceOptional(
+			return applyCreatureDerivedValues(this.replaceOptional(
 				creature,
 				'spellcasting',
 				Object.keys(spellcasting).length ? spellcasting : undefined,
-			);
+			));
 		});
 	}
 

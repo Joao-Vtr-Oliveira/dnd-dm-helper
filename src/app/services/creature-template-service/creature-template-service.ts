@@ -351,8 +351,12 @@ export class CreatureTemplateService {
 		const normalized = {
 			...(this.isAbilityKey(value.ability) ? { ability: value.ability } : {}),
 			...this.optionalNonNegativeInteger('spellSaveDc', value.spellSaveDc),
+			...this.optionalNonNegativeInteger('spellSaveDcOverride', value.spellSaveDcOverride),
 			...(Number.isFinite(value.spellAttackBonus)
 				? { spellAttackBonus: Math.floor(value.spellAttackBonus as number) }
+				: {}),
+			...(Number.isFinite(value.spellAttackBonusOverride)
+				? { spellAttackBonusOverride: Math.floor(value.spellAttackBonusOverride as number) }
 				: {}),
 			...this.optionalText('header', value.header),
 			...this.optionalText('slotRecovery', value.slotRecovery),

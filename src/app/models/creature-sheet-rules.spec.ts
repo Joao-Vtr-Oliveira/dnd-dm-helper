@@ -1,8 +1,11 @@
 import type { CreatureSheet } from './creature-sheet-model';
 import {
 	applyCreatureDerivedValues,
+	calculatedSpellAttackBonus,
+	calculatedSpellSaveDc,
 	proficiencyBonusForCreature,
 	proficiencyBonusForChallengeRating,
+	spellcastingAbilityForClasses,
 	validateCreatureSheet,
 } from './creature-sheet-rules';
 
@@ -55,6 +58,19 @@ describe('creature sheet rules', () => {
 			{ name: 'Perception', ability: 'wis', proficiencyMultiplier: 2, bonus: 7 },
 		]);
 		expect(resolved.passivePerception).toBe(17);
+	});
+
+	it('calculates spell save DC and spell attack from ability and proficiency', () => {
+		const source = creature({
+			level: 5,
+			abilityScores: { int: 18 },
+			spellcasting: { ability: 'int' },
+		});
+
+		expect(calculatedSpellSaveDc(source)).toBe(15);
+		expect(calculatedSpellAttackBonus(source)).toBe(7);
+		expect(spellcastingAbilityForClasses(['wizard'])).toBe('int');
+		expect(spellcastingAbilityForClasses(['wizard', 'cleric'])).toBeUndefined();
 	});
 
 	it('requires valid calculation sources only when a proficiency entry exists', () => {

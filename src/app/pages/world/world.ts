@@ -1,14 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
 	type CampaignLocationRef,
 	type CampaignLocationSearchResult,
 	type CampaignPointOfInterestSearchResult,
+	type CampaignPointOfInterest,
 	type CampaignOrganizationPresence,
 	type CampaignWorld,
 	type CampaignOrganization,
 	type CampaignOrganizationScope,
+	type CampaignSettlement,
+	type CampaignState,
 	type CampaignWorldScopeType,
 	isCampaignOrganizationEligible,
 	normalizeCampaignWorldSearchText,
@@ -17,6 +20,7 @@ import {
 } from '../../models/campaign-world-model';
 import { CampaignContextService } from '../../services/campaign-context-service/campaign-context-service';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
+import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
 import { DialogFocusDirective } from '../../directives/dialog-focus';
 
 type WorldEditorType = 'empire' | 'state' | 'settlement' | 'poi' | 'organization';
@@ -28,6 +32,13 @@ type OrganizationPresenceDraft = {
 	availableSheetExternalIds: string;
 };
 
+type WorldDeleteRequest = {
+	type: WorldEditorType;
+	id: string;
+	name: string;
+	dependencies: string[];
+};
+
 @Component({
 	selector: 'app-world-page',
 	standalone: true,
@@ -37,6 +48,7 @@ type OrganizationPresenceDraft = {
 export class WorldPage {
 	readonly campaignWorld = inject(CampaignWorldService);
 	readonly campaignContext = inject(CampaignContextService);
+	private readonly localStorage = inject(LocalStorageService);
 	readonly selectedLocation = signal<CampaignLocationRef | null>(null);
 	readonly highlightedPointOfInterestId = signal<string | null>(null);
 	readonly searchQuery = signal('');
@@ -78,6 +90,8 @@ export class WorldPage {
 		null,
 	);
 	readonly editingOrganizationId = signal<string | null>(null);
+	readonly editingEntityId = signal<string | null>(null);
+	readonly deleteRequest = signal<WorldDeleteRequest | null>(null);
 	readonly managingOrganizationId = signal<string | null>(null);
 	readonly presenceReturnLocation = signal<CampaignLocationRef | null>(null);
 	readonly editingPresenceIndex = signal<number | null>(null);
@@ -145,7 +159,7 @@ export class WorldPage {
 		effect(() => {
 			if (this.campaignWorld.status() !== 'ready') return;
 			const current = this.campaignContext.currentLocationRef();
-			const resolved = current && this.campaignWorld.resolveLocation(current);
+			const resolved = current && untracked(() => this.campaignWorld.resolveLocation(current));
 			if (resolved) this.selectedLocation.set(resolved.ref);
 		});
 	}
@@ -238,9 +252,10 @@ export class WorldPage {
 		return label ?? type.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 	}
 
-	openEditor(type: WorldEditorType): void {
+	openEditor(type: WorldEditorType, id?: string): void {
 		this.editorType.set(type);
 		this.editingOrganizationId.set(null);
+		this.editingEntityId.set(id ?? null);
 		this.editorName = '';
 		this.editorParentId = this.defaultParentId(type);
 		this.editorTypeValue =
@@ -258,6 +273,45 @@ export class WorldPage {
 		this.editorSummary = '';
 		this.editorOrganizationIds = [];
 		this.editorMessage.set(null);
+		if (!id || type === 'organization') return;
+		const world = this.campaignWorld.world();
+		if (!world) return;
+		const entity =
+			type === 'empire'
+				? world.empires.find((item) => item.id === id)
+				: type === 'state'
+					? world.states.find((item) => item.id === id)
+					: type === 'settlement'
+						? world.settlements.find((item) => item.id === id)
+						: world.pointsOfInterest.find((item) => item.id === id);
+		if (!entity) {
+			this.editorMessage.set('A entidade que você está editando não existe mais.');
+			return;
+		}
+		this.editorName = entity.name;
+		this.editorAliases = [...entity.aliases];
+		this.editorAliasesManuallyEdited = true;
+		if (type === 'state') this.editorParentId = (entity as CampaignState).empireId;
+		if (type === 'settlement') {
+			const settlement = entity as CampaignSettlement;
+			this.editorParentId = settlement.stateId;
+			this.editorTypeValue = settlement.settlementType;
+		}
+		if (type === 'poi') {
+			const pointOfInterest = entity as CampaignPointOfInterest;
+			this.editorParentId = pointOfInterest.settlementId;
+			this.editorTypeValue = pointOfInterest.poiType;
+			this.editorSummary = pointOfInterest.summary ?? '';
+			this.editorOrganizationIds = [...(pointOfInterest.organizationIds ?? [])];
+		}
+	}
+
+	toggleEditorOrganization(id: string, checked: boolean): void {
+		if (checked && !this.editorOrganizationIds.includes(id)) {
+			this.editorOrganizationIds = [...this.editorOrganizationIds, id];
+		} else if (!checked) {
+			this.editorOrganizationIds = this.editorOrganizationIds.filter((item) => item !== id);
+		}
 	}
 
 	openOrganizationEditor(organization: CampaignOrganization): void {
@@ -432,6 +486,7 @@ export class WorldPage {
 	cancelEditor(): void {
 		this.editorType.set(null);
 		this.editingOrganizationId.set(null);
+		this.editingEntityId.set(null);
 	}
 
 	saveEditor(): void {
@@ -440,41 +495,65 @@ export class WorldPage {
 		if (!type || !world || !this.editorName.trim()) return;
 		const next = structuredClone(world);
 		const editingOrganizationId = this.editingOrganizationId();
-		const id = editingOrganizationId ?? this.newId(type);
+		const editingEntityId = this.editingEntityId();
+		const id = editingOrganizationId ?? editingEntityId ?? this.newId(type);
 		this.commitAlias();
 		const aliases = this.editorAliases;
-		if (type === 'empire') next.empires.push({ id, name: this.editorName.trim(), aliases });
+		if (type === 'empire') {
+			const entity = { id, name: this.editorName.trim(), aliases };
+			if (editingEntityId) {
+				if (!next.empires.some((item) => item.id === id)) {
+					this.editorMessage.set('O império que você está editando não existe mais.');
+					return;
+				}
+				next.empires = next.empires.map((item) => (item.id === id ? { ...item, ...entity } : item));
+			} else next.empires.push(entity);
+		}
 		if (type === 'state') {
 			if (!next.empires.some((item) => item.id === this.editorParentId)) {
 				this.editorMessage.set('Escolha o império ao qual este estado pertence.');
 				return;
 			}
-			next.states.push({
+			const entity = {
 				id,
 				name: this.editorName.trim(),
 				aliases,
 				empireId: this.editorParentId,
-			});
+			};
+			if (editingEntityId) {
+				if (!next.states.some((item) => item.id === id)) {
+					this.editorMessage.set('O estado que você está editando não existe mais.');
+					return;
+				}
+				next.states = next.states.map((item) => (item.id === id ? { ...item, ...entity } : item));
+			} else next.states.push(entity);
 		}
 		if (type === 'settlement') {
 			if (!next.states.some((item) => item.id === this.editorParentId)) {
 				this.editorMessage.set('Escolha o estado ao qual esta localidade pertence.');
 				return;
 			}
-			next.settlements.push({
+			const entity = {
 				id,
 				name: this.editorName.trim(),
 				aliases,
 				stateId: this.editorParentId,
 				settlementType: this.editorTypeValue || 'other',
-			});
+			};
+			if (editingEntityId) {
+				if (!next.settlements.some((item) => item.id === id)) {
+					this.editorMessage.set('A localidade que você está editando não existe mais.');
+					return;
+				}
+				next.settlements = next.settlements.map((item) => (item.id === id ? { ...item, ...entity } : item));
+			} else next.settlements.push(entity);
 		}
 		if (type === 'poi') {
 			if (!next.settlements.some((item) => item.id === this.editorParentId)) {
 				this.editorMessage.set('Escolha a localidade deste ponto de interesse.');
 				return;
 			}
-			next.pointsOfInterest.push({
+			const entity = {
 				id,
 				name: this.editorName.trim(),
 				aliases,
@@ -484,7 +563,16 @@ export class WorldPage {
 				...(this.editorOrganizationIds.length
 					? { organizationIds: this.editorOrganizationIds }
 					: {}),
-			});
+			};
+			if (editingEntityId) {
+				if (!next.pointsOfInterest.some((item) => item.id === id)) {
+					this.editorMessage.set('O POI que você está editando não existe mais.');
+					return;
+				}
+				next.pointsOfInterest = next.pointsOfInterest.map((item) =>
+					item.id === id ? { ...item, ...entity } : item,
+				);
+			} else next.pointsOfInterest.push(entity);
 		}
 		if (type === 'organization') {
 			const existing = editingOrganizationId
@@ -530,8 +618,7 @@ export class WorldPage {
 			}
 		}
 		this.campaignWorld.saveWorld(next);
-		this.editorType.set(null);
-		this.editingOrganizationId.set(null);
+		this.cancelEditor();
 	}
 
 	toggleOrganizationArchived(id: string): void {
@@ -549,35 +636,72 @@ export class WorldPage {
 		const world = this.campaignWorld.world();
 		if (!world) return;
 		const dependencies = this.dependenciesFor(world, type, id);
-		if (dependencies.length) {
-			this.editorMessage.set(`Não é possível excluir: ${dependencies.join(', ')}.`);
-			return;
-		}
-		if (!confirm('Excluir este item do mundo?')) return;
+		const name =
+			type === 'empire'
+				? world.empires.find((item) => item.id === id)?.name
+				: type === 'state'
+					? world.states.find((item) => item.id === id)?.name
+					: type === 'settlement'
+						? world.settlements.find((item) => item.id === id)?.name
+						: type === 'poi'
+							? world.pointsOfInterest.find((item) => item.id === id)?.name
+							: world.organizations.find((item) => item.id === id)?.name;
+		if (!name) return;
+		this.deleteRequest.set({ type, id, name, dependencies });
+	}
+
+	confirmDeleteEntity(): void {
+		const request = this.deleteRequest();
+		const world = this.campaignWorld.world();
+		if (!request || !world || request.dependencies.length) return;
 		const next = structuredClone(world);
-		if (type === 'empire') next.empires = next.empires.filter((item) => item.id !== id);
-		if (type === 'state') next.states = next.states.filter((item) => item.id !== id);
-		if (type === 'settlement') next.settlements = next.settlements.filter((item) => item.id !== id);
-		if (type === 'poi')
-			next.pointsOfInterest = next.pointsOfInterest.filter((item) => item.id !== id);
-		if (type === 'organization')
-			next.organizations = next.organizations.filter((item) => item.id !== id);
+		if (request.type === 'empire') next.empires = next.empires.filter((item) => item.id !== request.id);
+		if (request.type === 'state') next.states = next.states.filter((item) => item.id !== request.id);
+		if (request.type === 'settlement') next.settlements = next.settlements.filter((item) => item.id !== request.id);
+		if (request.type === 'poi') next.pointsOfInterest = next.pointsOfInterest.filter((item) => item.id !== request.id);
+		if (request.type === 'organization') next.organizations = next.organizations.filter((item) => item.id !== request.id);
 		this.campaignWorld.saveWorld(next);
-		this.selectRoot();
+		this.deleteRequest.set(null);
+		if (request.type !== 'poi') this.selectRoot();
+	}
+
+	cancelDeleteEntity(): void {
+		this.deleteRequest.set(null);
 	}
 
 	private dependenciesFor(world: CampaignWorld, type: string, id: string): string[] {
+		const dependencies: string[] = [];
+		const currentLocation = this.campaignContext.currentLocationRef();
+		if (type !== 'organization' && currentLocation?.scopeType === type && currentLocation.scopeId === id) {
+			dependencies.push('a localização atual da party');
+		}
+		if (type !== 'organization') {
+			const presences = world.organizations.reduce(
+				(total, organization) =>
+					total + organization.presence.filter((presence) => presence.scopeType === type && presence.scopeId === id).length,
+				0,
+			);
+			if (presences) dependencies.push(`${presences} presença(s) de organização`);
+			const sheets = this.localStorage.listSheets().filter((sheet) =>
+				(sheet.locationRefs ?? []).some((ref) => ref.scopeType === type && ref.scopeId === id),
+			).length;
+			if (sheets) dependencies.push(`${sheets} ficha(s)`);
+			const encounters = this.localStorage.listEncounters().filter((encounter) =>
+				(encounter.locationRefs ?? []).some((ref) => ref.scopeType === type && ref.scopeId === id),
+			).length;
+			if (encounters) dependencies.push(`${encounters} encounter(s)`);
+		}
 		if (type === 'empire') {
 			const count = world.states.filter((item) => item.empireId === id).length;
-			return count ? [`${count} estado(s)`] : [];
+			if (count) dependencies.push(`${count} estado(s)`);
 		}
 		if (type === 'state') {
 			const count = world.settlements.filter((item) => item.stateId === id).length;
-			return count ? [`${count} localidade(s)`] : [];
+			if (count) dependencies.push(`${count} localidade(s)`);
 		}
 		if (type === 'settlement') {
 			const count = world.pointsOfInterest.filter((item) => item.settlementId === id).length;
-			return count ? [`${count} ponto(s) de interesse`] : [];
+			if (count) dependencies.push(`${count} ponto(s) de interesse`);
 		}
 		if (type === 'organization') {
 			const children = world.organizations.filter(
@@ -586,12 +710,12 @@ export class WorldPage {
 			const pois = world.pointsOfInterest.filter((item) =>
 				item.organizationIds?.includes(id),
 			).length;
-			return [
+			dependencies.push(
 				...(children ? [`${children} organização(ões) filha(s)`] : []),
 				...(pois ? [`${pois} POI(s)`] : []),
-			];
+			);
 		}
-		return [];
+		return dependencies;
 	}
 
 	private newId(prefix: string): string {

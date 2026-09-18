@@ -31,7 +31,8 @@
 		@for (match of defenses.matches; track $index) {
 			@if (match.note) { <div class="mt-1">{{ match.label }}: {{ match.note }}</div> }
 		}
-		@if (defenses.suggestedMultiplier; as multiplier) {
+		@if (defenses.suggestedMultiplier !== undefined) {
+			@let multiplier = defenses.suggestedMultiplier;
 			<button type="button" class="mt-2 rounded-lg border border-amber-200/35 px-2 py-1 font-semibold hover:bg-amber-200/10" (click)="applyDamage(multiplier)">Aplicar {{ multiplier === 0.5 ? '½' : multiplier === 2 ? '×2' : '0' }} ({{ adjustedDamage(rawAmount, multiplier) }})</button>
 		} @else if (hasConditionalDefense()) {
 			<div class="mt-1 text-amber-100/80">Escolha manualmente entre dano normal e os atalhos conforme a condição.</div>
