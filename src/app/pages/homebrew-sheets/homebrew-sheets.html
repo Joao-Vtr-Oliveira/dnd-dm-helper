@@ -102,6 +102,70 @@
 				(valueChange)="sourceFilter.set($any($event))"
 			/>
 		</div>
+		<div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+			<app-select
+				label="Status"
+				[options]="statusOptions"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="statusFilter()"
+				(valueChange)="statusFilter.set($any($event))"
+			/>
+			<app-select
+				label="Tipo de criatura"
+				[options]="creatureTypeOptions"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="creatureTypeFilter()"
+				(valueChange)="creatureTypeFilter.set($any($event))"
+			/>
+			<app-select
+				label="Classe"
+				[options]="characterClassOptions"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="characterClassFilter()"
+				(valueChange)="characterClassFilter.set($any($event))"
+			/>
+			<app-select
+				label="Organização"
+				[options]="organizationOptions()"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="organizationFilter()"
+				[disabled]="!campaignWorld.world()"
+				(valueChange)="organizationFilter.set($any($event))"
+			/>
+		</div>
+		<div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+			<app-select
+				label="Império"
+				[options]="empireOptions()"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="empireFilter()"
+				[disabled]="!campaignWorld.world()"
+				(valueChange)="setEmpireFilter($event)"
+			/>
+			<app-select
+				label="Estado"
+				[options]="stateOptions()"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="stateFilter()"
+				[disabled]="!campaignWorld.world()"
+				(valueChange)="setStateFilter($event)"
+			/>
+			<app-select
+				label="Settlement"
+				[options]="settlementOptions()"
+				optionValueKey="id"
+				optionLabelKey="label"
+				[value]="settlementFilter()"
+				[disabled]="!campaignWorld.world()"
+				(valueChange)="setSettlementFilter($event)"
+			/>
+		</div>
 		<div class="mt-3 flex flex-wrap gap-2 text-xs text-app-muted">
 			<span class="app-status border border-app-divider bg-app-inset"
 				>{{ filtered().length }} de {{ sheets().length }} fichas</span

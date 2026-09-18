@@ -13,8 +13,9 @@ import {
 	type CampaignWorld,
 	type CampaignWorldScopeType,
 	type ResolvedCampaignLocation,
-	type RelevantCampaignOrganization,
+	type DirectCampaignOrganization,
 	SETTLEMENT_TYPE_LABELS,
+	resolveCampaignOrganizationScope,
 	normalizeCampaignWorldSearchText,
 	validateCampaignWorld,
 } from '../../models/campaign-world-model';
@@ -67,10 +68,13 @@ export class CampaignWorldService {
 			return;
 		}
 		try {
+			this.workspaces.ensureCampaignWorldBootstrap();
 			const raw = this.storage.getItem(APP_STORAGE_KEYS.campaignWorld);
 			this.loadRawWorld(raw ? JSON.parse(raw) : createEmptyCampaignWorld());
 		} catch {
-			this.clearWorld('Não foi possível carregar o mundo da campanha.');
+			this.clearWorld(
+				'O mundo salvo no workspace não contém JSON legível. A cópia bruta foi preservada para recuperação.',
+			);
 		}
 	}
 
@@ -135,6 +139,10 @@ export class CampaignWorldService {
 
 	getOrganization(id: string): CampaignOrganization | null {
 		return this.organizationsById.get(id) ?? null;
+	}
+
+	getOrganizationScope(organization: CampaignOrganization) {
+		return resolveCampaignOrganizationScope(organization);
 	}
 
 	getPointOfInterest(id: string): CampaignPointOfInterest | null {
@@ -216,34 +224,20 @@ export class CampaignWorldService {
 		);
 	}
 
-	getRelevantOrganizations(ref: CampaignLocationRef): RelevantCampaignOrganization[] {
-		const resolved = this.resolveLocation(ref);
-		if (!resolved) return [];
+	getDirectOrganizations(ref: CampaignLocationRef): DirectCampaignOrganization[] {
+		if (!this.resolveLocation(ref)) return [];
 		const directKey = this.scopeKey(ref.scopeType, ref.scopeId);
-		const broaderKeys = [this.scopeKey('global')];
-		if (resolved.empire && ref.scopeType !== 'empire') {
-			broaderKeys.push(this.scopeKey('empire', resolved.empire.id));
-		}
-		if (resolved.state && ref.scopeType === 'settlement') {
-			broaderKeys.push(this.scopeKey('state', resolved.state.id));
-		}
-		const relevantKeys = new Set([directKey, ...broaderKeys]);
 		return (this.world()?.organizations ?? [])
 			.map((organization) => {
-				const relevant = organization.presence.filter((presence) =>
-					relevantKeys.has(this.scopeKey(presence.scopeType, presence.scopeId)),
+				const directPresences = organization.presence.filter((presence) =>
+					this.scopeKey(presence.scopeType, presence.scopeId) === directKey,
 				);
 				return {
 					organization,
-					directPresences: relevant.filter(
-						(presence) => this.scopeKey(presence.scopeType, presence.scopeId) === directKey,
-					),
-					broaderPresences: relevant.filter(
-						(presence) => this.scopeKey(presence.scopeType, presence.scopeId) !== directKey,
-					),
+					directPresences,
 				};
 			})
-			.filter((item) => item.directPresences.length || item.broaderPresences.length)
+			.filter((item) => item.directPresences.length > 0)
 			.sort((left, right) => left.organization.name.localeCompare(right.organization.name));
 	}
 
@@ -265,13 +259,14 @@ export class CampaignWorldService {
 			if (!state) return null;
 			const empire = this.getEmpire(state.empireId);
 			if (!empire) return null;
+			const stateLabel = this.stateLabel(state, empire);
 			return {
 				ref: { scopeType: 'state', scopeId: state.id },
 				empire,
 				state,
 				settlement: null,
-				label: state.name,
-				breadcrumb: [empire.name, state.name],
+				label: stateLabel,
+				breadcrumb: [empire.name, stateLabel],
 			};
 		}
 		const settlement = this.findLocation(this.world()?.settlements ?? [], ref.scopeId);
@@ -279,7 +274,8 @@ export class CampaignWorldService {
 		const state = this.getState(settlement.stateId);
 		const empire = state ? this.getEmpire(state.empireId) : null;
 		if (!state || !empire) return null;
-		const settlementLabel = [empire.name, state.name].includes(settlement.name)
+		const stateLabel = this.stateLabel(state, empire);
+		const settlementLabel = [empire.name, state.name].some((name) => this.sameLocationName(name, settlement.name))
 			? `${settlement.name} (${SETTLEMENT_TYPE_LABELS[settlement.settlementType]})`
 			: settlement.name;
 		return {
@@ -287,8 +283,8 @@ export class CampaignWorldService {
 			empire,
 			state,
 			settlement,
-			label: settlement.name,
-			breadcrumb: [empire.name, state.name, settlementLabel],
+			label: settlementLabel,
+			breadcrumb: [empire.name, stateLabel, settlementLabel],
 		};
 	}
 
@@ -342,6 +338,20 @@ export class CampaignWorldService {
 
 	private scopeKey(scopeType: CampaignWorldScopeType, scopeId?: string): string {
 		return `${scopeType}:${scopeId ?? ''}`;
+	}
+
+	private stateLabel(state: CampaignState, empire: CampaignEmpire): string {
+		const hasSettlementWithSameName = (this.world()?.settlements ?? []).some(
+			(settlement) =>
+				settlement.stateId === state.id && this.sameLocationName(settlement.name, state.name),
+		);
+		return hasSettlementWithSameName || this.sameLocationName(state.name, empire.name)
+			? `${state.name} (Estado)`
+			: state.name;
+	}
+
+	private sameLocationName(left: string, right: string): boolean {
+		return normalizeCampaignWorldSearchText(left) === normalizeCampaignWorldSearchText(right);
 	}
 
 	private matchesLocationSearch(

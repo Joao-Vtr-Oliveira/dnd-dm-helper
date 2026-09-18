@@ -79,6 +79,9 @@ describe('AppBackupService', () => {
 			type: 'dnd-dm-helper-encounter',
 			description: 'Cultists ambush the party in a cave.',
 			tags: ['cult', 'cave'],
+			archived: true,
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'nagawoods', relation: 'occurrence' }],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'affiliated' }],
 			participants: [
 				{
 					id: 'participant-cultist',
@@ -103,6 +106,7 @@ describe('AppBackupService', () => {
 		localStorageService.createSheet({
 			title: 'Cultista',
 			category: 'npc',
+			classes: ['ranger'],
 			tags: ['culto'],
 			source: 'Mesa',
 			data: {
@@ -115,6 +119,9 @@ describe('AppBackupService', () => {
 				features: [],
 			},
 			externalId: 'npc-cultista',
+			generic: false,
+			locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'base' }],
+			organizationRefs: [{ organizationId: 'guard', relation: 'institution' }],
 		});
 		worldClock.setSeason('winter');
 
@@ -126,14 +133,43 @@ describe('AppBackupService', () => {
 		expect(backup.data.encounters).toHaveSize(1);
 		expect(backup.data.homebrewSheets).toHaveSize(1);
 		expect(backup.data.homebrewSheets[0].externalId).toBe('npc-cultista');
+		expect(backup.data.homebrewSheets[0].classes).toEqual(['ranger']);
+		expect(backup.data.homebrewSheets[0].generic).toBeFalse();
+		expect(backup.data.homebrewSheets[0].locationRefs).toEqual([
+			{ scopeType: 'state', scopeId: 'feng', relation: 'base' },
+		]);
 		expect(backup.data.encounters[0]).toEqual(jasmine.objectContaining({
 			description: 'Cultists ambush the party in a cave.',
 			tags: ['cult', 'cave'],
+			archived: true,
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'nagawoods', relation: 'occurrence' }],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'affiliated' }],
 		}));
 		expect(backup.data.encounters[0].participants[0].id).toBe('participant-cultist');
 		expect(backup.data.calendar?.season).toBe('winter');
 		expect(backup.data.rawLocalStorage).toEqual({});
 		expect(backup.data.campaignContext).toEqual({ currentLocation: null });
+
+		service.applyBackup(backup);
+		const restoredEncounter = localStorageService.listEncounters()[0];
+		expect(restoredEncounter.archived).toBeTrue();
+		expect(restoredEncounter.locationRefs).toEqual([
+			{ scopeType: 'settlement', scopeId: 'nagawoods', relation: 'occurrence' },
+		]);
+		expect(restoredEncounter.organizationRefs).toEqual([
+			{ organizationId: 'winterhold', relation: 'affiliated' },
+		]);
+		const restored = localStorageService.listSheets()[0];
+		expect(restored.generic).toBeFalse();
+		expect(restored.locationRefs).toEqual([
+			{ scopeType: 'state', scopeId: 'feng', relation: 'base' },
+		]);
+		expect(restored.organizationRefs).toEqual([
+			{ organizationId: 'guard', relation: 'institution' },
+		]);
+		expect(restored.classes).toEqual(['ranger']);
+		expect('locationRefs' in restored.data).toBeFalse();
+		expect('organizationRefs' in restored.data).toBeFalse();
 	});
 
 	it('rejects incompatible JSON during validation', () => {

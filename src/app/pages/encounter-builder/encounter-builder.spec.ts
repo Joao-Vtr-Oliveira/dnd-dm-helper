@@ -111,6 +111,60 @@ describe('EncounterBuilder', () => {
 		expect(navigate).toHaveBeenCalledWith(['/home/encounter-builder', component.savedId()]);
 	});
 
+	it('edits locations and only formal organizations in encounter context', () => {
+		const router = TestBed.inject(Router);
+		spyOn(router, 'navigate').and.resolveTo(true);
+		component.campaignWorld.world.set({
+			empires: [{ id: 'empire', name: 'Empire', aliases: [] }],
+			states: [{ id: 'state', name: 'State', aliases: [], empireId: 'empire' }],
+			settlements: [
+				{ id: 'settlement', name: 'Settlement', aliases: [], stateId: 'state', settlementType: 'city' },
+			],
+			organizations: [
+				{
+					id: 'guild',
+					name: 'Formal Guild',
+					aliases: [],
+					organizationType: 'guild',
+					scope: 'campaign',
+					presence: [],
+				},
+				{
+					id: 'local-place',
+					name: 'Local Tavern',
+					aliases: [],
+					organizationType: 'group',
+					scope: 'local',
+					sourcePath: 'Mundo/Impérios/Mornk/3-Nirvak/Guildas.md',
+					presence: [],
+				},
+			],
+			pointsOfInterest: [],
+		} as never);
+
+		expect(component.organizationOptions().map((option) => option.value)).toEqual(['guild']);
+		component.setArchived(true);
+		component.encounter.update((encounter) => ({
+			...encounter,
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'settlement', relation: 'operation' }],
+			organizationRefs: [{ organizationId: 'guild', relation: 'affiliated' }],
+		}));
+		component.setOrganizationId('local-place');
+		component.saveOrganizationRef();
+		expect(component.toast()?.text).toContain('guilda ou grupo formal');
+		component.updateTitle('Contextual Encounter');
+		component.save();
+
+		const saved = TestBed.inject(LocalStorageService).getEncounter(component.savedId()!);
+		expect(saved?.archived).toBeTrue();
+		expect(saved?.locationRefs).toEqual([
+			{ scopeType: 'settlement', scopeId: 'settlement', relation: 'operation' },
+		]);
+		expect(saved?.organizationRefs).toEqual([
+			{ organizationId: 'guild', relation: 'affiliated' },
+		]);
+	});
+
 	it('asks for initiatives before creating a battle', () => {
 		const router = TestBed.inject(Router);
 		const navigate = spyOn(router, 'navigate').and.resolveTo(true);

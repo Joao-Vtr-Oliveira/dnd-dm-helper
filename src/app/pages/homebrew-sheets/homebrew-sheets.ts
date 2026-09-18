@@ -25,14 +25,22 @@ import { DialogFocusDirective } from '../../directives/dialog-focus';
 import type { ResolvedSpellReference } from '../../models/spell-reference-model';
 import { conditionReferenceFor, type ConditionReference } from '../../models/condition-reference-model';
 import { SpellReferenceResolverService } from '../../services/spell-reference-resolver-service/spell-reference-resolver-service';
+import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
+import { isCampaignOrganizationEligible } from '../../models/campaign-world-model';
+import {
+	filterHomebrewSheets,
+	HOME_BREW_SHEET_CLASS_OPTIONS,
+	HOME_BREW_SHEET_CREATURE_TYPE_OPTIONS,
+	HOME_BREW_SHEET_STATUS_OPTIONS,
+	type FilterAll,
+	type HomebrewSheetStatusFilter,
+} from './homebrew-sheet-filter';
 import {
 	HomebrewSheetImportService,
 	type HomebrewSheetConflictResolution,
 	type HomebrewSheetImportPreview,
 	type HomebrewSheetImportResult,
 } from '../../services/homebrew-sheet-import-service/homebrew-sheet-import-service';
-
-type FilterAll<T extends string> = 'all' | T;
 
 type ConfirmModalState = {
 	action: 'delete-sheet' | 'add-to-fiveetools';
@@ -68,6 +76,7 @@ export class HomebrewSheets {
 	private sheetImportService = inject(HomebrewSheetImportService);
 	private spellResolver = inject(SpellReferenceResolverService);
 	private referenceOverlay = inject(ReferenceOverlayService);
+	readonly campaignWorld = inject(CampaignWorldService);
 
 	sheets = signal<SavedSheetInterface[]>(this.ls.listSheets());
 
@@ -76,6 +85,13 @@ export class HomebrewSheets {
 	categoryFilter = signal<FilterAll<HomebrewCategory>>('all');
 	tagFilter = signal<FilterAll<string>>('all');
 	sourceFilter = signal<FilterAll<string>>('all');
+	statusFilter = signal<HomebrewSheetStatusFilter>('active');
+	creatureTypeFilter = signal<(typeof HOME_BREW_SHEET_CREATURE_TYPE_OPTIONS)[number]['id']>('all');
+	characterClassFilter = signal<(typeof HOME_BREW_SHEET_CLASS_OPTIONS)[number]['id']>('all');
+	empireFilter = signal<FilterAll<string>>('all');
+	stateFilter = signal<FilterAll<string>>('all');
+	settlementFilter = signal<FilterAll<string>>('all');
+	organizationFilter = signal<FilterAll<string>>('all');
 
 	toast = signal<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null);
 	importOpen = signal(false);
@@ -107,7 +123,14 @@ export class HomebrewSheets {
 			!!this.q().trim() ||
 			this.categoryFilter() !== 'all' ||
 			this.tagFilter() !== 'all' ||
-			this.sourceFilter() !== 'all',
+			this.sourceFilter() !== 'all' ||
+			this.statusFilter() !== 'active' ||
+			this.creatureTypeFilter() !== 'all' ||
+			this.characterClassFilter() !== 'all' ||
+			this.empireFilter() !== 'all' ||
+			this.stateFilter() !== 'all' ||
+			this.settlementFilter() !== 'all' ||
+			this.organizationFilter() !== 'all',
 	);
 
 	@HostListener('document:keydown.escape')
@@ -351,7 +374,7 @@ export class HomebrewSheets {
 	}
 
 	// ---------- options p/ selects ----------
-	CATEGORIES: { id: FilterAll<HomebrewCategory>; label: string }[] = [
+	readonly CATEGORIES: { id: FilterAll<HomebrewCategory>; label: string }[] = [
 		{ id: 'all', label: 'Todas' },
 		{ id: 'monster', label: 'Monstros' },
 		{ id: 'npc', label: 'NPCs' },
@@ -362,7 +385,9 @@ export class HomebrewSheets {
 	allTags = computed(() => {
 		const set = new Set<string>();
 		for (const s of this.sheets()) {
-			for (const t of s.tags ?? []) set.add(t);
+			for (const tag of [...(s.tags ?? []), ...(s.data.tags ?? []), ...(s.data.groups ?? [])]) {
+				set.add(tag);
+			}
 		}
 		return ['all', ...Array.from(set).sort()] as const;
 	});
@@ -376,6 +401,73 @@ export class HomebrewSheets {
 		return ['all', ...Array.from(set).sort()] as const;
 	});
 
+	readonly statusOptions = HOME_BREW_SHEET_STATUS_OPTIONS;
+	readonly creatureTypeOptions = HOME_BREW_SHEET_CREATURE_TYPE_OPTIONS;
+	readonly characterClassOptions = HOME_BREW_SHEET_CLASS_OPTIONS;
+
+	readonly empireOptions = computed(() => [
+		{ id: 'all', label: 'Todos os impérios' },
+		...(this.campaignWorld.world()?.empires ?? [])
+			.slice()
+			.sort((left, right) => left.name.localeCompare(right.name))
+			.map((empire) => ({ id: empire.id, label: empire.name })),
+	]);
+
+	readonly stateOptions = computed(() => {
+		const empireId = this.empireFilter();
+		return [
+			{ id: 'all', label: 'Todos os estados' },
+			...(this.campaignWorld.world()?.states ?? [])
+				.filter((state) => empireId === 'all' || state.empireId === empireId)
+				.slice()
+				.sort((left, right) => left.name.localeCompare(right.name))
+				.map((state) => ({
+					id: state.id,
+					label:
+						this.campaignWorld.resolveLocation({ scopeType: 'state', scopeId: state.id })?.breadcrumb.join(' › ') ??
+						state.name,
+				})),
+		];
+	});
+
+	readonly settlementOptions = computed(() => {
+		const empireId = this.empireFilter();
+		const stateId = this.stateFilter();
+		const world = this.campaignWorld.world();
+		return [
+			{ id: 'all', label: 'Todos os settlements' },
+			...(world?.settlements ?? [])
+				.filter((settlement) => {
+					if (stateId !== 'all') return settlement.stateId === stateId;
+					if (empireId === 'all') return true;
+					return world?.states.some(
+						(state) => state.id === settlement.stateId && state.empireId === empireId,
+					);
+				})
+				.slice()
+				.sort((left, right) => left.name.localeCompare(right.name))
+				.map((settlement) => ({
+					id: settlement.id,
+					label:
+						this.campaignWorld
+							.resolveLocation({ scopeType: 'settlement', scopeId: settlement.id })
+							?.breadcrumb.join(' › ') ?? settlement.name,
+				})),
+		];
+	});
+
+	readonly organizationOptions = computed(() => [
+		{ id: 'all', label: 'Todas as organizações' },
+		...(this.campaignWorld.world()?.organizations ?? [])
+			.filter((organization) => isCampaignOrganizationEligible(organization))
+			.slice()
+			.sort((left, right) => left.name.localeCompare(right.name))
+			.map((organization) => ({
+				id: organization.id,
+				label: organization.archived ? `${organization.name} (arquivada)` : organization.name,
+			})),
+	]);
+
 	setTagQuickFilter(tag: string) {
 		this.q.set(tag);
 	}
@@ -385,43 +477,55 @@ export class HomebrewSheets {
 		this.categoryFilter.set('all');
 		this.tagFilter.set('all');
 		this.sourceFilter.set('all');
+		this.statusFilter.set('active');
+		this.creatureTypeFilter.set('all');
+		this.characterClassFilter.set('all');
+		this.empireFilter.set('all');
+		this.stateFilter.set('all');
+		this.settlementFilter.set('all');
+		this.organizationFilter.set('all');
+	}
+
+	setEmpireFilter(empireId: string) {
+		this.empireFilter.set(empireId);
+		this.stateFilter.set('all');
+		this.settlementFilter.set('all');
+	}
+
+	setStateFilter(stateId: string) {
+		this.stateFilter.set(stateId);
+		this.settlementFilter.set('all');
+		if (stateId === 'all') return;
+		const state = this.campaignWorld.world()?.states.find((item) => item.id === stateId);
+		if (state) this.empireFilter.set(state.empireId);
+	}
+
+	setSettlementFilter(settlementId: string) {
+		this.settlementFilter.set(settlementId);
+		if (settlementId === 'all') return;
+		const world = this.campaignWorld.world();
+		const settlement = world?.settlements.find((item) => item.id === settlementId);
+		const state = settlement && world?.states.find((item) => item.id === settlement.stateId);
+		if (!state) return;
+		this.stateFilter.set(state.id);
+		this.empireFilter.set(state.empireId);
 	}
 
 	// ---------- filtro principal ----------
 	filtered = computed(() => {
-		const q = this.norm(this.q());
-		const cat = this.categoryFilter();
-		const tag = this.tagFilter();
-		const src = this.sourceFilter();
-
-		return this.sheets().filter((s) => {
-			// categoria
-			if (cat !== 'all' && (s.category ?? 'monster') !== cat) return false;
-
-			// tag
-			if (tag !== 'all') {
-				const tags = (s.tags ?? []).map((t) => this.norm(t));
-				if (!tags.includes(this.norm(tag))) return false;
-			}
-
-			// source
-			if (src !== 'all' && this.norm(s.source ?? '') !== this.norm(src)) return false;
-
-			// search geral
-			if (!q) return true;
-
-			const hay = [
-				s.title,
-				s.data?.name ?? '',
-				(s.tags ?? []).join(' '),
-				s.source ?? '',
-				s.category ?? '',
-			]
-				.map((x) => this.norm(x))
-				.join(' ');
-
-			return hay.includes(q);
-		});
+		return filterHomebrewSheets(this.sheets(), {
+			query: this.q(),
+			category: this.categoryFilter(),
+			tag: this.tagFilter(),
+			source: this.sourceFilter(),
+			status: this.statusFilter(),
+			creatureType: this.creatureTypeFilter(),
+			characterClass: this.characterClassFilter(),
+			empireId: this.empireFilter(),
+			stateId: this.stateFilter(),
+			settlementId: this.settlementFilter(),
+			organizationId: this.organizationFilter(),
+		}, this.campaignWorld.world());
 	});
 
 	// ---------- export ----------
@@ -441,6 +545,11 @@ export class HomebrewSheets {
 					category: sheet.category ?? 'monster',
 					tags: sheet.tags ?? [],
 					source: sheet.source ?? '',
+					...(sheet.archived ? { archived: true } : {}),
+					...(sheet.generic !== undefined ? { generic: sheet.generic } : {}),
+					...(sheet.classes?.length ? { classes: sheet.classes } : {}),
+					...(sheet.locationRefs?.length ? { locationRefs: sheet.locationRefs } : {}),
+					...(sheet.organizationRefs?.length ? { organizationRefs: sheet.organizationRefs } : {}),
 					data: sheet.data,
 				},
 			],

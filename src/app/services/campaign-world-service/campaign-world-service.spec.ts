@@ -2,7 +2,11 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type { CampaignWorld } from '../../models/campaign-world-model';
+import { WorkspaceService } from '../workspace-service/workspace-service';
+import { WORKSPACE_REGISTRY_KEY } from '../workspace-service/workspace-service';
+import { workspaceStorageKey } from '../workspace-service/workspace-storage-key';
 import { CampaignWorldService } from './campaign-world-service';
 
 const VALID_WORLD: CampaignWorld = {
@@ -37,6 +41,7 @@ const VALID_WORLD: CampaignWorld = {
 			id: 'guild',
 			name: 'Guild',
 			organizationType: 'guild',
+			scope: 'campaign',
 			aliases: [],
 			sourcePath: 'Guild.md',
 			presence: [
@@ -64,6 +69,7 @@ describe('CampaignWorldService', () => {
 	let http: HttpTestingController;
 
 	beforeEach(() => {
+		localStorage.clear();
 		TestBed.configureTestingModule({
 			providers: [
 				provideZonelessChangeDetection(),
@@ -154,6 +160,63 @@ describe('CampaignWorldService', () => {
 		expect(service.status()).toBe('error');
 	});
 
+	it('accepts archived organizations with a formal guild type', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [
+				{
+					...VALID_WORLD.organizations[0],
+					organizationType: 'guild',
+					archived: true,
+				},
+			],
+		});
+
+		expect(service.status()).toBe('ready');
+		expect(service.getOrganization('guild')).toEqual(
+			jasmine.objectContaining({ organizationType: 'guild', archived: true }),
+		);
+	});
+
+	it('accepts descriptive organization types without using an allowlist', () => {
+		for (const [index, organizationType] of ['cult', 'family', 'institution', 'government', 'community'].entries()) {
+			if (index > 0) service.load();
+			load({
+				...VALID_WORLD,
+				organizations: [{ ...VALID_WORLD.organizations[0], organizationType }],
+			});
+
+			expect(service.status()).toBe('ready');
+			expect(service.getOrganization('guild')?.organizationType).toBe(organizationType);
+		}
+	});
+
+	it('rejects local organization scope', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [{ ...VALID_WORLD.organizations[0], scope: 'local' }],
+		});
+
+		expect(service.status()).toBe('error');
+		expect(service.error()).toContain('Organização possui campos inválidos');
+	});
+
+	it('rejects invalid organization lifecycle values', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [{ ...VALID_WORLD.organizations[0], organizationType: '   ' }],
+		});
+
+		expect(service.status()).toBe('error');
+
+		service.load();
+		http.expectOne('/rpg_files/campaign-world.json').flush({
+			...VALID_WORLD,
+			organizations: [{ ...VALID_WORLD.organizations[0], archived: 'yes' }],
+		});
+		expect(service.status()).toBe('error');
+	});
+
 	it('rejects invalid points of interest and their references', () => {
 		load({
 			...VALID_WORLD,
@@ -196,6 +259,38 @@ describe('CampaignWorldService', () => {
 		expect(
 			service.getOrganizationsByScope({ scopeType: 'settlement', scopeId: 'nagawoods' }),
 		).toHaveSize(1);
+	});
+
+	it('indexes organization presences at every supported scope', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [
+				{
+					...VALID_WORLD.organizations[0],
+					presence: [
+						{ scopeType: 'global', presenceType: 'network' },
+						{ scopeType: 'empire', scopeId: 'mornk', presenceType: 'headquarters' },
+						{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'agent' },
+						{ scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'post' },
+					],
+				},
+			],
+		});
+
+		expect(service.getOrganizationsByScope({ scopeType: 'global' }).map((item) => item.id)).toEqual([
+			'guild',
+		]);
+		expect(
+			service.getOrganizationsByScope({ scopeType: 'empire', scopeId: 'mornk' }).map((item) => item.id),
+		).toEqual(['guild']);
+		expect(
+			service.getOrganizationsByScope({ scopeType: 'state', scopeId: 'nagazav' }).map((item) => item.id),
+		).toEqual(['guild']);
+		expect(
+			service
+				.getOrganizationsByScope({ scopeType: 'settlement', scopeId: 'nagawoods' })
+				.map((item) => item.id),
+		).toEqual(['guild']);
 	});
 
 	it('resolves every supported location level and unknown IDs safely', () => {
@@ -248,7 +343,7 @@ describe('CampaignWorldService', () => {
 		expect(service.searchPointsOfInterest('guildhall')).toEqual([]);
 	});
 
-	it('resolves direct and inherited organization presences once per organization', () => {
+	it('resolves only direct organization presences once per organization', () => {
 		load({
 			...VALID_WORLD,
 			organizations: [
@@ -257,13 +352,26 @@ describe('CampaignWorldService', () => {
 					id: 'state-guild',
 					name: 'State Guild',
 					organizationType: 'guild',
+					scope: 'regional',
 					aliases: [],
 					sourcePath: 'State.md',
 					presence: [{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'agent' }],
 				},
+				{
+					id: 'empire-guild',
+					name: 'Empire Guild',
+					organizationType: 'guild',
+					scope: 'campaign',
+					aliases: [],
+					sourcePath: 'Empire.md',
+					presence: [
+						{ scopeType: 'empire', scopeId: 'mornk', presenceType: 'headquarters' },
+						{ scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'post' },
+					],
+				},
 			],
 		});
-		const organizations = service.getRelevantOrganizations({
+		const organizations = service.getDirectOrganizations({
 			scopeType: 'settlement',
 			scopeId: 'nagawoods',
 		});
@@ -272,20 +380,162 @@ describe('CampaignWorldService', () => {
 			organizations.find((item) => item.organization.id === 'guild')?.directPresences,
 		).toHaveSize(1);
 		expect(
-			organizations.find((item) => item.organization.id === 'guild')?.broaderPresences,
+			organizations.find((item) => item.organization.id === 'empire-guild')?.directPresences,
 		).toHaveSize(1);
-		expect(
-			organizations.find((item) => item.organization.id === 'state-guild')?.broaderPresences,
-		).toHaveSize(1);
-		const stateOrganizations = service.getRelevantOrganizations({
+		const stateOrganizations = service.getDirectOrganizations({
 			scopeType: 'state',
 			scopeId: 'nagazav',
 		});
+		expect(stateOrganizations.map((item) => item.organization.id)).toEqual(['state-guild']);
+		const empireOrganizations = service.getDirectOrganizations({
+			scopeType: 'empire',
+			scopeId: 'mornk',
+		});
+		expect(empireOrganizations.map((item) => item.organization.id)).toEqual(['empire-guild']);
+	});
+
+	it('keeps one Winterhold identity when it has a global network and a local post', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [
+				{
+					id: 'winterhold',
+					name: 'Winterhold',
+					organizationType: 'guild',
+					scope: 'campaign',
+					aliases: [],
+					presence: [
+						{ scopeType: 'global', presenceType: 'network' },
+						{ scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'post' },
+					],
+				},
+			],
+			pointsOfInterest: [],
+		});
+
+		const organizations = service.getDirectOrganizations({
+			scopeType: 'settlement',
+			scopeId: 'nagawoods',
+		});
+		expect(organizations).toHaveSize(1);
+		expect(organizations[0].organization.id).toBe('winterhold');
+		expect(organizations[0].directPresences).toHaveSize(1);
+	});
+
+	it('does not resolve a global network as territorial presence', () => {
+		load({
+			...VALID_WORLD,
+			organizations: [
+				{
+					...VALID_WORLD.organizations[0],
+					presence: [{ scopeType: 'global', presenceType: 'global-network' }],
+				},
+			],
+			pointsOfInterest: [],
+		});
+
+		expect(service.getDirectOrganizations({ scopeType: 'state', scopeId: 'nagazav' })).toEqual([]);
+	});
+});
+
+describe('CampaignWorldService workspace isolation', () => {
+	beforeEach(() => {
+		localStorage.clear();
+		TestBed.resetTestingModule();
+		TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
+	});
+
+	afterEach(() => TestBed.resetTestingModule());
+
+	function seedExistingWorkspace(): string {
+		const id = 'existing-workspace';
+		localStorage.setItem(
+			WORKSPACE_REGISTRY_KEY,
+			JSON.stringify({
+				schemaVersion: 1,
+				activeWorkspaceId: id,
+				workspaces: [{ id, name: 'Campanha Existente', type: 'local', createdAt: 1 }],
+				legacyMigrationCompleted: true,
+			}),
+		);
+		return id;
+	}
+
+	it('bootstraps an existing active workspace with no world key from the canonical world', () => {
+		const workspaceId = seedExistingWorkspace();
+		const service = TestBed.inject(CampaignWorldService);
+
+		expect(service.status()).toBe('ready');
+		expect(service.world()?.empires.length).toBeGreaterThan(0);
+		expect(service.world()?.states.length).toBeGreaterThan(0);
+		expect(service.world()?.settlements.length).toBeGreaterThan(0);
+		expect(service.world()?.organizations.length).toBeGreaterThan(0);
+		expect(service.world()?.pointsOfInterest.length).toBeGreaterThan(0);
 		expect(
-			stateOrganizations.find((item) => item.organization.id === 'guild')?.directPresences,
-		).toEqual([]);
+		localStorage.getItem(workspaceStorageKey(workspaceId, APP_STORAGE_KEYS.campaignWorld)),
+		).not.toBeNull();
+	});
+
+	it('preserves unreadable workspace world data and reports an explicit error', () => {
+		const workspaceId = seedExistingWorkspace();
+		const raw = '{not-json';
+		localStorage.setItem(workspaceStorageKey(workspaceId, APP_STORAGE_KEYS.campaignWorld), raw);
+
+		const service = TestBed.inject(CampaignWorldService);
+
+		expect(service.status()).toBe('error');
+		expect(service.error()).toContain('JSON legível');
 		expect(
-			stateOrganizations.find((item) => item.organization.id === 'guild')?.broaderPresences,
-		).toHaveSize(1);
+			localStorage.getItem(
+				workspaceStorageKey(workspaceId, APP_STORAGE_KEYS.safetyWorldRawBeforeBootstrap),
+			),
+		).toBe(raw);
+		expect(localStorage.getItem(workspaceStorageKey(workspaceId, APP_STORAGE_KEYS.campaignWorld))).toBe(raw);
+	});
+
+	it('keeps organization registries isolated by active workspace', () => {
+		const workspaces = TestBed.inject(WorkspaceService);
+		const first = workspaces.createWorkspace('Primeira');
+		const service = TestBed.inject(CampaignWorldService);
+		service.saveWorld(structuredClone(VALID_WORLD));
+		expect(
+			localStorage.getItem(workspaceStorageKey(first.id, APP_STORAGE_KEYS.campaignWorld)),
+		).toContain('Mornk');
+
+		const second = workspaces.createWorkspace('Segunda');
+		service.load();
+		expect(service.world()?.organizations).toEqual([]);
+
+		service.saveWorld({
+			...structuredClone(VALID_WORLD),
+			organizations: [
+				{
+					...VALID_WORLD.organizations[0],
+					id: 'second-workspace-organization',
+					name: 'Segunda Organização',
+					presence: [{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'post' }],
+				},
+			],
+			pointsOfInterest: [],
+		});
+
+		workspaces.activate(first.id);
+		service.load();
+		expect(service.getOrganization('guild')?.name).toBe('Guild');
+		expect(service.getOrganization('guild')?.presence).toEqual([
+			{ scopeType: 'global', presenceType: 'network' },
+			{ scopeType: 'settlement', scopeId: 'nagawoods', presenceType: 'agent' },
+		]);
+		expect(service.getOrganization('second-workspace-organization')).toBeNull();
+
+		workspaces.activate(second.id);
+		service.load();
+		expect(service.getOrganization('second-workspace-organization')?.name).toBe(
+			'Segunda Organização',
+		);
+		expect(service.getOrganization('second-workspace-organization')?.presence).toEqual([
+			{ scopeType: 'state', scopeId: 'nagazav', presenceType: 'post' },
+		]);
+		expect(service.getOrganization('guild')).toBeNull();
 	});
 });

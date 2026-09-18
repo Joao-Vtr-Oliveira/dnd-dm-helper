@@ -1,6 +1,17 @@
 import { Injectable, inject } from '@angular/core';
 import { APP_STORAGE_KEYS } from '../../constants/app-storage-keys';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
+import {
+	normalizeContentLocationRelations,
+	normalizeContentOrganizationRelations,
+	type ContentLocationRelation,
+	type ContentOrganizationRelation,
+} from '../../models/content-context-model';
+import {
+	DND_5E_CHARACTER_CLASSES,
+	isDnd5eCharacterClass,
+	type Dnd5eCharacterClass,
+} from '../../models/dnd-5e-reference-model';
 import type { Encounter, EncounterLairAction, EncounterParticipant, EncounterTrap } from '../../models/encounter-model';
 import type { CreatureCategory, CreatureSheet } from '../../models/creature-sheet-model';
 import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
@@ -21,6 +32,11 @@ export interface SavedSheetInterface {
 	category: HomebrewCategory;
 	tags: string[];
 	source: string;
+	archived?: boolean;
+	generic?: boolean;
+	classes?: Dnd5eCharacterClass[];
+	locationRefs?: ContentLocationRelation[];
+	organizationRefs?: ContentOrganizationRelation[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -92,8 +108,9 @@ export class LocalStorageService {
 			...patch,
 			updatedAt: Date.now(),
 		};
-		this.upsertEncounter(updated);
-		return updated;
+		const normalized = this.normalizeEncounter(updated);
+		this.upsertEncounter(normalized);
+		return normalized;
 	}
 
 	deleteEncounter(id: string) {
@@ -108,6 +125,9 @@ export class LocalStorageService {
 			schemaVersion: 1,
 			type: 'dnd-dm-helper-encounter',
 			tags: curr.tags,
+			...(curr.archived ? { archived: true } : {}),
+			...(curr.locationRefs?.length ? { locationRefs: curr.locationRefs } : {}),
+			...(curr.organizationRefs?.length ? { organizationRefs: curr.organizationRefs } : {}),
 			description: curr.description,
 			notes: curr.notes,
 			participants: curr.participants.map((participant) => ({
@@ -157,6 +177,11 @@ export class LocalStorageService {
 		tags?: string[];
 		source?: string;
 		externalId?: string;
+		archived?: boolean;
+		generic?: boolean;
+		classes?: Dnd5eCharacterClass[];
+		locationRefs?: ContentLocationRelation[];
+		organizationRefs?: ContentOrganizationRelation[];
 	}): SavedSheetInterface {
 		const item = this.buildSheet(params);
 
@@ -171,9 +196,21 @@ export class LocalStorageService {
 		tags?: string[];
 		source?: string;
 		externalId?: string;
+		archived?: boolean;
+		generic?: boolean;
+		classes?: Dnd5eCharacterClass[];
+		locationRefs?: ContentLocationRelation[];
+		organizationRefs?: ContentOrganizationRelation[];
 		extra?: Record<string, unknown>;
 	}): SavedSheetInterface {
+		if (params.generic === true && params.locationRefs?.length) {
+			throw new Error('Uma ficha genérica não pode possuir localizações físicas.');
+		}
 		const now = Date.now();
+		const category = this.normalizeHomebrewCategory(params.category);
+		const classes = this.normalizeClasses(params.classes, category);
+		const data = structuredClone(params.data) as CreatureSheet & { classes?: unknown };
+		delete data.classes;
 		return {
 			...(params.extra ?? {}),
 			id: globalThis.crypto?.randomUUID?.() ?? `sheet-${now}-${Math.random().toString(36).slice(2)}`,
@@ -181,10 +218,19 @@ export class LocalStorageService {
 			title: (params.title || '').trim() || 'Untitled Homebrew',
 			createdAt: now,
 			updatedAt: now,
-			data: structuredClone(params.data),
-			category: this.normalizeHomebrewCategory(params.category),
+			data,
+			category,
 			tags: (params.tags ?? []).map((t) => t.trim()).filter(Boolean),
 			source: (params.source || '').trim(),
+			...(params.archived ? { archived: true } : {}),
+			...(params.generic !== undefined ? { generic: params.generic } : {}),
+			...(classes ? { classes } : {}),
+			...(params.locationRefs?.length
+				? { locationRefs: normalizeContentLocationRelations(params.locationRefs) }
+				: {}),
+			...(params.organizationRefs?.length
+				? { organizationRefs: normalizeContentOrganizationRelations(params.organizationRefs) }
+				: {}),
 		};
 	}
 
@@ -216,6 +262,11 @@ export class LocalStorageService {
 			tags: curr.tags,
 			source: curr.source,
 			externalId: this.deriveDuplicateExternalId(curr.externalId),
+			...(curr.archived ? { archived: true } : {}),
+			...(curr.generic !== undefined ? { generic: curr.generic } : {}),
+			...(curr.classes ? { classes: curr.classes } : {}),
+			...(curr.locationRefs?.length ? { locationRefs: curr.locationRefs } : {}),
+			...(curr.organizationRefs?.length ? { organizationRefs: curr.organizationRefs } : {}),
 		});
 	}
 
@@ -234,6 +285,14 @@ export class LocalStorageService {
 	private normalizeSheet(sheet: Partial<SavedSheetInterface>): SavedSheetInterface {
 		const now = Date.now();
 		const candidate = structuredClone(sheet) as Record<string, unknown>;
+		const locationRefs = Array.isArray(sheet.locationRefs)
+			? normalizeContentLocationRelations(sheet.locationRefs)
+			: undefined;
+		const organizationRefs = Array.isArray(sheet.organizationRefs)
+			? normalizeContentOrganizationRelations(sheet.organizationRefs)
+			: undefined;
+		const category = this.normalizeHomebrewCategory(sheet.category);
+		const classes = this.normalizeClasses(sheet.classes, category);
 		return {
 			...candidate,
 			id: typeof sheet.id === 'string' ? sheet.id : crypto.randomUUID(),
@@ -242,9 +301,14 @@ export class LocalStorageService {
 			createdAt: typeof sheet.createdAt === 'number' ? sheet.createdAt : now,
 			updatedAt: typeof sheet.updatedAt === 'number' ? sheet.updatedAt : now,
 			data: this.normalizeCreatureSheet(sheet.data),
-			category: this.normalizeHomebrewCategory(sheet.category),
+			category,
 			tags: Array.isArray(sheet.tags) ? sheet.tags.map((tag) => tag.trim()).filter(Boolean) : [],
 			source: (sheet.source || '').trim(),
+			...(sheet.archived === true ? { archived: true } : {}),
+			...(typeof sheet.generic === 'boolean' ? { generic: sheet.generic } : {}),
+			...(classes ? { classes } : {}),
+			...(locationRefs ? { locationRefs } : {}),
+			...(organizationRefs ? { organizationRefs } : {}),
 		};
 	}
 
@@ -270,6 +334,24 @@ export class LocalStorageService {
 		return 'monster';
 	}
 
+	private normalizeClasses(
+		value: unknown,
+		category: HomebrewCategory,
+	): Dnd5eCharacterClass[] | undefined {
+		if (value === undefined) return undefined;
+		if (category !== 'npc' && category !== 'pc') {
+			if (Array.isArray(value) && value.length === 0) return undefined;
+			throw new Error('classes só pode existir em fichas NPC ou PC.');
+		}
+		if (!Array.isArray(value) || value.some((item) => !isDnd5eCharacterClass(item))) {
+			throw new Error(
+				`classes deve conter somente: ${DND_5E_CHARACTER_CLASSES.map((item) => item.id).join(', ')}.`,
+			);
+		}
+		const classes = [...new Set(value)];
+		return classes.length ? classes : undefined;
+	}
+
 	private normalizeCreatureSheet(raw: Partial<CreatureSheet> | undefined): CreatureSheet {
 		const sheet = this.creatureTemplate.normalizeCreature(raw ?? {});
 		const identity = sheet.fiveEToolsIdentity;
@@ -287,8 +369,21 @@ export class LocalStorageService {
 		encounter: Encounter,
 		sheetsById = new Map<string, SavedSheetInterface>(),
 	): SavedEncounter {
+		const locationRefs = Array.isArray(encounter.locationRefs)
+			? normalizeContentLocationRelations(encounter.locationRefs)
+			: undefined;
+		const organizationRefs = Array.isArray(encounter.organizationRefs)
+			? normalizeContentOrganizationRelations(encounter.organizationRefs)
+			: undefined;
+		const normalized = structuredClone(encounter);
+		if (encounter.archived === true) normalized.archived = true;
+		else delete normalized.archived;
+		if (locationRefs?.length) normalized.locationRefs = locationRefs;
+		else delete normalized.locationRefs;
+		if (organizationRefs?.length) normalized.organizationRefs = organizationRefs;
+		else delete normalized.organizationRefs;
 		return {
-			...structuredClone(encounter),
+			...normalized,
 			participants: encounter.participants.map((participant, index) =>
 				this.normalizeParticipant(participant, index, sheetsById),
 			),

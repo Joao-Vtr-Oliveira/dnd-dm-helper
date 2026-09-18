@@ -80,6 +80,11 @@ describe('HomebrewSheets', () => {
 			category: 'npc',
 			source: 'Notion',
 			externalId: 'npc-zhang-huang',
+			archived: true,
+			generic: true,
+			classes: ['ranger'],
+			locationRefs: [],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'institution' }],
 			data: {
 				name: 'Zhang Huang',
 				maxHp: 10,
@@ -108,6 +113,11 @@ describe('HomebrewSheets', () => {
 		expect(exported.type).toBe('homebrew-sheets');
 		expect(exported.schemaVersion).toBe(2);
 		expect(exported.sheets[0].externalId).toBe('npc-zhang-huang');
+		expect(exported.sheets[0].archived).toBeTrue();
+		expect(exported.sheets[0].generic).toBeTrue();
+		expect(exported.sheets[0].classes).toEqual(['ranger']);
+		expect(exported.sheets[0].locationRefs).toEqual(sheet.locationRefs);
+		expect(exported.sheets[0].organizationRefs).toEqual(sheet.organizationRefs);
 	});
 
 	it('requires confirmation before deleting a sheet', () => {
@@ -144,6 +154,79 @@ describe('HomebrewSheets', () => {
 		expect(dialog?.getAttribute('aria-modal')).toBe('true');
 		component.onEscape();
 		expect(component.importOpen()).toBeFalse();
+	});
+
+	it('cascades location filters from a settlement and clears every filter', () => {
+		component.campaignWorld.world.set({
+			empires: [{ id: 'empire', name: 'Empire', aliases: [] }],
+			states: [{ id: 'state', name: 'State', aliases: [], empireId: 'empire' }],
+			settlements: [
+				{ id: 'settlement', name: 'Settlement', aliases: [], stateId: 'state', settlementType: 'city' },
+			],
+			organizations: [],
+			pointsOfInterest: [],
+		} as never);
+
+		component.setSettlementFilter('settlement');
+		component.statusFilter.set('archived');
+		component.characterClassFilter.set('wizard');
+		component.organizationFilter.set('arcane-order');
+
+		expect(component.empireFilter()).toBe('empire');
+		expect(component.stateFilter()).toBe('state');
+		expect(component.settlementFilter()).toBe('settlement');
+		component.clearFilters();
+		expect(component.statusFilter()).toBe('active');
+		expect(component.empireFilter()).toBe('all');
+		expect(component.stateFilter()).toBe('all');
+		expect(component.settlementFilter()).toBe('all');
+		expect(component.characterClassFilter()).toBe('all');
+		expect(component.organizationFilter()).toBe('all');
+	});
+
+	it('lists only formal organizations in the organization dropdown', () => {
+		component.campaignWorld.world.set({
+			empires: [],
+			states: [],
+			settlements: [],
+			organizations: [
+				{
+					id: 'winterhold',
+					name: 'Winterhold',
+					aliases: [],
+					organizationType: 'guild',
+					scope: 'campaign',
+					presence: [],
+				},
+				{
+					id: 'asl',
+					name: 'Adaga Sob Luar',
+					aliases: [],
+					organizationType: 'group',
+					scope: 'regional',
+					presence: [],
+				},
+				{
+					id: 'nirvak-community',
+					name: 'Comunidade dos Lotes de Nirvak',
+					aliases: [],
+					organizationType: 'group',
+					scope: 'local',
+					sourcePath: 'Mundo/Impérios/Mornk/3-Nirvak/Guildas.md',
+					presence: [],
+				},
+			],
+			pointsOfInterest: [],
+		} as never);
+
+		expect(component.organizationOptions().map((option) => option.label)).toEqual([
+			'Todas as organizações',
+			'Adaga Sob Luar',
+			'Winterhold',
+		]);
+		expect(component.organizationOptions().map((option) => option.label)).not.toContain(
+			'Comunidade dos Lotes de Nirvak',
+		);
 	});
 
 	it('previews the 5etools write before creating a backup or changing the file', async () => {

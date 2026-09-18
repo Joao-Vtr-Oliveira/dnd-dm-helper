@@ -11,6 +11,7 @@ export interface Workspace {
 	name: string;
 	type: WorkspaceType;
 	createdAt: number;
+	campaignWorldBootstrapVersion?: number;
 	updatedAt?: number;
 	lastSyncedAt?: number;
 	remote?: WorkspaceRemoteConfiguration;

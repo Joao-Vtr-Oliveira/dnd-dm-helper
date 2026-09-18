@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises';
 
 const settlementTypes = new Set(['village', 'city', 'capital', 'other']);
-const organizationTypes = new Set(['guild', 'group', 'cult', 'family']);
 const pointOfInterestTypes = new Set([
 	'academy',
 	'district',
@@ -125,7 +124,9 @@ try {
 	raw.organizations.forEach((item) => {
 		validateBase(item, 'Organização');
 		assert(
-			organizationTypes.has(item.organizationType) && Array.isArray(item.presence),
+			hasText(item.organizationType) &&
+			(item.scope === 'campaign' || item.scope === 'regional') &&
+			Array.isArray(item.presence),
 			'Organização possui campos inválidos.',
 		);
 		if (item.parentOrganizationId !== undefined)

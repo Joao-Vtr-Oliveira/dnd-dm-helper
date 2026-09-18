@@ -2,6 +2,11 @@ import { Injectable, inject } from '@angular/core';
 import type { WorldDate } from '../../models/calendar-model';
 import type { BattleEncounter } from '../../models/battle-encounter-model';
 import type { CampaignWorld } from '../../models/campaign-world-model';
+import {
+	isContentLocationRelation,
+	isContentOrganizationRelation,
+} from '../../models/content-context-model';
+import { isDnd5eCharacterClass } from '../../models/dnd-5e-reference-model';
 import type { FiveEToolsCompositionPackage } from '../../models/fiveetools-homebrew-model';
 import type {
 	FiveEToolsHomebrewFile,
@@ -416,6 +421,12 @@ export class AppBackupService {
 			this.isFiniteNumber(value['updatedAt']) &&
 			Array.isArray(value['tags']) &&
 			value['tags'].every((tag) => typeof tag === 'string') &&
+			(value['archived'] === undefined || typeof value['archived'] === 'boolean') &&
+			(value['locationRefs'] === undefined ||
+				(Array.isArray(value['locationRefs']) && value['locationRefs'].every(isContentLocationRelation))) &&
+			(value['organizationRefs'] === undefined ||
+				(Array.isArray(value['organizationRefs']) &&
+					value['organizationRefs'].every(isContentOrganizationRelation))) &&
 			Array.isArray(value['participants']) &&
 			value['participants'].every((participant) => this.isEncounterParticipant(participant)) &&
 			Array.isArray(value['lairActions']) &&
@@ -469,6 +480,7 @@ export class AppBackupService {
 	private isSavedSheet(value: unknown): value is SavedSheetInterface {
 		if (!this.isRecord(value) || !this.isRecord(value['data'])) return false;
 		const data = value['data'];
+		const category = value['category'];
 		return (
 			typeof value['id'] === 'string' &&
 			(value['externalId'] === undefined || typeof value['externalId'] === 'string') &&
@@ -482,7 +494,20 @@ export class AppBackupService {
 			Array.isArray(value['tags']) &&
 			value['tags'].every((tag) => typeof tag === 'string') &&
 			typeof value['source'] === 'string' &&
+			(value['archived'] === undefined || typeof value['archived'] === 'boolean') &&
+			(value['generic'] === undefined || typeof value['generic'] === 'boolean') &&
+			(value['classes'] === undefined ||
+				(category === 'npc' || category === 'pc') &&
+				Array.isArray(value['classes']) &&
+				value['classes'].every(isDnd5eCharacterClass)) &&
+			(value['locationRefs'] === undefined ||
+				(Array.isArray(value['locationRefs']) && value['locationRefs'].every(isContentLocationRelation))) &&
+			!(value['generic'] === true && Array.isArray(value['locationRefs']) && value['locationRefs'].length > 0) &&
+			(value['organizationRefs'] === undefined ||
+				(Array.isArray(value['organizationRefs']) &&
+					value['organizationRefs'].every(isContentOrganizationRelation))) &&
 			typeof data['name'] === 'string' &&
+			data['classes'] === undefined &&
 			(data['armorClass'] === null || this.isFiniteNumber(data['armorClass'])) &&
 			this.isFiniteNumber(data['maxHp']) &&
 			Array.isArray(data['spellSlots']) &&

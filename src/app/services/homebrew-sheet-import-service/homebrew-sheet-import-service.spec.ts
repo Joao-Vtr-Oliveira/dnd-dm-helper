@@ -50,7 +50,7 @@ describe('HomebrewSheetImportService', () => {
 	});
 
 	it('accepts the current schema and preserves canonical creature data', () => {
-		const current = service.prepareImport(payload([sheet()]));
+		const current = service.prepareImport(payload([sheet({ classes: ['ranger'] })]));
 
 		expect(current.format).toBe('current');
 		expect(current.candidates).toHaveSize(1);
@@ -63,6 +63,8 @@ describe('HomebrewSheetImportService', () => {
 		expect(saved.data.spells[0].name).toBe('Fire Bolt');
 		expect(saved.data.spellSlots[0].max).toBe(2);
 		expect(saved.data.rawFiveETools?.source).toBe('Notion');
+		expect(saved.classes).toEqual(['ranger']);
+		expect('classes' in saved.data).toBeFalse();
 		expect('category' in saved.data).toBeFalse();
 	});
 
@@ -86,6 +88,38 @@ describe('HomebrewSheetImportService', () => {
 		expect(storage.listSheets()).toHaveSize(1);
 		expect(() => service.prepareImport({ ...payload([]), schemaVersion: 1 })).toThrowError(
 			/incompatível/,
+		);
+		const invalidContext = service.prepareImport(
+			payload([sheet({ locationRefs: [{ scopeType: 'global', scopeId: 'campaign', relation: 'regional' }] })]),
+		);
+		expect(invalidContext.invalid).toHaveSize(1);
+		expect(invalidContext.invalid[0].errors).toContain('locationRefs possui relações inválidas.');
+		const invalidGeneric = service.prepareImport(
+			payload([
+				sheet({
+					generic: true,
+					locationRefs: [{ scopeType: 'state', scopeId: 'feng', relation: 'base' }],
+				}),
+			]),
+		);
+		expect(invalidGeneric.invalid[0].errors).toContain(
+			'Uma ficha genérica não pode possuir localizações físicas.',
+		);
+		const invalidClasses = service.prepareImport(
+			payload([sheet({ classes: ['not-a-class'] })]),
+		);
+		expect(invalidClasses.invalid[0].errors).toContain(
+			'classes deve conter somente: artificer, barbarian, bard, cleric, druid, fighter, monk, paladin, ranger, rogue, sorcerer, warlock, wizard.',
+		);
+		const monsterClasses = service.prepareImport(
+			payload([sheet({ category: 'monster', classes: ['ranger'] })]),
+		);
+		expect(monsterClasses.invalid[0].errors).toContain('classes só pode existir em fichas NPC ou PC.');
+		const dataClasses = service.prepareImport(
+			payload([sheet({ data: creature({ classes: ['ranger'] }) })]),
+		);
+		expect(dataClasses.invalid[0].errors).toContain(
+			'classes deve ficar no envelope da ficha, não em data.',
 		);
 	});
 
@@ -129,7 +163,7 @@ describe('HomebrewSheetImportService', () => {
 	});
 
 	it('round-trips an exported sheet without losing relevant data', () => {
-		const preview = service.prepareImport(payload([sheet()]));
+		const preview = service.prepareImport(payload([sheet({ classes: ['ranger'] })]));
 		service.apply(preview);
 		const saved = storage.listSheets()[0];
 		const roundTrip = service.prepareImport(
@@ -139,6 +173,7 @@ describe('HomebrewSheetImportService', () => {
 					title: saved.title,
 					category: saved.category,
 					tags: saved.tags,
+					classes: saved.classes,
 					source: saved.source,
 					data: saved.data,
 				},
@@ -148,6 +183,40 @@ describe('HomebrewSheetImportService', () => {
 		expect(roundTrip.invalid).toHaveSize(0);
 		expect(roundTrip.candidates[0].data.specialAbilities[0].name).toBe('Comando');
 		expect(roundTrip.candidates[0].data.rawFiveETools?.source).toBe('Notion');
+		expect(roundTrip.candidates[0].classes).toEqual(['ranger']);
+	});
+
+	it('imports contextual metadata and preserves it when replacing from a legacy sheet export', () => {
+		const locationRefs = [{ scopeType: 'state', scopeId: 'missing-state', relation: 'habitat' }];
+		const organizationRefs = [
+			{ organizationId: 'missing-organization', relation: 'institution' },
+		];
+		const contextual = sheet({
+			archived: true,
+			generic: false,
+			classes: ['ranger'],
+			locationRefs,
+			organizationRefs,
+		});
+		service.apply(service.prepareImport(payload([contextual])));
+		expect(storage.listSheets()[0]).toEqual(
+			jasmine.objectContaining({
+				archived: true,
+				locationRefs,
+				organizationRefs,
+				classes: ['ranger'],
+			}),
+		);
+
+		service.apply(service.prepareImport(payload([sheet()])));
+		expect(storage.listSheets()[0]).toEqual(
+			jasmine.objectContaining({
+				archived: true,
+				locationRefs,
+				organizationRefs,
+				classes: ['ranger'],
+			}),
+		);
 	});
 
 	it('does not write when a batch is cancelled by the caller', () => {

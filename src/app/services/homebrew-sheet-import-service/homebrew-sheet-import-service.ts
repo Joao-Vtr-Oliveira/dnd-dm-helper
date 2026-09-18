@@ -6,11 +6,24 @@ import type {
 	CreatureSpecialAbility,
 } from '../../models/creature-sheet-model';
 import {
+	isContentLocationRelation,
+	isContentOrganizationRelation,
+	normalizeContentLocationRelations,
+	normalizeContentOrganizationRelations,
+	type ContentLocationRelation,
+	type ContentOrganizationRelation,
+} from '../../models/content-context-model';
+import {
 	LocalStorageService,
 	type HomebrewCategory,
 	type SavedSheetInterface,
 } from '../local-storage-service/local-storage-service';
 import { CreatureTemplateService } from '../creature-template-service/creature-template-service';
+import {
+	DND_5E_CHARACTER_CLASSES,
+	isDnd5eCharacterClass,
+	type Dnd5eCharacterClass,
+} from '../../models/dnd-5e-reference-model';
 
 export type HomebrewSheetConflictResolution = 'replace' | 'keep-existing' | 'duplicate';
 
@@ -22,6 +35,11 @@ export interface HomebrewSheetImportCandidate {
 	source: string;
 	externalId: string;
 	data: CreatureSheet;
+	classes?: Dnd5eCharacterClass[];
+	archived?: boolean;
+	generic?: boolean;
+	locationRefs?: ContentLocationRelation[];
+	organizationRefs?: ContentOrganizationRelation[];
 	extra: Record<string, unknown>;
 	warnings: string[];
 }
@@ -71,7 +89,19 @@ const RECOVERY_TYPES: CreatureAbilityRecoveryType[] = [
 	'long-rest',
 	'dice-recharge',
 ];
-const SHEET_FIELDS = new Set(['title', 'category', 'tags', 'source', 'externalId', 'data']);
+const SHEET_FIELDS = new Set([
+	'title',
+	'category',
+	'tags',
+	'source',
+	'externalId',
+	'archived',
+	'generic',
+	'classes',
+	'locationRefs',
+	'organizationRefs',
+	'data',
+]);
 
 interface RawEnvelope extends Record<string, unknown> {
 	app?: unknown;
@@ -89,6 +119,11 @@ interface RawSheet extends Record<string, unknown> {
 	category?: unknown;
 	tags?: unknown;
 	externalId?: unknown;
+	classes?: unknown;
+	archived?: unknown;
+	generic?: unknown;
+	locationRefs?: unknown;
+	organizationRefs?: unknown;
 	data?: unknown;
 }
 
@@ -263,6 +298,9 @@ export class HomebrewSheetImportService {
 		const candidateData =
 			data && typeof data === 'object' && !Array.isArray(data) ? (data as RawCreature) : null;
 		const name = candidateData ? this.requiredText(candidateData.name, 'data.name', errors) : '';
+		if (candidateData && 'classes' in candidateData) {
+			errors.push('classes deve ficar no envelope da ficha, não em data.');
+		}
 		this.validateCreature(candidateData, errors);
 
 		const externalId = this.externalId(
@@ -275,6 +313,14 @@ export class HomebrewSheetImportService {
 			index,
 		);
 		const tags = this.tags(sheet.tags, errors);
+		const classes = this.classes(sheet.classes, category, errors);
+		const archived = this.archived(sheet.archived, errors);
+		const generic = this.generic(sheet.generic, errors);
+		const locationRefs = this.locationRefs(sheet.locationRefs, errors);
+		const organizationRefs = this.organizationRefs(sheet.organizationRefs, errors);
+		if (generic === true && locationRefs?.length) {
+			errors.push('Uma ficha genérica não pode possuir localizações físicas.');
+		}
 		const extra = this.unknownFields(sheet);
 		const dataUnknown = candidateData ? this.unknownDataFields(candidateData) : [];
 		if ('id' in sheet || 'createdAt' in sheet || 'updatedAt' in sheet) {
@@ -307,9 +353,14 @@ export class HomebrewSheetImportService {
 				title,
 				category,
 				tags,
-				source,
-				externalId,
-				data: normalizedData,
+					source,
+					externalId,
+					data: normalizedData,
+					...(classes === undefined ? {} : { classes }),
+					...(archived === undefined ? {} : { archived }),
+				...(generic === undefined ? {} : { generic }),
+				...(locationRefs === undefined ? {} : { locationRefs }),
+				...(organizationRefs === undefined ? {} : { organizationRefs }),
 				extra,
 				warnings,
 			},
@@ -537,6 +588,19 @@ export class HomebrewSheetImportService {
 		return {
 			...next,
 			...this.knownFields(existing),
+			...(candidate.archived === undefined && existing.archived ? { archived: true } : {}),
+			...(candidate.generic === undefined && existing.generic !== undefined
+				? { generic: existing.generic }
+				: {}),
+			...(candidate.classes === undefined && existing.classes?.length
+				? { classes: existing.classes }
+				: {}),
+			...(candidate.locationRefs === undefined && existing.locationRefs?.length
+				? { locationRefs: existing.locationRefs }
+				: {}),
+			...(candidate.organizationRefs === undefined && existing.organizationRefs?.length
+				? { organizationRefs: existing.organizationRefs }
+				: {}),
 			...candidate.extra,
 			id: existing.id,
 			createdAt: existing.createdAt,
@@ -556,6 +620,11 @@ export class HomebrewSheetImportService {
 			'category',
 			'tags',
 			'source',
+			'archived',
+			'generic',
+			'classes',
+			'locationRefs',
+			'organizationRefs',
 		]);
 		return Object.fromEntries(Object.entries(sheet).filter(([key]) => !known.has(key)));
 	}
@@ -600,6 +669,25 @@ export class HomebrewSheetImportService {
 		return value as HomebrewCategory;
 	}
 
+	private classes(
+		value: unknown,
+		category: HomebrewCategory | null,
+		errors: string[],
+	): Dnd5eCharacterClass[] | undefined {
+		if (value === undefined) return undefined;
+		if (category !== 'npc' && category !== 'pc') {
+			errors.push('classes só pode existir em fichas NPC ou PC.');
+			return undefined;
+		}
+		if (!Array.isArray(value) || value.some((item) => !isDnd5eCharacterClass(item))) {
+			errors.push(
+				`classes deve conter somente: ${DND_5E_CHARACTER_CLASSES.map((item) => item.id).join(', ')}.`,
+			);
+			return undefined;
+		}
+		return [...new Set(value)];
+	}
+
 	private tags(value: unknown, errors: string[]): string[] {
 		if (value === undefined) return [];
 		if (!Array.isArray(value) || value.some((tag) => typeof tag !== 'string')) {
@@ -607,6 +695,42 @@ export class HomebrewSheetImportService {
 			return [];
 		}
 		return value.map((tag) => tag.trim()).filter(Boolean);
+	}
+
+	private archived(value: unknown, errors: string[]): boolean | undefined {
+		if (value === undefined) return undefined;
+		if (typeof value !== 'boolean') {
+			errors.push('archived precisa ser booleano.');
+			return undefined;
+		}
+		return value;
+	}
+
+	private generic(value: unknown, errors: string[]): boolean | undefined {
+		if (value === undefined) return undefined;
+		if (typeof value !== 'boolean') {
+			errors.push('generic precisa ser booleano.');
+			return undefined;
+		}
+		return value;
+	}
+
+	private locationRefs(value: unknown, errors: string[]): ContentLocationRelation[] | undefined {
+		if (value === undefined) return undefined;
+		if (!Array.isArray(value) || !value.every((item) => isContentLocationRelation(item))) {
+			errors.push('locationRefs possui relações inválidas.');
+			return undefined;
+		}
+		return normalizeContentLocationRelations(value);
+	}
+
+	private organizationRefs(value: unknown, errors: string[]): ContentOrganizationRelation[] | undefined {
+		if (value === undefined) return undefined;
+		if (!Array.isArray(value) || !value.every((item) => isContentOrganizationRelation(item))) {
+			errors.push('organizationRefs possui relações inválidas.');
+			return undefined;
+		}
+		return normalizeContentOrganizationRelations(value);
 	}
 
 	private externalId(

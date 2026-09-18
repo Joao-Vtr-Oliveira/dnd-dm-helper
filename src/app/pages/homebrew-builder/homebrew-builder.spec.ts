@@ -5,6 +5,8 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import type { CompendiumSpellListEntry } from '../../models/compendium-spell-model';
 import { CompendiumSpellRepositoryService } from '../../services/compendium-spell-repository-service/compendium-spell-repository-service';
 import { CompendiumSuggestionsService } from '../../services/compendium-suggestions-service/compendium-suggestions-service';
+import { LocalStorageService } from '../../services/local-storage-service/local-storage-service';
+import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
 import { HomebrewBuilder } from './homebrew-builder';
 
 describe('HomebrewBuilder', () => {
@@ -53,6 +55,37 @@ describe('HomebrewBuilder', () => {
 
 	it('should create', () => {
 		expect(component).toBeTruthy();
+	});
+
+	it('lists only formal organizations for sheet organization relations', () => {
+		const world = TestBed.inject(CampaignWorldService);
+		world.world.set({
+			empires: [],
+			states: [],
+			settlements: [],
+			organizations: [
+				{
+					id: 'winterhold',
+					name: 'Winterhold',
+					aliases: [],
+					organizationType: 'guild',
+					scope: 'campaign',
+					presence: [],
+				},
+				{
+					id: 'community',
+					name: 'Comunidade local',
+					aliases: [],
+					organizationType: 'group',
+					scope: 'local',
+					sourcePath: 'Mundo/Impérios/Mornk/3-Nirvak/Guildas.md',
+					presence: [],
+				},
+			],
+			pointsOfInterest: [],
+		} as never);
+
+		expect(component.organizationOptions().map((option) => option.label)).toEqual(['Winterhold']);
 	});
 
 	it('syncs title into creature name until the user edits the name manually', () => {
@@ -150,6 +183,29 @@ describe('HomebrewBuilder', () => {
 		expect(component.tagValues()).toEqual(['Boss']);
 		expect(component.source()).toBe('Campanha Nagawoods');
 		expect(component.creature().source).toBe('XPHB');
+	});
+
+	it('edits formal classes only for NPCs and PCs and clears them for monsters', () => {
+		component.setCategory('npc');
+		component.setClass('ranger', true);
+		expect(component.classes()).toEqual(['ranger']);
+
+		component.setCategory('monster');
+		expect(component.classes()).toEqual([]);
+		component.setClass('rogue', true);
+		expect(component.classes()).toEqual([]);
+	});
+
+	it('saves classes in the envelope and never in CreatureSheet.data', () => {
+		const storage = TestBed.inject(LocalStorageService);
+		component.setCategory('npc');
+		component.setClass('ranger', true);
+		component.setTitle('Classe formal');
+		component.save();
+
+		const saved = storage.listSheets()[0];
+		expect(saved.classes).toEqual(['ranger']);
+		expect('classes' in saved.data).toBeFalse();
 	});
 
 	it('reveals the matching recovery parameter before a special ability is added', () => {
@@ -267,6 +323,27 @@ describe('HomebrewBuilder', () => {
 		component.save();
 		expect(component.toast()?.type).toBe('warn');
 		expect(component.toast()?.text).toContain('nome');
+	});
+
+	it('saves contextual metadata in the sheet envelope without changing the stat block', () => {
+		const storage = TestBed.inject(LocalStorageService);
+		component.setTitle('Guarda regional');
+		component.archived.set(true);
+		component.generic.set(true);
+		component.locationRefs.set([]);
+		component.organizationRefs.set([
+			{ organizationId: 'missing-organization', relation: 'institution' },
+		]);
+		component.save();
+
+		const saved = storage.listSheets()[0];
+		expect(saved.archived).toBeTrue();
+		expect(saved.generic).toBeTrue();
+		expect(saved.locationRefs ?? []).toEqual(component.locationRefs());
+		expect(saved.organizationRefs).toEqual(component.organizationRefs());
+		expect(component.isBrokenOrganizationRef(component.organizationRefs()[0])).toBeTrue();
+		expect('locationRefs' in saved.data).toBeFalse();
+		expect('organizationRefs' in saved.data).toBeFalse();
 	});
 
 	it('uses the four requested semantic groups without native selects or datalists', () => {

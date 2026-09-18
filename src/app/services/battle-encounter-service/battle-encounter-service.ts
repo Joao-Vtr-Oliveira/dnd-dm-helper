@@ -267,6 +267,7 @@ export class BattleEncounterService {
 		battle: BattleEncounter,
 		sheets: SavedSheetInterface[],
 	): BattleEncounter {
+		if (this.hasCompleteReferenceSheets(battle)) return battle;
 		const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
 		const refreshCombatant = (combatant: BattleCombatant) => {
 			const matchingSheets = combatant.sourceSheetId
@@ -310,6 +311,13 @@ export class BattleEncounterService {
 			const source = combatant?.sourceSheetId ? sheetsById.get(combatant.sourceSheetId) : undefined;
 			return source ? { ...reference, sheet: structuredClone(source.data) } : reference;
 		});
+		for (const combatant of [...combatants, ...pendingCombatants]) {
+			const source = combatant.sourceSheetId ? sheetsById.get(combatant.sourceSheetId) : undefined;
+			if (!source || combatant.referenceSheetId) continue;
+			const referenceSheet = this.createReferenceSheet(source.data);
+			combatant.referenceSheetId = referenceSheet.id;
+			referenceSheets.push(referenceSheet);
+		}
 		return this.normalizeBattleEncounter({
 			...battle,
 			combatants,
@@ -329,6 +337,20 @@ export class BattleEncounterService {
 				},
 			})),
 		});
+	}
+
+	private hasCompleteReferenceSheets(battle: BattleEncounter): boolean {
+		const references = new Set(battle.referenceSheets.map((reference) => reference.id));
+		const combatants = [...battle.combatants, ...battle.pendingCombatants];
+		return (
+			combatants.length === 0 ||
+			(combatants.length > 0 &&
+				combatants.every(
+					(combatant) =>
+						typeof combatant.referenceSheetId === 'string' &&
+						references.has(combatant.referenceSheetId),
+				))
+		);
 	}
 
 	orderCombatants(combatants: BattleCombatant[]): BattleCombatant[] {

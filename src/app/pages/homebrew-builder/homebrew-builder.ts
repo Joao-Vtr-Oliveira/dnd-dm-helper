@@ -14,6 +14,22 @@ import {
 	HomebrewCategory,
 	LocalStorageService,
 } from '../../services/local-storage-service/local-storage-service';
+import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
+import type {
+	ContentLocationRelation,
+	ContentLocationRelationKind,
+	ContentOrganizationRelation,
+	ContentOrganizationRelationKind,
+} from '../../models/content-context-model';
+import {
+	isCampaignOrganizationEligible,
+	type CampaignLocationScope,
+} from '../../models/campaign-world-model';
+import {
+	DND_5E_CHARACTER_CLASSES,
+	DND_5E_CREATURE_TYPES,
+	type Dnd5eCharacterClass,
+} from '../../models/dnd-5e-reference-model';
 import type {
 	CreatureAbilityKey,
 	CreatureAbilityRecoveryType,
@@ -97,9 +113,11 @@ function createEmptyCreature(): CreatureSheet {
 }
 
 function normalizeCreature(raw: CreatureSheet): CreatureSheet {
+	const rawWithoutClasses = structuredClone(raw) as CreatureSheet & { classes?: unknown };
+	delete rawWithoutClasses.classes;
 	return applyCreatureDerivedValues({
 		...createEmptyCreature(),
-		...structuredClone(raw),
+		...rawWithoutClasses,
 		spellSlots: Array.isArray(raw.spellSlots) ? raw.spellSlots : [],
 		spells: Array.isArray(raw.spells) ? raw.spells : [],
 		specialAbilities: Array.isArray(raw.specialAbilities) ? raw.specialAbilities : [],
@@ -139,6 +157,7 @@ export class HomebrewBuilder {
 	private suggestions = inject(CompendiumSuggestionsService);
 	private renderer = inject(CompendiumRendererService);
 	private referenceOverlay = inject(ReferenceOverlayService);
+	private campaignWorld = inject(CampaignWorldService);
 
 	sheetId = signal<string | null>(null);
 	title = signal<string>('');
@@ -146,8 +165,20 @@ export class HomebrewBuilder {
 	private lastAutoCreatureName = signal<string>('');
 
 	category = signal<HomebrewCategory>('monster');
+	classes = signal<Dnd5eCharacterClass[]>([]);
 	tagsText = signal<string>('');
 	source = signal<string>('');
+	archived = signal(false);
+	generic = signal(false);
+	locationRefs = signal<ContentLocationRelation[]>([]);
+	organizationRefs = signal<ContentOrganizationRelation[]>([]);
+	editingLocationRefIndex = signal<number | null>(null);
+	editingOrganizationRefIndex = signal<number | null>(null);
+	locationScopeType = signal<CampaignLocationScope>('state');
+	locationScopeId = signal('');
+	locationRelation = signal<ContentLocationRelationKind>('base');
+	organizationId = signal('');
+	organizationRelation = signal<ContentOrganizationRelationKind>('member');
 	tagComposerOpen = signal(false);
 	tagCustom = signal(false);
 	tagDraft = signal('');
@@ -172,6 +203,53 @@ export class HomebrewBuilder {
 			'Imported',
 			...this.ls.listSheets().flatMap((sheet) => [sheet.data.origin ?? '', sheet.source ?? '']),
 		]),
+	);
+	readonly locationScopeTypeOptions: Array<{ value: CampaignLocationScope; label: string }> = [
+		{ value: 'empire', label: 'Império' },
+		{ value: 'state', label: 'Estado' },
+		{ value: 'settlement', label: 'Localidade' },
+	];
+	readonly locationRelationOptions: Array<{ value: ContentLocationRelationKind; label: string }> = [
+		{ value: 'base', label: 'Base ou residência' },
+		{ value: 'occurrence', label: 'Ocorrência' },
+		{ value: 'habitat', label: 'Habitat' },
+		{ value: 'operation', label: 'Operação' },
+	];
+	readonly organizationRelationOptions: Array<{
+		value: ContentOrganizationRelationKind;
+		label: string;
+	}> = [
+		{ value: 'member', label: 'Membro' },
+		{ value: 'leader', label: 'Liderança' },
+		{ value: 'affiliated', label: 'Afiliada' },
+		{ value: 'institution', label: 'Ficha institucional' },
+		{ value: 'trained_by', label: 'Treinada por' },
+	];
+	readonly locationScopeOptions = computed(() => {
+		const scopeType = this.locationScopeType();
+		const world = this.campaignWorld.world();
+		if (!world) return [];
+		const entities =
+			scopeType === 'empire'
+				? world.empires
+				: scopeType === 'state'
+					? world.states
+					: world.settlements;
+		return entities
+			.map((entity) => {
+				const location = this.campaignWorld.resolveLocation({ scopeType, scopeId: entity.id });
+				return { value: entity.id, label: location?.breadcrumb.join(' › ') ?? entity.name };
+			})
+			.sort((left, right) => left.label.localeCompare(right.label));
+	});
+	readonly organizationOptions = computed(() =>
+		(this.campaignWorld.world()?.organizations ?? [])
+			.filter((organization) => isCampaignOrganizationEligible(organization))
+			.map((organization) => ({
+				value: organization.id,
+				label: `${organization.name}${organization.archived ? ' [arquivada]' : ''}`,
+			}))
+			.sort((left, right) => left.label.localeCompare(right.label)),
 	);
 
 	// draft de magia nova
@@ -250,22 +328,9 @@ export class HomebrewBuilder {
 		{ kind: 'reaction', label: 'Reactions', empty: 'Nenhuma reaction adicionada.' },
 	];
 	readonly sizes = ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'];
-	readonly creatureTypes = [
-		'aberration',
-		'beast',
-		'celestial',
-		'construct',
-		'dragon',
-		'elemental',
-		'fey',
-		'fiend',
-		'giant',
-		'humanoid',
-		'monstrosity',
-		'ooze',
-		'plant',
-		'undead',
-	];
+	readonly creatureTypes: readonly string[] = DND_5E_CREATURE_TYPES;
+	readonly characterClassOptions = DND_5E_CHARACTER_CLASSES;
+	readonly supportsClasses = computed(() => this.category() === 'npc' || this.category() === 'pc');
 	readonly alignments = [
 		'lawful good',
 		'neutral good',
@@ -374,8 +439,13 @@ export class HomebrewBuilder {
 				title: this.title(),
 				creature: this.creature(),
 				category: this.category(),
+				classes: this.classes(),
 				tagsText: this.tagsText(),
 				source: this.source(),
+				archived: this.archived(),
+				generic: this.generic(),
+				locationRefs: this.locationRefs(),
+				organizationRefs: this.organizationRefs(),
 			}) !== this.savedSnapshot(),
 	);
 
@@ -387,18 +457,19 @@ export class HomebrewBuilder {
 			if (sheet) {
 				this.sheetId.set(id);
 				this.title.set(sheet.title);
-				const data = normalizeCreature({
-					...sheet.data,
-					tags: sheet.data.tags ?? sheet.tags,
-					origin: sheet.data.origin ?? sheet.source,
-				});
+				const data = normalizeCreature(sheet.data);
 				this.creature.set(data);
 				this.lastAutoCreatureName.set(sheet.data.name === sheet.title ? sheet.title : '');
 
 				// 👇 popula meta
 				this.category.set(sheet.category ?? 'monster');
-				this.tagsText.set((data.tags ?? []).join(', '));
-				this.source.set(data.origin ?? '');
+				this.classes.set(structuredClone(sheet.classes ?? []));
+				this.tagsText.set((sheet.tags ?? []).join(', '));
+				this.source.set(sheet.source ?? '');
+				this.archived.set(sheet.archived === true);
+				this.generic.set(sheet.generic === true);
+				this.locationRefs.set(structuredClone(sheet.locationRefs ?? []));
+				this.organizationRefs.set(structuredClone(sheet.organizationRefs ?? []));
 			}
 		}
 		this.syncCreatureType();
@@ -464,8 +535,13 @@ export class HomebrewBuilder {
 				title: this.title(),
 				creature: this.creature(),
 				category: this.category(),
+				classes: this.classes(),
 				tagsText: this.tagsText(),
 				source: this.source(),
+				archived: this.archived(),
+				generic: this.generic(),
+				locationRefs: this.locationRefs(),
+				organizationRefs: this.organizationRefs(),
 			}),
 		);
 	}
@@ -490,6 +566,22 @@ export class HomebrewBuilder {
 	}
 
 	// -------- setters básicos --------
+	setCategory(category: HomebrewCategory): void {
+		this.category.set(category);
+		if (category !== 'npc' && category !== 'pc') this.classes.set([]);
+	}
+
+	setClass(value: Dnd5eCharacterClass, checked: boolean): void {
+		if (!this.supportsClasses()) return;
+		this.classes.update((classes) =>
+			checked
+				? classes.includes(value)
+					? classes
+					: [...classes, value]
+				: classes.filter((item) => item !== value),
+		);
+	}
+
 	setTitle(v: string) {
 		const currentName = this.creature().name;
 		const previousAutoName = this.lastAutoCreatureName();
@@ -1608,6 +1700,168 @@ export class HomebrewBuilder {
 		return 'Recarga manual';
 	}
 
+	setArchived(archived: boolean) {
+		this.archived.set(archived);
+	}
+
+	setGeneric(generic: boolean) {
+		this.generic.set(generic);
+	}
+
+	setLocationScopeType(scopeType: CampaignLocationScope) {
+		this.locationScopeType.set(scopeType);
+		this.locationScopeId.set('');
+	}
+
+	setLocationScopeId(scopeId: string) {
+		this.locationScopeId.set(scopeId);
+	}
+
+	setLocationRelation(relation: ContentLocationRelationKind) {
+		this.locationRelation.set(relation);
+	}
+
+	editLocationRef(index: number) {
+		const ref = this.locationRefs()[index];
+		if (!ref) return;
+		this.editingLocationRefIndex.set(index);
+		this.locationScopeType.set(ref.scopeType);
+		this.locationScopeId.set(ref.scopeId);
+		this.locationRelation.set(ref.relation);
+	}
+
+	cancelLocationRefEdit() {
+		this.editingLocationRefIndex.set(null);
+		this.locationScopeType.set('state');
+		this.locationScopeId.set('');
+		this.locationRelation.set('base');
+	}
+
+	saveLocationRef() {
+		const scopeType = this.locationScopeType();
+		const scopeId = this.locationScopeId();
+		if (!this.campaignWorld.resolveLocation({ scopeType, scopeId })) {
+			this.showToast({ type: 'warn', text: 'Escolha uma localização válida.' });
+			return;
+		}
+		const relation: ContentLocationRelation = {
+			scopeType,
+			scopeId,
+			relation: this.locationRelation(),
+		};
+		const editingIndex = this.editingLocationRefIndex();
+		if (
+			this.locationRefs().some(
+				(item, index) =>
+					index !== editingIndex &&
+					item.scopeType === relation.scopeType &&
+					item.scopeId === relation.scopeId &&
+					item.relation === relation.relation,
+			)
+		) {
+			this.showToast({ type: 'warn', text: 'Esta relação de localização já foi adicionada.' });
+			return;
+		}
+		this.locationRefs.update((refs) =>
+			editingIndex === null
+				? [...refs, relation]
+				: refs.map((item, index) => (index === editingIndex ? relation : item)),
+		);
+		this.cancelLocationRefEdit();
+	}
+
+	removeLocationRef(index: number) {
+		this.locationRefs.update((refs) => refs.filter((_, itemIndex) => itemIndex !== index));
+		const editingIndex = this.editingLocationRefIndex();
+		if (editingIndex === index) this.cancelLocationRefEdit();
+		else if (editingIndex !== null && index < editingIndex) this.editingLocationRefIndex.set(editingIndex - 1);
+	}
+
+	setOrganizationId(organizationId: string) {
+		this.organizationId.set(organizationId);
+	}
+
+	setOrganizationRelation(relation: ContentOrganizationRelationKind) {
+		this.organizationRelation.set(relation);
+	}
+
+	editOrganizationRef(index: number) {
+		const ref = this.organizationRefs()[index];
+		if (!ref) return;
+		this.editingOrganizationRefIndex.set(index);
+		this.organizationId.set(ref.organizationId);
+		this.organizationRelation.set(ref.relation);
+	}
+
+	cancelOrganizationRefEdit() {
+		this.editingOrganizationRefIndex.set(null);
+		this.organizationId.set('');
+		this.organizationRelation.set('member');
+	}
+
+	saveOrganizationRef() {
+		const organizationId = this.organizationId();
+		if (!this.campaignWorld.getOrganization(organizationId)) {
+			this.showToast({ type: 'warn', text: 'Escolha uma organização válida.' });
+			return;
+		}
+		const relation: ContentOrganizationRelation = {
+			organizationId,
+			relation: this.organizationRelation(),
+		};
+		const editingIndex = this.editingOrganizationRefIndex();
+		if (
+			this.organizationRefs().some(
+				(item, index) =>
+					index !== editingIndex &&
+					item.organizationId === relation.organizationId &&
+					item.relation === relation.relation,
+			)
+		) {
+			this.showToast({ type: 'warn', text: 'Esta relação de organização já foi adicionada.' });
+			return;
+		}
+		this.organizationRefs.update((refs) =>
+			editingIndex === null
+				? [...refs, relation]
+				: refs.map((item, index) => (index === editingIndex ? relation : item)),
+		);
+		this.cancelOrganizationRefEdit();
+	}
+
+	removeOrganizationRef(index: number) {
+		this.organizationRefs.update((refs) => refs.filter((_, itemIndex) => itemIndex !== index));
+		const editingIndex = this.editingOrganizationRefIndex();
+		if (editingIndex === index) this.cancelOrganizationRefEdit();
+		else if (editingIndex !== null && index < editingIndex)
+			this.editingOrganizationRefIndex.set(editingIndex - 1);
+	}
+
+	locationRefLabel(ref: ContentLocationRelation): string {
+		return this.campaignWorld.resolveLocation(ref)?.breadcrumb.join(' › ') ?? `ID removido: ${ref.scopeId}`;
+	}
+
+	organizationRefLabel(ref: ContentOrganizationRelation): string {
+		const organization = this.campaignWorld.getOrganization(ref.organizationId);
+		return organization ? organization.name : `ID removido: ${ref.organizationId}`;
+	}
+
+	locationRelationLabel(relation: ContentLocationRelationKind): string {
+		return this.locationRelationOptions.find((option) => option.value === relation)?.label ?? relation;
+	}
+
+	organizationRelationLabel(relation: ContentOrganizationRelationKind): string {
+		return this.organizationRelationOptions.find((option) => option.value === relation)?.label ?? relation;
+	}
+
+	isBrokenLocationRef(ref: ContentLocationRelation): boolean {
+		return !this.campaignWorld.resolveLocation(ref);
+	}
+
+	isBrokenOrganizationRef(ref: ContentOrganizationRelation): boolean {
+		return !this.campaignWorld.getOrganization(ref.organizationId);
+	}
+
 	// -------- salvar sheet --------
 	save() {
 		const title = this.title().trim() || this.creature().name;
@@ -1629,6 +1883,10 @@ export class HomebrewBuilder {
 			.map((t) => t.trim())
 			.filter(Boolean);
 		const source = this.source().trim();
+		if (this.generic() && this.locationRefs().length) {
+			this.showToast({ type: 'warn', text: 'Uma ficha genérica não pode possuir localizações físicas.' });
+			return;
+		}
 		if (rawTags.length) data.tags = this.uniqueTextList(rawTags);
 		else delete data.tags;
 		if (source) data.origin = source;
@@ -1640,8 +1898,13 @@ export class HomebrewBuilder {
 				title,
 				data: structuredClone(data),
 				category,
+				classes: this.supportsClasses() && this.classes().length ? this.classes() : undefined,
 				tags: rawTags,
 				source,
+				archived: this.archived(),
+				generic: this.generic(),
+				locationRefs: this.locationRefs(),
+				organizationRefs: this.organizationRefs(),
 			});
 
 			this.sheetId.set(saved.id);
@@ -1653,8 +1916,13 @@ export class HomebrewBuilder {
 				title,
 				data: structuredClone(data),
 				category,
+				classes: this.supportsClasses() && this.classes().length ? this.classes() : undefined,
 				tags: rawTags,
 				source,
+				archived: this.archived(),
+				generic: this.generic(),
+				locationRefs: this.locationRefs(),
+				organizationRefs: this.organizationRefs(),
 			});
 			this.markSaved();
 			this.showToast({ type: 'success', text: 'Sheet atualizada.' });

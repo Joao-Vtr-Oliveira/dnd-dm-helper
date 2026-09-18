@@ -46,6 +46,151 @@
 		</div>
 	</header>
 
+	<details class="app-panel p-4 sm:p-5" open>
+		<summary class="cursor-pointer list-none font-semibold text-app-text">
+			<span class="flex justify-between"
+				>Contexto do encounter
+				<span class="text-sm font-normal text-app-muted">{{ encounter().locationRefs?.length ?? 0 }} locais · {{ encounter().organizationRefs?.length ?? 0 }} organizações</span>
+			</span>
+		</summary>
+		<div class="mt-4 space-y-5">
+			<div class="flex flex-wrap items-start justify-between gap-3">
+				<p class="max-w-3xl text-sm leading-6 text-app-muted">
+					Locais são referências territoriais do mundo. Organizações são somente guildas e grupos formais da campanha; tavernas, comunidades, instituições locais e infraestrutura não entram neste cadastro.
+				</p>
+				<label class="flex items-center gap-2 text-sm text-app-muted">
+					<input
+						type="checkbox"
+						[ngModel]="encounter().archived === true"
+						(ngModelChange)="setArchived($event)"
+						name="encounter-archived"
+					/>
+					Arquivar encounter
+				</label>
+			</div>
+
+			<section class="border-t border-app-divider pt-4">
+				<h3 class="text-sm font-medium text-app-text">Localizações relacionadas</h3>
+				<div class="mt-3 grid gap-3 md:grid-cols-3">
+					<app-select
+						label="Escopo"
+						[options]="locationScopeTypeOptions"
+						[value]="locationScopeType()"
+						(valueChange)="setLocationScopeType($any($event))"
+					/>
+					<app-select
+						label="Localização"
+						[options]="locationScopeOptions()"
+						[value]="locationScopeId()"
+						emptyLabel="Selecione"
+						[searchable]="true"
+						(valueChange)="setLocationScopeId($event)"
+					/>
+					<app-select
+						label="Relação"
+						[options]="locationRelationOptions"
+						[value]="locationRelation()"
+						(valueChange)="setLocationRelation($any($event))"
+					/>
+				</div>
+				<div class="mt-3 flex flex-wrap gap-2">
+					<button type="button" class="app-button app-button-secondary" (click)="saveLocationRef()">
+						{{ editingLocationRefIndex() === null ? 'Adicionar localização' : 'Salvar localização' }}
+					</button>
+					@if (editingLocationRefIndex() !== null) {
+						<button type="button" class="app-button app-button-ghost" (click)="cancelLocationRefEdit()">
+							Cancelar edição
+						</button>
+					}
+				</div>
+				@if (encounter().locationRefs?.length) {
+					<div class="mt-3 divide-y divide-app-divider border-y border-app-divider">
+						@for (ref of encounter().locationRefs ?? []; track $index; let index = $index) {
+							<div class="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+								<div class="min-w-0">
+									<div class="text-sm text-app-text">{{ locationRefLabel(ref) }}</div>
+									<div
+										class="mt-1 text-xs"
+										[class.text-amber-200]="isBrokenLocationRef(ref)"
+										[class.text-app-subtle]="!isBrokenLocationRef(ref)"
+									>
+										{{ locationRelationLabel(ref.relation) }}
+										@if (isBrokenLocationRef(ref)) { · Localização removida }
+									</div>
+								</div>
+								<div class="flex shrink-0 gap-2">
+									<button type="button" class="app-button app-button-ghost" (click)="editLocationRef(index)">
+										Editar
+									</button>
+									<button type="button" class="app-button app-button-ghost" (click)="removeLocationRef(index)">
+										Remover
+									</button>
+								</div>
+							</div>
+						}
+					</div>
+				}
+			</section>
+
+			<section class="border-t border-app-divider pt-4">
+				<h3 class="text-sm font-medium text-app-text">Organizações formais relacionadas</h3>
+				<div class="mt-3 grid gap-3 md:grid-cols-2">
+					<app-select
+						label="Guilda ou grupo"
+						[options]="organizationOptions()"
+						[value]="organizationId()"
+						emptyLabel="Selecione"
+						[searchable]="true"
+						(valueChange)="setOrganizationId($event)"
+					/>
+					<app-select
+						label="Relação"
+						[options]="organizationRelationOptions"
+						[value]="organizationRelation()"
+						(valueChange)="setOrganizationRelation($any($event))"
+					/>
+				</div>
+				<div class="mt-3 flex flex-wrap gap-2">
+					<button type="button" class="app-button app-button-secondary" (click)="saveOrganizationRef()">
+						{{ editingOrganizationRefIndex() === null ? 'Adicionar organização' : 'Salvar organização' }}
+					</button>
+					@if (editingOrganizationRefIndex() !== null) {
+						<button type="button" class="app-button app-button-ghost" (click)="cancelOrganizationRefEdit()">
+							Cancelar edição
+						</button>
+					}
+				</div>
+				@if (encounter().organizationRefs?.length) {
+					<div class="mt-3 divide-y divide-app-divider border-y border-app-divider">
+						@for (ref of encounter().organizationRefs ?? []; track $index; let index = $index) {
+							<div class="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+								<div class="min-w-0">
+									<div class="text-sm text-app-text">{{ organizationRefLabel(ref) }}</div>
+									<div
+										class="mt-1 text-xs"
+										[class.text-amber-200]="isBrokenOrganizationRef(ref)"
+										[class.text-app-subtle]="!isBrokenOrganizationRef(ref)"
+									>
+										{{ organizationRelationLabel(ref.relation) }}
+										@if (isBrokenOrganizationRef(ref)) { · Organização não elegível ou removida }
+									</div>
+								</div>
+								<div class="flex shrink-0 gap-2">
+									<button type="button" class="app-button app-button-ghost" (click)="editOrganizationRef(index)">
+										Editar
+									</button>
+									<button type="button" class="app-button app-button-ghost" (click)="removeOrganizationRef(index)">
+										Remover
+									</button>
+								</div>
+							</div>
+						}
+					</div>
+				}
+			</section>
+		</div>
+	</details>
+
 	<section class="app-panel p-4">
 		<div
 			class="flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-end lg:justify-between"

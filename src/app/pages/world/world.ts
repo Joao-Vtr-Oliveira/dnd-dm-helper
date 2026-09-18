@@ -5,22 +5,33 @@ import {
 	type CampaignLocationRef,
 	type CampaignLocationSearchResult,
 	type CampaignPointOfInterestSearchResult,
-	type CampaignSettlement,
+	type CampaignOrganizationPresence,
 	type CampaignWorld,
 	type CampaignOrganization,
+	type CampaignOrganizationScope,
+	type CampaignWorldScopeType,
+	isCampaignOrganizationEligible,
 	normalizeCampaignWorldSearchText,
 	POINT_OF_INTEREST_TYPE_LABELS,
 	SETTLEMENT_TYPE_LABELS,
 } from '../../models/campaign-world-model';
 import { CampaignContextService } from '../../services/campaign-context-service/campaign-context-service';
 import { CampaignWorldService } from '../../services/campaign-world-service/campaign-world-service';
+import { DialogFocusDirective } from '../../directives/dialog-focus';
 
 type WorldEditorType = 'empire' | 'state' | 'settlement' | 'poi' | 'organization';
+
+type OrganizationPresenceDraft = {
+	scopeType: CampaignWorldScopeType;
+	scopeId: string;
+	presenceType: string;
+	availableSheetExternalIds: string;
+};
 
 @Component({
 	selector: 'app-world-page',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [CommonModule, DialogFocusDirective, FormsModule],
 	templateUrl: './world.html',
 })
 export class WorldPage {
@@ -40,18 +51,42 @@ export class WorldPage {
 	readonly pointOfInterestTypeOptions = Object.entries(POINT_OF_INTEREST_TYPE_LABELS).map(
 		([value, label]) => ({ value, label }),
 	);
-	readonly organizationTypeOptions = [
-		{ value: 'guild', label: 'Guilda' },
-		{ value: 'group', label: 'Grupo' },
-		{ value: 'cult', label: 'Culto' },
-		{ value: 'family', label: 'Família' },
+	readonly organizationTypeOptions = computed(() =>
+		[...new Set((this.campaignWorld.world()?.organizations ?? []).map((item) => item.organizationType))]
+			.sort()
+			.map((value) => ({ value, label: value })),
+	);
+	readonly organizationScopeOptions: Array<{ value: CampaignOrganizationScope; label: string }> = [
+		{ value: 'campaign', label: 'Campanha ou internacional' },
+		{ value: 'regional', label: 'Regional' },
+	];
+	readonly presenceTypeSuggestions = [
+		'global-network',
+		'headquarters',
+		'post',
+		'agent',
+		'remote-contact',
+		'operation',
+	];
+	readonly presenceScopeTypeOptions: Array<{ value: CampaignWorldScopeType; label: string }> = [
+		{ value: 'global', label: 'Global' },
+		{ value: 'empire', label: 'Império' },
+		{ value: 'state', label: 'Estado' },
+		{ value: 'settlement', label: 'Localidade' },
 	];
 	readonly editorType = signal<'empire' | 'state' | 'settlement' | 'poi' | 'organization' | null>(
 		null,
 	);
+	readonly editingOrganizationId = signal<string | null>(null);
+	readonly managingOrganizationId = signal<string | null>(null);
+	readonly presenceReturnLocation = signal<CampaignLocationRef | null>(null);
+	readonly editingPresenceIndex = signal<number | null>(null);
+	readonly presenceEditorOpen = signal(false);
+	readonly presenceDraft = signal<OrganizationPresenceDraft>(this.emptyPresenceDraft());
 	editorName = '';
 	editorParentId = '';
 	editorTypeValue = '';
+	editorOrganizationScope: CampaignOrganizationScope = 'campaign';
 	editorAliases: string[] = [];
 	editorAliasInput = '';
 	editorAliasesManuallyEdited = false;
@@ -68,6 +103,43 @@ export class WorldPage {
 	readonly pointOfInterestSearchResults = computed(() =>
 		this.campaignWorld.searchPointsOfInterest(this.searchQuery()).slice(0, 8),
 	);
+	readonly campaignOrganizations = computed(() =>
+		(this.campaignWorld.world()?.organizations ?? []).filter(
+			(organization) => !organization.archived && isCampaignOrganizationEligible(organization),
+		),
+	);
+	readonly archivedCampaignOrganizations = computed(() =>
+		(this.campaignWorld.world()?.organizations ?? []).filter(
+			(organization) => organization.archived && isCampaignOrganizationEligible(organization),
+		),
+	);
+	readonly organizationParentOptions = computed(() => {
+		const editingId = this.editingOrganizationId();
+		return (this.campaignWorld.world()?.organizations ?? []).filter(
+			(organization) => organization.id !== editingId && isCampaignOrganizationEligible(organization),
+		);
+	});
+	readonly managedOrganization = computed(() => {
+		const id = this.managingOrganizationId();
+		return id ? this.campaignWorld.getOrganization(id) : null;
+	});
+	readonly presenceScopeOptions = computed(() => {
+		const scopeType = this.presenceDraft().scopeType;
+		const world = this.campaignWorld.world();
+		if (!world || scopeType === 'global') return [];
+		const entities =
+			scopeType === 'empire'
+				? world.empires
+				: scopeType === 'state'
+					? world.states
+					: world.settlements;
+		return entities
+			.map((entity) => {
+				const location = this.campaignWorld.resolveLocation({ scopeType, scopeId: entity.id });
+				return { value: entity.id, label: location?.breadcrumb.join(' › ') ?? entity.name };
+			})
+			.sort((left, right) => left.label.localeCompare(right.label));
+	});
 
 	constructor() {
 		effect(() => {
@@ -149,8 +221,8 @@ export class WorldPage {
 		return current?.scopeType === ref.scopeType && current.scopeId === ref.scopeId;
 	}
 
-	settlementLabel(settlement: CampaignSettlement): string {
-		return `${settlement.name} · ${SETTLEMENT_TYPE_LABELS[settlement.settlementType]}`;
+	locationLabel(ref: CampaignLocationRef): string {
+		return this.campaignWorld.resolveLocation(ref)?.label ?? ref.scopeId;
 	}
 
 	locationTypeLabel(ref: CampaignLocationRef): string {
@@ -168,6 +240,7 @@ export class WorldPage {
 
 	openEditor(type: WorldEditorType): void {
 		this.editorType.set(type);
+		this.editingOrganizationId.set(null);
 		this.editorName = '';
 		this.editorParentId = this.defaultParentId(type);
 		this.editorTypeValue =
@@ -178,12 +251,151 @@ export class WorldPage {
 					: type === 'organization'
 						? 'group'
 						: '';
+		this.editorOrganizationScope = this.defaultOrganizationScope();
 		this.editorAliases = [];
 		this.editorAliasInput = '';
 		this.editorAliasesManuallyEdited = false;
 		this.editorSummary = '';
 		this.editorOrganizationIds = [];
 		this.editorMessage.set(null);
+	}
+
+	openOrganizationEditor(organization: CampaignOrganization): void {
+		this.openEditor('organization');
+		this.editingOrganizationId.set(organization.id);
+		this.editorName = organization.name;
+		this.editorParentId = organization.parentOrganizationId ?? '';
+		this.editorTypeValue = organization.organizationType;
+		this.editorOrganizationScope = this.campaignWorld.getOrganizationScope(organization);
+		this.editorAliases = [...organization.aliases];
+		this.editorAliasesManuallyEdited = true;
+	}
+
+	openPresenceManager(organizationId: string): void {
+		if (!this.campaignWorld.getOrganization(organizationId)) return;
+		this.presenceReturnLocation.set(this.selectedLocation());
+		this.selectRoot();
+		this.managingOrganizationId.set(organizationId);
+		this.cancelPresenceEditor();
+		this.editorMessage.set(null);
+	}
+
+	closePresenceManager(): void {
+		const returnLocation = this.presenceReturnLocation();
+		this.managingOrganizationId.set(null);
+		this.presenceReturnLocation.set(null);
+		this.cancelPresenceEditor();
+		if (returnLocation) this.selectLocation(returnLocation);
+	}
+
+	openPresenceEditor(): void {
+		this.editingPresenceIndex.set(null);
+		this.presenceDraft.set(this.emptyPresenceDraft());
+		this.presenceEditorOpen.set(true);
+		this.editorMessage.set(null);
+	}
+
+	editPresence(index: number): void {
+		const presence = this.managedOrganization()?.presence[index];
+		if (!presence) return;
+		this.editingPresenceIndex.set(index);
+		this.presenceDraft.set({
+			scopeType: presence.scopeType,
+			scopeId: presence.scopeId ?? '',
+			presenceType: presence.presenceType,
+			availableSheetExternalIds: presence.availableSheetExternalIds?.join(', ') ?? '',
+		});
+		this.presenceEditorOpen.set(true);
+		this.editorMessage.set(null);
+	}
+
+	cancelPresenceEditor(): void {
+		this.editingPresenceIndex.set(null);
+		this.presenceEditorOpen.set(false);
+		this.presenceDraft.set(this.emptyPresenceDraft());
+	}
+
+	setPresenceScopeType(scopeType: CampaignWorldScopeType): void {
+		this.presenceDraft.update((draft) => ({ ...draft, scopeType, scopeId: '' }));
+	}
+
+	setPresenceScopeId(scopeId: string): void {
+		this.presenceDraft.update((draft) => ({ ...draft, scopeId }));
+	}
+
+	setPresenceType(presenceType: string): void {
+		this.presenceDraft.update((draft) => ({ ...draft, presenceType }));
+	}
+
+	setAvailableSheetExternalIds(value: string): void {
+		this.presenceDraft.update((draft) => ({ ...draft, availableSheetExternalIds: value }));
+	}
+
+	savePresence(): void {
+		const organizationId = this.managingOrganizationId();
+		const world = this.campaignWorld.world();
+		if (!organizationId || !world) return;
+		const draft = this.presenceDraft();
+		const presenceType = draft.presenceType.trim();
+		const availableSheetExternalIds = this.parseExternalIds(draft.availableSheetExternalIds);
+		if (!presenceType) {
+			this.editorMessage.set('Informe o tipo de presença.');
+			return;
+		}
+		if (draft.scopeType !== 'global' && !this.isValidPresenceScopeId(draft.scopeType, draft.scopeId)) {
+			this.editorMessage.set('Escolha uma localização válida para esta presença.');
+			return;
+		}
+		const presence: CampaignOrganizationPresence = {
+			scopeType: draft.scopeType,
+			...(draft.scopeType === 'global' ? {} : { scopeId: draft.scopeId }),
+			presenceType,
+			...(availableSheetExternalIds.length ? { availableSheetExternalIds } : {}),
+		};
+		const editingIndex = this.editingPresenceIndex();
+		const organization = world.organizations.find((item) => item.id === organizationId);
+		if (!organization) {
+			this.closePresenceManager();
+			return;
+		}
+		const isDuplicate = organization.presence.some(
+			(item, index) => index !== editingIndex && this.samePresence(item, presence),
+		);
+		if (isDuplicate) {
+			this.editorMessage.set('Esta presença já está cadastrada para a organização.');
+			return;
+		}
+		const next = structuredClone(world);
+		const nextOrganization = next.organizations.find((item) => item.id === organizationId)!;
+		if (editingIndex === null) nextOrganization.presence.push(presence);
+		else nextOrganization.presence[editingIndex] = presence;
+		this.campaignWorld.saveWorld(next);
+		this.cancelPresenceEditor();
+	}
+
+	removePresence(index: number): void {
+		const organizationId = this.managingOrganizationId();
+		const world = this.campaignWorld.world();
+		if (!organizationId || !world || !this.managedOrganization()?.presence[index]) return;
+		if (!confirm('Remover esta presença da organização?')) return;
+		const next = structuredClone(world);
+		const organization = next.organizations.find((item) => item.id === organizationId);
+		if (!organization) return;
+		organization.presence.splice(index, 1);
+		this.campaignWorld.saveWorld(next);
+		this.cancelPresenceEditor();
+	}
+
+	presenceScopeLabel(presence: CampaignOrganizationPresence): string {
+		if (presence.scopeType === 'global') return 'Global';
+		const location = this.campaignWorld.resolveLocation({
+			scopeType: presence.scopeType,
+			scopeId: presence.scopeId ?? '',
+		});
+		return location?.breadcrumb.join(' › ') ?? `${this.locationTypeLabel({
+			scopeType: presence.scopeType,
+			scopeId: presence.scopeId ?? '',
+		})} removido`;
 	}
 
 	onEditorNameChange(value: string): void {
@@ -219,6 +431,7 @@ export class WorldPage {
 
 	cancelEditor(): void {
 		this.editorType.set(null);
+		this.editingOrganizationId.set(null);
 	}
 
 	saveEditor(): void {
@@ -226,7 +439,8 @@ export class WorldPage {
 		const world = this.campaignWorld.world();
 		if (!type || !world || !this.editorName.trim()) return;
 		const next = structuredClone(world);
-		const id = this.newId(type);
+		const editingOrganizationId = this.editingOrganizationId();
+		const id = editingOrganizationId ?? this.newId(type);
 		this.commitAlias();
 		const aliases = this.editorAliases;
 		if (type === 'empire') next.empires.push({ id, name: this.editorName.trim(), aliases });
@@ -273,19 +487,62 @@ export class WorldPage {
 			});
 		}
 		if (type === 'organization') {
+			const existing = editingOrganizationId
+				? next.organizations.find((item) => item.id === editingOrganizationId)
+				: undefined;
+			if (editingOrganizationId && !existing) {
+				this.editorMessage.set('A organização que você está editando não existe mais.');
+				return;
+			}
+			const organizationType = this.editorTypeValue.trim();
+			if (!organizationType) {
+				this.editorMessage.set('Informe um tipo descritivo para a organização.');
+				return;
+			}
+			if (this.editorOrganizationScope !== 'campaign' && this.editorOrganizationScope !== 'regional') {
+				this.editorMessage.set('Organizações formais devem ter escopo de campanha ou regional.');
+				return;
+			}
 			const organization: CampaignOrganization = {
+				...existing,
 				id,
 				name: this.editorName.trim(),
 				aliases,
-				organizationType: this.editorTypeValue || 'group',
-				presence: [{ scopeType: 'global', presenceType: 'known' }],
+				organizationType,
+				scope: this.editorOrganizationScope,
+				presence: existing?.presence ?? [],
 			};
-			if (this.editorParentId && next.organizations.some((item) => item.id === this.editorParentId))
+			if (
+				this.editorParentId &&
+				this.editorParentId !== id &&
+				next.organizations.some((item) => item.id === this.editorParentId)
+			) {
 				organization.parentOrganizationId = this.editorParentId;
-			next.organizations.push(organization);
+			} else {
+				delete organization.parentOrganizationId;
+			}
+			if (existing) {
+				next.organizations = next.organizations.map((item) =>
+					item.id === id ? organization : item,
+				);
+			} else {
+				next.organizations.push(organization);
+			}
 		}
 		this.campaignWorld.saveWorld(next);
 		this.editorType.set(null);
+		this.editingOrganizationId.set(null);
+	}
+
+	toggleOrganizationArchived(id: string): void {
+		const world = this.campaignWorld.world();
+		if (!world) return;
+		const next = structuredClone(world);
+		const organization = next.organizations.find((item) => item.id === id);
+		if (!organization) return;
+		if (organization.archived) delete organization.archived;
+		else organization.archived = true;
+		this.campaignWorld.saveWorld(next);
 	}
 
 	deleteEntity(type: 'empire' | 'state' | 'settlement' | 'poi' | 'organization', id: string): void {
@@ -341,6 +598,36 @@ export class WorldPage {
 		return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)}`;
 	}
 
+	private emptyPresenceDraft(): OrganizationPresenceDraft {
+		return {
+			scopeType: 'global',
+			scopeId: '',
+			presenceType: 'global-network',
+			availableSheetExternalIds: '',
+		};
+	}
+
+	private parseExternalIds(value: string): string[] {
+		return [...new Set(value.split(',').map((entry) => entry.trim()).filter(Boolean))];
+	}
+
+	private isValidPresenceScopeId(scopeType: Exclude<CampaignWorldScopeType, 'global'>, scopeId: string): boolean {
+		if (scopeType === 'empire') return !!this.campaignWorld.getEmpire(scopeId);
+		if (scopeType === 'state') return !!this.campaignWorld.getState(scopeId);
+		return !!this.campaignWorld.getSettlement(scopeId);
+	}
+
+	private samePresence(
+		left: CampaignOrganizationPresence,
+		right: CampaignOrganizationPresence,
+	): boolean {
+		return (
+			left.scopeType === right.scopeType &&
+			(left.scopeId ?? '') === (right.scopeId ?? '') &&
+			left.presenceType.trim().toLocaleLowerCase() === right.presenceType.trim().toLocaleLowerCase()
+		);
+	}
+
 	private defaultParentId(type: WorldEditorType): string {
 		const location = this.selectedResolvedLocation();
 		if (!location) return '';
@@ -348,6 +635,19 @@ export class WorldPage {
 		if (type === 'settlement' && location.state) return location.state.id;
 		if (type === 'poi' && location.settlement) return location.settlement.id;
 		return '';
+	}
+
+	organizationScopeLabel(organization: CampaignOrganization): string {
+		return (
+			this.organizationScopeOptions.find(
+				(option) => option.value === this.campaignWorld.getOrganizationScope(organization),
+			)?.label ?? 'Regional'
+		);
+	}
+
+	private defaultOrganizationScope(): CampaignOrganizationScope {
+		const scopeType = this.selectedLocation()?.scopeType;
+		return scopeType === 'settlement' ? 'local' : scopeType ? 'regional' : 'campaign';
 	}
 
 	private setPartyLocation(ref: CampaignLocationRef): void {

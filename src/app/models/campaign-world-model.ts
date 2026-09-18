@@ -2,6 +2,7 @@ import type { CampaignCalendar, DeityId, Season } from './calendar-model';
 
 export type CampaignSettlementType = string;
 export type CampaignOrganizationType = string;
+export type CampaignOrganizationScope = 'campaign' | 'regional' | 'local';
 export type CampaignPointOfInterestType = string;
 export type CampaignWorldScopeType = 'global' | 'empire' | 'state' | 'settlement';
 export type CampaignLocationScope = Exclude<CampaignWorldScopeType, 'global'>;
@@ -26,12 +27,16 @@ export interface CampaignOrganizationPresence {
 	scopeType: CampaignWorldScopeType;
 	scopeId?: string;
 	presenceType: string;
+	availableSheetExternalIds?: string[];
 }
 
 export interface CampaignOrganization extends CampaignEmpire {
 	organizationType: CampaignOrganizationType;
+	/** Controls where the organization is managed in the World UI. */
+	scope?: CampaignOrganizationScope;
 	parentOrganizationId?: string;
 	presence: CampaignOrganizationPresence[];
+	archived?: boolean;
 }
 
 export interface CampaignPointOfInterest extends CampaignEmpire {
@@ -84,10 +89,13 @@ export interface CampaignPointOfInterestSearchResult {
 	breadcrumb: string[];
 }
 
-export interface RelevantCampaignOrganization {
+export interface DirectCampaignOrganization {
 	organization: CampaignOrganization;
 	directPresences: CampaignOrganizationPresence[];
-	broaderPresences: CampaignOrganizationPresence[];
+}
+
+export function isCampaignOrganizationEligible(organization: CampaignOrganization): boolean {
+	return organization.scope === 'campaign' || organization.scope === 'regional';
 }
 
 export const SETTLEMENT_TYPE_LABELS: Record<string, string> = {
@@ -129,8 +137,25 @@ export interface CampaignWorldValidationResult {
 	error?: string;
 }
 
+const ORGANIZATION_SCOPES: CampaignOrganizationScope[] = ['campaign', 'regional'];
+
+/** Older worlds did not classify organizations. Preserve them with a deterministic fallback. */
+export function resolveCampaignOrganizationScope(
+	organization: Pick<CampaignOrganization, 'scope' | 'presence'>,
+): CampaignOrganizationScope {
+	if (organization.scope) return organization.scope;
+	if (organization.presence.some((presence) => presence.scopeType === 'global')) return 'campaign';
+	const locationKeys = new Set(
+		organization.presence
+			.filter((presence) => presence.scopeType !== 'global')
+			.map((presence) => `${presence.scopeType}:${presence.scopeId ?? ''}`),
+	);
+	return locationKeys.size === 1 && organization.presence.every((presence) => presence.scopeType === 'settlement')
+		? 'local'
+		: 'regional';
+}
+
 const SETTLEMENT_TYPES: CampaignSettlementType[] = ['village', 'city', 'capital', 'other'];
-const ORGANIZATION_TYPES: CampaignOrganizationType[] = ['guild', 'group', 'cult', 'family'];
 const POINT_OF_INTEREST_TYPES: CampaignPointOfInterestType[] = [
 	'academy',
 	'district',
@@ -167,14 +192,17 @@ interface UnknownCampaignRecord {
 	settlementId?: unknown;
 	settlementType?: unknown;
 	organizationType?: unknown;
+	scope?: unknown;
 	poiType?: unknown;
 	summary?: unknown;
 	organizationIds?: unknown;
 	parentOrganizationId?: unknown;
 	presence?: unknown;
+	archived?: unknown;
 	scopeType?: unknown;
 	scopeId?: unknown;
 	presenceType?: unknown;
+	availableSheetExternalIds?: unknown;
 	daysPerSeason?: unknown;
 	seasons?: unknown;
 	epochDate?: unknown;
@@ -350,10 +378,12 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 		if (
 			error ||
 			!isRecord(organization) ||
-			!ORGANIZATION_TYPES.includes(organization.organizationType as CampaignOrganizationType) ||
+			!hasText(organization.organizationType) ||
 			!Array.isArray(organization.presence) ||
+			!ORGANIZATION_SCOPES.includes(organization.scope as CampaignOrganizationScope) ||
 			(organization.parentOrganizationId !== undefined &&
-				!hasText(organization.parentOrganizationId))
+				!hasText(organization.parentOrganizationId)) ||
+			(organization.archived !== undefined && typeof organization.archived !== 'boolean')
 		) {
 			return { valid: false, error: error ?? 'Organização possui campos inválidos.' };
 		}
@@ -363,7 +393,10 @@ export function validateCampaignWorld(raw: unknown): CampaignWorldValidationResu
 				!WORLD_SCOPE_TYPES.includes(presence.scopeType as CampaignWorldScopeType) ||
 				!hasText(presence.presenceType) ||
 				(presence.scopeId !== undefined && !hasText(presence.scopeId)) ||
-				(presence.scopeType !== 'global' && !hasText(presence.scopeId))
+				(presence.scopeType !== 'global' && !hasText(presence.scopeId)) ||
+				(presence.availableSheetExternalIds !== undefined &&
+					(!hasStringArray(presence.availableSheetExternalIds) ||
+						presence.availableSheetExternalIds.some((externalId) => !hasText(externalId))))
 			) {
 				return { valid: false, error: 'Presença de organização inválida.' };
 			}

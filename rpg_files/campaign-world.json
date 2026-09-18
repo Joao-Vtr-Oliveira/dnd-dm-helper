@@ -226,6 +226,7 @@
       "id": "winterhold",
       "name": "Winterhold",
       "organizationType": "guild",
+      "scope": "campaign",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Winterhold.md",
       "presence": [
@@ -240,6 +241,7 @@
       "id": "ladroes",
       "name": "Ladrões",
       "organizationType": "group",
+      "scope": "campaign",
       "aliases": ["Grupo dos Ladrões"],
       "sourcePath": "Guildas & Grupos/Ladrões.md",
       "presence": [
@@ -250,6 +252,7 @@
       "id": "asl",
       "name": "Adaga Sob Luar",
       "organizationType": "group",
+      "scope": "regional",
       "parentOrganizationId": "ladroes",
       "aliases": ["ASL"],
       "sourcePath": "Guildas & Grupos/Ladrões.md",
@@ -266,6 +269,7 @@
       "id": "odl",
       "name": "Olhos De Luna",
       "organizationType": "guild",
+      "scope": "campaign",
       "aliases": ["ODL"],
       "sourcePath": "Guildas & Grupos/Olhos De Luna (ODL).md",
       "presence": [
@@ -279,6 +283,7 @@
       "id": "mda",
       "name": "Mãos De Atronos",
       "organizationType": "guild",
+      "scope": "campaign",
       "aliases": ["MDA"],
       "sourcePath": "Guildas & Grupos/Mãos De Atronos (MDA).md",
       "presence": [
@@ -300,6 +305,7 @@
       "id": "pdb",
       "name": "Profusos De Batalha",
       "organizationType": "guild",
+      "scope": "campaign",
       "aliases": ["PDB"],
       "sourcePath": "Guildas & Grupos/Profusos De Batalha (PDB).md",
       "presence": [
@@ -318,6 +324,7 @@
       "id": "sda",
       "name": "Sindicado Dos Aventureiros",
       "organizationType": "guild",
+      "scope": "regional",
       "aliases": ["SDA"],
       "sourcePath": "Guildas & Grupos/Sindicado Dos Aventureiros (SDA).md",
       "presence": [
@@ -331,6 +338,7 @@
       "id": "idealistas",
       "name": "Idealistas",
       "organizationType": "guild",
+      "scope": "regional",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Idealistas.md",
       "presence": [
@@ -341,19 +349,10 @@
       ]
     },
     {
-      "id": "red-vortex",
-      "name": "Red Vortex",
-      "organizationType": "cult",
-      "aliases": ["RV"],
-      "sourcePath": "Guildas & Grupos/Red Vortex (RV).md",
-      "presence": [
-        { "scopeType": "global", "presenceType": "global-network" }
-      ]
-    },
-    {
       "id": "blue-pen",
       "name": "Blue Pen",
       "organizationType": "group",
+      "scope": "campaign",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Blue Pen.md",
       "presence": [
@@ -365,6 +364,7 @@
       "id": "carai-borracha",
       "name": "Carai Borracha",
       "organizationType": "group",
+      "scope": "campaign",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Carai Borracha.md",
       "presence": [
@@ -372,154 +372,31 @@
       ]
     },
     {
+      "id": "red-vortex",
+      "name": "Red Vortex",
+      "organizationType": "cult",
+      "scope": "campaign",
+      "aliases": [],
+      "sourcePath": "Guildas & Grupos/Red Vortex.md",
+      "presence": []
+    },
+    {
       "id": "daniels",
       "name": "Daniels",
       "organizationType": "family",
+      "scope": "campaign",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Daniels.md",
-      "presence": [
-        { "scopeType": "empire", "scopeId": "belem", "presenceType": "home" }
-      ]
+      "presence": []
     },
     {
       "id": "genya",
       "name": "Genya",
-      "organizationType": "family",
+      "organizationType": "group",
+      "scope": "campaign",
       "aliases": [],
       "sourcePath": "Guildas & Grupos/Genya.md",
-      "presence": [
-        { "scopeType": "empire", "scopeId": "komic", "presenceType": "home" }
-      ]
-    },
-    {
-      "id": "conselho-do-corte-de-nagawoods",
-      "name": "Conselho do Corte de Nagawoods",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "nagawoods", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "comunidade-dos-lotes-de-nirvak",
-      "name": "Comunidade dos Lotes de Nirvak",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "nirvak-city", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "conselho-dos-fornos-de-jukes",
-      "name": "Conselho dos Fornos de Jukes",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "jukes", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "mesa-dos-patios-de-pijas",
-      "name": "Mesa dos Pátios de Pijas",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "pijas", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "trabalhadores-dos-silos",
-      "name": "Trabalhadores dos Silos",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "plomos-city", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "companhia-do-braco-sul",
-      "name": "Companhia do Braço Sul",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "plomos-city", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "conselho-da-varzea",
-      "name": "Conselho da Várzea",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "vila-das-comportas", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "mesa-das-chamines",
-      "name": "Mesa das Chaminés",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "dortx-city", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "liga-dos-pesadores",
-      "name": "Liga dos Pesadores",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "dortx-city", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "vigias-dos-canais",
-      "name": "Vigias dos Canais",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "dortx-city", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "circulo-das-sete-ligas",
-      "name": "Círculo das Sete Ligas",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "forint", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "mesa-dos-turnos",
-      "name": "Mesa dos Turnos",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "treuz-forgs", "presenceType": "local-organization" }
-      ]
-    },
-    {
-      "id": "companhia-das-mares-seladas",
-      "name": "Companhia das Marés Seladas",
-      "organizationType": "group",
-      "aliases": [],
-      "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Guildas.md",
-      "presence": [
-        { "scopeType": "settlement", "scopeId": "coundham", "presenceType": "local-organization" }
-      ]
+      "presence": []
     }
   ],
   "pointsOfInterest": [
@@ -531,9 +408,9 @@
     { "id": "nagazav-praca-da-arvore-dos-balancos", "name": "Praça da Árvore dos Balanços", "settlementId": "nagazav-city", "poiType": "landmark", "aliases": [], "summary": "Praça central de Nagazav, organizada em torno de uma grande árvore com balanços.", "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Pontos de Interesse/Praça da Árvore dos Balanços.md" },
     { "id": "nagazav-loja-da-anita", "name": "Loja da Anita", "settlementId": "nagazav-city", "poiType": "shop", "aliases": [], "summary": "Loja-oficina independente de Anita com artesanato, reparos e itens mágicos limitados.", "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Pontos de Interesse/Loja da Anita.md", "organizationIds": ["mda"] },
     { "id": "nagazav-forja-da-praca", "name": "Forja da Praça", "settlementId": "nagazav-city", "poiType": "workshop", "aliases": [], "summary": "Forja familiar independente próxima à praça, voltada a ferramentas e reparos.", "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Guildas.md" },
-    { "id": "nagawoods-barracao-do-corte", "name": "Barracão do Corte", "settlementId": "nagawoods", "poiType": "organization", "aliases": [], "summary": "Barracão de trabalho e reunião onde o Conselho do Corte organiza a extração de madeira.", "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Vilas/Nagawoods/Pontos de Interesse/Barracão do Corte.md", "organizationIds": ["conselho-do-corte-de-nagawoods"] },
+     { "id": "nagawoods-barracao-do-corte", "name": "Barracão do Corte", "settlementId": "nagawoods", "poiType": "organization", "aliases": [], "summary": "Barracão de trabalho e reunião onde o Conselho do Corte organiza a extração de madeira.", "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Vilas/Nagawoods/Pontos de Interesse/Barracão do Corte.md" },
     { "id": "nagawoods-oficina-de-seu-chico", "name": "Oficina de Seu Chico", "settlementId": "nagawoods", "poiType": "workshop", "aliases": [], "summary": "Oficina residencial de marcenaria de Seu Chico e contato informal da MDA.", "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Guildas.md", "organizationIds": ["mda"] },
-    { "id": "nirvak-centro-comunitario-dos-lotes", "name": "Centro Comunitário dos Lotes", "settlementId": "nirvak-city", "poiType": "workshop", "aliases": [], "summary": "Centro comunitário de produção, estoque e coordenação das bebidas de Nirvak.", "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Pontos de Interesse/Centro Comunitário dos Lotes.md", "organizationIds": ["comunidade-dos-lotes-de-nirvak", "mda"] },
+     { "id": "nirvak-centro-comunitario-dos-lotes", "name": "Centro Comunitário dos Lotes", "settlementId": "nirvak-city", "poiType": "workshop", "aliases": [], "summary": "Centro comunitário de produção, estoque e coordenação das bebidas de Nirvak.", "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Pontos de Interesse/Centro Comunitário dos Lotes.md", "organizationIds": ["mda"] },
     { "id": "nirvak-botica-do-filtro-de-cobre", "name": "Botica do Filtro de Cobre", "settlementId": "nirvak-city", "poiType": "shop", "aliases": [], "summary": "Botica de poções controladas, tratamentos e análise de bebidas adulteradas.", "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Pontos de Interesse/Botica do Filtro de Cobre.md" },
     { "id": "jukes-oficina-da-marca-quente", "name": "Oficina da Marca Quente", "settlementId": "jukes", "poiType": "workshop", "aliases": [], "summary": "Oficina parceira da MDA para vidro, cerâmica, lacres e marcas de procedência.", "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Vilas/Jukes/Pontos de Interesse/Oficina da Marca Quente.md", "organizationIds": ["mda"] },
     { "id": "drek-praca-de-caca", "name": "Praça de Caça", "settlementId": "drek-city", "poiType": "market", "aliases": [], "summary": "Praça onde presas caçadas são pesadas, avaliadas e vendidas.", "sourcePath": "Mundo/Impérios/Mornk/4-Drek/Geografia e monstros.md" },
@@ -543,7 +420,7 @@
     { "id": "plomos-botica-dos-lotes", "name": "Botica dos Lotes", "settlementId": "plomos-city", "poiType": "shop", "aliases": [], "summary": "Botica de remédios, preparos de viagem e produtos de ervas de Fihero.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Botica dos Lotes.md" },
     { "id": "plomos-o-barril-torto", "name": "O Barril Torto", "settlementId": "plomos-city", "poiType": "tavern", "aliases": [], "summary": "Bar público e ponto conhecido de contato da ASL no Bairro Baixo.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/O Barril Torto.md", "organizationIds": ["asl"] },
     { "id": "plomos-cozinha-escola-do-fermento-dourado", "name": "Cozinha-Escola do Fermento Dourado", "settlementId": "plomos-city", "poiType": "academy", "aliases": [], "summary": "Cozinha, cervejaria e escola ligada à MDA para conservação e rações de viagem.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Cozinha-Escola do Fermento Dourado.md", "organizationIds": ["mda"] },
-    { "id": "plomos-cais-do-braco-sul", "name": "Cais do Braço Sul", "settlementId": "plomos-city", "poiType": "port", "aliases": [], "summary": "Complexo fluvial de passageiros e cargas entre carroças, barcaças e embarcações maiores.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Cais do Braço Sul.md", "organizationIds": ["companhia-do-braco-sul"] },
+     { "id": "plomos-cais-do-braco-sul", "name": "Cais do Braço Sul", "settlementId": "plomos-city", "poiType": "port", "aliases": [], "summary": "Complexo fluvial de passageiros e cargas entre carroças, barcaças e embarcações maiores.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Cais do Braço Sul.md" },
     { "id": "plomos-mercado-dos-mil-pesos", "name": "Mercado dos Mil Pesos", "settlementId": "plomos-city", "poiType": "market", "aliases": [], "summary": "Mercado central de Plomos e polo de comércio baseado em pesagem.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Mercado dos Mil Pesos.md" },
     { "id": "plomos-templo-da-praca-serena", "name": "Templo da Praça Serena", "settlementId": "plomos-city", "poiType": "temple", "aliases": [], "summary": "Templo público multirreligioso com ritos, abrigo breve e mediação voluntária.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Templo da Praça Serena.md", "organizationIds": ["idealistas"] },
     { "id": "plomos-dojo-do-passo-firme", "name": "Dojô do Passo Firme", "settlementId": "plomos-city", "poiType": "academy", "aliases": [], "summary": "Posto da PDB dedicado a armas de haste, formação e retirada organizada.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Dojô do Passo Firme.md", "organizationIds": ["pdb"] },
@@ -553,12 +430,12 @@
     { "id": "plomos-dojo-da-agua-baixa", "name": "Dojô da Água Baixa", "settlementId": "plomos-city", "poiType": "academy", "aliases": [], "summary": "Dojô ribeirinho da PDB para cordas, resgate e combate em barcos.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Dojô da Água Baixa.md", "organizationIds": ["pdb"] },
     { "id": "plomos-atelie-da-marca-inteira", "name": "Ateliê da Marca Inteira", "settlementId": "plomos-city", "poiType": "workshop", "aliases": [], "summary": "Oficina certificada pela MDA para tecidos técnicos e marcas de carga.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Ateliê da Marca Inteira.md", "organizationIds": ["mda"] },
     { "id": "plomos-forja-do-contrapeso", "name": "Forja do Contrapeso", "settlementId": "plomos-city", "poiType": "workshop", "aliases": [], "summary": "Forja independente certificada pela MDA para armas, ferramentas e ferragens.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Forja do Contrapeso.md", "organizationIds": ["mda"] },
-    { "id": "plomos-silos-da-balanca-real", "name": "Silos da Balança Real", "settlementId": "plomos-city", "poiType": "other", "aliases": [], "summary": "Complexo público de armazenamento de grãos e logística fiscal.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Silos da Balança Real.md", "organizationIds": ["trabalhadores-dos-silos"] },
+     { "id": "plomos-silos-da-balanca-real", "name": "Silos da Balança Real", "settlementId": "plomos-city", "poiType": "other", "aliases": [], "summary": "Complexo público de armazenamento de grãos e logística fiscal.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Silos da Balança Real.md" },
     { "id": "plomos-praca-da-balanca-e-salao-de-ezekiel", "name": "Praça da Balança e Salão de Ezekiel", "settlementId": "plomos-city", "poiType": "government", "aliases": [], "summary": "Praça cívica e salão administrativo da principal autoridade civil de Plomos.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Praça da Balança e Salão de Ezekiel.md" },
     { "id": "plomos-instituto-winterhold", "name": "Instituto Winterhold de Plomos", "settlementId": "plomos-city", "poiType": "academy", "aliases": ["Escola Winterhold"], "summary": "Escola urbana da Winterhold com biblioteca, pesquisa e suporte arcano.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Instituto Winterhold de Plomos.md", "organizationIds": ["winterhold"] },
     { "id": "fihero-moinho-das-tres-rodas", "name": "Moinho das Três Rodas", "settlementId": "fihero", "poiType": "workshop", "aliases": [], "summary": "Moinho de três rodas para moagem de grãos e reunião de produtores.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Fihero/Pontos de Interesse/Moinho das Três Rodas.md" },
     { "id": "fihero-entreposto-das-ervas", "name": "Entreposto das Ervas de Fihero", "settlementId": "fihero", "poiType": "workshop", "aliases": [], "summary": "Casa de seleção, secagem, classificação e embalagem de ervas.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Fihero/Pontos de Interesse/Entreposto das Ervas de Fihero.md", "organizationIds": ["mda"] },
-    { "id": "vila-das-comportas-casa-de-turnos", "name": "Casa de Turnos", "settlementId": "vila-das-comportas", "poiType": "organization", "aliases": [], "summary": "Sede comunitária para turnos de comportas e manutenção de canais.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Vila das Comportas/Vila das Comportas.md", "organizationIds": ["conselho-da-varzea"] },
+     { "id": "vila-das-comportas-casa-de-turnos", "name": "Casa de Turnos", "settlementId": "vila-das-comportas", "poiType": "organization", "aliases": [], "summary": "Sede comunitária para turnos de comportas e manutenção de canais.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Vila das Comportas/Vila das Comportas.md" },
     { "id": "vila-das-comportas-santuario-do-canal-vivo", "name": "Santuário do Canal Vivo", "settlementId": "vila-das-comportas", "poiType": "temple", "aliases": [], "summary": "Altar local à beira do canal, mantido pelos moradores.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Vila das Comportas/Vila das Comportas.md" },
     { "id": "porto-da-baixa-mar-trapiche", "name": "Trapiche da Baixa-mar", "settlementId": "porto-da-baixa-mar", "poiType": "port", "aliases": [], "summary": "Trapiche para passageiros, pesca e transferência de cargas leves.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Porto da Baixa-mar/Porto da Baixa-mar.md" },
     { "id": "porto-da-baixa-mar-casa-das-redes", "name": "Casa das Redes", "settlementId": "porto-da-baixa-mar", "poiType": "workshop", "aliases": [], "summary": "Oficina familiar independente para redes, cordas e reparos de velas.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Vilas/Porto da Baixa-mar/Porto da Baixa-mar.md", "organizationIds": ["mda"] },
@@ -575,7 +452,7 @@
     { "id": "dortx-bairro-do-fogo-frio", "name": "Bairro do Fogo Frio", "settlementId": "dortx-city", "poiType": "district", "aliases": [], "summary": "Bairro residencial de ferreiros, aprendizes e mineiros.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Geografia e monstros.md" },
     { "id": "dortx-colina-de-randy", "name": "Colina de Randy", "settlementId": "dortx-city", "poiType": "district", "aliases": [], "summary": "Distrito elevado dominado pela residência de Randy.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Geografia e monstros.md" },
     { "id": "dortx-margens-do-rio", "name": "Margens do Rio", "settlementId": "dortx-city", "poiType": "district", "aliases": [], "summary": "Distrito ribeirinho de armazéns, docas de pedra e oficinas movidas a água.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Geografia e monstros.md" },
-     { "id": "dortx-cinturao-de-forjas-e-fundicoes", "name": "Cinturão das Forjas e Fundições", "settlementId": "dortx-city", "poiType": "district", "aliases": ["Cinturão de Forjas e Fundições"], "summary": "Anel industrial extramuros de fundições e canais de resfriamento.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Cinturão das Forjas e Fundições.md", "organizationIds": ["mesa-das-chamines"] },
+      { "id": "dortx-cinturao-de-forjas-e-fundicoes", "name": "Cinturão das Forjas e Fundições", "settlementId": "dortx-city", "poiType": "district", "aliases": ["Cinturão de Forjas e Fundições"], "summary": "Anel industrial extramuros de fundições e canais de resfriamento.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Cinturão das Forjas e Fundições.md" },
      { "id": "dortx-ember-scar", "name": "Ember Scar", "settlementId": "dortx-city", "poiType": "shop", "aliases": [], "summary": "Grande loja-forja de Bruce e Tania no Distrito da Bigorna.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Ember Scar.md" },
     { "id": "dortx-mansao-casa-de-randy", "name": "Mansão-Casa de Randy", "settlementId": "dortx-city", "poiType": "residence", "aliases": ["Casa de Randy"], "summary": "Mansão de Randy com jardins, campo de duelos e salão de recepção.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Geografia e monstros.md" },
     { "id": "forint-gruta-da-forja-silenciosa", "name": "Gruta da Forja Silenciosa", "settlementId": "forint", "poiType": "natural", "aliases": ["Caverna de Forint"], "summary": "Antiga forja subterrânea e caverna de extração próxima a Forint.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Vilas/Forint/Forint.md" },
@@ -609,8 +486,8 @@
      { "id": "ilha-yotus-cais-privado", "name": "Cais Privado da Ilha Yotus", "settlementId": "ilha-yotus", "poiType": "port", "aliases": [], "summary": "Acesso privado à Ilha Yotus, controlado pela propriedade de Draven.", "sourcePath": "Mundo/Impérios/Mornk/1-Yotus/Vilas/Ilha Yotus/Pontos de Interesse/Cais Privado da Ilha Yotus.md" },
      { "id": "nagazav-santuario-da-gota-serena", "name": "Santuário da Gota Serena", "settlementId": "nagazav-city", "poiType": "temple", "aliases": [], "summary": "Santuário rural com água, abrigo e ritos de passagem na rota para Nirvak.", "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Pontos de Interesse/Santuário da Gota Serena.md", "organizationIds": ["idealistas"] },
      { "id": "nagazav-posto-do-marco-oeste", "name": "Posto do Marco Oeste", "settlementId": "nagazav-city", "poiType": "academy", "aliases": [], "summary": "Pequeno posto rotativo da PDB para treinamento, escolta e resposta na estrada oeste.", "sourcePath": "Mundo/Impérios/Mornk/2-Nagazav/Pontos de Interesse/Posto do Marco Oeste.md", "organizationIds": ["pdb"] },
-     { "id": "nirvak-mesa-dos-patios-de-pijas", "name": "Mesa dos Pátios de Pijas", "settlementId": "pijas", "poiType": "organization", "aliases": [], "summary": "Grupo de carroceiros e conferentes que organiza cargas, animais e rotas em Pijas.", "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Vilas/Pijas/Pontos de Interesse/Mesa dos Pátios de Pijas.md", "organizationIds": ["mesa-dos-patios-de-pijas"] },
-     { "id": "nirvak-conselho-dos-fornos-de-jukes", "name": "Conselho dos Fornos de Jukes", "settlementId": "jukes", "poiType": "organization", "aliases": [], "summary": "Associação de trabalhadores que organiza turnos, segurança e manutenção dos fornos.", "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Vilas/Jukes/Pontos de Interesse/Conselho dos Fornos de Jukes.md", "organizationIds": ["conselho-dos-fornos-de-jukes"] },
+      { "id": "nirvak-mesa-dos-patios-de-pijas", "name": "Mesa dos Pátios de Pijas", "settlementId": "pijas", "poiType": "organization", "aliases": [], "summary": "Grupo de carroceiros e conferentes que organiza cargas, animais e rotas em Pijas.", "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Vilas/Pijas/Pontos de Interesse/Mesa dos Pátios de Pijas.md" },
+      { "id": "nirvak-conselho-dos-fornos-de-jukes", "name": "Conselho dos Fornos de Jukes", "settlementId": "jukes", "poiType": "organization", "aliases": [], "summary": "Associação de trabalhadores que organiza turnos, segurança e manutenção dos fornos.", "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Vilas/Jukes/Pontos de Interesse/Conselho dos Fornos de Jukes.md" },
      { "id": "nirvak-escola-da-linha-das-copas", "name": "Escola da Linha das Copas", "settlementId": "nirvak-city", "poiType": "academy", "aliases": [], "summary": "Escola da PDB para combate florestal, rastreamento e resposta na fronteira com Komic.", "sourcePath": "Mundo/Impérios/Mornk/3-Nirvak/Pontos de Interesse/Escola da Linha das Copas.md", "organizationIds": ["pdb"] },
      { "id": "drek-casa-do-aproveitamento-integral", "name": "Casa do Aproveitamento Integral", "settlementId": "drek-city", "poiType": "workshop", "aliases": [], "summary": "Posto da MDA para processamento seguro de carcaças, carne, ossos, peles e outros materiais de caça.", "sourcePath": "Mundo/Impérios/Mornk/4-Drek/Pontos de Interesse/Casa do Aproveitamento Integral.md", "organizationIds": ["mda"] },
      { "id": "drek-posto-do-escudo-circular", "name": "Posto do Escudo Circular", "settlementId": "drek-city", "poiType": "academy", "aliases": [], "summary": "Posto urbano da PDB dedicado à defesa das muralhas e à proteção de civis.", "sourcePath": "Mundo/Impérios/Mornk/4-Drek/Pontos de Interesse/Posto do Escudo Circular.md", "organizationIds": ["pdb"] },
@@ -628,14 +505,14 @@
      { "id": "plomos-marco-da-estrada-leste", "name": "Marco da Estrada Leste", "settlementId": "plomos-city", "poiType": "other", "aliases": [], "summary": "Ponto de rota com abrigo, avisos e reparos entre Plomos, Fihero e Nirvak.", "sourcePath": "Mundo/Impérios/Mornk/6-Plomos/Pontos de Interesse/Marco da Estrada Leste.md", "organizationIds": ["sda"] },
      { "id": "dortx-dojo-do-fio-vivo", "name": "Dojô do Fio Vivo", "settlementId": "dortx-city", "poiType": "academy", "aliases": [], "summary": "Centro da PDB para combate mágico, construtos, elementais e armas encantadas fora de controle.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Dojô do Fio Vivo.md", "organizationIds": ["pdb"] },
      { "id": "dortx-dojo-do-punho-de-basalto", "name": "Dojô do Punho de Basalto", "settlementId": "dortx-city", "poiType": "academy", "aliases": [], "summary": "Centro da PDB para monges, combate desarmado, mobilidade e contenção.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Dojô do Punho de Basalto.md", "organizationIds": ["pdb"] },
-     { "id": "dortx-entreposto-das-veias-frias", "name": "Entreposto das Veias Frias", "settlementId": "dortx-city", "poiType": "workshop", "aliases": [], "summary": "Entreposto de pesagem, ensaio, procedência e negociação de minério.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Entreposto das Veias Frias.md", "organizationIds": ["liga-dos-pesadores"] },
-     { "id": "dortx-casa-das-aguas-de-tempera", "name": "Casa das Águas de Têmpera", "settlementId": "dortx-city", "poiType": "other", "aliases": [], "summary": "Infraestrutura de comportas, canais, rodas d’água e reservatórios das forjas de Dortx.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Casa das Águas de Têmpera.md", "organizationIds": ["vigias-dos-canais"] },
+      { "id": "dortx-entreposto-das-veias-frias", "name": "Entreposto das Veias Frias", "settlementId": "dortx-city", "poiType": "workshop", "aliases": [], "summary": "Entreposto de pesagem, ensaio, procedência e negociação de minério.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Entreposto das Veias Frias.md" },
+      { "id": "dortx-casa-das-aguas-de-tempera", "name": "Casa das Águas de Têmpera", "settlementId": "dortx-city", "poiType": "other", "aliases": [], "summary": "Infraestrutura de comportas, canais, rodas d’água e reservatórios das forjas de Dortx.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Casa das Águas de Têmpera.md" },
      { "id": "dortx-dojo-dos-passos-brancos", "name": "Dojô dos Passos Brancos", "settlementId": "dortx-city", "poiType": "academy", "aliases": [], "summary": "Grande centro da PDB para rangers, montanha, taiga, rastreamento e resposta a monstros.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Dojô dos Passos Brancos.md", "organizationIds": ["pdb"] },
      { "id": "dortx-posto-das-fontes-profundas", "name": "Posto das Fontes Profundas", "settlementId": "dortx-city", "poiType": "academy", "aliases": [], "summary": "Posto regional da Winterhold para pesquisa arcana e custódia restrita de fenômenos e materiais.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Pontos de Interesse/Posto das Fontes Profundas.md", "organizationIds": ["winterhold"] },
-     { "id": "forint-casa-das-pequenas-ligas", "name": "Casa das Pequenas Ligas de Forint", "settlementId": "forint", "poiType": "workshop", "aliases": [], "summary": "Casa de ferraria leve que organiza famílias locais e produz peças pequenas para Mornk.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Vilas/Forint/Pontos de Interesse/Casa das Pequenas Ligas de Forint.md", "organizationIds": ["circulo-das-sete-ligas"] },
+      { "id": "forint-casa-das-pequenas-ligas", "name": "Casa das Pequenas Ligas de Forint", "settlementId": "forint", "poiType": "workshop", "aliases": [], "summary": "Casa de ferraria leve que organiza famílias locais e produz peças pequenas para Mornk.", "sourcePath": "Mundo/Impérios/Mornk/8-Dortx/Vilas/Forint/Pontos de Interesse/Casa das Pequenas Ligas de Forint.md" },
      { "id": "treuz-posto-da-corda-tensa", "name": "Posto da Corda Tensa", "settlementId": "treuz-forgs", "poiType": "academy", "aliases": [], "summary": "Posto da PDB dedicado a resgate e segurança nas minas e nas Veias Antigas.", "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Vilas/Treuz Forgs/Pontos de Interesse/Posto da Corda Tensa.md", "organizationIds": ["pdb"] },
      { "id": "treuz-bancada-da-liga-clara", "name": "Bancada da Liga Clara", "settlementId": "treuz-forgs", "poiType": "workshop", "aliases": [], "summary": "Bancada técnica da MDA para ensaio de ligas e segurança de materiais.", "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Vilas/Treuz Forgs/Pontos de Interesse/Bancada da Liga Clara.md", "organizationIds": ["mda"] },
-     { "id": "treuz-mesa-dos-turnos", "name": "Mesa dos Turnos", "settlementId": "treuz-forgs", "poiType": "organization", "aliases": [], "summary": "Grupo de trabalhadores que organiza turnos, ferramentas e resposta a acidentes nas forjas.", "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Vilas/Treuz Forgs/Pontos de Interesse/Mesa dos Turnos.md", "organizationIds": ["mesa-dos-turnos"] },
+      { "id": "treuz-mesa-dos-turnos", "name": "Mesa dos Turnos", "settlementId": "treuz-forgs", "poiType": "organization", "aliases": [], "summary": "Grupo de trabalhadores que organiza turnos, ferramentas e resposta a acidentes nas forjas.", "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Vilas/Treuz Forgs/Pontos de Interesse/Mesa dos Turnos.md" },
      { "id": "treuz-patio-da-cinza-util", "name": "Pátio da Cinza Útil", "settlementId": "treuz-city", "poiType": "workshop", "aliases": [], "summary": "Pátio independente de reaproveitamento e descarte de escória de mineração.", "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Pontos de Interesse/Pátio da Cinza Útil.md" },
      { "id": "treuz-sala-dos-ecos-de-pedra", "name": "Sala dos Ecos de Pedra", "settlementId": "treuz-city", "poiType": "academy", "aliases": [], "summary": "Filial da Winterhold para pesquisa mineral aplicada na capital de Treuz.", "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Pontos de Interesse/Sala dos Ecos de Pedra.md", "organizationIds": ["winterhold"] },
      { "id": "treuz-dojo-do-folego-branco", "name": "Dojô do Fôlego Branco", "settlementId": "treuz-city", "poiType": "academy", "aliases": [], "summary": "Centro da PDB para combate e deslocamento em neve, taiga e passes de montanha.", "sourcePath": "Mundo/Impérios/Mornk/9-Treuz/Pontos de Interesse/Dojô do Fôlego Branco.md", "organizationIds": ["pdb"] },
@@ -660,6 +537,6 @@
      { "id": "greenfalls-camara-do-lote-profundo", "name": "Câmara do Lote Profundo", "settlementId": "greenfalls", "poiType": "other", "aliases": [], "summary": "Câmara de conferência, procedência, armazenamento e segurança de lotes valiosos.", "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Vilas/Greenfalls/Pontos de Interesse/Câmara do Lote Profundo.md" },
      { "id": "greenfalls-patio-das-chaves-pesadas", "name": "Pátio das Chaves Pesadas", "settlementId": "greenfalls", "poiType": "workshop", "aliases": [], "summary": "Pátio de trabalhadores, turnos, ferramentas e memória de acidentes dos armazéns.", "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Vilas/Greenfalls/Pontos de Interesse/Pátio das Chaves Pesadas.md" },
      { "id": "waterrow-oficina-do-selo-vivo", "name": "Oficina do Selo Vivo", "settlementId": "waterrow", "poiType": "workshop", "aliases": [], "summary": "Oficina técnica de avaliação de moedas, matrizes, selos e documentos.", "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Vilas/Waterrow/Pontos de Interesse/Oficina do Selo Vivo.md" },
-     { "id": "coundham-companhia-das-mares-seladas", "name": "Companhia das Marés Seladas", "settlementId": "coundham", "poiType": "organization", "aliases": [], "summary": "Companhia local de documentação, transferência e reparos de carga no porto de Coundham.", "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Vilas/Coundham/Pontos de Interesse/Companhia das Marés Seladas.md", "organizationIds": ["companhia-das-mares-seladas"] }
+      { "id": "coundham-companhia-das-mares-seladas", "name": "Companhia das Marés Seladas", "settlementId": "coundham", "poiType": "organization", "aliases": [], "summary": "Companhia local de documentação, transferência e reparos de carga no porto de Coundham.", "sourcePath": "Mundo/Impérios/Mornk/10-Khaer Morn/Vilas/Coundham/Pontos de Interesse/Companhia das Marés Seladas.md" }
   ]
 }

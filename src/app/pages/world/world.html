@@ -167,24 +167,36 @@
 							[(ngModel)]="editorParentId"
 						>
 							<option value="">Nenhuma</option>
-							@for (
-								organization of campaignWorld.world()?.organizations ?? [];
-								track organization.id
-							) {
+							@for (organization of organizationParentOptions(); track organization.id) {
 								<option [value]="organization.id">{{ organization.name }}</option>
 							}
 						</select></label
 					><label class="text-sm font-semibold"
-						>Tipo<select class="app-field mt-2 w-full" [(ngModel)]="editorTypeValue">
-							@for (option of organizationTypeOptions; track option.value) {
+						>Tipo<input
+							class="app-field mt-2 w-full"
+							[(ngModel)]="editorTypeValue"
+							list="campaign-organization-types"
+							placeholder="guild, group, cult..."
+						/><datalist id="campaign-organization-types">
+							@for (option of organizationTypeOptions(); track option.value) {
 								<option [value]="option.value">{{ option.label }}</option>
 							}
-						</select></label
+						</datalist></label
+					>
+					<label class="text-sm font-semibold"
+						>Escopo<select class="app-field mt-2 w-full" [(ngModel)]="editorOrganizationScope">
+							@for (option of organizationScopeOptions; track option.value) {
+								<option [value]="option.value">{{ option.label }}</option>
+							}
+						</select>
+						<p class="mt-1 text-xs font-normal text-app-muted">
+							Define onde a organização aparece na navegação do mundo.
+						</p></label
 					>
 				}
 				<div class="sm:col-span-2 flex flex-wrap gap-2">
 					<button type="button" class="app-button app-button-primary" (click)="saveEditor()">
-						Salvar {{ type }}</button
+						{{ editingOrganizationId() ? 'Salvar alterações' : 'Salvar ' + type }}</button
 					><button type="button" class="app-button app-button-secondary" (click)="cancelEditor()">
 						Cancelar
 					</button>
@@ -361,9 +373,9 @@
 								<button
 									type="button"
 									class="rounded px-1 py-0.5 hover:text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
-									(click)="selectBreadcrumb('state', location.state!.id)"
-								>
-									{{ location.state!.name }}
+												(click)="selectBreadcrumb('state', location.state!.id)"
+											>
+												{{ locationLabel({ scopeType: 'state', scopeId: location.state!.id }) }}
 								</button>
 								<span>›</span>
 								<span class="px-1 py-0.5 text-white">{{ location.settlement!.name }}</span>
@@ -456,6 +468,255 @@
 							<p class="mt-4 text-sm text-white/55">Nenhum império catalogado ainda.</p>
 						}
 					</div>
+
+					<section class="mt-8">
+						<div class="flex flex-wrap items-end justify-between gap-3">
+							<div>
+								<h2 class="text-xl font-semibold">Organizações da campanha</h2>
+								<p class="mt-1 text-sm text-white/60">
+									O catálogo reúne identidades coletivas de qualquer escopo; presenças locais continuam vinculadas à mesma organização.
+								</p>
+							</div>
+							<button
+								type="button"
+								class="app-button app-button-secondary text-sm"
+								(click)="openEditor('organization')"
+							>
+								+ Organização
+							</button>
+						</div>
+
+						@if (campaignOrganizations().length) {
+							<div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+								@for (organization of campaignOrganizations(); track organization.id) {
+									<article class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+										<div class="flex items-start justify-between gap-3">
+											<div class="min-w-0">
+												<h3 class="break-words font-semibold text-white">{{ organization.name }}</h3>
+										<div class="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-fuchsia-100/70">
+											{{ organization.organizationType }} · {{ organizationScopeLabel(organization) }}
+												</div>
+											</div>
+											<span class="app-status border border-emerald-400/30 bg-emerald-500/15 text-emerald-100">
+												Ativa
+											</span>
+										</div>
+										@if (organization.parentOrganizationId) {
+											<p class="mt-2 text-xs text-white/55">Organização pai configurada</p>
+										}
+										<div class="mt-4 flex flex-wrap gap-2">
+											<button
+												type="button"
+												class="app-button app-button-secondary text-sm"
+												(click)="openPresenceManager(organization.id)"
+											>
+												Presenças ({{ organization.presence.length }})
+											</button>
+											<button
+												type="button"
+												class="app-button app-button-secondary text-sm"
+												(click)="openOrganizationEditor(organization)"
+											>
+												Editar
+											</button>
+											<button
+												type="button"
+												class="app-button app-button-secondary text-sm"
+												(click)="toggleOrganizationArchived(organization.id)"
+											>
+												Arquivar
+											</button>
+										</div>
+									</article>
+								}
+							</div>
+						} @else {
+							<p class="mt-4 text-sm text-white/55">Nenhuma organização de campanha catalogada ainda.</p>
+						}
+
+						@if (archivedCampaignOrganizations().length) {
+							<div class="mt-6">
+								<h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-white/55">
+									Arquivadas
+								</h3>
+								<div class="mt-3 divide-y divide-white/10 border-y border-white/10">
+									@for (organization of archivedCampaignOrganizations(); track organization.id) {
+										<div class="flex flex-wrap items-center justify-between gap-3 py-3">
+											<div>
+												<div class="font-semibold text-white/75">{{ organization.name }}</div>
+												<div class="mt-1 text-xs text-white/50">{{ organization.organizationType }}</div>
+											</div>
+											<div class="flex flex-wrap gap-2">
+												<button
+													type="button"
+													class="app-button app-button-secondary text-sm"
+													(click)="openPresenceManager(organization.id)"
+												>
+													Presenças ({{ organization.presence.length }})
+												</button>
+												<button
+													type="button"
+													class="app-button app-button-secondary text-sm"
+													(click)="openOrganizationEditor(organization)"
+												>
+													Editar
+												</button>
+												<button
+													type="button"
+													class="app-button app-button-secondary text-sm"
+													(click)="toggleOrganizationArchived(organization.id)"
+												>
+													Restaurar
+												</button>
+											</div>
+										</div>
+									}
+								</div>
+							</div>
+						}
+
+						@if (managedOrganization(); as organization) {
+							<div
+								class="fixed inset-0 z-[var(--z-app-modal)] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+								(click)="closePresenceManager()"
+							>
+								<section
+									role="dialog"
+									aria-modal="true"
+									aria-labelledby="organization-presences-title"
+									[appDialogFocus]="true"
+									(appDialogEscape)="closePresenceManager()"
+									class="app-dialog max-h-[calc(100vh-1.5rem)] w-full max-w-3xl overflow-auto p-4 sm:max-h-[90vh] sm:p-5"
+									(click)="$event.stopPropagation()"
+								>
+								<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+									<div>
+										<div class="app-eyebrow">Presenças da organização</div>
+										<h3 id="organization-presences-title" class="mt-1 text-xl font-semibold text-white">
+											{{ organization.name }}
+										</h3>
+										<p class="mt-1 text-sm text-white/60">
+											Uma presença registra onde a organização atua. Ela não posiciona membros automaticamente.
+										</p>
+									</div>
+									<div class="flex flex-wrap gap-2">
+										@if (!presenceEditorOpen()) {
+											<button
+												type="button"
+												class="app-button app-button-secondary text-sm"
+												(click)="openPresenceEditor()"
+											>
+												+ Presença
+											</button>
+										}
+										<button
+											type="button"
+											class="app-button app-button-secondary text-sm"
+											(click)="closePresenceManager()"
+										>
+											Fechar
+										</button>
+									</div>
+								</div>
+
+								@if (presenceEditorOpen()) {
+									<div class="mt-5 grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
+										<label class="text-sm font-semibold"
+											>Escopo<select
+												class="app-field mt-2 w-full"
+												[ngModel]="presenceDraft().scopeType"
+												(ngModelChange)="setPresenceScopeType($any($event))"
+											>
+												@for (option of presenceScopeTypeOptions; track option.value) {
+													<option [value]="option.value">{{ option.label }}</option>
+												}
+											</select></label
+										>
+										<label class="text-sm font-semibold"
+											>Tipo de presença<input
+												class="app-field mt-2 w-full"
+												list="organization-presence-type-suggestions"
+												[ngModel]="presenceDraft().presenceType"
+												(ngModelChange)="setPresenceType($event)"
+												placeholder="Ex.: headquarters ou post"
+											/>
+											<datalist id="organization-presence-type-suggestions">
+												@for (typeSuggestion of presenceTypeSuggestions; track typeSuggestion) {
+													<option [value]="typeSuggestion"></option>
+												}
+											</datalist></label
+										>
+										@if (presenceDraft().scopeType !== 'global') {
+											<label class="sm:col-span-2 text-sm font-semibold"
+												>Localização<select
+													class="app-field mt-2 w-full"
+													[ngModel]="presenceDraft().scopeId"
+													(ngModelChange)="setPresenceScopeId($event)"
+												>
+													<option value="">Selecione</option>
+													@for (option of presenceScopeOptions(); track option.value) {
+														<option [value]="option.value">{{ option.label }}</option>
+													}
+												</select></label
+											>
+										}
+										<label class="sm:col-span-2 text-sm font-semibold"
+											>Fichas disponíveis na composição (externalId)<input
+												class="app-field mt-2 w-full"
+												[ngModel]="presenceDraft().availableSheetExternalIds"
+												(ngModelChange)="setAvailableSheetExternalIds($event)"
+												placeholder="Opcional; separado por vírgulas"
+											/>
+										</label>
+										<div class="sm:col-span-2 flex flex-wrap gap-2">
+											<button type="button" class="app-button app-button-primary" (click)="savePresence()">
+												{{ editingPresenceIndex() === null ? 'Salvar presença' : 'Salvar alterações' }}
+											</button>
+											<button
+												type="button"
+												class="app-button app-button-secondary"
+												(click)="cancelPresenceEditor()"
+											>
+												Cancelar
+											</button>
+										</div>
+									</div>
+								}
+
+								@if (organization.presence.length) {
+									<div class="mt-5 divide-y divide-white/10 border-y border-white/10">
+										@for (presence of organization.presence; track $index; let index = $index) {
+											<div class="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+												<div>
+													<div class="font-semibold text-white">{{ presence.presenceType }}</div>
+													<div class="mt-1 text-sm text-white/60">{{ presenceScopeLabel(presence) }}</div>
+												</div>
+												<div class="flex flex-wrap gap-2">
+													<button
+														type="button"
+														class="app-button app-button-secondary text-sm"
+														(click)="editPresence(index)"
+													>
+														Editar
+													</button>
+													<button
+														type="button"
+														class="app-button app-button-danger text-sm"
+														(click)="removePresence(index)"
+													>
+														Remover
+													</button>
+												</div>
+											</div>
+										}
+									</div>
+								} @else {
+									<p class="mt-5 text-sm text-white/55">Nenhuma presença cadastrada ainda.</p>
+								}
+								</section>
+							</div>
+						}
+					</section>
 				} @else if (selectedResolvedLocation(); as location) {
 					@if (location.ref.scopeType === 'empire') {
 						<div class="mt-6">
@@ -471,7 +732,7 @@
 											class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-fuchsia-300/40 hover:bg-violet-500/10 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
 											(click)="selectLocation({ scopeType: 'state', scopeId: state.id })"
 										>
-											<div class="font-semibold text-white">{{ state.name }}</div>
+											<div class="font-semibold text-white">{{ locationLabel({ scopeType: 'state', scopeId: state.id }) }}</div>
 											<div class="mt-2 text-sm text-white/55">
 												{{ campaignWorld.getSettlementsByState(state.id).length }} localidades
 											</div>
@@ -500,7 +761,7 @@
 											class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-fuchsia-300/40 hover:bg-violet-500/10 focus:outline-none focus:ring-2 focus:ring-fuchsia-300/60"
 											(click)="selectLocation({ scopeType: 'settlement', scopeId: settlement.id })"
 										>
-											<div class="font-semibold text-white">{{ settlement.name }}</div>
+											<div class="font-semibold text-white">{{ locationLabel({ scopeType: 'settlement', scopeId: settlement.id }) }}</div>
 											<div class="mt-2 text-sm text-white/55">
 												{{ settlementTypeLabels[settlement.settlementType] }} ·
 												{{ campaignWorld.getPointsOfInterestBySettlement(settlement.id).length }}
