@@ -36,6 +36,10 @@ import {
 	type HomebrewSheetStatusFilter,
 } from '../../models/homebrew-sheet-filter';
 import {
+	presentHomebrewSheet,
+	type HomebrewSheetPresentation,
+} from '../../models/homebrew-sheet-presentation-model';
+import {
 	HomebrewSheetImportService,
 	type HomebrewSheetConflictResolution,
 	type HomebrewSheetImportPreview,
@@ -83,6 +87,7 @@ export class HomebrewSheets {
 	q = signal('');
 
 	categoryFilter = signal<FilterAll<HomebrewCategory>>('all');
+	challengeRatingFilter = signal<FilterAll<string>>('all');
 	tagFilter = signal<FilterAll<string>>('all');
 	sourceFilter = signal<FilterAll<string>>('all');
 	statusFilter = signal<HomebrewSheetStatusFilter>('active');
@@ -122,6 +127,7 @@ export class HomebrewSheets {
 		() =>
 			!!this.q().trim() ||
 			this.categoryFilter() !== 'all' ||
+			this.challengeRatingFilter() !== 'all' ||
 			this.tagFilter() !== 'all' ||
 			this.sourceFilter() !== 'all' ||
 			this.statusFilter() !== 'active' ||
@@ -132,6 +138,32 @@ export class HomebrewSheets {
 			this.settlementFilter() !== 'all' ||
 			this.organizationFilter() !== 'all',
 	);
+
+	readonly sheetPresentations = computed(
+		() => new Map(this.sheets().map((sheet) => [sheet.id, presentHomebrewSheet(sheet, this.campaignWorld.world())])),
+	);
+
+	readonly challengeRatingOptions = computed(() => {
+		const ratings = new Set<string>();
+		for (const sheet of this.sheets()) {
+			const rating = sheet.data.challengeRating?.trim();
+			if (rating) ratings.add(rating);
+		}
+		return [
+			'all',
+			...Array.from(ratings).sort((left, right) => {
+				const leftNumber = Number(left);
+				const rightNumber = Number(right);
+				return Number.isFinite(leftNumber) && Number.isFinite(rightNumber)
+					? leftNumber - rightNumber
+					: left.localeCompare(right, undefined, { numeric: true });
+			}),
+		];
+	});
+
+	homebrewSheetPresentation(sheet: SavedSheetInterface): HomebrewSheetPresentation {
+		return this.sheetPresentations().get(sheet.id) ?? presentHomebrewSheet(sheet, this.campaignWorld.world());
+	}
 
 	@HostListener('document:keydown.escape')
 	onEscape() {
@@ -475,6 +507,7 @@ export class HomebrewSheets {
 	clearFilters() {
 		this.q.set('');
 		this.categoryFilter.set('all');
+		this.challengeRatingFilter.set('all');
 		this.tagFilter.set('all');
 		this.sourceFilter.set('all');
 		this.statusFilter.set('active');
@@ -516,6 +549,7 @@ export class HomebrewSheets {
 		return filterHomebrewSheets(this.sheets(), {
 			query: this.q(),
 			category: this.categoryFilter(),
+			challengeRating: this.challengeRatingFilter(),
 			tag: this.tagFilter(),
 			source: this.sourceFilter(),
 			status: this.statusFilter(),

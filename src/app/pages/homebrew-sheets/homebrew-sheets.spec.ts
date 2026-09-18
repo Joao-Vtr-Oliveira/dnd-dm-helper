@@ -54,6 +54,73 @@ describe('HomebrewSheets', () => {
 		expect(component.viewerSheet()).toBeNull();
 	});
 
+	it('shows campaign metadata and ficha details in the library row', () => {
+		component.campaignWorld.world.set({
+			empires: [{ id: 'mornk', name: 'Mornk', aliases: [] }],
+			states: [{ id: 'feng', name: 'Feng', aliases: [], empireId: 'mornk' }],
+			settlements: [{ id: 'feng-city', name: 'Feng City', aliases: [], stateId: 'feng', settlementType: 'city' }],
+			organizations: [
+				{
+					id: 'winterhold',
+					name: 'Winterhold',
+					aliases: [],
+					organizationType: 'guild',
+					scope: 'campaign',
+					presence: [],
+				},
+			],
+			pointsOfInterest: [],
+		} as never);
+		const storage = TestBed.inject(LocalStorageService);
+		const formal = storage.createSheet({
+			title: 'Wen Torger',
+			category: 'npc',
+			classes: ['warlock'],
+			locationRefs: [{ scopeType: 'settlement', scopeId: 'feng-city', relation: 'base' }],
+			organizationRefs: [{ organizationId: 'winterhold', relation: 'member' }],
+			data: {
+				name: 'Wen Torger',
+				challengeRating: '4',
+				creatureType: 'humanoid',
+				armorClass: 14,
+				maxHp: 32,
+				features: [{ id: 'hex', name: 'Hex', kind: 'trait' }],
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+			},
+		});
+		const legacy = storage.createSheet({
+			title: 'Legacy scout',
+			category: 'npc',
+			data: {
+				name: 'Legacy scout',
+				groups: ['Old Winterhold'],
+				armorClass: 12,
+				maxHp: 10,
+				features: [],
+				spellSlots: [],
+				spells: [],
+				specialAbilities: [],
+			},
+		});
+		component.sheets.set([formal, legacy]);
+		fixture.detectChanges();
+
+		expect(fixture.nativeElement.textContent).toContain('NPC');
+		expect(fixture.nativeElement.textContent).toContain('CR 4');
+		expect(fixture.nativeElement.textContent).toContain('Humanoid');
+		expect(fixture.nativeElement.textContent).toContain('Warlock');
+		expect(fixture.nativeElement.textContent).toContain('Winterhold');
+		expect(fixture.nativeElement.textContent).toContain('Mornk › Feng › Feng City');
+		expect(fixture.nativeElement.textContent).toContain('Grupo legado: Old Winterhold');
+		expect(component.homebrewSheetPresentation(formal).formalOrganizations).toEqual(['Winterhold']);
+
+	component.challengeRatingFilter.set('4');
+	fixture.detectChanges();
+	 expect(component.filtered().map((sheet) => sheet.id)).toEqual([formal.id]);
+	});
+
 	it('opens Quick Spell View when a referenced spell is selected in the viewer', async () => {
 		const storage = TestBed.inject(LocalStorageService);
 		const sheet = storage.createSheet({
@@ -177,6 +244,7 @@ describe('HomebrewSheets', () => {
 		expect(component.settlementFilter()).toBe('settlement');
 		component.clearFilters();
 		expect(component.statusFilter()).toBe('active');
+		expect(component.challengeRatingFilter()).toBe('all');
 		expect(component.empireFilter()).toBe('all');
 		expect(component.stateFilter()).toBe('all');
 		expect(component.settlementFilter()).toBe('all');
