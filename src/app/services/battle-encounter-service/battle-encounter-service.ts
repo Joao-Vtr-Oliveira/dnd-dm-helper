@@ -2582,7 +2582,8 @@ export class BattleEncounterService {
 		const nextCombatantInitiative =
 			nextCombatantIndex >= 0 ? battle.combatants[nextCombatantIndex].initiative : null;
 		const firstEligibleTurnIndex = this.findFirstEligibleTurnIndex(battle.combatants, battle.round);
-		const atRoundStart = currentTurnIndex <= firstEligibleTurnIndex;
+		const atRoundStart =
+			currentSpecialTurn != null && currentTurnIndex <= firstEligibleTurnIndex;
 		const roundWillAdvance =
 			nextCombatantIndex < 0 || (currentTurnIndex >= 0 && nextCombatantIndex <= currentTurnIndex);
 		const candidates: BattleSpecialTurn[] = [

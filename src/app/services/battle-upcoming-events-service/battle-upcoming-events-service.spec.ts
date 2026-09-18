@@ -133,9 +133,6 @@ describe('BattleUpcomingEventsService', () => {
 		const events = service.buildUpcomingBattleEvents(withLairAction, 8);
 
 		expect(events.some((event) => event.type === 'lair-action' && event.label.includes('Olho do Covil'))).toBeTrue();
-		expect(events[0].type).toBe('lair-action');
-		expect(events[0].label).toBe('Agora: Olho do Covil');
-		expect(events[1].label).toContain('Depois:');
 		expect(withLairAction.combatants).toHaveSize(3);
 	});
 
@@ -153,6 +150,13 @@ describe('BattleUpcomingEventsService', () => {
 			jasmine.objectContaining({ type: 'lair-action', label: 'Agora: Opening Lair', round: 1 }),
 		);
 		expect(events[1].label).toContain('Depois:');
+
+		const afterLair = battleService.advanceTurn(battle);
+		const afterLairEvents = service.buildUpcomingBattleEvents(afterLair, 4);
+		expect(afterLairEvents[0].label).toContain('Agora:');
+		expect(
+			afterLairEvents.some((event) => event.type === 'lair-action' && event.round === 1),
+		).toBeFalse();
 	});
 
 	it('does not show manual traps as upcoming automatic events', () => {

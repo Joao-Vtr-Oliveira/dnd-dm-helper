@@ -508,7 +508,7 @@ export class BattleUpcomingEventsService {
 
 		if (action.lastTriggeredAtRound === battle.round) return battle.round + 1;
 		if (currentInitiative == null) return battle.round + 1;
-		return action.initiative >= currentInitiative ? battle.round : battle.round + 1;
+		return action.initiative < currentInitiative ? battle.round : battle.round + 1;
 	}
 
 	private getNextTrapRound(
@@ -527,7 +527,7 @@ export class BattleUpcomingEventsService {
 		if (trap.triggerType === 'initiative') {
 			if (trap.lastTriggeredAtRound === battle.round) return battle.round + 1;
 			if (currentInitiative == null || trap.initiative == null) return battle.round + 1;
-			return trap.initiative >= currentInitiative ? battle.round : battle.round + 1;
+			return trap.initiative < currentInitiative ? battle.round : battle.round + 1;
 		}
 
 		return null;
